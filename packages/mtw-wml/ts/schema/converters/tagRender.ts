@@ -19,6 +19,14 @@ type TagRenderProperty = {
     value: boolean;
 }
 
+const indentFollowingLines = (value: string): string => {
+    const lines = value.split('\n')
+    return [
+        lines[0],
+        ...lines.slice(1).map((line) => (line.trim() ? `${indentSpacing(1)}${line}` : line))
+    ].join('\n')
+}
+
 export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | undefined => {
     const contextTagRaw = context.reduce<SchemaTag["tag"] | undefined>((previous, item) => {
         const tag = item.tag
@@ -120,8 +128,10 @@ export const tagRenderContents = (
         }
         else {
             const newOptions = { ...options, siblings: previous.siblings }
+            const schemaDescription = schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })
+            const returnValue = collapse(wordWrapCombine(options.indent)(previous.returnValue, schemaDescription), { indent: options.indent })
             return {
-                returnValue: [collapse(wordWrapCombine(options.indent)(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })), { indent: options.indent })],
+                returnValue: [returnValue],
                 siblings: tagPrintGroup.reduce<GenericTree<SchemaTag>>((accumulator, tagPrint) => {
                     if (tagPrint.type === 'adjacentGroup') {
                         return [...accumulator, ...tagPrint.tags]
@@ -157,11 +167,11 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
             case 'boolean':
                 return property.value ? `${escapeWMLCharacters(property.key)}` : ''
             case 'expression':
-                return property.value ? `${propertyKeyLead}{${property.value}}` : ''
+                return property.value ? `${propertyKeyLead}{${indentFollowingLines(property.value)}}` : ''
             case 'key':
-                return property.value ? `${propertyKeyLead}(${escapeWMLCharacters(property.value)})` : ''
+                return property.value ? `${propertyKeyLead}(${escapeWMLCharacters(indentFollowingLines(property.value))})` : ''
             case 'literal':
-                return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(property.value)}"` : ''
+                return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(indentFollowingLines(property.value))}"` : ''
         }
     }).filter((value) => (value))
 

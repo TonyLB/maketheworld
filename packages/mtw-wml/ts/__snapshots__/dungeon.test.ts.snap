@@ -2549,18 +2549,18 @@ Object {
         "data": Object {
           "key": "closeTrapDoor",
           "src": "
-            me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
-            trapDoorOpen = false
-        ",
+me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
+trapDoorOpen = false
+",
           "tag": "Action",
         },
       },
     ],
     "key": "closeTrapDoor",
     "src": "
-            me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
-            trapDoorOpen = false
-        ",
+me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
+trapDoorOpen = false
+",
     "tag": "Action",
   },
   "columns": Object {
@@ -6955,30 +6955,30 @@ Object {
         "data": Object {
           "key": "lowerLeftArm",
           "src": "
-            if (determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueLeftArm = false
-            }
-        ",
+if (determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueLeftArm = false
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "lowerLeftArm",
     "src": "
-            if (determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueLeftArm = false
-            }
-        ",
+if (determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueLeftArm = false
+}
+",
     "tag": "Action",
   },
   "lowerRightArm": Object {
@@ -6995,30 +6995,30 @@ Object {
         "data": Object {
           "key": "lowerRightArm",
           "src": "
-            if (determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueRightArm = false
-            }
-        ",
+if (determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueRightArm = false
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "lowerRightArm",
     "src": "
-            if (determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueRightArm = false
-            }
-        ",
+if (determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueRightArm = false
+}
+",
     "tag": "Action",
   },
   "lowerRobedStatueHead": Object {
@@ -7035,26 +7035,26 @@ Object {
         "data": Object {
           "key": "lowerRobedStatueHead",
           "src": "
-            if (robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
-                well.message(\`The stream of water pouring out of the well slows down.\`)
-                fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                robedStatueActive = false
-            }
-        ",
+if (robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
+    well.message(\`The stream of water pouring out of the well slows down.\`)
+    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    robedStatueActive = false
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "lowerRobedStatueHead",
     "src": "
-            if (robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
-                well.message(\`The stream of water pouring out of the well slows down.\`)
-                fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                robedStatueActive = false
-            }
-        ",
+if (robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
+    well.message(\`The stream of water pouring out of the well slows down.\`)
+    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    robedStatueActive = false
+}
+",
     "tag": "Action",
   },
   "nests": Object {
@@ -7928,30 +7928,30 @@ Object {
         "data": Object {
           "key": "raiseLeftArm",
           "src": "
-            if (!determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueLeftArm = true
-            }
-        ",
+if (!determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueLeftArm = true
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "raiseLeftArm",
     "src": "
-            if (!determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueLeftArm = true
-            }
-        ",
+if (!determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueLeftArm = true
+}
+",
     "tag": "Action",
   },
   "raiseRightArm": Object {
@@ -7968,30 +7968,30 @@ Object {
         "data": Object {
           "key": "raiseRightArm",
           "src": "
-            if (!determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueRightArm = true
-            }
-        ",
+if (!determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueRightArm = true
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "raiseRightArm",
     "src": "
-            if (!determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueRightArm = true
-            }
-        ",
+if (!determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueRightArm = true
+}
+",
     "tag": "Action",
   },
   "raiseRobedStatueHead": Object {
@@ -8008,26 +8008,26 @@ Object {
         "data": Object {
           "key": "raiseRobedStatueHead",
           "src": "
-            if (!robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
-                well.message(\`The stream of water pouring out of the well speeds up.\`)
-                fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                robedStatueActive = true
-            }
-        ",
+if (!robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
+    well.message(\`The stream of water pouring out of the well speeds up.\`)
+    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    robedStatueActive = true
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "raiseRobedStatueHead",
     "src": "
-            if (!robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
-                well.message(\`The stream of water pouring out of the well speeds up.\`)
-                fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                robedStatueActive = true
-            }
-        ",
+if (!robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
+    well.message(\`The stream of water pouring out of the well speeds up.\`)
+    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    robedStatueActive = true
+}
+",
     "tag": "Action",
   },
   "robedStatue": Object {
@@ -8444,44 +8444,44 @@ Object {
         "data": Object {
           "key": "shakeFruitTrees",
           "src": "
-            me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
-            if (birdsInOrchard) {
-                here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
-            }
-            else {
-                if (catsInOrchard) {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
-                }
-                else {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
-                    const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-                    otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
-                    birdsInOrchard = true
-                }
-            }
-        ",
+me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
+if (birdsInOrchard) {
+    here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
+}
+else {
+    if (catsInOrchard) {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
+    }
+    else {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
+        const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+        otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
+        birdsInOrchard = true
+    }
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "shakeFruitTrees",
     "src": "
-            me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
-            if (birdsInOrchard) {
-                here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
-            }
-            else {
-                if (catsInOrchard) {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
-                }
-                else {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
-                    const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-                    otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
-                    birdsInOrchard = true
-                }
-            }
-        ",
+me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
+if (birdsInOrchard) {
+    here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
+}
+else {
+    if (catsInOrchard) {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
+    }
+    else {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
+        const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+        otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
+        birdsInOrchard = true
+    }
+}
+",
     "tag": "Action",
   },
   "sing": Object {
@@ -8498,40 +8498,40 @@ Object {
         "data": Object {
           "key": "sing",
           "src": "
-            me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
-            const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
-            switch(glowingColumns) {
-                case 1:
-                    here.message('The trap door rattles.')
-                    break
-                case 2:
-                    here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
-                    trapDoorOpen = true
-                    break
-                default:
-                    here.message('The trap door buzzes slightly.')
-            }
-        ",
+me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
+const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
+switch(glowingColumns) {
+    case 1:
+        here.message('The trap door rattles.')
+        break
+    case 2:
+        here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
+        trapDoorOpen = true
+        break
+    default:
+        here.message('The trap door buzzes slightly.')
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "sing",
     "src": "
-            me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
-            const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
-            switch(glowingColumns) {
-                case 1:
-                    here.message('The trap door rattles.')
-                    break
-                case 2:
-                    here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
-                    trapDoorOpen = true
-                    break
-                default:
-                    here.message('The trap door buzzes slightly.')
-            }
-        ",
+me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
+const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
+switch(glowingColumns) {
+    case 1:
+        here.message('The trap door rattles.')
+        break
+    case 2:
+        here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
+        trapDoorOpen = true
+        break
+    default:
+        here.message('The trap door buzzes slightly.')
+}
+",
     "tag": "Action",
   },
   "singingColumn": Object {
@@ -9158,102 +9158,102 @@ Object {
         "data": Object {
           "key": "toggleBellowsRunning",
           "src": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (bellowsRunning) {
-                me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
-                if (hearthActive) {
-                    here.message('The flames in the hearth die, and the noise of its low purr fades.')
-                    purrFades.show()
-                    hearthActive = false
-                }
-                else {
-                    here.message('The loud hiss of air passing through the hearth fades.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                }
-                bellowsRunning = false
-            }
-            else if (hearthPrimed) {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (bellowsRunning) {
+    me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
+    if (hearthActive) {
+        here.message('The flames in the hearth die, and the noise of its low purr fades.')
+        purrFades.show()
+        hearthActive = false
+    }
+    else {
+        here.message('The loud hiss of air passing through the hearth fades.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
-                allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
-                if (catsInOrchard && (waterLevel < 4)) {
-                    orchard.message('The cats flee the hissing, running down the passage to the east.')
-                    fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                }
-                if (birdsInOrchard) {
-                    orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
-                    birdsFade.show()
-                    birdsInOrchard = false
-                }
-                bellowsRunning = true
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+    }
+    bellowsRunning = false
+}
+else if (hearthPrimed) {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+}
+else {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
+    allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
+    if (catsInOrchard && (waterLevel < 4)) {
+        orchard.message('The cats flee the hissing, running down the passage to the east.')
+        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+    }
+    if (birdsInOrchard) {
+        orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
+        birdsFade.show()
+        birdsInOrchard = false
+    }
+    bellowsRunning = true
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "toggleBellowsRunning",
     "src": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (bellowsRunning) {
-                me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
-                if (hearthActive) {
-                    here.message('The flames in the hearth die, and the noise of its low purr fades.')
-                    purrFades.show()
-                    hearthActive = false
-                }
-                else {
-                    here.message('The loud hiss of air passing through the hearth fades.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                }
-                bellowsRunning = false
-            }
-            else if (hearthPrimed) {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (bellowsRunning) {
+    me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
+    if (hearthActive) {
+        here.message('The flames in the hearth die, and the noise of its low purr fades.')
+        purrFades.show()
+        hearthActive = false
+    }
+    else {
+        here.message('The loud hiss of air passing through the hearth fades.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
-                allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
-                if (catsInOrchard && (waterLevel < 4)) {
-                    orchard.message('The cats flee the hissing, running down the passage to the east.')
-                    fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                }
-                if (birdsInOrchard) {
-                    orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
-                    birdsFade.show()
-                    birdsInOrchard = false
-                }
-                bellowsRunning = true
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+    }
+    bellowsRunning = false
+}
+else if (hearthPrimed) {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+}
+else {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
+    allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
+    if (catsInOrchard && (waterLevel < 4)) {
+        orchard.message('The cats flee the hissing, running down the passage to the east.')
+        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+    }
+    if (birdsInOrchard) {
+        orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
+        birdsFade.show()
+        birdsInOrchard = false
+    }
+    bellowsRunning = true
+}
+",
     "tag": "Action",
   },
   "toggleGratingBlocked": Object {
@@ -9270,52 +9270,52 @@ Object {
         "data": Object {
           "key": "toggleGratingBlocked",
           "src": "
-            if (gratingBlocked) {
-                me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
-                if (waterLevel >= 4) {
-                    here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
-                }
-                else if (waterLevel >= 2) {
-                    here.message('The pooled water slowly pours away through the grate.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
-                if (waterLevel >= 2) {
-                    here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
-                }
-                else {
-                    here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
-                }
-            }
-            gratingBlocked = !gratingBlocked
-        ",
+if (gratingBlocked) {
+    me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
+    if (waterLevel >= 4) {
+        here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
+    }
+    else if (waterLevel >= 2) {
+        here.message('The pooled water slowly pours away through the grate.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
+    if (waterLevel >= 2) {
+        here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
+    }
+    else {
+        here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
+    }
+}
+gratingBlocked = !gratingBlocked
+",
           "tag": "Action",
         },
       },
     ],
     "key": "toggleGratingBlocked",
     "src": "
-            if (gratingBlocked) {
-                me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
-                if (waterLevel >= 4) {
-                    here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
-                }
-                else if (waterLevel >= 2) {
-                    here.message('The pooled water slowly pours away through the grate.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
-                if (waterLevel >= 2) {
-                    here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
-                }
-                else {
-                    here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
-                }
-            }
-            gratingBlocked = !gratingBlocked
-        ",
+if (gratingBlocked) {
+    me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
+    if (waterLevel >= 4) {
+        here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
+    }
+    else if (waterLevel >= 2) {
+        here.message('The pooled water slowly pours away through the grate.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
+    if (waterLevel >= 2) {
+        here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
+    }
+    else {
+        here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
+    }
+}
+gratingBlocked = !gratingBlocked
+",
     "tag": "Action",
   },
   "toggleHearthPrimed": Object {
@@ -9332,106 +9332,106 @@ Object {
         "data": Object {
           "key": "toggleHearthPrimed",
           "src": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (hearthPrimed) {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
-                if (hearthActive) {
-                    here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
-                    allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
-                    if (catsInOrchard && (waterLevel < 4)) {
-                        orchard.message('The cats flee the hissing, running down the passage to the east.')
-                        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                        catsInOrchard = false
-                    }
-                    else {
-                        fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
-                    }
-                    hearthActive = false
-                }
-                hearthPrimed = false
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (hearthPrimed) {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
+    if (hearthActive) {
+        here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
+        allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
+        if (catsInOrchard && (waterLevel < 4)) {
+            orchard.message('The cats flee the hissing, running down the passage to the east.')
+            fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+            catsInOrchard = false
+        }
+        else {
+            fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
+        }
+        hearthActive = false
+    }
+    hearthPrimed = false
+}
+else {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
+    hearthPrimed = true
+    if (bellowsRunning) {
+        here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
-                hearthPrimed = true
-                if (bellowsRunning) {
-                    here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                    else {
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
-                    }
-                    hearthActive = true
-                }
-                else {
-                    here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
-                }
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+        else {
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
+        }
+        hearthActive = true
+    }
+    else {
+        here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
+    }
+}
+",
           "tag": "Action",
         },
       },
     ],
     "key": "toggleHearthPrimed",
     "src": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (hearthPrimed) {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
-                if (hearthActive) {
-                    here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
-                    allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
-                    if (catsInOrchard && (waterLevel < 4)) {
-                        orchard.message('The cats flee the hissing, running down the passage to the east.')
-                        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                        catsInOrchard = false
-                    }
-                    else {
-                        fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
-                    }
-                    hearthActive = false
-                }
-                hearthPrimed = false
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (hearthPrimed) {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
+    if (hearthActive) {
+        here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
+        allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
+        if (catsInOrchard && (waterLevel < 4)) {
+            orchard.message('The cats flee the hissing, running down the passage to the east.')
+            fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+            catsInOrchard = false
+        }
+        else {
+            fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
+        }
+        hearthActive = false
+    }
+    hearthPrimed = false
+}
+else {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
+    hearthPrimed = true
+    if (bellowsRunning) {
+        here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
-                hearthPrimed = true
-                if (bellowsRunning) {
-                    here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                    else {
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
-                    }
-                    hearthActive = true
-                }
-                else {
-                    here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
-                }
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+        else {
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
+        }
+        hearthActive = true
+    }
+    else {
+        here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
+    }
+}
+",
     "tag": "Action",
   },
   "trapDoor": Object {
@@ -9645,44 +9645,44 @@ Object {
         "data": Object {
           "key": "turnDeterminedHead",
           "src": "
-            if (determinedStatueHead) {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-            }
-            determinedStatueHead = !determinedStatueHead
-        ",
+if (determinedStatueHead) {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+}
+determinedStatueHead = !determinedStatueHead
+",
           "tag": "Action",
         },
       },
     ],
     "key": "turnDeterminedHead",
     "src": "
-            if (determinedStatueHead) {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-            }
-            determinedStatueHead = !determinedStatueHead
-        ",
+if (determinedStatueHead) {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+}
+determinedStatueHead = !determinedStatueHead
+",
     "tag": "Action",
   },
   "waterDescription": Object {
@@ -11706,13 +11706,13 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (!robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
-                well.message(\`The stream of water pouring out of the well speeds up.\`)
-                fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                robedStatueActive = true
-            }
-        ",
+if (!robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.\`)
+    well.message(\`The stream of water pouring out of the well speeds up.\`)
+    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    robedStatueActive = true
+}
+",
       },
     ],
     "tag": "Action",
@@ -11729,13 +11729,13 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (robedStatueActive) {
-                me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
-                well.message(\`The stream of water pouring out of the well slows down.\`)
-                fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                robedStatueActive = false
-            }
-        ",
+if (robedStatueActive) {
+    me.narrate(\`\${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.\`)
+    well.message(\`The stream of water pouring out of the well slows down.\`)
+    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    robedStatueActive = false
+}
+",
       },
     ],
     "tag": "Action",
@@ -12259,15 +12259,15 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (!determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueLeftArm = true
-            }
-        ",
+if (!determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it up and forward.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueLeftArm = true
+}
+",
       },
     ],
     "tag": "Action",
@@ -12284,15 +12284,15 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (determinedStatueLeftArm) {
-                me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
-                if (determinedStatueRightArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueLeftArm = false
-            }
-        ",
+if (determinedStatueLeftArm) {
+    me.narrate(\`\${me.Name} grasps the left arm of the striding statue and rotates it down and back.\`)
+    if (determinedStatueRightArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueLeftArm = false
+}
+",
       },
     ],
     "tag": "Action",
@@ -12325,15 +12325,15 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (!determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-                determinedStatueRightArm = true
-            }
-        ",
+if (!determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it up and forward.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+    determinedStatueRightArm = true
+}
+",
       },
     ],
     "tag": "Action",
@@ -12350,15 +12350,15 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (determinedStatueRightArm) {
-                me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
-                if (determinedStatueLeftArm && determinedStatueHead) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-                determinedStatueRightArm = false
-            }
-        ",
+if (determinedStatueRightArm) {
+    me.narrate(\`\${me.Name} grasps the right arm of the striding statue, rotates it down and back.\`)
+    if (determinedStatueLeftArm && determinedStatueHead) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+    determinedStatueRightArm = false
+}
+",
       },
     ],
     "tag": "Action",
@@ -12391,22 +12391,22 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (determinedStatueHead) {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well slows down.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
-                if (determinedStatueLeftArm && determinedStatueRightArm) {
-                    well.message(\`The stream of water pouring out of the well speeds up.\`)
-                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
-                }
-            }
-            determinedStatueHead = !determinedStatueHead
-        ",
+if (determinedStatueHead) {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well slows down.\`)
+        fireCatGrotto.message('The stream of water pouring into the room slows down.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} grasps the head of the striding statue and rotates it to face forward.\`)
+    if (determinedStatueLeftArm && determinedStatueRightArm) {
+        well.message(\`The stream of water pouring out of the well speeds up.\`)
+        fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+    }
+}
+determinedStatueHead = !determinedStatueHead
+",
       },
     ],
     "tag": "Action",
@@ -13338,26 +13338,26 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            if (gratingBlocked) {
-                me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
-                if (waterLevel >= 4) {
-                    here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
-                }
-                else if (waterLevel >= 2) {
-                    here.message('The pooled water slowly pours away through the grate.')
-                }
-            }
-            else {
-                me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
-                if (waterLevel >= 2) {
-                    here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
-                }
-                else {
-                    here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
-                }
-            }
-            gratingBlocked = !gratingBlocked
-        ",
+if (gratingBlocked) {
+    me.narrate(\`\${me.Name} moves the rocks off of the grating, making it easier for water to flow through.\`)
+    if (waterLevel >= 4) {
+        here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
+    }
+    else if (waterLevel >= 2) {
+        here.message('The pooled water slowly pours away through the grate.')
+    }
+}
+else {
+    me.narrate(\`\${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.\`)
+    if (waterLevel >= 2) {
+        here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
+    }
+    else {
+        here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
+    }
+}
+gratingBlocked = !gratingBlocked
+",
       },
     ],
     "tag": "Action",
@@ -14542,51 +14542,51 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (bellowsRunning) {
-                me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
-                if (hearthActive) {
-                    here.message('The flames in the hearth die, and the noise of its low purr fades.')
-                    purrFades.show()
-                    hearthActive = false
-                }
-                else {
-                    here.message('The loud hiss of air passing through the hearth fades.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                }
-                bellowsRunning = false
-            }
-            else if (hearthPrimed) {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (bellowsRunning) {
+    me.narrate(\`\${me.Name} grips the handled wheel and slows it to a stop.\`)
+    if (hearthActive) {
+        here.message('The flames in the hearth die, and the noise of its low purr fades.')
+        purrFades.show()
+        hearthActive = false
+    }
+    else {
+        here.message('The loud hiss of air passing through the hearth fades.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
-                allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
-                if (catsInOrchard && (waterLevel < 4)) {
-                    orchard.message('The cats flee the hissing, running down the passage to the east.')
-                    fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                }
-                if (birdsInOrchard) {
-                    orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
-                    birdsFade.show()
-                    birdsInOrchard = false
-                }
-                bellowsRunning = true
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+    }
+    bellowsRunning = false
+}
+else if (hearthPrimed) {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.\`)
+}
+else {
+    me.narrate(\`\${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.\`)
+    allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
+    if (catsInOrchard && (waterLevel < 4)) {
+        orchard.message('The cats flee the hissing, running down the passage to the east.')
+        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+    }
+    if (birdsInOrchard) {
+        orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
+        birdsFade.show()
+        birdsInOrchard = false
+    }
+    bellowsRunning = true
+}
+",
       },
     ],
     "tag": "Action",
@@ -14603,53 +14603,53 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-            if (hearthPrimed) {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
-                if (hearthActive) {
-                    here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
-                    allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
-                    if (catsInOrchard && (waterLevel < 4)) {
-                        orchard.message('The cats flee the hissing, running down the passage to the east.')
-                        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
-                        catsInOrchard = false
-                    }
-                    else {
-                        fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
-                    }
-                    hearthActive = false
-                }
-                hearthPrimed = false
+const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+if (hearthPrimed) {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.\`)
+    if (hearthActive) {
+        here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
+        allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
+        if (catsInOrchard && (waterLevel < 4)) {
+            orchard.message('The cats flee the hissing, running down the passage to the east.')
+            fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+            catsInOrchard = false
+        }
+        else {
+            fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
+        }
+        hearthActive = false
+    }
+    hearthPrimed = false
+}
+else {
+    me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
+    hearthPrimed = true
+    if (bellowsRunning) {
+        here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
+        allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
+        if (waterLevel < 4) {
+            if (birdsInOrchard) {
+                orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                birdsInOrchard = false
             }
             else {
-                me.narrate(\`\${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.\`)
-                hearthPrimed = true
-                if (bellowsRunning) {
-                    here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
-                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
-                    if (waterLevel < 4) {
-                        if (birdsInOrchard) {
-                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
-                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
-                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
-                            birdsInOrchard = false
-                        }
-                        else {
-                            orchard.message('Cats come running in from the passage to the east.')
-                        }
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
-                        catsInOrchard = true
-                    }
-                    else {
-                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
-                    }
-                    hearthActive = true
-                }
-                else {
-                    here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
-                }
+                orchard.message('Cats come running in from the passage to the east.')
             }
-        ",
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
+            catsInOrchard = true
+        }
+        else {
+            fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
+        }
+        hearthActive = true
+    }
+    else {
+        here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
+    }
+}
+",
       },
     ],
     "tag": "Action",
@@ -15583,22 +15583,22 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
-            if (birdsInOrchard) {
-                here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
-            }
-            else {
-                if (catsInOrchard) {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
-                }
-                else {
-                    here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
-                    const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
-                    otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
-                    birdsInOrchard = true
-                }
-            }
-        ",
+me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
+if (birdsInOrchard) {
+    here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
+}
+else {
+    if (catsInOrchard) {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
+    }
+    else {
+        here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
+        const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+        otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
+        birdsInOrchard = true
+    }
+}
+",
       },
     ],
     "tag": "Action",
@@ -15695,9 +15695,9 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
-            trapDoorOpen = false
-        ",
+me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
+trapDoorOpen = false
+",
       },
     ],
     "tag": "Action",
@@ -16042,20 +16042,20 @@ Array [
         "key": "src",
         "type": 2,
         "value": "
-            me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
-            const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
-            switch(glowingColumns) {
-                case 1:
-                    here.message('The trap door rattles.')
-                    break
-                case 2:
-                    here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
-                    trapDoorOpen = true
-                    break
-                default:
-                    here.message('The trap door buzzes slightly.')
-            }
-        ",
+me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
+const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
+switch(glowingColumns) {
+    case 1:
+        here.message('The trap door rattles.')
+        break
+    case 2:
+        here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
+        trapDoorOpen = true
+        break
+    default:
+        here.message('The trap door buzzes slightly.')
+}
+",
       },
     ],
     "tag": "Action",

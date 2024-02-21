@@ -119,7 +119,7 @@ const combineFactory = (
                 case PrintMode.propertyNested:
                     return {
                         ...previous,
-                        propertNested: [...previous.propertyNested, printResult]
+                        propertyNested: [...previous.propertyNested, printResult]
                     }
             }
         }, { naive: [], nested: [], propertyNested: [] })

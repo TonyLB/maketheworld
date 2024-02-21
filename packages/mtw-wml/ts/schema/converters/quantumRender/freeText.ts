@@ -22,7 +22,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tagGroups
         if (tagGroup.type === 'singleFreeText') {
             const singleItem: PrintMapResult[] = schemaToWML({ tag: tagGroup.tag, options: { ...options, siblings: previous.siblings }, schemaToWML, optionsFactory })
             return {
-                returnValue: [collapse(wordWrapCombine(options.indent)(...(previous.returnValue.length ? [previous.returnValue] : []), singleItem))],
+                returnValue: [collapse(wordWrapCombine(options.indent)(...(previous.returnValue.length ? [previous.returnValue] : []), singleItem), { indent: options.indent })],
                 siblings: [...previous.siblings, tagGroup.tag]
             }
         }
@@ -33,7 +33,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tagGroups
             }), { aggregate: [] , siblings: previous.siblings })
             const returnWaveform = wordWrapCombine(options.indent)(...(previous.returnValue.length ? [previous.returnValue] : []), ...aggregate)
             return {
-                returnValue: [collapse(returnWaveform)],
+                returnValue: [collapse(returnWaveform, { indent: options.indent })],
                 siblings
             }            
         }
