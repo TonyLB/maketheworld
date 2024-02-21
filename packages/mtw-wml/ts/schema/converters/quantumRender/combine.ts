@@ -307,4 +307,10 @@ const wrapperCombineFactoryAggregator = (combineTransform: CombineTransform, ...
 
 export const wrapperCombine = combineFactory(simpleCombineTransform, wrapperCombineFactoryAggregator)
 
+const separateLinesCombineFactoryAggregator = (combineTransform: CombineTransform, ...args: CombineFactoryLevel[]): PrintMapResult[] => {
+    return combineLevels(combineTransform({ printMode: PrintMode.nested, separator: '\n' }))(...args.map(({ naive, nested, propertyNested }) => ([[...naive, ...nested, ...propertyNested][0]])))
+}
+
+export const separateLinesCombine = combineFactory(simpleCombineTransform, separateLinesCombineFactoryAggregator)
+
 export default combine

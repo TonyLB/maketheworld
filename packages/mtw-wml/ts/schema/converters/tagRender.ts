@@ -2,11 +2,11 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
-import { areAdjacent, combineResults, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
+import { areAdjacent, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
 import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
-import combine, { wordWrapCombine } from "./quantumRender/combine"
+import { separateLinesCombine, wordWrapCombine } from "./quantumRender/combine"
 import collapse from "./quantumRender/collapse"
 
 type TagRenderProperty = {
@@ -66,7 +66,7 @@ export const tagRenderContents = (
             return [
                 ...previous,
                 {
-                    type: isSchemaTaggedMessageLegalContents(tag.data) ? 'singleFreeText' as const : 'single' as const,
+                    type: (descriptionContext && isSchemaTaggedMessageLegalContents(tag.data)) ? 'singleFreeText' as const : 'single' as const,
                     tag
                 }
             ]
@@ -103,21 +103,25 @@ export const tagRenderContents = (
     return tagPrintGroups.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((previous, tagPrintGroup) => {
 
         if (tagPrintGroup[0].type === 'single') {
-            return tagPrintGroup
+            const { outputs, siblings } = tagPrintGroup
                 .filter(isSchemaTagPrintItemSingle)
-                .reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((accumulator, tagPrintItem) => {
+                .reduce<{ outputs: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((accumulator, tagPrintItem) => {
                     const newOptions = { ...options, siblings: accumulator.siblings, context: [...options.context, tagPrintItem.tag.data] }
-                    const newOutput = collapse(schemaToWML({ tag: tagPrintItem.tag, options: newOptions, schemaToWML, optionsFactory }))
+                    const newOutput = collapse(schemaToWML({ tag: tagPrintItem.tag, options: newOptions, schemaToWML, optionsFactory }), { indent: options.indent })
                     return {
-                        returnValue: combine(accumulator.returnValue, [newOutput]),
+                        outputs: [...accumulator.outputs, newOutput],
                         siblings: [...accumulator.siblings, tagPrintItem.tag]
                     }
-                }, previous)
+                }, { outputs: [], siblings: previous.siblings })
+            return {
+                returnValue: [collapse(separateLinesCombine(...(outputs.map((output) => ([output])))), { indent: options.indent })],
+                siblings
+            }
         }
         else {
             const newOptions = { ...options, siblings: previous.siblings }
             return {
-                returnValue: wordWrapCombine(options.indent)(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })),
+                returnValue: [collapse(wordWrapCombine(options.indent)(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })), { indent: options.indent })],
                 siblings: tagPrintGroup.reduce<GenericTree<SchemaTag>>((accumulator, tagPrint) => {
                     if (tagPrint.type === 'adjacentGroup') {
                         return [...accumulator, ...tagPrint.tags]

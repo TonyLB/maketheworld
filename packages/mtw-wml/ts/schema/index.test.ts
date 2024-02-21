@@ -519,8 +519,7 @@ describe('schemaToWML', () => {
     it('should correctly join elements in Description context', () => {
         const testWML = `
             <Description>
-                Test:
-                <If {true}>lengthy philosophical argument when true</If>
+                Test: <If {true}>lengthy philosophical argument when true</If>
                 <Else>equally lengthy and annoying discussion when false</Else>.
             </Description>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(deIndentWML(testWML))
@@ -533,8 +532,7 @@ describe('schemaToWML', () => {
                     <Name>Vortex</Name>
                     <Description>
                         You float in a swirling mass of energy and debris.
-                        <Link to=(doors)>Doors</Link>
-                        to other realms drift around you.
+                        <Link to=(doors)>Doors</Link> to other realms drift around you.
                     </Description>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
@@ -628,18 +626,19 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-        it('should correctly round-trip nested description conditions', () => {
+    it('should correctly round-trip nested description conditions', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Feature key=(doors)>
                     <Name>Drifting doors</Name>
                     <Description>
-                        Doors drifting in space,
-                        <If {lights}>
+                        Doors drifting in space, <If {lights}>
                             <If {solar}>lit from a distant star</If>
                             <Else>lit by a swelling moon</Else>
                         </If>
-                        <Else>dark and cold</Else>
+                        <Else>
+                            dark and cold
+                        </Else>
                     </Description>
                 </Feature>
                 <Variable key=(lights) default={true} />
@@ -672,8 +671,7 @@ describe('schemaToWML', () => {
             <Asset key=(Test)>
                 <Feature key=(doors)>
                     <Description>
-                        <After>Dingy doors</After>
-                        <Replace>portals</Replace>
+                        <After>Dingy doors</After> <Replace>portals</Replace>
                         <Before>Clean<Space /></Before>
                     </Description>
                 </Feature>
@@ -689,13 +687,10 @@ describe('schemaToWML', () => {
                 <Variable key=(testVar) default={false} />
                 <Room key=(test)>
                     <Description>
-                        Test
-                        <If {testVar}>
-                            <Space />
-                            TestTwo
+                        Test <If {testVar}>
+                            <Space />TestTwo
                         </If><If {!testVar}>
-                            <Space />
-                            TestThree
+                            <Space />TestThree
                         </If><Bookmark key=(testBookmark) />
                     </Description>
                 </Room>
@@ -729,6 +724,17 @@ describe('schemaToWML', () => {
                 <Variable key=(testVar) default={false} />
                 <Room key=(test)><Description>Test</Description></Room>
                 <Export><Room key=(test) as=(Room2) /></Export>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
+    it('should correctly round-trip mixes of freeText and non-freeText', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test) />
+                <Message key=(msg)><Room key=(test) />Test</Message>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))

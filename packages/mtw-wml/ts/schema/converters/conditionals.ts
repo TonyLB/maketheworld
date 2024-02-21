@@ -153,12 +153,12 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
         const outputs: PrintMapResult[][] = children
-            .reduce<{ returnValue: PrintMapResult[][]; siblings: GenericTree<SchemaTag> }>((accumulator, node) => {
-                const newOptions = { ...args.options, siblings: accumulator.siblings, context: [...args.options.context, node.data] }
+            .reduce<{ returnValue: PrintMapResult[][]; siblings: GenericTree<SchemaTag> }>((previous, node) => {
+                const newOptions = { ...args.options, siblings: previous.siblings, context: [...args.options.context, node.data] }
                 const newOutput = args.schemaToWML({ tag: node, ...args, options: newOptions })
                 return {
-                    returnValue: [...accumulator.returnValue, newOutput],
-                    siblings: [...accumulator.siblings, node]
+                    returnValue: [...previous.returnValue, newOutput],
+                    siblings: [...previous.siblings, node]
                 }
             }, { returnValue: [], siblings: [] }).returnValue
         return wrapperCombine(...outputs)
