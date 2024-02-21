@@ -122,14 +122,17 @@ export const tagRenderContents = (
                     }
                 }, { outputs: [], siblings: previous.siblings })
             return {
-                returnValue: [collapse(separateLinesCombine({ force: !descriptionContext })(...(outputs.map((output) => ([output])))), { indent: options.indent })],
+                returnValue: [collapse(separateLinesCombine({ force: true })(...(outputs.map((output) => ([output])))), { indent: options.indent })],
                 siblings
             }
         }
         else {
             const newOptions = { ...options, siblings: previous.siblings }
             const schemaDescription = schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })
-            const returnValue = collapse(wordWrapCombine(options.indent)(previous.returnValue, schemaDescription), { indent: options.indent })
+            const previousSiblingNonWrapping = previous.siblings.length && !isSchemaTaggedMessageLegalContents(previous.siblings.slice(-1)[0].data)
+            const returnValue = collapse(previousSiblingNonWrapping
+                ? separateLinesCombine({ force: false })(previous.returnValue, schemaDescription)
+                : wordWrapCombine(options.indent)(previous.returnValue, schemaDescription), { indent: options.indent })
             return {
                 returnValue: [returnValue],
                 siblings: tagPrintGroup.reduce<GenericTree<SchemaTag>>((accumulator, tagPrint) => {
