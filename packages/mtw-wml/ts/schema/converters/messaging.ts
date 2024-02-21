@@ -1,7 +1,7 @@
 import { SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMoment } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
@@ -55,9 +55,9 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Moment: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaMoment(tag)
@@ -69,8 +69,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     )
 }

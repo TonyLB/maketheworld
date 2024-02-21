@@ -229,8 +229,8 @@ describe('TagTree', () => {
                     <If {true}>
                         <Room key=(room1)>
                             <Description>
-                                <Space />
-                                The lights are out, and shadows stretch along the walls.
+                                <Space />The lights are out, and shadows stretch along the
+                                walls.
                             </Description>
                         </Room>
                     </If>

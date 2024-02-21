@@ -66,7 +66,7 @@ export const printMap: Record<string, PrintMapEntry> = {
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'Story', type: 'boolean', value: tag.Story ?? false }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
     },
     ...characterPrintMap,

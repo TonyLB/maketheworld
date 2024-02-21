@@ -4,21 +4,16 @@ import {
     SchemaExitTag,
     SchemaFeatureTag,
     SchemaKnowledgeTag,
-    SchemaMapRoom,
     SchemaMapTag,
     SchemaNameTag,
     SchemaPositionTag,
     SchemaRoomTag,
-    SchemaStringTag,
     SchemaTag,
-    SchemaTaggedMessageLegalContents,
     isSchemaBookmark,
-    isSchemaCondition,
     isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
     isSchemaFeatureIncomingContents,
-    isSchemaImage,
     isSchemaKnowledge,
     isSchemaKnowledgeIncomingContents,
     isSchemaMap,
@@ -29,15 +24,12 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { extractConditionedItemFromContents, extractNameFromContents } from "../utils"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../tree/baseClasses"
-import SchemaTagTree from "../../tagTree/schema"
-import dfsWalk from "../../tree/dfsWalk"
+import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
@@ -84,7 +76,7 @@ const componentTemplates = {
 export const componentConverters: Record<string, ConverterMapEntry> = {
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
-            const roomContextList = contextStack.map(({ tag }) => (tag)).filter(isSchemaRoom)
+            const roomContextList = contextStack.map(({ data }) => (data)).filter(isSchemaRoom)
             const roomContext = roomContextList.length > 0 ? roomContextList.slice(-1)[0] : undefined
             const { from, to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             if (!roomContext && (!from || !to)) {
@@ -240,13 +232,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
 
         const { context } = args.options
         if (!isSchemaExit(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         const roomsContextList = context.filter(isSchemaRoom)
         const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
         const roomContextTypecheck = (roomContext: SchemaTag | undefined): roomContext is SchemaRoomTag | undefined => (!roomContext || isSchemaRoom(roomContext))
         if (!roomContextTypecheck(roomContext)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -258,23 +250,23 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
                 ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
             ],
-            contents: children
+            node: { data: tag, children }
         })
     },
-    Description: ({ tag: { children }, ...args }: PrintMapEntryArguments) => (
+    Description: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
             tag: 'Description',
             properties: [],
-            contents: children,
+            node: { data, children }
         })
     ),
-    Name: ({ tag: { children }, ...args }: PrintMapEntryArguments) => (
+    Name: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
             tag: 'Name',
             properties: [],
-            contents: children,
+            node: { data, children }
         })
     ),
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
@@ -282,7 +274,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaRoom(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -297,7 +289,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
 
     },
@@ -306,7 +298,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaFeature(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -316,7 +308,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
     },
     Knowledge: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
@@ -324,7 +316,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaKnowledge(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -334,7 +326,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
     },
     Bookmark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
@@ -345,13 +337,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Position: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaPosition(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -363,12 +355,12 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'x', type: 'literal', value: `${tag.x}` },
                 { key: 'y', type: 'literal', value: `${tag.y}` }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
     },
     Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaMap(tag)) {
-            return ''
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -378,7 +370,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
-            contents: children,
+            node: { data: tag, children }
         })
     }
 }

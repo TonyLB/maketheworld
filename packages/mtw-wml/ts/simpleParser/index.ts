@@ -7,6 +7,26 @@ enum ParseExpectation {
     PropertyValue
 }
 
+export const deIndentParse = (wml: string): string => {
+    const deIndentAmount = wml.split('\n').slice(1).reduce<number>((previous, line) => {
+        if (!line.trim()) {
+            return previous
+        }
+        const lineIndent = line.length - line.trimStart().length
+        return Math.min(lineIndent, previous)
+    }, Infinity)
+    if (deIndentAmount === Infinity || deIndentAmount === 0) {
+        return wml
+    }
+    return [
+        wml.split('\n')[0],
+        ...wml
+            .split('\n')
+            .slice(1)
+            .map((line) => (line.slice(deIndentAmount)))
+    ].join('\n')
+}
+
 export const parse = (tokens: Token[]): ParseItem[] => {
     let accumulator: ParseItem[] = []
     let expecting: ParseExpectation = ParseExpectation.Tags
@@ -60,7 +80,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                                 : token.type === 'LiteralValue'
                                     ? ParsePropertyTypes.Literal
                                     : ParsePropertyTypes.Expression,
-                            value: token.value
+                            value: deIndentParse(token.value)
                         })
                         currentProperty = undefined
                         expecting = ParseExpectation.Properties
@@ -90,7 +110,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                                 : token.type === 'LiteralValue'
                                     ? ParsePropertyTypes.Literal
                                     : ParsePropertyTypes.Expression,
-                            value: token.value
+                            value: deIndentParse(token.value)
                         })
                         currentProperty = undefined
                         expecting = ParseExpectation.Properties

@@ -103,31 +103,12 @@ describe('schemaFromParse', () => {
                             { data: { tag: "Space" }, children: [] },
                             { data: { tag: "String", value: "Vortex" }, children: [] },
                             {
-                                data: {
-                                    conditions: [{ if: "open" }],
-                                    tag: "If"
-                                },
-                                children: [{ data: { tag: "String", value: ": Open" }, children: [] }],
-                            },
-                            {
-                                data: {
-                                    tag: "If",
-                                    conditions: [
-                                        { if: "open", not: true },
-                                        { if: "!closed" },
-                                    ]
-                                },
-                                children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }],
-                            },
-                            {
-                                data: {
-                                    tag: "If",
-                                    conditions: [
-                                        { if: "open", not: true },
-                                        { if: "!closed", not: true },
-                                    ]
-                                },
-                                children: [{ data: { tag: "String", value: ": Closed" }, children: [] }],
+                                data: { tag: "If" },
+                                children: [
+                                    { data: { tag: "Statement", if: "open" }, children: [{ data: { tag: "String", value: ": Open" }, children: [] }] },
+                                    { data: { tag: "Statement", if: "!closed" }, children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }] },
+                                    { data: { tag: "Fallthrough" }, children: [{ data: { tag: "String", value: ": Closed" }, children: [] }] }
+                                ],
                             },
                             {
                                 data: {
@@ -148,26 +129,26 @@ describe('schemaFromParse', () => {
                     }],
                 },
                 {
-                    data: {
-                        tag: "If",
-                        conditions: [{ if: "open" }]
-                    },
+                    data: { tag: "If" },
                     children: [{
-                        data: {
-                            tag: "Room",
-                            display: undefined,
-                            key: "ABC"
-                        },
+                        data: { tag: 'Statement', if: "open" },
                         children: [{
                             data: {
-                                tag: "Exit",
-                                key: "ABC#DEF",
-                                from: "ABC",
-                                to: "DEF"
+                                tag: "Room",
+                                display: undefined,
+                                key: "ABC"
                             },
-                            children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
+                            children: [{
+                                data: {
+                                    tag: "Exit",
+                                    key: "ABC#DEF",
+                                    from: "ABC",
+                                    to: "DEF"
+                                },
+                                children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
+                            }],
                         }],
-                    }],
+                    }]
                 },
                 {
                     data: {
@@ -289,66 +270,69 @@ describe('schemaFromParse', () => {
                 <Variable key=(open) default={false} />
             </Asset>
         `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Asset",
-                key: "Test"
-            },
-            children: [{
+        expect(schemaFromParse(testParse)).toEqual([
+            {
                 data: {
-                    tag: "Room",    
-                    key: "ABC"
+                    tag: "Asset",
+                    key: "Test"
                 },
-                children: [{
-                    data: { tag: "Description" },
-                    children: [
-                        { data: { tag: "String", value: "Test One " }, children: [] },
-                        {
-                            data: {
-                                tag: "If",
-                                conditions: [{ if: "open" }]
-                            },
-                            children: [{ data: { tag: "String", value: "Test Two" }, children: [] }],
+                children: [
+                    {
+                        data: {
+                            tag: "Room",    
+                            key: "ABC"
                         },
-                    ],
-                },
-                {
-                    data: {
-                        tag: "If",
-                        conditions: [{ if: "open" }]
+                        children: [{
+                            data: { tag: "Description" },
+                            children: [
+                                { data: { tag: "String", value: "Test One " }, children: [] },
+                                {
+                                    data: { tag: "If" },
+                                    children: [{
+                                        data: { tag: "Statement", if: "open" },
+                                        children: [{ data: { tag: "String", value: "Test Two" }, children: [] }],
+                                    }]
+                                },
+                            ],
+                        },
+                        {
+                            data: { tag: "If" },
+                            children: [{
+                                data: { tag: "Statement", if: "open" },
+                                children: [{
+                                    data: { tag: "Description" },
+                                    children: [{ data: { tag: "String", value: "Test Three" }, children: [] }],
+                                }],
+                            }]    
+                        }]
                     },
-                    children: [{
-                        data: { tag: "Description" },
-                        children: [{ data: { tag: "String", value: "Test Three" }, children: [] }],
-                    }],
-                }]
-            },
-            {
-                data: {
-                    tag: "If",
-                    conditions: [{ if: "open" }]
-                },
-                children: [{
-                    data: {
-                        tag: "Room",
-                        key: "ABC"
+                    {
+                        data: { tag: "If" },
+                        children: [{
+                            data: { tag: "Statement", if: "open" },
+                            children: [{
+                                data: {
+                                    tag: "Room",
+                                    key: "ABC"
+                                },
+                                children: [{
+                                    data: { tag: "Description" },
+                                    children: [{ data: { tag: "String", value: "Test Four" }, children: [] }],
+                                }]
+                            }]
+                        }]
                     },
-                    children: [{
-                        data: { tag: "Description" },
-                        children: [{ data: { tag: "String", value: "Test Four" }, children: [] }],
-                    }],
-                }],
-            },
-            {
-                data: {
-                    default: "false",
-                    key: "open",
-                    tag: "Variable"    
-                },
-                children: []
-            }],
-        }])
-
+                    {
+                        data: {
+                            default: "false",
+                            key: "open",
+                            tag: "Variable"    
+                        },
+                        children: []
+                    }
+                ]
+            }
+        ])
     })
 
     it('should make a schema for a character correctly', () => {
@@ -444,16 +428,16 @@ describe('schemaFromParse', () => {
                             children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }]
                         },
                         {
-                            data: {
-                                tag: 'If',
-                                conditions: [{ if: "open" }]
-                            },
+                            data: { tag: 'If' },
                             children: [{
-                                data: {
-                                    tag: "Room",
-                                    key: "DEF"
-                                },
-                                children: [{ data: { tag: 'Position', x: -100, y: 0 }, children: [] }]
+                                data: { tag: "Statement", if: "open" },
+                                children: [{
+                                    data: {
+                                        tag: "Room",
+                                        key: "DEF"
+                                    },
+                                    children: [{ data: { tag: 'Position', x: -100, y: 0 }, children: [] }]
+                                }]
                             }]
                         }
                     ]
@@ -532,6 +516,15 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly join elements in Description context', () => {
+        const testWML = `
+            <Description>
+                Test: <If {true}>lengthy philosophical argument when true</If>
+                <Else>equally lengthy and annoying discussion when false</Else>.
+            </Description>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(deIndentWML(testWML))
+    })
+
     it('should correctly round-trip complicated rooms', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
@@ -539,8 +532,7 @@ describe('schemaToWML', () => {
                     <Name>Vortex</Name>
                     <Description>
                         You float in a swirling mass of energy and debris.
-                        <Link to=(doors)>Doors</Link>
-                        to other realms drift around you.
+                        <Link to=(doors)>Doors</Link> to other realms drift around you.
                     </Description>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
@@ -634,18 +626,19 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-        it('should correctly round-trip nested description conditions', () => {
+    it('should correctly round-trip nested description conditions', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Feature key=(doors)>
                     <Name>Drifting doors</Name>
                     <Description>
-                        Doors drifting in space,
-                        <If {lights}>
+                        Doors drifting in space, <If {lights}>
                             <If {solar}>lit from a distant star</If>
                             <Else>lit by a swelling moon</Else>
                         </If>
-                        <Else>dark and cold</Else>
+                        <Else>
+                            dark and cold
+                        </Else>
                     </Description>
                 </Feature>
                 <Variable key=(lights) default={true} />
@@ -678,8 +671,7 @@ describe('schemaToWML', () => {
             <Asset key=(Test)>
                 <Feature key=(doors)>
                     <Description>
-                        <After>Dingy doors</After>
-                        <Replace>portals</Replace>
+                        <After>Dingy doors</After> <Replace>portals</Replace>
                         <Before>Clean<Space /></Before>
                     </Description>
                 </Feature>
@@ -695,13 +687,10 @@ describe('schemaToWML', () => {
                 <Variable key=(testVar) default={false} />
                 <Room key=(test)>
                     <Description>
-                        Test
-                        <If {testVar}>
-                            <Space />
-                            TestTwo
+                        Test <If {testVar}>
+                            <Space />TestTwo
                         </If><If {!testVar}>
-                            <Space />
-                            TestThree
+                            <Space />TestThree
                         </If><Bookmark key=(testBookmark) />
                     </Description>
                 </Room>
@@ -735,6 +724,17 @@ describe('schemaToWML', () => {
                 <Variable key=(testVar) default={false} />
                 <Room key=(test)><Description>Test</Description></Room>
                 <Export><Room key=(test) as=(Room2) /></Export>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
+    it('should correctly round-trip mixes of freeText and non-freeText', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test) />
+                <Message key=(msg)><Room key=(test) />Test</Message>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))

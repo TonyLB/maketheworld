@@ -60,40 +60,6 @@ export const extractDescriptionFromContents = (contents: GenericTree<SchemaTag>)
     return returnValue
 }
 
-export const extractConditionedItemFromContents = <T extends SchemaTag, O extends SchemaConditionMixin>(props: {
-    children: GenericTree<SchemaTag>;
-    typeGuard: (value: SchemaTag) => value is T;
-    transform: (value: T, index: number) => O;
-}): O[] => {
-    const { children: contents, typeGuard, transform } = props
-    return contents.reduce<O[]>((previous, item, index) => {
-        if (typeGuard(item.data)) {
-            return [
-                ...previous,
-                transform(item.data, index)
-            ]
-        }
-        if (isSchemaTag(item.data)) {
-            const { data, children } = item
-            if (isSchemaCondition(data)) {
-                const nestedItems = extractConditionedItemFromContents({ children, typeGuard, transform })
-                    .map(({ conditions, ...rest }) => ({
-                        conditions: [
-                            ...data.conditions,
-                            ...conditions
-                        ],
-                        ...rest
-                    })) as O[]
-                return [
-                    ...previous,
-                    ...nestedItems
-                ]
-            }
-        }
-        return previous
-    }, [])
-}
-
 //
 // deIndentWML is a test utility that allows writing deeply indented WML (suitable for nesting in an indented code block)
 // and then removing the common number of indents to left-justify the block.

@@ -126,8 +126,17 @@ export type SchemaExportTag = {
 
 export type SchemaConditionTag = {
     tag: 'If';
-    key?: string;
-} & SchemaBase & SchemaConditionMixin
+} & SchemaBase
+
+export type SchemaConditionStatementTag = {
+    tag: 'Statement';
+    if: string;
+    dependencies?: string[]
+} & SchemaBase
+
+export type SchemaConditionFallthroughTag = {
+    tag: 'Fallthrough';
+} & SchemaBase
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -142,9 +151,9 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
 export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -152,6 +161,8 @@ export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaLineBreak(tag) ||
     isSchemaSpacer(tag) ||
     isSchemaCondition(tag) ||
+    isSchemaConditionStatement(tag) ||
+    isSchemaConditionFallthrough(tag) ||
     isSchemaAfter(tag) ||
     isSchemaBefore(tag) ||
     isSchemaReplace(tag)
@@ -268,6 +279,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaImportTag |
     SchemaExportTag |
     SchemaConditionTag |
+    SchemaConditionStatementTag |
+    SchemaConditionFallthroughTag |
     SchemaExitTag |
     SchemaDescriptionTag |
     SchemaLineBreakTag |
@@ -291,6 +304,8 @@ export type SchemaTag = SchemaAssetTag |
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
     SchemaConditionTag |
+    SchemaConditionStatementTag |
+    SchemaConditionFallthroughTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaKnowledgeTag |
@@ -353,6 +368,8 @@ export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceT
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
 export const isSchemaSpacer = (value: SchemaTag): value is SchemaSpacerTag => (value.tag === 'Space')
 export const isSchemaCondition = (value: SchemaTag): value is SchemaConditionTag => (value.tag === 'If')
+export const isSchemaConditionStatement = (value: SchemaTag): value is SchemaConditionStatementTag => (value.tag === 'Statement')
+export const isSchemaConditionFallthrough = (value: SchemaTag): value is SchemaConditionFallthroughTag => (value.tag === 'Fallthrough')
 
 export const isSchemaAction = (value: SchemaTag): value is SchemaActionTag => (value.tag === 'Action')
 export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag => (value.tag === 'Variable')
@@ -381,7 +398,7 @@ export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'After', 'Before', 'Replace'].includes(value.tag)
+    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'Statement', 'Fallthrough', 'After', 'Before', 'Replace'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {

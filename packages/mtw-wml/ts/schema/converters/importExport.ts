@@ -1,6 +1,6 @@
 import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
@@ -79,9 +79,9 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'from', type: 'key', value: tag.from },
                 ],
-                contents: children
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Export: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaExport(tag)
@@ -89,9 +89,9 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Export',
                 properties: [],
-                contents: children
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Image: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaImage(tag)
@@ -101,8 +101,8 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                 ],
-                contents: [],
+                node: { data: tag, children }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
 }

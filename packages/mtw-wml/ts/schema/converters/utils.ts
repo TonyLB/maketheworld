@@ -1,7 +1,7 @@
 import { GenericTree } from "../../tree/baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaTag } from "../baseClasses"
-import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
+import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, PrintMode, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
 
 export const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))

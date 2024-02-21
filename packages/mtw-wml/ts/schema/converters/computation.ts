@@ -1,6 +1,6 @@
 import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag, isSchemaAction, isSchemaComputed, isSchemaVariable } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
@@ -61,9 +61,9 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaComputed(tag)
@@ -76,9 +76,9 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaAction(tag)
@@ -91,8 +91,8 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
-            : ''
+            : [{ printMode: PrintMode.naive, output: '' }]
     )
 }

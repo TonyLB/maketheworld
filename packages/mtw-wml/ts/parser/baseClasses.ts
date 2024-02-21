@@ -126,7 +126,7 @@ export type ParseImportTag = {
     contents: ParseImportLegalContents[];
 } & ParseTagBase
 
-export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Bookmark'
+export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Bookmark' | 'Message' | 'Moment'
 
 export type ParseConditionContentsFromContextTag<T extends ParseConditionLegalContextTag> =
     T extends ('Description' | 'Bookmark')
@@ -159,7 +159,7 @@ export type ParseConditionTagMapContext = ParseConditionTypeFromContextTag<'If',
 
 export type ParseConditionTag = ParseConditionTypeFromContextTag<'If', ParseConditionLegalContextTag>
 
-export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map'].includes(value))
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map', 'Message', 'Moment'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseConditionTagRoomContext = (value: ParseConditionTag): value is ParseConditionTagRoomContext => (value.contextTag === 'Room')
@@ -198,16 +198,6 @@ export const isParseElseIfTagRoomContext = (value: ParseElseIfTag): value is Par
 export const isParseElseIfTagFeatureContext = (value: ParseElseIfTag): value is ParseElseIfTagFeatureContext => (value.contextTag === 'Feature')
 export const isParseElseIfTagKnowledgeContext = (value: ParseElseIfTag): value is ParseElseIfTagKnowledgeContext => (value.contextTag === 'Knowledge')
 export const isParseElseIfTagMapContext = (value: ParseElseIfTag): value is ParseElseIfTagMapContext => (value.contextTag === 'Map')
-
-export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-    Asset: ['Exit', 'Feature', 'Knowledge', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map', 'Message'],
-    Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark', 'br', 'Whitespace'],
-    Bookmark: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark',  'br', 'Whitespace'],
-    Room: ['If', 'Else', 'ElseIf', 'Description', 'Name', 'Exit'],
-    Feature: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
-    Knowledge: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
-    Map: ['If', 'Else', 'ElseIf', 'Image', 'Room', 'Name', 'Exit']
-}
 
 export type ParseExitTag = {
     tag: 'Exit';

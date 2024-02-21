@@ -1,6 +1,5 @@
-import { SchemaTag } from "./baseClasses"
+import { SchemaTag, isSchemaString } from "./baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
-import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
@@ -10,14 +9,17 @@ import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
 import { genericIDFromTree } from "../tree/genericIDTree"
 import standardizeSchema from "./standardize"
+import { lineLengthAfterIndent } from "./converters/printUtils"
+import { maxLineLength } from "./converters/quantumRender/freeText"
 
-export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
-    let contextStack: SchemaContextItem[] = []
-    let returnValue: GenericTree<SchemaTag> = []
-    const addSchemaTag = (toAdd: GenericTreeNode<SchemaTag>) => {
-        if (contextStack.length) {
-            const [priorStack, parentItem] = [contextStack.slice(0, -1), contextStack.slice(-1)[0]]
-            contextStack = [
+class SchemaAggregator {
+    contextStack: GenericTree<SchemaTag> = [];
+    returnValue: GenericTree<SchemaTag> = [];
+
+    addSchemaTag (toAdd: GenericTreeNode<SchemaTag>) {
+        if (this.contextStack.length) {
+            const [priorStack, parentItem] = [this.contextStack.slice(0, -1), this.contextStack.slice(-1)[0]]
+            this.contextStack = [
                 ...priorStack,
                 {
                     ...parentItem,
@@ -26,13 +28,114 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
             ]
         }
         else {
-            returnValue.push(toAdd)
+            this.returnValue.push(toAdd)
         }
     }
+
+    get nearestSibling(): GenericTreeNode<SchemaTag> | undefined {
+        if (this.contextStack.length === 0) {
+            return undefined
+        }
+        const parentContext = this.contextStack.slice(-1)[0]
+        return parentContext.children.reduceRight<GenericTreeNode<SchemaTag> | undefined>((previous, node) => {
+            if (previous) {
+                return previous
+            }
+            const { data } = node
+            if (isSchemaString(data) && !data.value.trim()) {
+                return undefined
+            }
+            return node
+        }, undefined)
+    }
+
+    get currentOpenItem(): GenericTreeNode<SchemaTag> | undefined {
+        if (this.contextStack.length === 0) {
+            return undefined
+        }
+        return this.contextStack.slice(-1)[0]
+    }
+
+    removeTrailingWhitespace(): void {
+        if (this.contextStack.length === 0) {
+            return
+        }
+        const parentContext = this.contextStack.slice(-1)[0]
+        const revisedChildren = parentContext.children.reduceRight<GenericTree<SchemaTag>>((previous, node) => {
+            if (previous.length) {
+                return [node, ...previous]
+            }
+            const { data } = node
+            if (isSchemaString(data) && !data.value.trim()) {
+                return []
+            }
+            return [node]
+        }, [])
+        this.contextStack = [...this.contextStack.slice(0, -1), { ...parentContext, children: revisedChildren }]
+    }
+
+    closeContext(options?: {
+        validateItem?: (value: GenericTreeNode<SchemaTag>) => void;
+        finalize?: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>, contextStack: GenericTree<SchemaTag>) => GenericTreeNode<SchemaTag>;
+    }): void {
+        const { validateItem, finalize } = options ?? {}
+        const [priorStack, closingItem] = [this.contextStack.slice(0, -1), this.contextStack.slice(-1)[0]]
+        this.contextStack = priorStack
+        if (validateItem) {
+            validateItem(closingItem)
+        }
+        const finalItem = finalize ? finalize(closingItem.data, closingItem.children, priorStack) : closingItem
+        this.addSchemaTag(finalItem)
+    }
+
+    openContext(node: GenericTreeNode<SchemaTag>): void {
+        this.contextStack.push(node)
+    }
+
+    reopenSibling(): void {
+        if (this.contextStack.length === 0) {
+            throw new Error('Empty stack on reopenSibling')
+        }
+        const parentContext = this.contextStack.slice(-1)[0]
+        if (parentContext.children.length === 0) {
+            throw new Error('No siblings on reopenSibling')
+        }
+        const [revisedChildren, sibling] = [parentContext.children.slice(0, -1), parentContext.children.slice(-1)[0]]
+        this.contextStack = [...this.contextStack.slice(0, -1), { ...parentContext, children: revisedChildren }, sibling]
+    }
+
+    aggregateToSibling(aggregator: (previous: GenericTreeNode<SchemaTag>, node: GenericTreeNode<SchemaTag>) => GenericTreeNode<SchemaTag>): void {
+        if (this.contextStack.length === 0) {
+            throw new Error('Empty stack on reopenSibling')
+        }
+        const parentContext = this.contextStack.slice(-1)[0]
+        if (parentContext.children.length === 0) {
+            throw new Error('No siblings on reopenSibling')
+        }
+        const [previous, node] = [parentContext.children.slice(0, -1), parentContext.children.slice(-1)[0]]
+        this.contextStack = [...this.contextStack.slice(0, -1), aggregator({ ...parentContext, children: previous }, node)]
+    }
+
+    validateClosure(tag: string): void {
+        if (this.contextStack.length === 0) {
+            throw new Error(`Mismatched tag closure ('${tag}' matches nothing)`)
+        }
+        const closingItem = this.contextStack.slice(-1)[0]
+        if (closingItem.data.tag !== tag && !((['If', 'ElseIf'].includes(tag) && closingItem.data.tag === 'Statement') || (tag === 'Else' && closingItem.data.tag === 'Fallthrough'))) {
+            throw new Error(`Mismatched tag closure ('${tag}') does not match '${closingItem.data.tag}'`)
+        }
+    }
+
+}
+
+export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
+    const aggregator = new SchemaAggregator()
     items.forEach((item) => {
+        const nearestSibling = aggregator.nearestSibling
+        const converterWrapper = item.type === ParseTypes.Text ? undefined : converterMap[item.tag]?.wrapper
         switch(item.type) {
             case ParseTypes.Text:
-                addSchemaTag({
+                aggregator.addSchemaTag({
                     data: {
                         tag: 'String',
                         value: item.text
@@ -41,49 +144,80 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
                 })
                 break
             case ParseTypes.SelfClosure:
-                addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack }), children: [] })
+                if (converterWrapper && nearestSibling?.data?.tag === converterWrapper) {
+                    aggregator.removeTrailingWhitespace()
+                    aggregator.reopenSibling()
+                    aggregator.addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }), children: [] })
+                    const aggregateFunction = converterMap[item.tag]?.aggregate
+                    if (aggregateFunction) {
+                        aggregator.aggregateToSibling(aggregateFunction)
+                    }
+                    aggregator.closeContext()
+                }
+                else {
+                    aggregator.addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }), children: [] })
+                }
                 break
             case ParseTypes.Open:
-                contextStack.push({
-                    tag: converterMap[item.tag].initialize({ parseOpen: item, contextStack }),
+                if (converterWrapper) {
+                    const aggregateFunction = converterMap[item.tag]?.aggregate
+                    if (aggregateFunction) {
+                        if (nearestSibling?.data?.tag !== converterWrapper) {
+                            throw new Error(`${item.tag} must be part of a group of tags`)
+                        }
+                        aggregator.removeTrailingWhitespace()
+                        aggregator.reopenSibling()
+                    }
+                    else {
+                        aggregator.openContext({
+                            data: { tag: converterWrapper },
+                            children: []
+                        })
+                    }
+                }
+                aggregator.openContext({
+                    data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }),
                     children: []
                 })
                 break
             case ParseTypes.Close:
-                if (contextStack.length === 0) {
-                    throw new Error(`Mismatched tag closure ('${item.tag}' matches nothing)`)
-                }
-                const [priorStack, closingItem] = [contextStack.slice(0, -1), contextStack.slice(-1)[0]]
-                if (closingItem.tag.tag !== item.tag && !(['ElseIf', 'Else'].includes(item.tag) && closingItem.tag.tag === 'If')) {
-                    throw new Error(`Mismatched tag closure ('${item.tag}') does not match '${closingItem.tag.tag}'`)
-                }
-                contextStack = priorStack
+                aggregator.validateClosure(item.tag)
                 //
                 // TODO: When all typeCheckContents items are implemented, refactor the below to throw an error whenever there is
                 // not a typeCheckContents function (and there are contents)
                 //
-                const converter = converterMap[closingItem.tag.tag]
+                const currentOpenItem = aggregator.currentOpenItem
+                if (!currentOpenItem) {
+                    throw new Error(`Mismatched tag closure ('${item.tag}' matches nothing)`)
+                }
+                const converter = converterMap[currentOpenItem.data.tag]
                 if (!converter) {
-                    throw new Error(`No converter available for '${closingItem.tag.tag}' parse tag`)
+                    throw new Error(`No converter available for '${currentOpenItem.data.tag}' parse tag`)
                 }
-                const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
-                if (illegalTag) {
-                    throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.tag.tag}' item contents`)
+                aggregator.closeContext({
+                    validateItem: (closingItem) => {
+                        const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, aggregator.contextStack)))
+                        if (illegalTag) {
+                            throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.data.tag}' item contents`)
+                        }
+                        if (converter.validateContents) {
+                            if (!validateContents(converter.validateContents)(closingItem.children)) {
+                                throw new Error(`Illegal contents in '${closingItem.data.tag}' item`)
+                            }
+                        }
+                    },
+                    finalize: converter.finalize
+                })
+                const aggregateFunction = converter.aggregate
+                if (aggregateFunction) {
+                    aggregator.removeTrailingWhitespace()
+                    aggregator.aggregateToSibling(aggregateFunction)
+                    aggregator.closeContext()
                 }
-                if (converter.validateContents) {
-                    if (!validateContents(converter.validateContents)(closingItem.children)) {
-                        throw new Error(`Illegal contents in '${closingItem.tag.tag}' item`)
-                    }
-                }
-                addSchemaTag(
-                    converter.finalize
-                        ? converter.finalize(closingItem.tag, closingItem.children, contextStack)
-                        : { data: closingItem.tag, children: closingItem.children }
-                )
                 break
         }
     })
-    return returnValue
+    return aggregator.returnValue
 }
 
 export const printSchemaTag: PrintMapEntry = (args) => {
@@ -98,10 +232,28 @@ export const printSchemaTag: PrintMapEntry = (args) => {
 
 export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
     const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
+        const printOptions = printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
+        const { optimalIndex } = printOptions.reduce<{ optimalIndex: number; currentLength: number }>(
+            (previous, output, index) => {
+                if (previous.currentLength <= lineLengthAfterIndent(0)) {
+                    return previous
+                }
+                const currentLength = maxLineLength(0, output.output)
+                if (currentLength < previous.currentLength) {
+                    return {
+                        optimalIndex: index,
+                        currentLength
+                    }
+                }
+                return previous
+            }, { optimalIndex: -1, currentLength: Infinity })
+        if (optimalIndex === -1) {
+            throw new Error('No print options found in schemaToWML')
+        }
         return {
             returnValue: [
                 ...previous.returnValue,
-                printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
+                printOptions[optimalIndex].output
             ],
             siblings: [
                 ...previous.siblings,
@@ -140,18 +292,11 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 default: ''
             }
         case 'If':
-            return {
-                tag,
-                key: '',
-                conditions: []
-            }
         case 'After':
         case 'Before':
         case 'Replace':
         case 'Description':
-            return {
-                tag,
-            }
+            return { tag }
         case 'Exit':
             return {
                 tag,
