@@ -1,14 +1,16 @@
 import {
     SchemaConditionFallthroughTag,
     SchemaConditionStatementTag,
+    SchemaTag,
     isSchemaCondition,
     isSchemaConditionFallthrough,
     isSchemaConditionStatement
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
 import { validateProperties } from "./utils"
+import { GenericTree } from "../../tree/baseClasses"
 
 const conditionalTemplates = {
     If: {
@@ -150,6 +152,26 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
         const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(args.options.context) || '')
+        const outputs: PrintMapResult[][] = children
+            .reduce<{ returnValue: PrintMapResult[][]; siblings: GenericTree<SchemaTag> }>((accumulator, node) => {
+                const newOptions = { ...args.options, siblings: accumulator.siblings, context: [...args.options.context, node.data] }
+                const newOutput = args.schemaToWML({ tag: node, ...args, options: newOptions })
+                return {
+                    returnValue: [...accumulator.returnValue, newOutput],
+                    siblings: [...accumulator.siblings, node]
+                }
+            }, { returnValue: [], siblings: args.options.siblings ?? [] }).returnValue
+        //
+        // TODO: Figure out how to combine outputs, such that you receive:
+        //    - Naive combination
+        //    - Multi-line combination of most-naive elements separated by \n
+        //    - Nested combination
+        //    - Property-nested combination
+        //
+        // ...rather than tagRenderContents, which collapses by default
+        //
+        // TODO: Deprecated collapse argument in tagRenderContents as a failed solution to this problem
+        //
         return tagRenderContents({ descriptionContext, schemaToWML: args.schemaToWML, ...args.options })(children)
     }
 }

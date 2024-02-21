@@ -132,4 +132,23 @@ describe('quantumRender wordWrapCombine', () => {
         ])
     })
 
+    it('should word-wrap text between non-wrappable items', () => {
+        expect(wordWrapCombine(5)(
+            [
+                { printMode: PrintMode.naive, tag: 'Link', output: '<Link to=(target)>Link</Link>'},
+                { printMode: PrintMode.nested, tag: 'Link', output: '<Link to=(target)>\n    Link\n</Link>' }
+            ],
+            [
+                { printMode: PrintMode.naive, tag: 'String', output: 'Small text that wraps anyway' }
+            ],
+            [
+                { printMode: PrintMode.naive, tag: 'Link', output: '<Link to=(target)>Link</Link>'},
+                { printMode: PrintMode.nested, tag: 'Link', output: '<Link to=(target)>\n    Link\n</Link>' }
+            ],
+        )).toEqual([
+            { printMode: PrintMode.naive, output: '<Link to=(target)>Link</Link>Small text that wraps\nanyway<Link to=(target)>Link</Link>'},
+            { printMode: PrintMode.nested, output: '<Link to=(target)>\n    Link\n</Link>Small text that wraps anyway<Link to=(target)>\n    Link\n</Link>' }
+        ])
+    })
+
 })

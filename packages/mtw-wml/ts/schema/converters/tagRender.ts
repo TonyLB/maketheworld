@@ -6,6 +6,7 @@ import { areAdjacent, combineResults, indentSpacing, lineLengthAfterIndent, opti
 import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
+import { wordWrapCombine } from "./quantumRender/combine"
 
 type TagRenderProperty = {
     key?: string;
@@ -115,7 +116,7 @@ export const tagRenderContents = (
         else {
             const newOptions = { ...options, siblings: previous.siblings }
             return {
-                returnValue: combineResults({ multipleInCategory })(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })),
+                returnValue: wordWrapCombine(options.indent)(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })),
                 siblings: tagPrintGroup.reduce<GenericTree<SchemaTag>>((accumulator, tagPrint) => {
                     if (tagPrint.type === 'adjacentGroup') {
                         return [...accumulator, ...tagPrint.tags]
