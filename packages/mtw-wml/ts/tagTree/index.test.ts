@@ -186,7 +186,7 @@ describe('TagTree', () => {
             </Asset>
         `))))
         const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-        const reorderedTree = tagTree.reordered([{ match: 'Asset' }, { match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }])
+        const reorderedTree = tagTree.reordered([{ match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }])
         expect(schemaToWML(reorderedTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
@@ -242,7 +242,7 @@ describe('TagTree', () => {
                     <If {true}><Room key=(room1)><Name><Space />at night</Name></Room></If>
                 </Asset>
             `))
-            const filteredTreeThree = tagTree.reordered([{ match: 'Asset' }, { match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }]).filter({ and: [{ match: 'Room' }, { match: 'Description' }] })
+            const filteredTreeThree = tagTree.reordered([{ match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }]).filter({ and: [{ match: 'Room' }, { match: 'Description' }] })
             expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)>

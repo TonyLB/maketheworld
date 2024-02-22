@@ -205,6 +205,30 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             // Percolate groups of tags to the top of the list, in right-to-left order, so that the highest
             // priority are moved to the top LAST (and therefore end up at the top, as they should)
             //
+
+            //
+            // Precalculate the maximum and minimum index of items being reordered, and leave everything
+            // outside of that range alone.
+            //
+            
+            const { minIndex, maxIndex } = order.reduce<{ minIndex: number; maxIndex: number }>(({ minIndex, maxIndex }, reorderArg) => {
+                const matchingIndices = this._tagMatch(reorderArg, tags)
+                if (matchingIndices.length) {
+                    return {
+                        minIndex: Math.min(minIndex, matchingIndices[0]),
+                        maxIndex: Math.max(maxIndex, matchingIndices.slice(-1)[0] + 1)
+                    }
+                }
+                else {
+                    return { minIndex, maxIndex }
+                }
+            }, { minIndex: Infinity, maxIndex: 0 })
+            if (minIndex > maxIndex) {
+                return tags
+            }
+            const untouchedPriorTags = tags.slice(0, minIndex)
+            const tagsToConsider = tags.slice(minIndex, maxIndex)
+            const untouchedAfterTags = tags.slice(maxIndex)
             const returnValue = order.reduceRight<TagListItem<NodeData, Extra>[]>((previous, reorderArg) => {
                 const matchingIndices = this._tagMatch(reorderArg, previous)
                 const { percolatedTags, remainingTags } = previous.reduce<{ percolatedTags: TagListItem<NodeData, Extra>[], remainingTags: TagListItem<NodeData, Extra>[] }>(({ percolatedTags, remainingTags }, tag, index) => {
@@ -216,8 +240,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                     }
                 }, { percolatedTags: [], remainingTags: [] })
                 return [...percolatedTags, ...remainingTags]
-            }, tags)
-            return returnValue
+            }, tagsToConsider)
+            return [...untouchedPriorTags, ...returnValue, ...untouchedAfterTags]
         }
     }
 
