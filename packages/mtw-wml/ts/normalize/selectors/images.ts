@@ -8,7 +8,7 @@ export const selectImages = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
     }
     const tagTree = new SchemaTagTree(tree)
     return tagTree
-        .reordered([options.tag, 'If', 'Image'])
+        .reordered([{ match: options.tag }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Image' }])
         .filter({ match: 'Image' })
         .prune({ not: { or: [{ match: 'If' }, { match: 'Image' }] }})
         .tree
