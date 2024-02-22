@@ -198,7 +198,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 { match: ({ data }) => (isSchemaExit(data) && (roomKeys.includes(data.to))) }
             ] })
             .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }] } })
-            .reordered(['If', 'Room', 'Exit'])
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
             .tree
         return genericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
     }, [schema, mapId])
