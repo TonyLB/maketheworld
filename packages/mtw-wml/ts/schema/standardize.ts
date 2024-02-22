@@ -82,8 +82,8 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
                     //
                     // TODO: Refactor reordered to accept more general matching criteria, and include childNodeMatch between Name and Description
                     //
-                    .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
-                    .reordered([tag, 'Name', 'Description', 'If'])
+                    .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
+                    .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
                     .prune({ before: nodeMatch })
                     .tree
                 items.forEach((item) => {

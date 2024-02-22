@@ -56,7 +56,7 @@ export const tagRenderContents = (
     const tagPrintItems = contents.reduce<SchemaTagPrintItem[]>((previous, tag) => {
         if (!previous.length) {
             return [{
-                type: isSchemaTaggedMessageLegalContents(tag.data) ? 'singleFreeText' as const : 'single' as const,
+                type: (descriptionContext && isSchemaTaggedMessageLegalContents(tag.data)) ? 'singleFreeText' as const : 'single' as const,
                 tag
             }]
         }
