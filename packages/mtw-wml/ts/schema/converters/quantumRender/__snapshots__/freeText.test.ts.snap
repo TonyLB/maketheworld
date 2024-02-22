@@ -2,8 +2,10 @@
 
 exports[`description schemaToWML should correctly handle sequential complex conditions 1`] = `
 "Test<If {testVar}>
+    <Space />
     TestTwo
 </If><If {!testVar}>
+    <Space />
     TestThree
 </If><Bookmark key=(testBookmark) />"
 `;

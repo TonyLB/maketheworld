@@ -186,16 +186,15 @@ describe('TagTree', () => {
             </Asset>
         `))))
         const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-        const reorderedTree = tagTree.reordered(['Room', 'Description', 'Name', 'If'])
+        const reorderedTree = tagTree.reordered([{ match: 'Asset' }, { match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }])
         expect(schemaToWML(reorderedTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Name>Lobby<If {true}><Space />at night</If></Name>
                     <Description>
-                        An institutional
-                        lobby.<If {true}>
-                            <Space />
-                            The lights are out, and shadows stretch along the walls.
+                        An institutional lobby.<If {true}>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
                         </If>
                     </Description>
                 </Room>
@@ -243,15 +242,14 @@ describe('TagTree', () => {
                     <If {true}><Room key=(room1)><Name><Space />at night</Name></Room></If>
                 </Asset>
             `))
-            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter({ and: [{ match: 'Room' }, { match: 'Description' }] })
+            const filteredTreeThree = tagTree.reordered([{ match: 'Asset' }, { match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }]).filter({ and: [{ match: 'Room' }, { match: 'Description' }] })
             expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)>
                         <Description>
-                            An institutional
-                            lobby.<If {true}>
-                                <Space />
-                                The lights are out, and shadows stretch along the walls.
+                            An institutional lobby.<If {true}>
+                                <Space />The lights are out, and shadows stretch along the
+                                walls.
                             </If>
                         </Description>
                     </Room>
@@ -282,7 +280,10 @@ describe('TagTree', () => {
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
             const prunedTreeOne = tagTree.prune({ or: [{ match: 'Asset' }, { match: 'Name' }, { match: 'Description' }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
-                <Room key=(room1)>LobbyAn institutional lobby.</Room>
+                <Room key=(room1)>
+                    Lobby
+                    An institutional lobby.
+                </Room>
                 <Feature key=(clockTower)>A square clock-tower of yellow stone.</Feature>
                 <Room key=(room2)>A boring test room</Room>
                 <If {true}>
@@ -346,9 +347,8 @@ describe('TagTree', () => {
                 <Room key=(room1)>
                     <Name>Lobby<Space />at night</Name>
                     <Description>
-                        An institutional lobby.
-                        <Space />
-                        The lights are out, and shadows stretch along the walls.
+                        An institutional lobby.<Space />The lights are out, and shadows stretch
+                        along the walls.
                     </Description>
                 </Room>
                 <Feature key=(clockTower)>

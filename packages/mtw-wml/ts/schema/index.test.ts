@@ -741,4 +741,17 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schema)).toEqual(testWML)
     })
 
+    it('should correctly round-trip free-text on a single line', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Name>Lobby <If {true}>in the dark</If></Name>
+                    <Description>A dark and dusty lobby.</Description>
+                </Room>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
 })

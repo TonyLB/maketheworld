@@ -159,7 +159,7 @@ export type ParseConditionTagMapContext = ParseConditionTypeFromContextTag<'If',
 
 export type ParseConditionTag = ParseConditionTypeFromContextTag<'If', ParseConditionLegalContextTag>
 
-export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map', 'Message', 'Moment'].includes(value))
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Name', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map', 'Message', 'Moment'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseConditionTagRoomContext = (value: ParseConditionTag): value is ParseConditionTagRoomContext => (value.contextTag === 'Room')
