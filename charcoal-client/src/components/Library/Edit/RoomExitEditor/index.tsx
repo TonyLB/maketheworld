@@ -14,7 +14,7 @@ import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import IfElseTree from "../IfElseTree"
-import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaExit, isSchemaOutputTag, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTree, GenericTreeNode, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
@@ -81,7 +81,7 @@ type RoomExitComponentProps = {
 //
 const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, parentId, node, inherited = false }) => {
     const { readonly, updateSchema } = useLibraryAsset()
-    const isSchemaRoomOrExit = (item: SchemaTag): item is SchemaRoomTag | SchemaExitTag => (['Room', 'Exit'].includes(item.tag))
+    const isSchemaRoomOrExit = (item: SchemaTag): item is SchemaRoomTag | SchemaExitTag | SchemaTaggedMessageLegalContents => (['Room', 'Exit'].includes(item.tag) || isSchemaTaggedMessageLegalContents(item))
     const filteredNodes = treeTypeGuard({ tree: [node], typeGuard: isSchemaRoomOrExit })
     const { data, children, id } = filteredNodes?.[0] ?? { data: { tag: 'String', value: '' }, children: [], id: '' }
     const direction = isSchemaRoom(data) ? 'incoming' : 'outgoing'
@@ -91,6 +91,9 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
     const target = useMemo(() => {
         switch(direction) {
             case 'incoming':
+                if (!isSchemaRoom(data)) {
+                    throw new Error('Tag mismatch in RoomExitComponent')
+                }
                 return data.key
             case 'outgoing':
                 if (!isSchemaExit(data)) {
@@ -102,16 +105,16 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
     const name = useMemo(() => {
         switch(direction) {
             case 'incoming':
-                const child = children[0].data
-                if (!isSchemaExit(child)) {
+                const child = children[0]
+                if (!isSchemaExit(child.data)) {
                     throw new Error('Tag mismatch in RoomExitComponent')
                 }
-                return child.name
+                return schemaOutputToString(treeTypeGuard({ tree: child.children, typeGuard: isSchemaOutputTag }))
             case 'outgoing':
                 if (!isSchemaExit(data)) {
                     throw new Error('Tag mismatch in RoomExitComponent')
                 }
-                return data.name
+                return schemaOutputToString(treeTypeGuard({ tree: child.children, typeGuard: isSchemaOutputTag }))
         }
     }, [data, children, direction])
     useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
@@ -127,7 +130,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 id: parentId,
                 item: {
                     data: { tag: 'Room', key: target },
-                    children: [{ data: { tag: 'Exit', key: `${target}#${RoomId}`, name, to: RoomId, from: target }, children: [] }]
+                    children: [{ data: { tag: 'Exit', key: `${target}#${RoomId}`, to: RoomId, from: target }, children: [{ data: { tag: 'String', value: name }, children: [] }] }]
                 }
             })
         }
@@ -154,11 +157,11 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 throw new Error('Tag mismatch in RoomExitComponent')
             }
             updateSchema({
-                type: 'updateNode',
+                type: 'replace',
                 id,
                 item: {
-                    ...data,
-                    name
+                    data,
+                    children: [{ data: { tag: 'String', value: name }, children: [] }]
                 }
             })
         }
@@ -167,11 +170,11 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 throw new Error('Tag mismatch in RoomExitComponent')
             }
             updateSchema({
-                type: 'updateNode',
+                type: 'replace',
                 id,
                 item: {
-                    ...data,
-                    name
+                    data,
+                    children: [{ data: { tag: 'String', value: name }, children: [] }]
                 }
             })
         }
@@ -228,7 +231,7 @@ const useOutgoingExitTree = (RoomId: string) => {
         const relevantExits = tagTree
             .filter({ match: ({ data: tag }) => (isSchemaRoom(tag) && (tag.key === RoomId)) })
             .prune({ not: { or: [{ match: 'If' }, { match: 'Exit' }] } })
-            .reordered(['If', 'Exit'])
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Exit' }])
         return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaExitTag, TreeId>
     }, [schema, RoomId])
 }
@@ -240,7 +243,7 @@ const useIncomingExitTree = (RoomId: string) => {
         const relevantExits = tagTree
             .filter({ match: ({ data: tag }) => (isSchemaExit(tag) && tag.to === RoomId) })
             .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Exit' }] } })
-            .reordered(['If', 'Room', 'Exit'])
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
         return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaRoomTag | SchemaExitTag, TreeId>
     }, [schema, RoomId])
 }
@@ -310,7 +313,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 parentId={schema[0]?.id ?? ''}
                 render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
                 addItemIcon={<ExitIcon />}
-                defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '', name: '' }, children: [] }}
+                defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }}
             />
         </Box>
     </Box>

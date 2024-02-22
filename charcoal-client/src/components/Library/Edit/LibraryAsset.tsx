@@ -32,7 +32,7 @@ import {
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem, isNormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
@@ -42,7 +42,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dis
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaOutputTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -124,29 +124,34 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
             //     .map(({ render = [] }) => render)
             //     .reduce((previous, render) => ([ ...previous, ...render ]), [])
             const importRef = component.appearances.map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import')))).find((value) => (Boolean(value)))
-            const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
-            const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
-            if (importItem) {
-                const awayKey = importItem.mapping[component.key]
-                if (awayKey) {
-                    const importedNormal = importData(importItem.from)
-                    if (importedNormal) {
-                        const importNormalizer = new Normalizer()
-                        importNormalizer.loadNormal(importedNormal)
-                        const inheritedItem = importedNormal[awayKey.key]
-                        if (inheritedItem && isNormalComponent(inheritedItem)) {
-                            const inheritedName = importNormalizer.select({ key: awayKey.key, selector: selectName })
-                            const inheritedRender = importNormalizer.select({ key: awayKey.key, selector: selectRender })
-                            return { [component.key]: {
-                                tag: component.tag,
-                                localName,
-                                localRender,
-                                inheritedName,
-                                inheritedRender,
-                                name: [ ...inheritedName, ...localName ],
-                                render: [...inheritedRender, ...localRender],
-                                importFrom: importItem.from
-                            }}
+            if (importRef) {
+                if (!(isNormalReference(importRef) || isSchemaImport(importRef))) {
+                    throw new Error('Import reference lookup failure in assetComponents')
+                }
+                const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
+                const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
+                if (importItem) {
+                    const awayKey = importItem.mapping[component.key]
+                    if (awayKey) {
+                        const importedNormal = importData(importItem.from)
+                        if (importedNormal) {
+                            const importNormalizer = new Normalizer()
+                            importNormalizer.loadNormal(importedNormal)
+                            const inheritedItem = importedNormal[awayKey.key]
+                            if (inheritedItem && isNormalComponent(inheritedItem)) {
+                                const inheritedName = importNormalizer.select({ key: awayKey.key, selector: selectName })
+                                const inheritedRender = importNormalizer.select({ key: awayKey.key, selector: selectRender })
+                                return { [component.key]: {
+                                    tag: component.tag,
+                                    localName,
+                                    localRender,
+                                    inheritedName,
+                                    inheritedRender,
+                                    name: [ ...inheritedName, ...localName ],
+                                    render: [...inheritedRender, ...localRender],
+                                    importFrom: importItem.from
+                                }}
+                            }
                         }
                     }
                 }

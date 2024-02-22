@@ -90,11 +90,26 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     },
                     {
                         \\"data\\": {
-                            \\"tag\\": \\"If\\",
-                            \\"key\\": \\"If-0\\",
-                            \\"index\\": 0
+                            \\"tag\\": \\"If\\"
                         },
-                        \\"children\\": []
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"Statement\\",
+                                    \\"if\\": \\"open\\"
+                                },
+                                \\"children\\": [
+                                    {
+                                        \\"data\\": {
+                                            \\"tag\\": \\"Room\\",
+                                            \\"key\\": \\"ABC\\",
+                                            \\"index\\": 1
+                                        },
+                                        \\"children\\": []
+                                    }
+                                ]
+                            }
+                        ]
                     },
                     {
                         \\"data\\": {
@@ -392,47 +407,11 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"If\\",
-                        \\"key\\": \\"If-0\\",
-                        \\"index\\": 0
-                    }
-                ]
-            }
-        ]
-    },
-    \\"If-0\\": {
-        \\"key\\": \\"If-0\\",
-        \\"tag\\": \\"If\\",
-        \\"conditions\\": [
-            {
-                \\"if\\": \\"open\\"
-            }
-        ],
-        \\"appearances\\": [
-            {
-                \\"data\\": {
-                    \\"tag\\": \\"If\\",
-                    \\"conditions\\": [
-                        {
-                            \\"if\\": \\"open\\"
-                        }
-                    ]
-                },
-                \\"children\\": [
+                        \\"tag\\": \\"If\\"
+                    },
                     {
-                        \\"data\\": {
-                            \\"tag\\": \\"Room\\",
-                            \\"key\\": \\"ABC\\",
-                            \\"index\\": 1
-                        },
-                        \\"children\\": []
-                    }
-                ],
-                \\"contextStack\\": [
-                    {
-                        \\"tag\\": \\"Asset\\",
-                        \\"key\\": \\"Test\\",
-                        \\"index\\": 0
+                        \\"tag\\": \\"Statement\\",
+                        \\"if\\": \\"open\\"
                     }
                 ]
             }
@@ -443,12 +422,10 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"tag\\": \\"Exit\\",
         \\"to\\": \\"DEF\\",
         \\"from\\": \\"ABC\\",
-        \\"name\\": \\"welcome\\",
         \\"appearances\\": [
             {
                 \\"data\\": {
                     \\"tag\\": \\"Exit\\",
-                    \\"name\\": \\"welcome\\",
                     \\"key\\": \\"ABC#DEF\\",
                     \\"from\\": \\"ABC\\",
                     \\"to\\": \\"DEF\\"
@@ -469,9 +446,11 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"If\\",
-                        \\"key\\": \\"If-0\\",
-                        \\"index\\": 0
+                        \\"tag\\": \\"If\\"
+                    },
+                    {
+                        \\"tag\\": \\"Statement\\",
+                        \\"if\\": \\"open\\"
                     },
                     {
                         \\"tag\\": \\"Room\\",
@@ -487,12 +466,10 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"tag\\": \\"Exit\\",
         \\"to\\": \\"ABC\\",
         \\"from\\": \\"DEF\\",
-        \\"name\\": \\"vortex\\",
         \\"appearances\\": [
             {
                 \\"data\\": {
                     \\"tag\\": \\"Exit\\",
-                    \\"name\\": \\"vortex\\",
                     \\"key\\": \\"DEF#ABC\\",
                     \\"from\\": \\"DEF\\",
                     \\"to\\": \\"ABC\\"
