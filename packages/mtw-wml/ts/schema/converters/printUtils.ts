@@ -105,61 +105,6 @@ export const provisionalPrintFactory = ({ outputs, nestingLevel, indexInLevel }:
 }
 
 //
-// combineResults takes lists of results and returns up to three categories, without filtering on whether the
-//    renders will fit within line-length limits:
-//    - A naive view, if every incoming value set includes naive contents
-//    - A nested view, if every incoming value set includes naive or nested
-//    - A propertyNested view, if that option is set
-//
-export const combineResults = (options: { multipleInCategory?: boolean; propertyNestedAllowed?: boolean; separateLines?: boolean; ignoreWhitespace?: boolean } = {}) => (...args: PrintMapResult[][]): PrintMapResult[] => {
-    return args.reduce<PrintMapResult[]>((previous, output) => {
-        const previousNaive = previous.filter(({ printMode }) => (printMode === PrintMode.naive))
-        const previousNested = previous.find(({ printMode }) => (printMode === PrintMode.nested))
-            ? previous.filter(({ printMode }) => (printMode === PrintMode.nested))
-            : previousNaive
-        const currentNaive = output.filter(({ printMode }) => (printMode === PrintMode.naive))
-        const currentNested = output.find(({ printMode }) => (printMode === PrintMode.nested))
-            ? output.filter(({ printMode }) => (printMode === PrintMode.nested))
-            : currentNaive
-        const combineLevel = (listA: PrintMapResult[], listB: PrintMapResult[], transform: (inputA: PrintMapResult, inputB: PrintMapResult) => PrintMapResult): PrintMapResult[] => (
-            Math.min(listA.length, listB.length) === 0
-                ? []
-                : Array.apply(null, Array(Math.min(listA.length, listB.length)))
-                    .map((_, index) => (transform(listA[Math.min(index, listA.length - 1)], listB[Math.min(index, listB.length - 1)])))
-        )
-        const combineTransform = (printMode: PrintMode, separator: string, ignoreWhitespace?: boolean) => (inputA: PrintMapResult, inputB: PrintMapResult) => (
-            (!ignoreWhitespace || inputB.output.trim())
-                ? inputA.output
-                    ? { printMode, output: [separator === '' ? inputA.output : inputA.output.trimEnd(), inputB.output].join(separator)}
-                    : inputB
-                : inputA
-        )
-        const returnValues =
-            options.separateLines
-                ? [
-                    ...combineLevel(previousNaive.length ? previousNaive : previousNested, currentNaive.length ? currentNaive : currentNested, combineTransform(PrintMode.nested, '\n', Boolean(options.ignoreWhitespace))),
-                    ...combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, '\n', Boolean(options.ignoreWhitespace)))
-                ]
-                : [
-                    // Combine naive, if available, on a single line
-                    ...combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.naive, '')),
-                    ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, '')) : [])
-                ]
-
-        if (options.multipleInCategory) {
-            return returnValues
-        }
-        else {
-            return [
-                ...(returnValues.filter(({ printMode }) => (printMode === PrintMode.naive)).slice(0, 1)),
-                ...(returnValues.filter(({ printMode }) => (printMode === PrintMode.nested)).slice(0, 1)),
-                ...(options.propertyNestedAllowed ? returnValues.filter(({ printMode }) => (printMode === PrintMode.propertyNested)).slice(0, 1) : [])
-            ]
-        }
-    }, [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }])
-}
-
-//
 // TODO: Refactor optimalLineResults to return line results of different PrintModes, up to one each (if
 // all are equally legal ... i.e., all can display or all are over-length, otherwise only the displayable
 // ones are returned).
