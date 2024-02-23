@@ -123,6 +123,10 @@ export type SchemaExportTag = {
     mapping: Record<string, SchemaImportMapping>
 } & SchemaBase
 
+export type SchemaInheritedTag = {
+    tag: 'Inherited';
+} & SchemaBase
+
 export type SchemaConditionTag = {
     tag: 'If';
 } & SchemaBase
@@ -151,8 +155,8 @@ export type SchemaLinkTag = {
 } & SchemaBase
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag | SchemaInheritedTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag | SchemaInheritedTag
 export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -277,6 +281,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaActionTag |
     SchemaImportTag |
     SchemaExportTag |
+    SchemaInheritedTag |
     SchemaConditionTag |
     SchemaConditionStatementTag |
     SchemaConditionFallthroughTag |
@@ -321,7 +326,8 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaMomentTag |
     SchemaAfterTag |
     SchemaBeforeTag |
-    SchemaReplaceTag
+    SchemaReplaceTag |
+    SchemaInheritedTag
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
@@ -367,12 +373,13 @@ export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag =
 
 export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
 export const isSchemaExport = (value: SchemaTag): value is SchemaExportTag => (value.tag === 'Export')
+export const isSchemaInherited = (value: SchemaTag): value is SchemaInheritedTag => (value.tag === 'Inherited')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Bookmark', 'Knowledge', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
+    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Bookmark', 'Knowledge', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Inherited'].includes(value.tag)
 )
 
 export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaActionTag | SchemaComputedTag | SchemaVariableTag => (
@@ -388,7 +395,7 @@ export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'Statement', 'Fallthrough', 'After', 'Before', 'Replace'].includes(value.tag)
+    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'Statement', 'Fallthrough', 'After', 'Before', 'Replace', 'Inherited'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {
@@ -407,6 +414,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
             'Action',
             'Use',
             'Import',
+            'Export',
+            'Inherited',
             'If',
             'Exit',
             'Description',

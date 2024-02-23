@@ -754,4 +754,17 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schema)).toEqual(testWML)
     })
 
+    it('should correctly round-trip inherited tags', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Name><Inherited>Lobby</Inherited></Name>
+                    <Description>A dark and dusty lobby.</Description>
+                </Room>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
 })

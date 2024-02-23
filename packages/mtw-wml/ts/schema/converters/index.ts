@@ -1,13 +1,11 @@
 import {
-    SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaStoryTag,
-    SchemaTag,
     isSchemaAsset,
     isSchemaAssetContents,
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
