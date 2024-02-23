@@ -1,12 +1,11 @@
 import { produce } from 'immer'
-import { ParseException } from '../parser/baseClasses';
+import { ParseException } from '../simpleParser/baseClasses';
 import {
     isSchemaWithKey,
     SchemaActionTag,
     SchemaAssetTag,
     SchemaCharacterTag,
     SchemaComputedTag,
-    SchemaConditionTag,
     SchemaFeatureTag,
     SchemaImageTag,
     SchemaImportTag,
@@ -18,13 +17,11 @@ import {
     SchemaWithKey,
     SchemaBookmarkTag,
     SchemaMessageTag,
-    SchemaException,
     SchemaMomentTag,
     SchemaKnowledgeTag,
     isImportableTag,
     isSchemaExport,
     isImportable,
-    isSchemaCondition,
     isSchemaComputed,
     isSchemaConditionStatement
 } from '../schema/baseClasses'
@@ -218,7 +215,7 @@ export class Normalizer {
             case 'Exit':
                 const { exitRoomIndex, exitRoomKey } = appearance.contextStack.reduceRight((previous, context, index) => (((context.tag === 'Room') && (previous.exitRoomIndex === -1)) ? { exitRoomIndex: index, exitRoomKey: context.key } : previous), { exitRoomIndex: -1, exitRoomKey: '' })
                 if (exitRoomIndex === -1) {
-                    throw new SchemaException('Exit tag cannot be created outside of room', { tag: 'Exit', to: '', from: '', contents: [], name: '', startTagToken: 0, endTagToken: 0 })
+                    throw new Error('Exit tag cannot be created outside of room')
                 }
 
                 return {
