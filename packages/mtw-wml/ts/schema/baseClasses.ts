@@ -1,4 +1,3 @@
-import { ParseTag } from "../parser/baseClasses"
 import { GenericTree } from "../tree/baseClasses"
 
 export type SchemaAssetLegalContents = SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
@@ -323,15 +322,6 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaAfterTag |
     SchemaBeforeTag |
     SchemaReplaceTag
-
-export class SchemaException extends Error {
-    parseTag: ParseTag;
-    constructor(message: string, parseTag: ParseTag) {
-        super(message)
-        this.name = 'WMLSchemaException'
-        this.parseTag = parseTag
-    }
-}
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')

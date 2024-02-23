@@ -1,5 +1,5 @@
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
-import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
+import { isLegalParseConditionContextTag } from "../../simpleParser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
 import { areAdjacent, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"

@@ -61,3 +61,17 @@ export type ParseFreeText = {
 }
 
 export type ParseItem = ParseTagOpen | ParseTagSelfClosure | ParseTagClose | ParseFreeText
+
+type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Bookmark' | 'Message' | 'Moment'
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Name', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map', 'Message', 'Moment'].includes(value))
+
+export class ParseException extends Error {
+    startToken: number
+    endToken: number
+    constructor(message: string, startToken: number, endToken: number) {
+        super(message)
+        this.name = 'ParseException'
+        this.startToken = startToken
+        this.endToken = endToken
+    }
+}
