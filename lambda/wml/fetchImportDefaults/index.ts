@@ -1,9 +1,9 @@
 import { apiClient } from "../clients"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
+import Normalizer from "@tonylb/mtw-wml/ts/normalize"
 
-import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
+import { SchemaAssetTag } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
@@ -28,11 +28,18 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
                 Story: undefined,
                 key: splitType(assetId)[1]
             }
-            const normalizer = new Normalizer()
-            normalizer.loadSchema(standardizeSchema([{ data: assetSchema, children: schemaTags }]))
+            const standardized = standardizeSchema([{ data: assetSchema, children: schemaTags }])
+            const wrappedWithInheritedTag = standardized.map(({ data, children }) => ({
+                data,
+                children: [{
+                    data: { tag: 'Inherited' as const },
+                    children
+                }]
+            }))
+            const wml = schemaToWML(wrappedWithInheritedTag)
             return {
                 assetId,
-                wml: schemaToWML(normalizer.schema)
+                wml
             }
         })
     )

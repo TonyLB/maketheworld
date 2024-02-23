@@ -88,7 +88,7 @@ export class NestedTranslateImportToFinal extends Object {
                     to: this.translateKey(tag.data.to),
                     from: this.translateKey(tag.data.from)
                 },
-                children: []
+                children: tag.children
             }
         }
         if (isSchemaRoom(tag.data)) {

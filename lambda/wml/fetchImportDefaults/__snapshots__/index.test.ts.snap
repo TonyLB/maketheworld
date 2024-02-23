@@ -7,10 +7,12 @@ exports[`fetchImports should follow dynamic renames in imports 1`] = `
     {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testImportTwo)><Name>StubFoo</Name></Room>
-    <Room key=(testNonImportTwo)>
-        <Exit to=(testImportTwo)>test exit</Exit>
-    </Room>
+    <Inherited>
+        <Room key=(testImportTwo)><Name>StubFoo</Name></Room>
+        <Room key=(testNonImportTwo)>
+            <Exit to=(testImportTwo)>test exit</Exit>
+        </Room>
+    </Inherited>
 </Asset>",
     },
   ],
@@ -25,13 +27,17 @@ exports[`fetchImports should import multilevel and avoid colliding stub names 1`
     {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>
-    <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
-    <Room key=(testImportThree)>
-        <Description>Asset Two</Description>
-        <Exit to=(testImportAssetThree.stub)>test exit</Exit>
-        <Exit to=(testImportAssetTwo.stub)>test exit</Exit>
-    </Room>
+    <Inherited>
+        <Room key=(testImportAssetThree.stub)>
+            <Name>AssetThreeStub</Name>
+        </Room>
+        <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
+        <Room key=(testImportThree)>
+            <Description>Asset Two</Description>
+            <Exit to=(testImportAssetThree.stub)>test exit</Exit>
+            <Exit to=(testImportAssetTwo.stub)>test exit</Exit>
+        </Room>
+    </Inherited>
 </Asset>",
     },
   ],
@@ -46,10 +52,12 @@ exports[`fetchImports should properly stub out features in room description 1`] 
     {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testRoomWithFeatures)>
-        <Description><Link to=(testFeature)>Test</Link></Description>
-    </Room>
-    <Feature key=(testFeature) />
+    <Inherited>
+        <Room key=(testRoomWithFeatures)>
+            <Description><Link to=(testFeature)>Test</Link></Description>
+        </Room>
+        <Feature key=(testFeature) />
+    </Inherited>
 </Asset>",
     },
   ],
@@ -64,11 +72,13 @@ exports[`fetchImports should recursive fetch one level of element and stubs when
     {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testImportOne)>
-        <Description>OneTwo</Description>
-        <Exit to=(testImportStubOne)>test exit one</Exit>
-    </Room>
-    <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
+    <Inherited>
+        <Room key=(testImportOne)>
+            <Description>OneTwo</Description>
+            <Exit to=(testImportStubOne)>test exit one</Exit>
+        </Room>
+        <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
+    </Inherited>
 </Asset>",
     },
   ],
@@ -83,11 +93,13 @@ exports[`fetchImports should return element and stubs when passed non-import key
     {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testNonImport)>
-        <Description>DescriptionOne</Description>
-        <Exit to=(testNonImportStub)>test exit</Exit>
-    </Room>
-    <Room key=(testNonImportStub)><Name>StubOne</Name></Room>
+    <Inherited>
+        <Room key=(testNonImport)>
+            <Description>DescriptionOne</Description>
+            <Exit to=(testNonImportStub)>test exit</Exit>
+        </Room>
+        <Room key=(testNonImportStub)><Name>StubOne</Name></Room>
+    </Inherited>
 </Asset>",
     },
   ],
@@ -101,7 +113,7 @@ exports[`fetchImports should return empty when passed no keys 1`] = `
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal) />",
+      "wml": "<Asset key=(testFinal)><Inherited /></Asset>",
     },
   ],
   "messageType": "FetchImports",
