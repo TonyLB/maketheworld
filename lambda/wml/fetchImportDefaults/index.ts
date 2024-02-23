@@ -1,9 +1,9 @@
 import { apiClient } from "../clients"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
+import Normalizer from "@tonylb/mtw-wml/ts/normalize"
 
-import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
+import { SchemaAssetTag } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"

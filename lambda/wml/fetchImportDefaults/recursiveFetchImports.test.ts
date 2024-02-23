@@ -138,7 +138,10 @@ describe('recursiveFetchImports', () => {
                 data: { tag: 'Room', key: 'testNonImport' },
                 children: [
                     { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'DescriptionOne' }, children: [] }]},
-                    { data: { tag: 'Exit', key: 'testNonImport#testNonImportStub', from: 'testNonImport', to: 'testNonImportStub', name: 'test exit'  }, children: [] }
+                    {
+                        data: { tag: 'Exit', key: 'testNonImport#testNonImportStub', from: 'testNonImport', to: 'testNonImportStub' },
+                        children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
+                    }
                 ]
             },
             {
@@ -168,7 +171,10 @@ describe('recursiveFetchImports', () => {
                 data: { tag: 'Room', key: 'testImportOne' },
                 children: [
                     { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Two' }, children: [] }] },
-                    { data: { tag: 'Exit', key: 'testImportOne#testImportStubOne', from: 'testImportOne', to: 'testImportStubOne', name: 'test exit one' }, children: [] }
+                    {
+                        data: { tag: 'Exit', key: 'testImportOne#testImportStubOne', from: 'testImportOne', to: 'testImportStubOne' },
+                        children: [{ data: { tag: 'String', value: 'test exit one' }, children: [] }]
+                    }
                 ]
             },
             { data: { tag: 'Room', key: 'testImportStubOne' }, children: [] },
@@ -185,9 +191,10 @@ describe('recursiveFetchImports', () => {
             },
             {
                 data: { tag: 'Room', key: 'testNonImportTwo' },
-                children: [
-                    { data: { tag: 'Exit', key: 'testNonImportTwo#testImportTwo', from: 'testNonImportTwo', to: 'testImportTwo', name: 'test exit' }, children: [] }
-                ]
+                children: [{
+                    data: { tag: 'Exit', key: 'testNonImportTwo#testImportTwo', from: 'testNonImportTwo', to: 'testImportTwo' },
+                    children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
+                }]
             },
             { data: { tag: 'Room', key: 'testImportTwo' }, children: [] }
         ])
@@ -197,9 +204,10 @@ describe('recursiveFetchImports', () => {
         expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toEqual([
             {
                 data: { tag: 'Room', key: 'testImportThree' },
-                children: [
-                    { data: { tag: 'Exit', key: 'testImportThree#testImportAssetThree.stub', from: 'testImportThree', to: 'testImportAssetThree.stub', name: 'test exit' }, children: [] }
-                ]
+                children: [{
+                    data: { tag: 'Exit', key: 'testImportThree#testImportAssetThree.stub', from: 'testImportThree', to: 'testImportAssetThree.stub' },
+                    children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
+                }]
             },
             {
                 data: { tag: 'Room', key: 'testImportAssetTwo.stub' },
@@ -217,7 +225,10 @@ describe('recursiveFetchImports', () => {
                 data: { tag: 'Room', key: 'testImportThree' },
                 children: [
                     { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Asset Two' }, children: [] }] },
-                    { data: { tag: 'Exit', key: 'testImportThree#testImportAssetTwo.stub', from: 'testImportThree', to: 'testImportAssetTwo.stub', name: 'test exit' }, children: [] }
+                    {
+                        data: { tag: 'Exit', key: 'testImportThree#testImportAssetTwo.stub', from: 'testImportThree', to: 'testImportAssetTwo.stub' },
+                        children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
+                    }
                 ]
             },
             { data: { tag: 'Room', key: 'testImportAssetTwo.stub' }, children: [] },

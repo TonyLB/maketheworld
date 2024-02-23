@@ -5,14 +5,14 @@
 //
 
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { isNormalAction, isNormalExit, isNormalFeature, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import Normalizer from "@tonylb/mtw-wml/ts/normalize"
+import { isNormalAction, isNormalExit, isNormalFeature, NormalForm, NormalItem } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import {
     isSchemaLink,
     isSchemaFeature,
     isSchemaRoom,
     SchemaTag
-} from "@tonylb/mtw-wml/dist/schema/baseClasses"
+} from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
 
@@ -57,7 +57,7 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
         .map((item) => {
             if (isSchemaRoom(item.data)) {
                 const tagTree = new SchemaTagTree(item.children)
-                const filteredTree = tagTree.filter([{ match: 'Name' }])
+                const filteredTree = tagTree.filter({ match: 'Name' })
                 return [{
                     ...item,
                     children: filteredTree.tree
@@ -79,7 +79,7 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
     // Use TagTree to extract just the Link nodes that are descendants of rooms
     //
     const tagTree = new SchemaTagTree(keyItems)
-    const linksOnly = tagTree.filter([{ match: 'Room' }, { match: 'Link' }]).prune([{ not: ['Link'] }]).tree
+    const linksOnly = tagTree.filter({ and: [{ match: 'Room' }, { match: 'Link' }] }).prune({ not: { match: 'Link' } }).tree
 
     const linkTargets = linksOnly
         .map(({ data }) => (isSchemaLink(data) ? [data.to] : [])).flat(1)

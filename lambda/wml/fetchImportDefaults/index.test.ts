@@ -1,11 +1,11 @@
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { fetchImports } from '.'
 
 jest.mock('../clients')
 import { apiClient } from '../clients'
 jest.mock('./baseClasses')
 import { FetchImportsJSONHelper } from './baseClasses'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
