@@ -28,11 +28,18 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
                 Story: undefined,
                 key: splitType(assetId)[1]
             }
-            const normalizer = new Normalizer()
-            normalizer.loadSchema(standardizeSchema([{ data: assetSchema, children: schemaTags }]))
+            const standardized = standardizeSchema([{ data: assetSchema, children: schemaTags }])
+            const wrappedWithInheritedTag = standardized.map(({ data, children }) => ({
+                data,
+                children: [{
+                    data: { tag: 'Inherited' as const },
+                    children
+                }]
+            }))
+            const wml = schemaToWML(wrappedWithInheritedTag)
             return {
                 assetId,
-                wml: schemaToWML(normalizer.schema)
+                wml
             }
         })
     )
