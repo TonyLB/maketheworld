@@ -1,4 +1,4 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport } from "../baseClasses"
+import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -12,7 +12,8 @@ const importExportTemplates = {
     Export: {},
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key }
-    }
+    },
+    Inherited: {}
 } as const
 
 export const importExportConverters: Record<string, ConverterMapEntry> = {
@@ -67,7 +68,13 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             tag: 'Image',
             ...validateProperties(importExportTemplates.Image)(parseOpen)
         })
-    }
+    },
+    Inherited: {
+        initialize: ({ parseOpen }): SchemaInheritedTag => ({
+            tag: 'Inherited',
+            ...validateProperties(importExportTemplates.Inherited)(parseOpen)
+        })
+    }    
 }
 
 export const importExportPrintMap: Record<string, PrintMapEntry> = {
@@ -105,4 +112,14 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
             })
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
+    Inherited: ({ tag: { data: tag, children }, ...args}: PrintMapEntryArguments) => (
+        isSchemaInherited(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Inherited',
+                properties: [],
+                node: { data: tag, children }
+            })
+            : [{ printMode: PrintMode.naive, output: '' }]
+    )
 }
