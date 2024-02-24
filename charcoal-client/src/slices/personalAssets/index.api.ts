@@ -86,9 +86,9 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
     ))
 
     importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().forEach(({ assetId, wml }) => {
-        const normalizer = new Normalizer()
-        normalizer.loadWML(wml)
-        dispatch(setImport(id)({ assetKey: assetId.split('#')[1], normal: normalizer.normal }))
+        const schema = new Schema()
+        schema.loadWML(wml)
+        dispatch(setImport(id)({ assetKey: assetId.split('#')[1], schema: schema.schema }))
     })
 
 }
@@ -293,7 +293,6 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
             data: {
                 tag: 'Character',
                 key: id.split('#')[1],
-                Name: 'Unknown',
                 Pronouns: {
                     subject: 'they',
                     object: 'them',
@@ -302,7 +301,21 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
                     reflexive: 'themself'
                 }
             },
-            children: [],
+            children: [
+                { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Unknown' }, children: [], id: uuidv4() }], id: uuidv4() },
+                {
+                    data: {
+                        tag: 'Pronouns',
+                        subject: 'they',
+                        object: 'them',
+                        possessive: 'theirs',
+                        adjective: 'their',
+                        reflexive: 'themself'
+                    },
+                    children: [],
+                    id: uuidv4()
+                },
+            ],
             id: uuidv4()
         }]
     }
