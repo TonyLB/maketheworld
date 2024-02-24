@@ -1,4 +1,4 @@
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
@@ -54,7 +54,7 @@ export type CustomInheritedReadOnlyElement = {
 
 export type CustomIfWrapper = {
     type: 'ifWrapper';
-    tree: GenericTree<SchemaTag, TreeId>
+    tree: GenericTree<SchemaOutputTag, TreeId>
 }
 
 // export type CustomIfBlock = {
