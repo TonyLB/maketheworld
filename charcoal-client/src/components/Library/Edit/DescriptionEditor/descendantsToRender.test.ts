@@ -69,22 +69,16 @@ describe('descendantsToRender', () => {
     it('should decode a single-level condition', () => {
         expect(descendantsToRender([{
             type: 'paragraph',
-            children: [{ text: 'This is a test ' }]
-        },
-        {
-            type: 'ifBase',
-            source: 'testVariable',
-            children: [{
-                type: 'paragraph',
-                children: [{ text: 'with an If' }]
-            }]
-        },
-        {
-            type: 'else',
-            children: [{
-                type: 'paragraph',
-                children: [{ text: 'and an Else' }]
-            }]
+            children: [
+                { text: 'This is a test ' },
+                {
+                    type: 'ifWrapper',
+                    tree: [
+                        { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }], id: '' },
+                        { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
+                    ]
+                }
+            ]
         },
         {
             type: 'paragraph',
@@ -92,15 +86,10 @@ describe('descendantsToRender', () => {
         }])).toEqual([
             { data: { tag: 'String', value: 'This is a test ' }, children: [] },
             {
-                data: { tag: 'If', conditions: [{ if: 'testVariable' }] },
+                data: { tag: 'If' },
                 children: [
-                    { data: { tag: 'String', value: 'with an If'}, children: [] }
-                ]
-            },
-            {
-                data: { tag: 'If', conditions: [{ if: 'testVariable', not: true }] },
-                children: [
-                    { data: { tag: 'String', value: 'and an Else'}, children: [] }
+                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [] }] },
+                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [] }] }
                 ]
             },
             { data: { tag: 'String', value: ' and more text.' }, children: [] }

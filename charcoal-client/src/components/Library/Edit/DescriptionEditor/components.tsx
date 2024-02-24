@@ -19,7 +19,6 @@ import {
     Transforms
 } from 'slate'
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
-import SlateIfElse from '../SlateIfElse'
 
 export const Element: FunctionComponent<RenderElementProps> = (props) => {
     const { attributes, children, element } = props
@@ -61,10 +60,12 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                 >
                     { children }
             </SlateIndentBox>        
-        case 'ifBase':
-        case 'elseif':
-        case 'else':
-            return <SlateIfElse defaultBlock={{ type: 'paragraph', children: [{ text: '' }]}} { ...props } />
+        // case 'ifBase':
+        // case 'elseif':
+        // case 'else':
+        //     return <SlateIfElse defaultBlock={{ type: 'paragraph', children: [{ text: '' }]}} { ...props } />
+        case 'ifWrapper':
+            return <Box sx={{ width: "100%", border: "1px solid" }}>If Wrapper</Box>
         case 'paragraph':
             const paragraphTags = <React.Fragment>
                     { (element.explicitBR || element.softBR) && <span contentEditable={false}>

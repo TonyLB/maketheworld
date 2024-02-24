@@ -3,58 +3,27 @@ import { deepEqual } from "../../../../lib/objects"
 import {
     CustomActionLinkElement,
     CustomBlock,
-    CustomElseBlock,
-    CustomElseIfBlock,
+    // CustomElseBlock,
+    // CustomElseIfBlock,
     CustomFeatureLinkElement,
-    CustomIfBlock,
+    // CustomIfBlock,
     CustomKnowledgeLinkElement,
     CustomParagraphContents,
     CustomParagraphElement,
     CustomText,
     isCustomBlock,
-    isCustomElseBlock,
-    isCustomElseIfBlock,
-    isCustomIfBlock,
+    // isCustomElseBlock,
+    // isCustomElseIfBlock,
+    // isCustomIfBlock,
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
-const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {
-    let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
-    const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
-        if (!current) {
-            return {
-                elseContext: [],
-                elseDefined: false
-            }
-        }
-        else {
-            return {
-                elseContext: [
-                    ...current.filter(isCustomIfBlock).map(({ source }) => (source)),
-                    ...current.filter(isCustomElseIfBlock).map(({ source }) => (source))
-                ],
-                elseDefined: Boolean(current.find(isCustomElseBlock))
-            }
-        }
-    }
-    const mapConditionIsElseValid = (item: CustomIfBlock | CustomElseIfBlock | CustomElseBlock, index: number, list: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): (CustomIfBlock | CustomElseIfBlock | CustomElseBlock) => {
-        if (index < list.length - 1 || isCustomElseBlock(item)) {
-            return item
-        }
-        return {
-            ...item,
-            isElseValid: true
-        }
-    }
-    let returnValue: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents)[] => {
+    let returnValue: CustomParagraphContents[] = []
     tree.forEach(({ data: item, children }) => {
-        if (item.tag !== 'If' && currentIfSequence.length) {
-            returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-            currentIfSequence = []
-        }
         switch(item.tag) {
             case 'Space':
                 returnValue.push({
@@ -86,76 +55,77 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
                 })
                 break
             case 'If':
-                const predicateToSrc = (predicate: NormalConditionStatement): string => {
-                    return `${ predicate.not ? '!' : ''}${predicate.if}`
-                }
-                const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
-                    return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
-                }
-                const { elseContext, elseDefined } = conditionElseContext(currentIfSequence)
-                //
-                // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
-                //
-                const matchesElseConditions = elseContext.length &&
-                    (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
-                if (matchesElseConditions) {
-                    const remainingConditions = item.conditions.slice(elseContext.length)
-                    const translatedChildren = descendantsFromRender(children, options)
-                    if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
-                        currentIfSequence = [
-                            ...currentIfSequence,
-                            {
-                                type: 'elseif',
-                                source: conditionsToSrc(remainingConditions),
-                                children: translatedChildren
-                            }
-                        ]
-                    }
-                    else if (currentIfSequence.length && !elseDefined) {
-                        currentIfSequence = [
-                            ...currentIfSequence,
-                            {
-                                type: 'else',
-                                children: translatedChildren
-                            }
-                        ]
-                    }
-                    else {
-                        if (currentIfSequence.length) {
-                            //
-                            // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
-                            // blocks in descendantsFromRender
-                            //
-                            returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-                        }
-                        currentIfSequence = [{
-                            type: 'ifBase',
-                            source: conditionsToSrc(item.conditions),
-                            children: translatedChildren
-                        }]
-                    }
-                }
-                else {
-                    if (currentIfSequence) {
-                        returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-                    }
-                    currentIfSequence = [{
-                        type: 'ifBase',
-                        source: conditionsToSrc(item.conditions),
-                        children: descendantsFromRender(children, options),
-                    }]
-                }
+                returnValue.push({
+                    type: 'ifWrapper',
+                    tree: children
+                })
+                // const predicateToSrc = (predicate: NormalConditionStatement): string => {
+                //     return `${ predicate.not ? '!' : ''}${predicate.if}`
+                // }
+                // const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
+                //     return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
+                // }
+                // const { elseContext, elseDefined } = conditionElseContext(currentIfSequence)
+                // //
+                // // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
+                // //
+                // const matchesElseConditions = elseContext.length &&
+                //     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
+                // if (matchesElseConditions) {
+                //     const remainingConditions = item.conditions.slice(elseContext.length)
+                //     const translatedChildren = descendantsFromRender(children, options)
+                //     if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
+                //         currentIfSequence = [
+                //             ...currentIfSequence,
+                //             {
+                //                 type: 'elseif',
+                //                 source: conditionsToSrc(remainingConditions),
+                //                 children: translatedChildren
+                //             }
+                //         ]
+                //     }
+                //     else if (currentIfSequence.length && !elseDefined) {
+                //         currentIfSequence = [
+                //             ...currentIfSequence,
+                //             {
+                //                 type: 'else',
+                //                 children: translatedChildren
+                //             }
+                //         ]
+                //     }
+                //     else {
+                //         if (currentIfSequence.length) {
+                //             //
+                //             // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
+                //             // blocks in descendantsFromRender
+                //             //
+                //             returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
+                //         }
+                //         currentIfSequence = [{
+                //             type: 'ifBase',
+                //             source: conditionsToSrc(item.conditions),
+                //             children: translatedChildren
+                //         }]
+                //     }
+                // }
+                // else {
+                //     if (currentIfSequence) {
+                //         returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
+                //     }
+                //     currentIfSequence = [{
+                //         type: 'ifBase',
+                //         source: conditionsToSrc(item.conditions),
+                //         children: descendantsFromRender(children, options),
+                //     }]
+                // }
                 break
         }
     })
-    if (currentIfSequence) {
-        returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-    }
     return returnValue
 }
 
-const descendantsCompact = (items: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] =>  {
-    const { previousText, returnValue } = items.reduce<{ previousText?: string, returnValue: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] }>((previous, item) =>  {
+const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagraphContents)[] =>  {
+    const { previousText, returnValue } = items.reduce<{ previousText?: string, returnValue: (CustomParagraphContents)[] }>((previous, item) =>  {
         if ('text' in item) {
             return {
                 ...previous,
@@ -192,13 +162,13 @@ export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeI
         const translated = descendantsTranslate(render, options)
         descendantsCompact(translated).forEach((item) => {
             if (isCustomBlock(item)) {
-                if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
-                    if (accumulator.length) {
-                        returnValue = [...returnValue, { type: 'paragraph', children: accumulator }]
-                    }
-                    returnValue = [...returnValue, item]
-                    accumulator = []
-                }
+                // if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
+                //     if (accumulator.length) {
+                //         returnValue = [...returnValue, { type: 'paragraph', children: accumulator }]
+                //     }
+                //     returnValue = [...returnValue, item]
+                //     accumulator = []
+                // }
             }
             else {
                 if (isCustomLineBreak(item)) {

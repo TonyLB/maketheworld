@@ -25,13 +25,27 @@ describe('descendantsFromRender', () => {
         expect(descendantsFromRender([
             { data: { tag: 'String', value: 'This is a test ' }, children: [], id: '' },
             {
-                data: { tag: 'If', conditions: [{ if: 'testVariable', dependencies: [] }] },
-                children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }],
+                data: { tag: 'If' },
+                children: [{
+                    data: {
+                        tag: 'Statement',
+                        if: 'testVariable'
+                    },
+                    children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }],
+                    id: ''
+                }],
                 id: ''
             },
             {
-                data: { tag: 'If', conditions: [{ if: 'testVariable', dependencies: [], not: true }] },
-                children: [{ data: { tag: 'String', value: 'and an Else'}, children: [], id: '' }],
+                data: { tag: 'If' },
+                children: [{
+                    data: {
+                        tag: 'Statement',
+                        if: 'testVariable'
+                    },
+                    children: [{ data: { tag: 'String', value: 'and an Else'}, children: [], id: '' }],
+                    id: ''
+                }],
                 id: ''
             },
             { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' }

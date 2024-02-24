@@ -1,8 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import {
-    useParams
-} from "react-router-dom"
+import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
 import { isKeyHotkey } from 'is-hotkey'
 import { grey } from '@mui/material/colors'
 
@@ -41,7 +37,7 @@ import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
 import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
-import { AddIfButton } from '../SlateIfElse'
+// import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
@@ -397,10 +393,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                     </React.Fragment>
                 }
                 <DisplayTagRadio />
-                <AddIfButton defaultBlock={{
+                {/* <AddIfButton defaultBlock={{
                     type: 'paragraph',
                     children: [{ text: '' }]
-                }} />
+                }} /> */}
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <InheritedDescription inheritedRender={inheritedRender} />

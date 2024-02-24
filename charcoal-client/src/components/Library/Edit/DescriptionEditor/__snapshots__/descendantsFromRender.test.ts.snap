@@ -41,38 +41,50 @@ Array [
       Object {
         "text": "This is a test ",
       },
-    ],
-    "type": "paragraph",
-  },
-  Object {
-    "children": Array [
       Object {
-        "children": Array [
+        "tree": Array [
           Object {
-            "text": "with an If",
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "with an If",
+                },
+                "id": "",
+              },
+            ],
+            "data": Object {
+              "if": "testVariable",
+              "tag": "Statement",
+            },
+            "id": "",
           },
         ],
-        "type": "paragraph",
+        "type": "ifWrapper",
       },
-    ],
-    "source": "testVariable",
-    "type": "ifBase",
-  },
-  Object {
-    "children": Array [
       Object {
-        "children": Array [
+        "tree": Array [
           Object {
-            "text": "and an Else",
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "and an Else",
+                },
+                "id": "",
+              },
+            ],
+            "data": Object {
+              "if": "testVariable",
+              "tag": "Statement",
+            },
+            "id": "",
           },
         ],
-        "type": "paragraph",
+        "type": "ifWrapper",
       },
-    ],
-    "type": "else",
-  },
-  Object {
-    "children": Array [
       Object {
         "text": " and more text.",
       },

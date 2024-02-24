@@ -4,9 +4,7 @@ import {
     CustomBlock,
     CustomReplaceBlock,
     isCustomBeforeBlock,
-    isCustomElseBlock,
-    isCustomElseIfBlock,
-    isCustomIfBlock,
+    isCustomIfWrapper,
     isCustomLink,
     isCustomParagraph,
     isCustomParagraphContents,
@@ -15,53 +13,27 @@ import {
 } from "../baseClasses"
 import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { stripIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
 //
-// TODO: Refactor descendantsToRender to return GenericTree<SchemaOutputTag, { id: string }>
+// TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
 export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
     let runningConditions: NormalConditionStatement[] = []
     const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item, index) => {
-        if (isCustomIfBlock(item)) {
-            const ifCondition = { if: item.source }
-            runningConditions = [{ ...ifCondition, not: true }]
-            return [
-                ...tree,
-                {
-                    data: { tag: 'If' as const, conditions: [ifCondition] },
-                    children: descendantsToRender(item.children)
-                }
-            ]
-        }
-        else if (isCustomElseIfBlock(item)) {
-            const newCondition = { if: item.source }
-            runningConditions = [
-                ...runningConditions,
-                { ...newCondition, not: true }
-            ]
-            return [
-                ...tree,
-                {
-                    data: { tag: 'If' as const, conditions: [...(runningConditions.slice(0, -1)), newCondition] },
-                    children: descendantsToRender(item.children)
-                }
-            ]
-        }
-        else if (isCustomElseBlock(item)) {
-            const returnVal = [
-                ...tree,
-                {
-                    data: { tag: 'If' as const, conditions: [...runningConditions] },
-                    children: descendantsToRender(item.children)
-                }
-            ]
-            runningConditions = []
-            return returnVal
-        }
-        else if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
+        if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<GenericTree<SchemaOutputTag>>((previous, item) => {
+                    if (isCustomIfWrapper(item)) {
+                        return [
+                            ...previous,
+                            {
+                                data: { tag: 'If' as const },
+                                children: stripIDFromTree(item.tree)
+                            }
+                        ]
+                    }
                     if (isCustomLink(item)) {
                         return [
                             ...previous,
