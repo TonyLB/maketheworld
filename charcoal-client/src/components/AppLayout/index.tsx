@@ -43,7 +43,6 @@ import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 
 import MapView from '../Maps/View'
-import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
@@ -256,7 +255,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     const routes = useMemo(() => (
         <Routes>
             <Route path="/Character/Archived" element={<InDevelopment />} />
-            <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
             <Route path="/Library/" element={<Library />} />
             <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />

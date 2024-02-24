@@ -1,4 +1,3 @@
-import { NormalConditionStatement } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import {
     CustomBeforeBlock,
     CustomBlock,
@@ -19,7 +18,6 @@ import { stripIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
 export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
-    let runningConditions: NormalConditionStatement[] = []
     const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item, index) => {
         if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
             return item.children
