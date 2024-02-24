@@ -30,7 +30,7 @@ export interface PersonalAssetsPublic {
     draftWML?: string;
     schema: GenericTree<SchemaTag, TreeId>;
     normal: NormalForm;
-    importData: Record<string, NormalForm>;
+    importData: Record<string, GenericTree<SchemaTag, TreeId>>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;

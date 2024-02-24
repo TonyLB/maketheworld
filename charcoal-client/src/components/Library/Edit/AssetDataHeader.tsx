@@ -35,39 +35,15 @@ interface AssetDataHeaderProps {
 }
 
 export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
-    const { normalForm, importData, rooms } = useLibraryAsset()
+    const { normalForm, rooms } = useLibraryAsset()
 
-    const getInheritedItem = (ItemId: string): NormalRoom | NormalFeature | undefined => {
-        const importLookupList = (normalForm[ItemId]?.appearances || [])
-            .map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import'))))
-            .filter((value) => (value))
-            .map(({ key }) => (normalForm[key]))
-            .filter((value) => (value))
-            .filter(isNormalImport)
-        if (!importLookupList.length) {
-            return undefined
-        }
-        const inheritedNormal = importData(importLookupList[0].from)
-        const lookupKey = importLookupList[0].mapping[ItemId].key
-        if (!lookupKey) {
-            return undefined
-        }
-        const inheritedItem = inheritedNormal[lookupKey]
-        if (!(inheritedItem && (isNormalRoom(inheritedItem) || isNormalFeature(inheritedItem)))) {
-            return undefined
-        }
-        return inheritedItem
-    }
-    const inheritedItem = getInheritedItem(ItemId)
     const props = {
         item: normalForm[ItemId],
-        inheritedItem,
         normalForm,
         rooms
     }
     const primaryOutput = <React.Fragment>
         { primary?.(props) || null }
-        { inheritedItem && <MiniChip text="Import" /> }
     </React.Fragment>
     const secondaryOutput = secondary?.(props) || null
     if (onClick) {

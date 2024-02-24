@@ -50,7 +50,6 @@ type LibraryAssetContextType = {
     currentWML: string;
     draftWML: string;
     normalForm: NormalForm;
-    importData: (assetKey: string) => NormalForm | undefined;
     schema: GenericTree<SchemaTag, TreeId>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
@@ -72,7 +71,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     currentWML: '',
     draftWML: '',
     normalForm: {},
-    importData: () => (undefined),
     schema: [],
     updateSchema: () => {},
     properties: {},
@@ -104,7 +102,7 @@ export type AssetComponent = {
     importFrom?: string;
 }
 
-const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, importData: (assetKey: string) => NormalForm | undefined }): Record<string, AssetComponent> => {
+const assetComponents = ({ normalForm }: { normalForm: NormalForm }): Record<string, AssetComponent> => {
     const componentNormals = Object.values(normalForm).filter((item) => (isNormalComponent(item))) as NormalComponent[]
     const normalizer = new Normalizer()
     normalizer.loadNormal(normalForm)
@@ -112,50 +110,7 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
     const roomReturns = componentNormals
         .map((component) => {
             const localName = normalizer.select({ key: component.key, selector: selectName })
-            // const localName = (component.appearances
-            //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-            //     .map(({ name = [] }) => name)
-            //     .reduce((previous, name) => ([ ...previous, ...name ]), [])
-            //     .map((item) => ((item.tag === 'String') ? item.value : ''))
-            //     .join('')) || ''
             const localRender = normalizer.select({ key: component.key, selector: selectRender })
-            // const localRender = component.appearances
-            //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-            //     .map(({ render = [] }) => render)
-            //     .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const importRef = component.appearances.map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import')))).find((value) => (Boolean(value)))
-            if (importRef) {
-                if (!(isNormalReference(importRef) || isSchemaImport(importRef))) {
-                    throw new Error('Import reference lookup failure in assetComponents')
-                }
-                const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
-                const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
-                if (importItem) {
-                    const awayKey = importItem.mapping[component.key]
-                    if (awayKey) {
-                        const importedNormal = importData(importItem.from)
-                        if (importedNormal) {
-                            const importNormalizer = new Normalizer()
-                            importNormalizer.loadNormal(importedNormal)
-                            const inheritedItem = importedNormal[awayKey.key]
-                            if (inheritedItem && isNormalComponent(inheritedItem)) {
-                                const inheritedName = importNormalizer.select({ key: awayKey.key, selector: selectName })
-                                const inheritedRender = importNormalizer.select({ key: awayKey.key, selector: selectRender })
-                                return { [component.key]: {
-                                    tag: component.tag,
-                                    localName,
-                                    localRender,
-                                    inheritedName,
-                                    inheritedRender,
-                                    name: [ ...inheritedName, ...localName ],
-                                    render: [...inheritedRender, ...localRender],
-                                    importFrom: importItem.from
-                                }}
-                            }
-                        }
-                    }
-                }
-            }
             return { [component.key]: {
                 tag: component.tag,
                 localName,
@@ -177,7 +132,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const schema = useSelector(getSchema(AssetId))
-    const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
@@ -195,7 +149,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
-    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importData }) ), [normalForm, importData])
+    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm }) ), [normalForm])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
@@ -212,7 +166,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             currentWML,
             draftWML,
             normalForm,
-            importData,
             select,
             schema,
             updateSchema,

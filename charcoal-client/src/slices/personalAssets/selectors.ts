@@ -10,7 +10,7 @@ export type PublicSelectors = {
     getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
-    getImportData: (state: PersonalAssetsPublic) => (assetKey: string) => NormalForm | undefined;
+    getImportData: (state: PersonalAssetsPublic) => (assetKey: string) => GenericTree<SchemaTag, TreeId> | undefined;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
 }
 
@@ -18,15 +18,22 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
-const getNormalized = ({ normal }: PersonalAssetsPublic) => (normal)
-
+//
+// TODO: Refactor getSchema to merge importData with schema
+//
 const getSchema = ({ schema }: PersonalAssetsPublic) => (schema)
+
+//
+// TODO: Refactor getNormalized to derive from schema rather than storing normal
+// separately
+//
+const getNormalized = ({ normal }: PersonalAssetsPublic) => (normal)
 
 const getProperties = (state: PersonalAssetsPublic) => (state.properties)
 
 const getLoadedImages = (state: PersonalAssetsPublic) => ( state.loadedImages )
 
-const getImportData = ({ importData = {} }: PersonalAssetsPublic) => (assetKey: string): NormalForm | undefined => {
+const getImportData = ({ importData = {} }: PersonalAssetsPublic) => (assetKey: string): GenericTree<SchemaTag, TreeId> | undefined => {
     return importData[assetKey]
 }
 
