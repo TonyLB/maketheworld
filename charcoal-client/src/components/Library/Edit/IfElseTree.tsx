@@ -10,8 +10,8 @@ import ExitIcon from '@mui/icons-material/CallMade'
 
 import { useLibraryAsset } from "./LibraryAsset"
 import { Button, Stack } from "@mui/material"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionTag, SchemaTag, isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaTag, isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
@@ -40,10 +40,7 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
 }
 
 type RenderType = FunctionComponent<{
-    parentId: string;
-    node: GenericTreeNode<SchemaTag, TreeId>;
-    onChange: (value: GenericTreeNode<SchemaTag, TreeId>) => void;
-    onDelete: () => void;
+    tree: GenericTree<SchemaTag, TreeId>;
 }>
 
 const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: ReactElement }> = ({ onClick, addItemIcon }) => {
@@ -61,11 +58,10 @@ type IfElseWrapBoxProps = {
     id: string;
     type: 'if' | 'elseIf' | 'else';
     source: string;
-    previousConditions: SchemaConditionTag["conditions"];
     actions: ReactChild[] | ReactChildren;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, previousConditions, id, actions, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, children }) => {
     const { updateSchema } = useLibraryAsset()
     return <LabelledIndentBox
         color={blue}
@@ -91,7 +87,7 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, pr
                                 updateSchema({
                                     type: 'updateNode',
                                     id,
-                                    item: { tag: 'If', conditions: [...previousConditions, { if: source }] }
+                                    item: { tag: 'Statement', if: source }
                                 })
                             }}
                         />
@@ -106,105 +102,48 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, pr
 }
 
 type IfElseTreeProps = {
-    parentId: string;
-    tree: GenericTree<SchemaTag, TreeId>;
+    tree: GenericTreeFiltered<SchemaConditionStatementTag | SchemaConditionFallthroughTag, SchemaTag, TreeId>;
     render: RenderType;
-    defaultItem: GenericTreeNode<SchemaTag>;
-    addItemIcon: ReactElement;
 }
 
-//
-// TODO: Refactor IfElseTree to accept GenericTree<SchemaTag> instead of items/conditionals
-//
-export const IfElseTree = ({ parentId, tree, render, defaultItem, addItemIcon }: IfElseTreeProps): ReactElement => {
-    const { updateSchema } = useLibraryAsset()
-    const unconditionedItems = tree.filter(({ data }) => (!isSchemaCondition(data)))
-    const conditionedItems = tree.filter((node): node is GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag, TreeId> => (isSchemaCondition(node.data)))
+export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
+    if (tree.length === 0 || !(isSchemaConditionStatement(tree[0].data))) {
+        throw new Error('Invalid arguments in IfElseTree')
+    }
     return <React.Fragment>
-        {
-            unconditionedItems.map((item, index) => (render({
-                parentId,
-                node: item,
-                // key: `item${index}`,
-                onChange: (value) => {
-                    updateSchema({
-                        type: 'replace',
-                        id: item.id,
-                        item: value
-                    })
-                },
-                onDelete: () => {
-                    updateSchema({
-                        type: 'delete',
-                        id: item.id
-                    })
-                }
-            })))
+        <IfElseWrapBox
+            key={tree[0].id}
+            id={tree[0].id}
+            type={'if'}
+            source={tree[0].data.if}
+            actions={[]}
+        >
+            { render({ tree: tree[0].children }) }
+        </IfElseWrapBox>
+        { 
+            tree.map(({ data, children, id }) => {
+                const childrenRender = render({ tree: children })
+                return isSchemaConditionStatement(data)
+                    ? <IfElseWrapBox
+                        key={id}
+                        id={id}
+                        type={'elseIf'}
+                        source={data.if}
+                        actions={[]}
+                    >
+                        { childrenRender }
+                    </IfElseWrapBox>
+                    : <IfElseWrapBox
+                        key={id}
+                        id={id}
+                        type={'else'}
+                        source=''
+                        actions={[]}
+                    >
+                        { childrenRender }
+                    </IfElseWrapBox>
+            })
         }
-        {
-            conditionedItems.reduce<{ output: ReactElement[], previousConditions: SchemaConditionTag["conditions"] }>(({ output, previousConditions }, subCondition, index) => {
-                const { conditions } = subCondition.data
-                const childrenRender = <IfElseTree
-                    parentId={subCondition.id}
-                    tree={subCondition.children}
-                    render={render}
-                    defaultItem={defaultItem}
-                    addItemIcon={addItemIcon}
-                />
-                const extendsConditions = ((conditions.length === previousConditions.length) ||
-                    (conditions.length === previousConditions.length + 1)) &&
-                    deepEqual(conditions.slice(0, previousConditions.length), previousConditions)
-                if (conditions.length > 1 && !extendsConditions) {
-                    throw new Error('Condition tags misaligned in IfElseTree')
-                }
-                const type: 'if' | 'elseIf' | 'else' = extendsConditions ? conditions.length === previousConditions.length ? 'else' : 'elseIf' : 'if'
-                //
-                // TODO: When SchemaConditionTag is refactored to use Statements and FallThrough, add "+ ElseIf" and "+ Else" actions
-                //
-                return {
-                    output: [
-                        ...output,
-                        <IfElseWrapBox
-                            id={subCondition.id}
-                            type={type}
-                            source={type === 'if' ? conditions[0].if : type === 'elseIf' ? conditions.slice(-1)[0].if : ''}
-                            previousConditions={previousConditions}
-                            key={`condition${index}`}
-                            actions={[]}
-                        >
-                            { childrenRender }
-                        </IfElseWrapBox>
-                    ],
-                    previousConditions: []
-                }
-            }, { output: [], previousConditions: [] }).output
-        }
-        <Stack direction="row" spacing={2}>
-            <AddItemButton
-                addItemIcon={addItemIcon}
-                onClick={() => {
-                    updateSchema({
-                        type: 'addChild',
-                        id: parentId,
-                        item: defaultItem
-                    })
-                }}
-            />
-            <AddConditionalButton
-                label="If"
-                onClick={() => {
-                    updateSchema({
-                        type: 'addChild',
-                        id: parentId,
-                        item: {
-                            data: { tag: 'If', conditions: [{ if: '' }]},
-                            children: []
-                        }
-                    })
-                }}
-            />
-
-        </Stack>
     </React.Fragment>
 }
 
