@@ -59,11 +59,7 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                     }
                 >
                     { children }
-            </SlateIndentBox>        
-        // case 'ifBase':
-        // case 'elseif':
-        // case 'else':
-        //     return <SlateIfElse defaultBlock={{ type: 'paragraph', children: [{ text: '' }]}} { ...props } />
+            </SlateIndentBox>
         case 'ifWrapper':
             return <Box sx={{ width: "100%", border: "1px solid" }}>If Wrapper</Box>
         case 'paragraph':
