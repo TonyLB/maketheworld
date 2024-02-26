@@ -99,10 +99,7 @@ const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Ima
         case 'Map':
             return {
                 tag: 'Map' as const,
-                key,
-                rooms: [],
-                images: [],
-                name: []
+                key
             }
     }
 }

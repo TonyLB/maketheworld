@@ -58,7 +58,11 @@ export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, hiddenCon
                 ...state,
                 nextConditionIndex: state.nextConditionIndex + 1,
                 keyStack: `${state.keyStack}::If-${state.nextConditionIndex}`,
-                visible: state.visible && !(hiddenConditions.includes(data.key)),
+                //
+                // TODO: Add non-persistent "selected" tag and use it to determine which parts of the Tree are
+                // visible
+                //
+                visible: state.visible,
                 nodes: [],
                 links: []
             }
