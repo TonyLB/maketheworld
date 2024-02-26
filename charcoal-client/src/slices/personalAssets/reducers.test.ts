@@ -138,15 +138,19 @@ describe('personalAsset slice reducers', () => {
                 id: '',
                 children: [
                     {
-                        data: { tag: 'If', conditions: [{ if: 'true' }] },
-                        id: 'IF-1',
+                        data: { tag: 'If' },
+                        id: 'IF-Wrapper',
                         children: [{
-                            data: { tag: 'Room', key: 'testRoom' },
-                            id: 'ABC',
-                            children: [
-                                { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                                { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-                            ]
+                            data: { tag: 'Statement', if: 'true' },
+                            id: 'IF-1',
+                            children: [{
+                                data: { tag: 'Room', key: 'testRoom' },
+                                id: 'ABC',
+                                children: [
+                                    { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                                    { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                                ]
+                            }]
                         }]
                     }
                 ]
@@ -156,22 +160,26 @@ describe('personalAsset slice reducers', () => {
                 payload: {
                     type: 'updateNode',
                     id: 'IF-1',
-                    item: { tag: 'If', conditions: [{ if: 'false' }] }
+                    item: { tag: 'Statement', if: 'false' }
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: '',
                 children: [
                     {
-                        data: { tag: 'If', conditions: [{ if: 'false' }] },
-                        id: 'IF-1',
+                        data: { tag: 'If' },
+                        id: 'IF-Wrapper',
                         children: [{
-                            data: { tag: 'Room', key: 'testRoom' },
-                            id: 'ABC',
-                            children: [
-                                { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                                { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-                            ]
+                            data: { tag: 'Statement', if: 'false' },
+                            id: 'IF-1',
+                            children: [{
+                                data: { tag: 'Room', key: 'testRoom' },
+                                id: 'ABC',
+                                children: [
+                                    { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                                    { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                                ]
+                            }]
                         }]
                     }
                 ]

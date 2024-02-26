@@ -12,6 +12,8 @@ import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilterEntries, objectMap } from '../../../../lib/objects'
 import WMLComponentHeader from '../../../Library/Edit/WMLComponentHeader'
+import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 interface AddRoomDialog {
     open: boolean;
@@ -30,21 +32,17 @@ export const AddRoomDialog: FunctionComponent<AddRoomDialog> = ({
     mapId,
     open=false
 }) => {
-    const { rooms, normalForm } = useLibraryAsset()
+    const { rooms, normalForm, select } = useLibraryAsset()
     const currentMapRooms = useMemo(() => {
-        const mapLookup = normalForm[mapId]
-        if (isNormalMap(mapLookup)) {
-            const mapAppearances = mapLookup.appearances
-            return [...(new Set(mapAppearances
-                .reduce((previous, { rooms: mapRooms }) => {
-                    return [
-                        ...previous,
-                        ...Object.keys(mapRooms)
-                    ]                    
-                }, [] as string[])))]
-        }
-        return []
-    }, [normalForm, mapId])
+        return select({ key: mapId, selector: (tree) => {
+            const tagTree = new SchemaTagTree(tree)
+            return tagTree
+                .filter({ match: 'Position' })
+                .prune({ not: { match: 'Room' } })
+                .tree
+                .map(({ data }) => (isSchemaRoom(data) ? [data.key] : [])).flat(1)
+        }})
+    }, [select, mapId])
     const availableRooms = useMemo(() => (
         objectFilterEntries(
             objectMap(rooms, ({ name }) => (name)),

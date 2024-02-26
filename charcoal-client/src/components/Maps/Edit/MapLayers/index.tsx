@@ -17,9 +17,10 @@ import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import IfElseTree from '../../../Library/Edit/IfElseTree'
 
 type MapLayersProps = {
     mapId: string;
@@ -186,7 +187,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
-const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaRoomTag | SchemaExitTag | SchemaConditionTag | SchemaNameTag | SchemaOutputTag, TreeId> }> = ({ item }) => {
+const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
     const { data } = item
     switch(data.tag) {
         case 'Room':
@@ -196,9 +197,10 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaRoomTag | Sc
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
-            return <ConditionLayer src={data.conditions[0].if} conditionId={data.key}>
-                { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
-            </ConditionLayer>
+            return <IfElseTree
+                tree={treeTypeGuard({ tree: item.children, typeGuard: (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (Boolean(['Statement', 'Fallthrough'].includes(data.tag))) })}
+                render={({ tree }) => (<React.Fragment>{ tree.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>)}
+            />
         default:
             return null
     }

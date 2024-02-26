@@ -20,7 +20,7 @@ describe('mapTreeTranslate', () => {
         const testTree: GenericTree<SchemaTag, TreeId> = [
             { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
             { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit' }, children: [], id: 'GHI' }
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExit' }, children: [], id: 'JKL'}], id: 'GHI' }
             ], id: 'DEF' }
         ]
 
@@ -44,15 +44,31 @@ describe('mapTreeTranslate', () => {
         const testTree: GenericTree<SchemaTag, TreeId> = [
             { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
             { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit' }, children: [], id: '' },
-                { data: { tag: 'If', conditions: [] }, children: [
-                    { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2', name: 'TestExitBack' }, children: [], id: '' }
-                ], id: '' }
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExt' }, children: [], id: '' }], id: '' },
+                {
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'true' },
+                        children: [
+                            { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2' }, children: [{ data: { tag: 'String', value: 'TestExitBack' }, children: [], id: '' }], id: '' }
+                        ],
+                        id: ''
+                    }],
+                    id: ''
+                }
             ], id: 'DEF' },
-            { data: { tag: 'If', conditions: [] }, children: [
-                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100 }, children: [], id: 'ZZZ' },
-                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100 }, children: [], id: 'JKL' }
-            ], id: '' },
+            {
+                data: { tag: 'If' },
+                children: [{
+                    data: { tag: 'Statement', if: 'true' },
+                    children: [
+                        { data: { tag: 'Room', key: 'Room3', x: -200, y: 100 }, children: [], id: 'ZZZ' },
+                        { data: { tag: 'Room', key: 'Room4', x: 200, y: 100 }, children: [], id: 'JKL' }
+                    ],
+                    id: ''
+                }],
+                id: ''
+            },
             { data: { tag: 'Room', key: 'Room3', x: -100, y: 100 }, children: [], id: 'GHI' }
         ]
 
@@ -118,13 +134,10 @@ describe('MapDThree', () => {
                 id: ''
             },
             {
-                data: {
-                    tag: 'If',
-                    key: 'One',
-                    conditions: [],
-                },
-                children: [
-                    {
+                data: { tag: 'If' },
+                children: [{
+                    data: { tag: 'Statement', if: 'true' },
+                    children: [{
                         data: {
                             tag: 'Room',
                             key: 'DEF',
@@ -143,8 +156,9 @@ describe('MapDThree', () => {
                         },
                         children: [],
                         id: ''
-                    }
-                ],
+                    }],
+                    id: ''
+                }],
                 id: ''
             }],
             hiddenConditions: []
