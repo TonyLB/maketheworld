@@ -206,10 +206,6 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
                 }]
                 : []
         )).flat(1)
-        if (pendingWrapperEntries.length) {
-            console.log(`pendingWrapperEntries: ${JSON.stringify(pendingWrapperEntries.map(({ wrapperTag }) => (wrapperTag)), null, 4)}`)
-            console.log(`currentWrapperEntries: ${JSON.stringify(currentWrapperEntries.map(({ wrapperTag }) => (wrapperTag)), null, 4)}`)
-        }
         const neededTagLists = pendingWrapperEntries.reduce<TagListItem<NodeData, Extra>[][]>((previous, pendingEntry) => {
             const matchingCurrentWrapperEntry = currentWrapperEntries.find(({ wrapperTag }) => (wrapperTag === pendingEntry.wrapperTag))
             if (!matchingCurrentWrapperEntry) {
@@ -245,7 +241,8 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
                             ...previous,
                             {
                                 ...pendingEntry,
-                                pending: [...pendingEntry.pending.filter((node) => (!compare(node, matchingCurrentWrapperEntry.pending[0]))), ...matchingCurrentWrapperEntry.pending]
+                                pending: [...pendingEntry.pending.filter((node) => (!compare(node, matchingCurrentWrapperEntry.pending[0]))), ...matchingCurrentWrapperEntry.pending],
+                                uncertain: pendingEntry.uncertain && !filterPass
                             }
                         ]
                     }
@@ -254,7 +251,8 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
                             ...previous,
                             {
                                 ...pendingEntry,
-                                pending: matchingCurrentWrapperEntry.pending
+                                pending: matchingCurrentWrapperEntry.pending,
+                                uncertain: pendingEntry.uncertain && !filterPass
                             }
                         ]
                     }
@@ -263,7 +261,8 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
                             ...previous,
                             {
                                 ...pendingEntry,
-                                pending: []
+                                pending: [],
+                                uncertain: pendingEntry.uncertain && !filterPass
                             }
                         ]
                     }

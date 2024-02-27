@@ -285,7 +285,6 @@ describe('TagTree', () => {
         `))))
         const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']], isWrapper: ({ tag }) => (tag === 'If') })
         const filteredTreeOne = tagTree.filter({ match: 'Description' })
-        console.log(`transformedTags: ${JSON.stringify(filteredTreeOne._transformedTags, null, 4)}`)
         expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)><Description>An institutional lobby.</Description></Room>
@@ -298,7 +297,7 @@ describe('TagTree', () => {
                         </Description>
                     </Room>
                 </ElseIf>
-                <Else></Else>
+                <Else />
             </Asset>
         `))
 
