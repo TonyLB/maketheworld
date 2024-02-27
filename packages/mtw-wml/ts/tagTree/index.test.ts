@@ -256,7 +256,52 @@ describe('TagTree', () => {
                     <Room key=(room2)><Description>A boring test room</Description></Room>
                 </Asset>
             `))
-        })    
+        })
+
+        it('should preserve wrapper structure', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>An institutional lobby.</Description>
+                </Room>
+                <If {true}>
+                    <Room key=(room1)><Name>: by daylight</Name></Room>
+                </If>
+                <ElseIf {false}>
+                    <Room key=(room1)>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </ElseIf>
+                <Else>
+                    <If {1+1 === 2}>
+                        <Room key=(room1)><Name><Space />(bright)</Name></Room>
+                    </If>
+                </Else>
+            </Asset>
+        `))))
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']], isWrapper: ({ tag }) => (tag === 'If') })
+        const filteredTreeOne = tagTree.filter({ match: 'Description' })
+        expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)><Description>An institutional lobby.</Description></Room>
+                <If {true} />
+                <ElseIf {false}>
+                    <Room key=(room1)>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </ElseIf>
+                <Else />
+            </Asset>
+        `))
+
+        })
     })
 
     describe('prune', () => {
