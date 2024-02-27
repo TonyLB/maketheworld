@@ -1,6 +1,7 @@
-import { deepEqual } from "../lib/objects";
-import { unique } from "../list";
-import { GenericTree, GenericTreeNode } from "../tree/baseClasses"
+import { v4 as uuidv4 } from 'uuid'
+import { deepEqual } from "../lib/objects"
+import { unique } from "../list"
+import { GenericTree } from "../tree/baseClasses"
 import dfsWalk from "../tree/dfsWalk"
 
 type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
@@ -60,6 +61,7 @@ export type TagTreeMatchOperation<NodeData extends {}, Extra extends {} = {}> =
 
 export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
     data: NodeData;
+    wrapperTag?: string;
 } & Extra
 
 type TagTreeActionReorder<NodeData extends {}, Extra extends {} = {}> = { reorder: TagTreePruneArgs<NodeData, Extra>[] }
@@ -84,17 +86,18 @@ const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg
 
 type TagTreePruneArgs<NodeData extends {}, Extra extends {} = {}> = TagTreeMatchOperation<NodeData, Extra>
 
-export const tagListFromTree = <NodeData extends {}, Extra extends {} = {}>(tree: GenericTree<NodeData, Extra>): TagListItem<NodeData, Extra>[][] => {
+export const tagListFromTree = <NodeData extends {}, Extra extends {} = {}>(tree: GenericTree<NodeData, Extra>, options: { isWrapper?: (data: NodeData) => boolean } = {}): TagListItem<NodeData, Extra>[][] => {
     return dfsWalk({
         default: { output: [], state: {} },
         callback: (previous: { output: TagListItem<NodeData, Extra>[][], state: {} }, data: NodeData, extra: Extra) => {
             return { output: [...previous.output, [{ data, ...extra }]], state: {} }
         },
         aggregate: ({ direct, children, data, extra }) => {
+            const wrapperTag: string | undefined = (data && options.isWrapper?.(data as NodeData)) ? uuidv4() : undefined
             return {
                 output: [
                     ...(children.output.length ? direct.output.slice(0, -1) : direct.output),
-                    ...children.output.map((nodes) => ([...(data ? [{ data, ...(extra as unknown as Extra) }] : []), ...nodes]))
+                    ...children.output.map((nodes) => ([...(data ? [{ data, ...(extra as unknown as Extra), wrapperTag }] : []), ...nodes]))
                 ],
                 state: {}
             }
@@ -152,32 +155,138 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
     return [...previous, { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
-//
-// TODO: Refactor filter to a reduce that steps through the tags and records information about
-// children of wrapper tags that have (so far) not appeared in the filtered output ... then,
-// if one of their siblings passes the filter, add those tags.
-//
-// TODO: Design the algorithm to do the above.
-//
+type FilterTagPendingWrapperEntry<NodeData extends {}, Extra extends {} = {}> = {
+    // UUID identifying the wrapperTag
+    wrapperTag: string;
+    // TagTree up to the point of the wrapperTag (inclusive)
+    treeToWrapper: TagListItem<NodeData, Extra>[];
+    // List of direct child tags of the wrapperTag that have not (yet) been included in
+    // the tagTree
+    pending: TagListItem<NodeData, Extra>[];
+    // False if *any* child of the pending Wrapper has passed filter (and therefore all
+    // pending entries must be persisted eventually)
+    uncertain: boolean;
+}
 type FilterTagsState<NodeData extends {}, Extra extends {} = {}> = {
     filteredTags: TagListItem<NodeData, Extra>[][];
+    pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
 }
 
-const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {}>(options: { filter: (tagList: TagListItem<NodeData, Extra>[]) => Boolean; isWrapper?: (data: NodeData) => boolean; }) => (tagLists: TagListItem<NodeData, Extra>[][]): TagListItem<NodeData, Extra>[][] => {
-    if (typeof options.isWrapper === 'undefined') {
-        return tagLists.filter(options.filter)
-    }
-    const { filteredTags } = tagLists.reduce<FilterTagsState<NodeData, Extra>>((accumulator, tagList) => {
-        if (options.filter(tagList)) {
-            return {
-                filteredTags: [...accumulator.filteredTags, tagList ]
+//
+// filterTagsWithWrapperHandling steps through the tags and records information about
+// children of wrapper tags that have (so far) not appeared in the filtered output ... then,
+// if one of their siblings passes the filter, adds those tags to maintain structure.
+//
+const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {}>(options: { filter: (tagList: TagListItem<NodeData, Extra>[]) => Boolean; compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean; }) => (tagLists: TagListItem<NodeData, Extra>[][]): TagListItem<NodeData, Extra>[][] => {
+    const { compare } = options
+    //
+    // neededWrapperTagList is a helper function to take pending wrapper entries, and generate the
+    // TagLists that need to be added to filter output in order to maintain the internal structure
+    // for relevant wrapper items.
+    //
+    const neededWrapperTagLists = (args: {
+            incomingTagList: TagListItem<NodeData, Extra>[];
+            pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
+            filterPass: Boolean;
+        }): {
+            neededTagLists: TagListItem<NodeData, Extra>[][];
+            newPendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
+        } => {
+        const { incomingTagList, pendingWrapperEntries, filterPass } = args
+        //
+        // Make a list of all wrapper entries in the current tagList
+        //
+        const currentWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[] = incomingTagList.map((item, index) => (
+            (item.wrapperTag && index < incomingTagList.length - 1)
+                ? [{
+                    wrapperTag: item.wrapperTag,
+                    treeToWrapper: incomingTagList.slice(0, index + 1),
+                    pending: [incomingTagList[index + 1]],
+                    uncertain: !filterPass
+                }]
+                : []
+        )).flat(1)
+        if (pendingWrapperEntries.length) {
+            console.log(`pendingWrapperEntries: ${JSON.stringify(pendingWrapperEntries.map(({ wrapperTag }) => (wrapperTag)), null, 4)}`)
+            console.log(`currentWrapperEntries: ${JSON.stringify(currentWrapperEntries.map(({ wrapperTag }) => (wrapperTag)), null, 4)}`)
+        }
+        const neededTagLists = pendingWrapperEntries.reduce<TagListItem<NodeData, Extra>[][]>((previous, pendingEntry) => {
+            const matchingCurrentWrapperEntry = currentWrapperEntries.find(({ wrapperTag }) => (wrapperTag === pendingEntry.wrapperTag))
+            if (!matchingCurrentWrapperEntry) {
+                if (pendingEntry.uncertain) {
+                    return previous
+                }
+                else {
+                    return [...previous, ...pendingEntry.pending.map((node) => ([...pendingEntry.treeToWrapper, node]))]
+                }
             }
+            else {
+                if (matchingCurrentWrapperEntry.uncertain && pendingEntry.uncertain) {
+                    return previous
+                } else {
+                    return [
+                        ...previous,
+                        ...pendingEntry.pending
+                            .filter((node) => (!compare(node, matchingCurrentWrapperEntry.pending[0])))
+                            .map((node) => ([...pendingEntry.treeToWrapper, node]))
+                    ]
+                }
+            }
+        }, [])
+        const newPendingWrapperEntries = [
+            ...pendingWrapperEntries.reduce<FilterTagPendingWrapperEntry<NodeData, Extra>[]>((previous, pendingEntry) => {
+                const matchingCurrentWrapperEntry = currentWrapperEntries.find(({ wrapperTag }) => (wrapperTag === pendingEntry.wrapperTag))
+                if (!matchingCurrentWrapperEntry) {
+                    return previous
+                }
+                else {
+                    if (matchingCurrentWrapperEntry.uncertain && pendingEntry.uncertain) {
+                        return [
+                            ...previous,
+                            {
+                                ...pendingEntry,
+                                pending: [...pendingEntry.pending.filter((node) => (!compare(node, matchingCurrentWrapperEntry.pending[0]))), ...matchingCurrentWrapperEntry.pending]
+                            }
+                        ]
+                    }
+                    else if (matchingCurrentWrapperEntry.uncertain) {
+                        return [
+                            ...previous,
+                            {
+                                ...pendingEntry,
+                                pending: matchingCurrentWrapperEntry.pending
+                            }
+                        ]
+                    }
+                    else {
+                        return [
+                            ...previous,
+                            {
+                                ...pendingEntry,
+                                pending: []
+                            }
+                        ]
+                    }
+                }
+            }, []),
+            ...currentWrapperEntries.filter(({ wrapperTag }) => (!pendingWrapperEntries.find(({ wrapperTag: pendingWrapperTag }) => (wrapperTag === pendingWrapperTag))))
+        ].sort(({ treeToWrapper: baseListA }, { treeToWrapper: baseListB }) => (baseListB.length - baseListA.length))
+        return { neededTagLists, newPendingWrapperEntries }
+    }
+    const { filteredTags, pendingWrapperEntries } = tagLists.reduce<FilterTagsState<NodeData, Extra>>((accumulator, tagList) => {
+        const filterPass = options.filter(tagList)
+        const {neededTagLists, newPendingWrapperEntries } = neededWrapperTagLists({ incomingTagList: tagList, pendingWrapperEntries: accumulator.pendingWrapperEntries, filterPass })
+        return {
+            filteredTags: [
+                ...accumulator.filteredTags,
+                ...neededTagLists,
+                ...(filterPass ? [tagList] : [])
+            ],
+            pendingWrapperEntries: newPendingWrapperEntries
         }
-        else {
-            return accumulator
-        }
-    }, { filteredTags: [] })
-    return filteredTags
+    }, { filteredTags: [], pendingWrapperEntries: [] })
+    const { neededTagLists } = neededWrapperTagLists({ incomingTagList: [], pendingWrapperEntries, filterPass: false })
+    return [...filteredTags, ...neededTagLists]
 }
 
 export class TagTree<NodeData extends {}, Extra extends {} = {}> {
@@ -195,7 +304,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         this._compare = args.compare ?? deepEqual
         this._isWrapper = args.isWrapper
         this._merge = args.merge
-        this._tagList = tagListFromTree(args.tree)
+        this._tagList = tagListFromTree(args.tree, { isWrapper: this._isWrapper })
     }
 
     get tree() {
@@ -319,7 +428,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                 return reorderedTags
             }
             if (isTagTreeActionFilter(action)) {
-                const filteredTags = filterTagsWithWrapperHandling({ filter: this._filterTags(action.filter), isWrapper: this._isWrapper })(previous)
+                const filteredTags = filterTagsWithWrapperHandling({ filter: this._filterTags(action.filter), compare: this._compare.bind(this) })(previous)
                 return filteredTags
             }
             if (isTagTreeActionPrune(action)) {
