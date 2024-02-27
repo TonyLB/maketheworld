@@ -256,7 +256,49 @@ describe('TagTree', () => {
                     <Room key=(room2)><Description>A boring test room</Description></Room>
                 </Asset>
             `))
-        })    
+        })
+
+        it('should preserve wrapper structure', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>An institutional lobby.</Description>
+                </Room>
+                <If {true}>
+                    <Room key=(room1)><Name>: by daylight</Name></Room>
+                </If>
+                <ElseIf {false}>
+                    <Room key=(room1)>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </ElseIf>
+                <Else></Else>
+            </Asset>
+        `))))
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+        const filteredTreeOne = tagTree.filter({ match: 'Description' })
+        console.log(`transformedTags: ${JSON.stringify(filteredTreeOne._transformedTags, null, 4)}`)
+        expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)><Description>An institutional lobby.</Description></Room>
+                <If {true}></If>
+                <ElseIf {false}>
+                    <Room key=(room1)>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </ElseIf>
+                <Else></Else>
+            </Asset>
+        `))
+
+        })
     })
 
     describe('prune', () => {

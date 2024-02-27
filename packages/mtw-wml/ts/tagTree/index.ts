@@ -5,6 +5,7 @@ import dfsWalk from "../tree/dfsWalk"
 
 type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
     classify: (data: NodeData) => string;
+    isWrapper?: (data: NodeData) => boolean;
     compare?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
     merge?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => ({ data: NodeData } & Extra);
     orderIndependence?: string[][];
@@ -151,10 +152,38 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
     return [...previous, { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
+//
+// TODO: Refactor filter to a reduce that steps through the tags and records information about
+// children of wrapper tags that have (so far) not appeared in the filtered output ... then,
+// if one of their siblings passes the filter, add those tags.
+//
+// TODO: Design the algorithm to do the above.
+//
+type FilterTagsState<NodeData extends {}, Extra extends {} = {}> = {
+    filteredTags: TagListItem<NodeData, Extra>[][];
+}
+
+const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {}>(options: { filter: (tagList: TagListItem<NodeData, Extra>[]) => Boolean; isWrapper?: (data: NodeData) => boolean; }) => (tagLists: TagListItem<NodeData, Extra>[][]): TagListItem<NodeData, Extra>[][] => {
+    if (typeof options.isWrapper === 'undefined') {
+        return tagLists.filter(options.filter)
+    }
+    const { filteredTags } = tagLists.reduce<FilterTagsState<NodeData, Extra>>((accumulator, tagList) => {
+        if (options.filter(tagList)) {
+            return {
+                filteredTags: [...accumulator.filteredTags, tagList ]
+            }
+        }
+        else {
+            return accumulator
+        }
+    }, { filteredTags: [] })
+    return filteredTags
+}
 
 export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _tagList: TagListItem<NodeData, Extra>[][];
     _compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
+    _isWrapper?: (data: NodeData) => boolean;
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
     _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
@@ -164,6 +193,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         this._classifier = args.classify
         this._orderIndependence = args.orderIndependence ?? []
         this._compare = args.compare ?? deepEqual
+        this._isWrapper = args.isWrapper
         this._merge = args.merge
         this._tagList = tagListFromTree(args.tree)
     }
@@ -289,7 +319,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                 return reorderedTags
             }
             if (isTagTreeActionFilter(action)) {
-                const filteredTags = previous.filter(this._filterTags(action.filter))
+                const filteredTags = filterTagsWithWrapperHandling({ filter: this._filterTags(action.filter), isWrapper: this._isWrapper })(previous)
                 return filteredTags
             }
             if (isTagTreeActionPrune(action)) {
