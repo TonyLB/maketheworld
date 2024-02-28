@@ -3,11 +3,12 @@
 // but with everything organized in a standard structure (see README.standardize.md)
 //
 
-import { SchemaTag, SchemaWithKey } from "./baseClasses"
+import { SchemaTag, SchemaWithKey, isSchemaAsset } from "./baseClasses"
 import { GenericTree } from "../tree/baseClasses";
 import SchemaTagTree from "../tagTree/schema";
 import { unique } from "../list";
 import { TagTreeMatchOperation } from "../tagTree";
+import { selectKeysByTag } from "../normalize/selectors/keysByTag";
 
 const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return children.sort(({ data: dataA }, { data: dataB }): number => {
@@ -31,22 +32,15 @@ const stripProperties = (tag: SchemaTag): SchemaTag => {
     return returnValue
 }
 
-export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
+export const standardizeSchema = (...schemata: GenericTree<SchemaTag>[]): GenericTree<SchemaTag> => {
     const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-    const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: [
-        { match: 'Room' },
-        { match: 'Feature' },
-        { match: 'Knowledge' },
-        { match: 'Bookmark' },
-        { match: 'Map' },
-        { match: 'Message' },
-        { match: 'Moment' },
-        { match: 'Variable' },
-        { match: 'Computed' },
-        { match: 'Action' }
-    ]}
-    return schema.map(({ data, children }) => {
-        const tagTree = new SchemaTagTree(children)
+    const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
+    const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
+    return allAssetKeys.map((assetKey) => {
+        const tagTree = new SchemaTagTree(schemata.map((tree) => {
+            const assetNode = tree.find(({ data }) => (isSchemaAsset(data) && data.key === assetKey))
+            return assetNode ? [assetNode] : []
+        }).flat(1))
         let topLevelItems: GenericTree<SchemaTag> = []
     
         const keysByComponentType = (tag: SchemaWithKey["tag"]) => (
@@ -83,7 +77,7 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
                     // TODO: Refactor reordered to accept more general matching criteria, and include childNodeMatch between Name and Description
                     //
                     .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
-                    .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
+                    .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                     .prune({ before: nodeMatch })
                     .tree
                 items.forEach((item) => {
@@ -98,7 +92,7 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
         //
         // Add standardized view of all Imports to the results
         //
-        const importTagTree = new SchemaTagTree(schema)
+        const importTagTree = tagTree
             .filter({ match: 'Import' })
             .prune({ or: [
                 { before: { match: 'Import' } },
@@ -124,7 +118,7 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
         //
         // Add standardized view of all Exports to the results
         //
-        const exportTagTree = new SchemaTagTree(schema)
+        const exportTagTree = tagTree
             .filter({ match: 'Export' })
             .prune({ or: [
                 { before: { match: 'Export' } },
@@ -137,7 +131,7 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
         }
     
         return {
-            data,
+            data: { tag: 'Asset', key: assetKey, Story: undefined },
             children: topLevelItems
         }
     })

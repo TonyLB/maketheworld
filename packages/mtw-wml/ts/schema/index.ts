@@ -8,7 +8,6 @@ import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
 import { genericIDFromTree } from "../tree/genericIDTree"
-import standardizeSchema from "./standardize"
 import { lineLengthAfterIndent } from "./converters/printUtils"
 import { maxLineLength } from "./converters/quantumRender/freeText"
 

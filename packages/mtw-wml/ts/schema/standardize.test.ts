@@ -403,4 +403,37 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(standardizeSchema(testSchema))).toEqual(testSource)
     })
 
+    it('should combine multiple schemata correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Inherited>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                </Inherited>
+            </Asset>
+        `)
+        const inheritedSchema = schemaTestWML(inheritedSource)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Room>
+            </Asset>
+        `)
+        const testSchema = schemaTestWML(testSource)
+        expect(schemaToWML(standardizeSchema(inheritedSchema, testSchema))).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Inherited>Lobby</Inherited><Space />(at night)</Name>
+                    <Description>
+                        <Inherited>A plain lobby.</Inherited><Space />Shadows cling to the
+                        corners of the room.
+                    </Description>
+                </Room>
+            </Asset>
+        `))
+    })
 })
