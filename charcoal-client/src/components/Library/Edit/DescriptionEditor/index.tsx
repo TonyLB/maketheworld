@@ -1,6 +1,5 @@
 import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
 import { isKeyHotkey } from 'is-hotkey'
-import { grey } from '@mui/material/colors'
 
 import { useSlate } from 'slate-react'
 import {
@@ -21,14 +20,9 @@ import {
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
-import BeforeIcon from '@mui/icons-material/Reply'
-import ReplaceIcon from '@mui/icons-material/Backspace'
 
 import {
-    CustomBeforeBlock,
-    CustomReplaceBlock,
-    isCustomBlock,
-    CustomInheritedReadOnlyElement
+    isCustomBlock
 } from '../baseClasses'
 
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
@@ -74,76 +68,11 @@ const isInContextOf = (tags: string[]) => (editor: Editor) => {
 
 const isLinkActive = isInContextOf(['actionLink', 'featureLink', 'knowledgeLink'])
 
-const isBeforeBlock = isInContextOf(['before'])
-const isReplaceBlock = isInContextOf(['replace'])
-
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
             !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink', 'knowledgeLink'].includes(n.type),
     })
-}
-
-const selectActiveBlock = (editor: Editor) => {
-    const block = Editor.nodes(editor, {
-        match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
-    }).next()
-    if (block?.value) {
-        const location = block.value[1]
-        Transforms.select(editor, location)
-    }
-}
-
-const unwrapBlock = (editor: Editor) => {
-    Transforms.unwrapNodes(editor, {
-        match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
-    })
-}
-
-const wrapBeforeBlock = (editor: Editor) => {
-    if (isBeforeBlock(editor)) {
-        selectActiveBlock(editor)
-        unwrapBlock(editor)
-    }
-  
-    const { selection } = editor
-    const isCollapsed = selection && Range.isCollapsed(selection)
-    const block: CustomBeforeBlock = {
-        type: 'before',
-        children: [],
-    }
-  
-    if (isCollapsed) {
-        Transforms.insertNodes(editor, block)
-    } else {
-        Transforms.wrapNodes(editor, block, { split: true })
-        Transforms.collapse(editor, { edge: 'end' })
-        editor.saveSelection = undefined
-    }
-}
-
-const wrapReplaceBlock = (editor: Editor) => {
-    if (isReplaceBlock(editor)) {
-        selectActiveBlock(editor)
-        unwrapBlock(editor)
-    }
-  
-    const { selection } = editor
-    const isCollapsed = selection && Range.isCollapsed(selection)
-    const block: CustomReplaceBlock = {
-        type: 'replace',
-        children: [],
-    }
-  
-    if (isCollapsed) {
-        Transforms.insertNodes(editor, block)
-    } else {
-        Transforms.wrapNodes(editor, block, { split: true })
-        Transforms.collapse(editor, { edge: 'end' })
-        editor.saveSelection = undefined
-    }
 }
 
 interface AddLinkButtonProps {
@@ -183,83 +112,6 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     >
         <LinkOffIcon />
     </Button>
-}
-
-const DisplayTagRadio: FunctionComponent<{}> = () => {
-    const editor = useSlate()
-    const { readonly } = useLibraryAsset()
-    const { selection } = editor
-    const handleBeforeClick = useCallback(() => {
-        if (isBeforeBlock(editor)) {
-            unwrapBlock(editor)
-        }
-        else {
-            if (isReplaceBlock(editor)) {
-                selectActiveBlock(editor)
-                unwrapBlock(editor)
-            }
-            wrapBeforeBlock(editor)
-        }
-        setTimeout(() => {
-            if (editor.saveSelection) {
-                Transforms.select(editor, editor.saveSelection)
-            }
-            ReactEditor.focus(editor)
-        }, 10)
-    }, [editor])
-    const handleReplaceClick = useCallback(() => {
-        if (isReplaceBlock(editor)) {
-            unwrapBlock(editor)
-        }
-        else {
-            if (isBeforeBlock(editor)) {
-                selectActiveBlock(editor)
-                unwrapBlock(editor)
-            }
-            wrapReplaceBlock(editor)
-        }
-        setTimeout(() => {
-            if (editor.saveSelection) {
-                Transforms.select(editor, editor.saveSelection)
-            }
-            ReactEditor.focus(editor)
-        }, 10)
-    }, [editor])
-    const handleAfterClick = useCallback(() => {
-        if (isReplaceBlock(editor) || isBeforeBlock(editor)) {
-            selectActiveBlock(editor)
-            unwrapBlock(editor)
-        }
-        setTimeout(() => {
-            if (editor.saveSelection) {
-                Transforms.select(editor, editor.saveSelection)
-            }
-            ReactEditor.focus(editor)
-        }, 10)
-    }, [editor])
-    return <React.Fragment>
-        <Button
-            variant={isBeforeBlock(editor) ? "contained" : "outlined"}
-            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
-            onClick={handleBeforeClick}
-        >
-            <BeforeIcon />
-        </Button>
-        <Button
-            variant={isReplaceBlock(editor) ? "contained" : "outlined"}
-            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
-            onClick={handleReplaceClick}
-        >
-            <ReplaceIcon />
-        </Button>
-        <Button
-            variant={(isReplaceBlock(editor) || isBeforeBlock(editor)) ? "outlined" : "contained"}
-            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
-            onClick={handleAfterClick}
-        >
-            <BeforeIcon sx={{ transform: "scaleX(-1)" }} />
-        </Button>
-    </React.Fragment>
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[] }) => {
@@ -331,7 +183,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                         <RemoveLinkButton />
                     </React.Fragment>) || null
                 }
-                <DisplayTagRadio />
                 {/* <AddIfButton defaultBlock={{
                     type: 'paragraph',
                     children: [{ text: '' }]
