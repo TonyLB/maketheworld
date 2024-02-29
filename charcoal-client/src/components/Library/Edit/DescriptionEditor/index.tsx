@@ -46,7 +46,6 @@ import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 interface DescriptionEditorProps {
     ComponentId: string;
-    inheritedRender?: GenericTree<SchemaOutputTag, TreeId>;
     output: GenericTree<SchemaOutputTag, TreeId>;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
@@ -63,64 +62,6 @@ const withInlines = (editor: Editor) => {
     )
 
     return editor
-}
-
-const InheritedDescription: FunctionComponent<{ inheritedRender?: GenericTree<SchemaOutputTag, TreeId> }> = ({ inheritedRender=[] }) => {
-    const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
-        type: 'inherited',
-        children: descendantsFromRender(inheritedRender, { normal: {} })
-    }]), [inheritedRender])
-    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
-    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    const editor = useUpdatedSlate({
-        initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
-        value: inheritedValue,
-        comparisonOutput: descendantsToRender
-    })
-    const decorate = useCallback(decorateFactory(editor), [editor])
-
-    if ((inheritedRender || []).length === 0) {
-        return null
-    }
-
-    return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
-        <Box
-            sx={{
-                borderRadius: "0em 1em 1em 0em",
-                borderStyle: 'solid',
-                borderColor: grey[500],
-                background: grey[100],
-                display: 'inline',
-                paddingRight: '0.25em',
-                position: 'absolute',
-                top: 0,
-                left: 0
-            }}
-        >
-            Inherited
-        </Box>
-        <Box
-            sx={{
-                borderRadius: '0em 1em 1em 0em',
-                borderStyle: 'solid',
-                borderColor: grey[500],
-                background: grey[50],
-                paddingRight: '0.5em',
-                paddingLeft: '0.25em',
-                paddingTop: "0.5em",
-                marginTop: '1em',
-            }}
-        >
-            <Slate editor={editor} value={inheritedValue}>
-                <Editable
-                    readOnly
-                    renderElement={renderElement}
-                    renderLeaf={renderLeaf}
-                    decorate={decorate}
-                />
-            </Slate>
-        </Box>
-    </Box>
 }
 
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
@@ -323,7 +264,6 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[] }) => {
     const { normalForm, components, readonly } = useLibraryAsset()
-    const inheritedRender = useMemo(() => (genericIDFromTree(components[ComponentId]?.inheritedRender) || []), [components, ComponentId])
     const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
@@ -398,7 +338,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                 }} /> */}
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
-                <InheritedDescription inheritedRender={inheritedRender} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}

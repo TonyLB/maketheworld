@@ -10,7 +10,6 @@ export type PublicSelectors = {
     getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
-    getImportData: (state: PersonalAssetsPublic) => (assetKey: string) => GenericTree<SchemaTag, TreeId> | undefined;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
 }
 
@@ -33,10 +32,6 @@ const getProperties = (state: PersonalAssetsPublic) => (state.properties)
 
 const getLoadedImages = (state: PersonalAssetsPublic) => ( state.loadedImages )
 
-const getImportData = ({ importData = {} }: PersonalAssetsPublic) => (assetKey: string): GenericTree<SchemaTag, TreeId> | undefined => {
-    return importData[assetKey]
-}
-
 const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefined => {
     return serialized
 }
@@ -48,6 +43,5 @@ export const publicSelectors: PublicSelectors = {
     getSchema,
     getProperties,
     getLoadedImages,
-    getImportData,
     getSerialized
 }

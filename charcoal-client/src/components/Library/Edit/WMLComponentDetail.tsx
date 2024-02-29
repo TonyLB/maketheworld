@@ -1,5 +1,6 @@
 import { FunctionComponent, useCallback, useMemo } from 'react'
 import {
+    useLocation,
     useNavigate,
     useParams
 } from "react-router-dom"
@@ -164,7 +165,9 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const { assetKey, normalForm, updateSchema, select } = useLibraryAsset()
-    const { tag, ComponentId } = useParams<{ tag: string, ComponentId: string }>()
+    const { ComponentId } = useParams<{ ComponentId: string }>()
+    const location = useLocation()
+    const tag = location.pathname.split('/').slice(-2)[0]
     const componentName = useMemo(() => (select({ key: ComponentId, selector: selectNameAsString })), [select, ComponentId])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
