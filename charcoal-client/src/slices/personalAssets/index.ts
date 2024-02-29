@@ -44,6 +44,7 @@ export const {
             properties: {},
             loadedImages: {},
             normal: {},
+            baseSchema: [],
             schema: []
         }
     },
@@ -68,6 +69,7 @@ export const {
                 properties: {},
                 loadedImages: {},
                 normal: {},
+                baseSchema: [],
                 schema: []
             }
         },

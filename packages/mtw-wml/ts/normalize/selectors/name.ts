@@ -11,7 +11,7 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
     const tagTree = new SchemaTagTree(tree)
     return treeTypeGuard({
         tree: tagTree
-            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
+            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
             .filter({ match: 'Name' })
             .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
             .tree,
@@ -26,7 +26,7 @@ export const selectNameAsString = (tree: GenericTree<SchemaTag>, options={ tag: 
     const tagTree = new SchemaTagTree(tree)
     return schemaOutputToString(treeTypeGuard({
         tree: tagTree
-            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
+            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
             .filter({ match: 'Name' })
             .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
             .tree,

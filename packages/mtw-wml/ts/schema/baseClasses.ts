@@ -168,7 +168,8 @@ export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaConditionFallthrough(tag) ||
     isSchemaAfter(tag) ||
     isSchemaBefore(tag) ||
-    isSchemaReplace(tag)
+    isSchemaReplace(tag) ||
+    isSchemaInherited(tag)
 )
 
 export type SchemaDescriptionTag = {

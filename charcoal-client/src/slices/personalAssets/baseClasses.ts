@@ -28,9 +28,21 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
+    //
+    // baseSchema is the schema derived purely from WML (i.e., the local
+    // schema without inherited data)
+    //
+    baseSchema: GenericTree<SchemaTag>;
+    //
+    // importData is the set of schemata that are inherited from imports
+    //
+    importData: Record<string, GenericTree<SchemaTag>>;
+    //
+    // schema is the combination of the baseSchema with all of the
+    // data it inherits from imports
+    //
     schema: GenericTree<SchemaTag, TreeId>;
     normal: NormalForm;
-    importData: Record<string, GenericTree<SchemaTag, TreeId>>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;
