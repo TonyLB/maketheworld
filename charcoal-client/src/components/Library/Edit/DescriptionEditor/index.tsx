@@ -43,6 +43,7 @@ interface DescriptionEditorProps {
     output: GenericTree<SchemaOutputTag, TreeId>;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
+    placeholder?: string;
 }
 
 const withInlines = (editor: Editor) => {
@@ -114,7 +115,7 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     </Button>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[] }) => {
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[], placeholder }) => {
     const { normalForm, components, readonly } = useLibraryAsset()
     const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
@@ -194,6 +195,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                     renderLeaf={renderLeaf}
                     decorate={decorate}
                     readOnly={readonly}
+                    placeholder={placeholder}
                     // onKeyDown={onKeyDown}
                 />
             </Box>

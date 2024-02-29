@@ -149,6 +149,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             output={nameOutput}
             onChange={onChangeName}
             validLinkTags={[]}
+            placeholder="Enter a name"
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
@@ -156,6 +157,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 output={descriptionOutput}
                 onChange={onChangeDescription}
                 validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
+                placeholder="Enter a description"
             />
         </Box>
         {
