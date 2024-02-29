@@ -25,7 +25,6 @@ import {
     getProperties,
     updateSchema as updateSchemaAction,
     getDraftWML,
-    getImportData,
     getStatus,
     getSerialized,
     getSchema

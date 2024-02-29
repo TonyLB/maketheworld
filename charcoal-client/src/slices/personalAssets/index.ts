@@ -224,7 +224,6 @@ export const {
     getDraftWML,
     getNormalized,
     getSchema,
-    getImportData,
     getProperties,
     getLoadedImages,
     getSerialized,
