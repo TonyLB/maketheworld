@@ -72,7 +72,11 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 if (!(isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data))) {
                     return previous
                 }
+                if (data.key !== ComponentId) {
+                    return previous
+                }
                 if (previous) {
+                    console.log(`Unexpected data: ${JSON.stringify(appearance, null, 4)}`)
                     throw new Error('Schema not standardized in WMLComponentAppearance')
                 }
                 return {
@@ -144,12 +148,14 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             ComponentId={ComponentId}
             output={nameOutput}
             onChange={onChangeName}
+            validLinkTags={[]}
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
                 ComponentId={ComponentId}
                 output={descriptionOutput}
                 onChange={onChangeDescription}
+                validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
             />
         </Box>
         {

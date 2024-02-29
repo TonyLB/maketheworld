@@ -325,11 +325,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                { validLinkTags.length &&
+                { (validLinkTags.length &&
                     <React.Fragment>
                         <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                         <RemoveLinkButton />
-                    </React.Fragment>
+                    </React.Fragment>) || null
                 }
                 <DisplayTagRadio />
                 {/* <AddIfButton defaultBlock={{
