@@ -34,14 +34,14 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
                         data: { tag: 'Room', key: 'testRoom' },
-                        id: 'ABC',
+                        id: expect.any(String),
                         children: [
                             { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Update' }, id: expect.any(String), children: [] }]},
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
                         ]
                     }
                 ]    
@@ -75,21 +75,21 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
                         data: { tag: 'Room', key: 'testRoom' },
-                        id: 'ABC',
+                        id: expect.any(String),
                         children: [
                             {
                                 data: { tag: 'Name' },
-                                id: 'DEF',
+                                id: expect.any(String),
                                 children: [
-                                    { data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] },
+                                    { data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] },
                                     { data: { tag: 'String', value: ': Edited' }, id: expect.any(String), children: [] },
                                 ]
                             },
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
                         ]
                     }
                 ]    
@@ -119,13 +119,13 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
                         data: { tag: 'Room', key: 'testRoom' },
-                        id: 'ABC',
+                        id: expect.any(String),
                         children: [
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
                         ]
                     }
                 ]
@@ -138,20 +138,24 @@ describe('personalAsset slice reducers', () => {
                 id: '',
                 children: [
                     {
-                        data: { tag: 'If' },
-                        id: 'IF-Wrapper',
-                        children: [{
-                            data: { tag: 'Statement', if: 'true' },
-                            id: 'IF-1',
-                            children: [{
-                                data: { tag: 'Room', key: 'testRoom' },
-                                id: 'ABC',
-                                children: [
-                                    { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                                    { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-                                ]
-                            }]
-                        }]
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            {
+                                data: { tag: 'Name' },
+                                id: 'DEF',
+                                children: [{
+                                    data: { tag: 'If' },
+                                    id: 'IF-Wrapper',
+                                    children: [{
+                                        data: { tag: 'Statement', if: 'true' },
+                                        id: 'IF-1',
+                                        children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]
+                                    }]
+                                }]
+                            },
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                        ]
                     }
                 ]
             }]
@@ -159,28 +163,32 @@ describe('personalAsset slice reducers', () => {
                 type: 'updateSchema',
                 payload: {
                     type: 'updateNode',
-                    id: 'IF-1',
-                    item: { tag: 'Statement', if: 'false' }
+                    id: 'ABC',
+                    item: { tag: 'Room', key: 'lobby' }
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
-                        data: { tag: 'If' },
-                        id: 'IF-Wrapper',
-                        children: [{
-                            data: { tag: 'Statement', if: 'false' },
-                            id: 'IF-1',
-                            children: [{
-                                data: { tag: 'Room', key: 'testRoom' },
-                                id: 'ABC',
-                                children: [
-                                    { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                                    { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-                                ]
-                            }]
-                        }]
+                        data: { tag: 'Room', key: 'lobby' },
+                        id: expect.any(String),
+                        children: [
+                            {
+                                data: { tag: 'Name' },
+                                id: expect.any(String),
+                                children: [{
+                                    data: { tag: 'If' },
+                                    id: expect.any(String),
+                                    children: [{
+                                        data: { tag: 'Statement', if: 'true' },
+                                        id: expect.any(String),
+                                        children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]
+                                    }]
+                                }]
+                            },
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
+                        ]
                     }
                 ]
             }])
@@ -192,20 +200,20 @@ describe('personalAsset slice reducers', () => {
                 id: '',
                 children: [
                     {
+                        data: { tag: 'Room', key: 'room2' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Garden' }, id: '', children: [] }]},
+                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: '', children: [] }
+                        ]
+                    },
+                    {
                         data: { tag: 'Room', key: 'testRoom' },
                         id: 'ABC',
                         children: [
                             { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
                             { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]},
                             { data: { tag: 'Exit', to: 'room2', text: 'out' }, id: '', children: [] }
-                        ]
-                    },
-                    {
-                        data: { tag: 'Room', key: 'room2' },
-                        id: 'ABC',
-                        children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Garden' }, id: '', children: [] }]},
-                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: '', children: [] }
                         ]
                     }
                 ]
@@ -219,23 +227,23 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
-                        data: { tag: 'Room', key: 'testRoom' },
-                        id: 'ABC',
+                        data: { tag: 'Room', key: 'garden' },
+                        id: expect.any(String),
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]},
-                            { data: { tag: 'Exit', to: 'garden', text: 'out' }, id: '', children: [] }
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Garden' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: expect.any(String), children: [] }
                         ]
                     },
                     {
-                        data: { tag: 'Room', key: 'garden' },
-                        id: 'ABC',
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Garden' }, id: '', children: [] }]},
-                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: '', children: [] }
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Exit', to: 'garden', text: 'out' }, id: expect.any(String), children: [] }
                         ]
                     }
                 ]    
@@ -276,21 +284,21 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: expect.any(String),
                 children: [
                     {
                         data: { tag: 'Feature', key: 'clockTower' },
-                        id: 'ABC',
+                        id: expect.any(String),
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Test Feature' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Feature' }, id: expect.any(String), children: [] }]},
                             {
                                 data: { tag: 'Description' },
-                                id: 'JKL',
+                                id: expect.any(String),
                                 children: [{
                                     data: { tag: 'Link', to: 'clockTower' },
-                                    id: '',
+                                    id: expect.any(String),
                                     children: [
-                                        { data: { tag: 'String', value: 'Link' }, id: '', children: [] }
+                                        { data: { tag: 'String', value: 'Link' }, id: expect.any(String), children: [] }
                                     ]
                                 }]
                             },

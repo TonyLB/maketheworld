@@ -3,11 +3,12 @@ import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
 import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -65,9 +66,15 @@ export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPaylo
 
 const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTree<SchemaTag, TreeId> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
 
+export const deriveWorkingSchema = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): PersonalAssetsPublic["schema"] => {
+    const standardized = standardizeSchema(
+        ...Object.values(importData),
+        baseSchema
+    )
+    return genericIDFromTree(standardized)
+}
+
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
-    const { schema } = state
-    const normalizer = new Normalizer()
     const { payload } = action
     const addKeyIfNeeded = (node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SchemaTag, TreeId> => {
         const { data } = node
@@ -85,6 +92,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
         }
         return node
     }
+    const schema = filter({ tree: state.schema, callback: ({ tag }: SchemaTag, id: TreeId) => (tag !== 'Inherited') })
     switch(payload.type) {
         case 'replace':
             const replacedSchema = map(schema, (node) => {
@@ -95,20 +103,16 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                     return node
                 }
             })
-            normalizer.loadSchema(replacedSchema)
-            state.schema = replacedSchema
-            state.normal = normalizer.normal
-            return
+            state.baseSchema = replacedSchema
+            break
         case 'updateNode':
             const updatedSchema = map(schema, ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>) => ([{
                 data: id === payload.id ? payload.item : data,
                 children,
                 id
             }]))
-            normalizer.loadSchema(updatedSchema)
-            state.schema = updatedSchema
-            state.normal = normalizer.normal
-            return
+            state.baseSchema = updatedSchema
+            break
         case 'addChild':
             const addedSchema = map(schema, (node) => {
                 if (node.id === payload.id) {
@@ -124,10 +128,8 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                     return node
                 }
             })
-            normalizer.loadSchema(addedSchema)
-            state.schema = addedSchema
-            state.normal = normalizer.normal
-            return
+            state.baseSchema = addedSchema
+            break
         case 'rename':
             const renamedSchema = map(schema, (node) => {
                 let returnValue: SchemaTag = node.data
@@ -152,17 +154,17 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 }
                 return { ...node, data: returnValue }
             })
-            normalizer.loadSchema(renamedSchema)
-            state.schema = renamedSchema
-            state.normal = normalizer.normal
-            return
+            state.baseSchema = renamedSchema
+            break
         case 'delete':
             const deletedSchema = filter({ tree: schema, callback: (_: SchemaTag, { id }: TreeId) => (Boolean(id !== payload.id)) })
-            normalizer.loadSchema(deletedSchema)
-            state.schema = deletedSchema
-            state.normal = normalizer.normal
-            return
+            state.baseSchema = deletedSchema
+            break
     }
+    const normalizer = new Normalizer()
+    state.schema = deriveWorkingSchema(state)
+    normalizer.loadSchema(state.schema)
+    state.normal = normalizer.normal
 }
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {

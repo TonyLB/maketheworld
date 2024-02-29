@@ -9,7 +9,6 @@ export class SchemaTagTree extends TagTree<SchemaTag, { id?: string }> {
             tree,
             compare: ({ data: A, id: idA }, { data: B, id: idB }) => {
                 if ((idA || idB) && (idA !== idB)) {
-                    console.log(`idA: ${JSON.stringify(idA)}, idB: ${JSON.stringify(idB)}`)
                     return false
                 }
                 if (isSchemaWithKey(A)) {

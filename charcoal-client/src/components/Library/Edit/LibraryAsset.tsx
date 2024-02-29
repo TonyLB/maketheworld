@@ -93,10 +93,6 @@ type LibraryAssetProps = {
 
 export type AssetComponent = {
     tag: NormalItem["tag"];
-    localName: GenericTree<SchemaOutputTag>;
-    localRender: GenericTree<SchemaOutputTag>;
-    inheritedName: GenericTree<SchemaOutputTag>;
-    inheritedRender: GenericTree<SchemaOutputTag>;
     name: GenericTree<SchemaOutputTag>;
     render: GenericTree<SchemaOutputTag>;
     importFrom?: string;
@@ -109,16 +105,12 @@ const assetComponents = ({ normalForm }: { normalForm: NormalForm }): Record<str
 
     const roomReturns = componentNormals
         .map((component) => {
-            const localName = normalizer.select({ key: component.key, selector: selectName })
-            const localRender = normalizer.select({ key: component.key, selector: selectRender })
+            const name = normalizer.select({ key: component.key, selector: selectName })
+            const render = normalizer.select({ key: component.key, selector: selectRender })
             return { [component.key]: {
                 tag: component.tag,
-                localName,
-                localRender,
-                inheritedName: [],
-                inheritedRender: [],
-                name: localName,
-                render: localRender
+                name,
+                render
             }}
         })
     

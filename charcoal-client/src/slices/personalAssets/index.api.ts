@@ -13,6 +13,7 @@ import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
+import { deriveWorkingSchema } from './reducers'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -30,18 +31,16 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
     return { internalData: { fetchURL: url }, publicData: { properties } }
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async () => {
+export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL }, publicData }) => async () => {
     if (!fetchURL) {
         throw new Error()
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
-    const schema = new Schema()
-    const normalizer = new Normalizer()
+    const schemaConverter = new Schema()
     if (id) {
         try {
-            schema.loadWML(assetWML)
-            normalizer.loadSchema(schema.schema)
+            schemaConverter.loadWML(assetWML)
         }
         catch (err) {
             if (err instanceof TokenizeException) {
@@ -53,7 +52,21 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, schema: schema.schema, serialized: true }}
+    const baseSchema = schemaConverter.schema
+    const schema = deriveWorkingSchema({ ...publicData, baseSchema })
+    const normalizer = new Normalizer()
+    normalizer.loadSchema(schema)
+    const normal = normalizer.normal
+    return {
+        publicData: {
+            originalWML: assetWML,
+            currentWML: assetWML,
+            normal,
+            baseSchema,
+            schema,
+            serialized: true
+        }
+    }
 }
 
 type ImportsByAssets = Record<string, Record<string, string>>
@@ -85,6 +98,10 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         )
     ))
 
+    //
+    // TODO: Refactor to write directly into importData, and re-derive schema from baseSchema and new importData.
+    // Deprecate setImport action.
+    //
     importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().forEach(({ assetId, wml }) => {
         const schema = new Schema()
         schema.loadWML(wml)
