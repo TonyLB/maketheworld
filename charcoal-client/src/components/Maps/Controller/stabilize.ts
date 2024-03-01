@@ -7,17 +7,20 @@ import { treeFindByID } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
 export const stabilizeFactory = (props: { schema: GenericTree<SchemaTag, TreeId>; updateSchema: (action: UpdateSchemaPayload) => void }) => (values: SimNode[]) => {
     const { schema, updateSchema } = props
     values.forEach(({ id, x, y }) => {
-        const previousSchema = treeFindByID(schema, id)
-        if (previousSchema && isSchemaRoom(previousSchema) && (previousSchema.x !== Math.round(x) || previousSchema.y !== Math.round(y))) {
-            updateSchema({
-                type: 'updateNode',
-                id,
-                item: {
-                    ...previousSchema,
-                    x: Math.round(x),
-                    y: Math.round(y)
-                }
-            })
+        const previousNode = treeFindByID(schema, id)
+        if (typeof previousNode !== 'undefined') {
+            const { data: previousSchema } = previousNode
+            if (isSchemaRoom(previousSchema) && (previousSchema.x !== Math.round(x) || previousSchema.y !== Math.round(y))) {
+                updateSchema({
+                    type: 'updateNode',
+                    id,
+                    item: {
+                        ...previousSchema,
+                        x: Math.round(x),
+                        y: Math.round(y)
+                    }
+                })
+            }
         }
     })
 }
