@@ -125,10 +125,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     }, [appearance, updateSchema, dispatch])
     const onChangeDescription = useCallback(onChange('Description'), [onChange])
     const onChangeName = useCallback(onChange('Name'), [onChange])
-    const extractOutput = useCallback((tag: 'Name' | 'Description'): GenericTree<SchemaOutputTag, TreeId> => {
+    const extractOutput = useCallback((tag: 'Name' | 'Description'): string | undefined => {
         const matchedTag = appearance.children
             .find((appearance) => (appearance.data.tag === tag))
-        return treeTypeGuard({ tree: matchedTag?.children ?? [], typeGuard: isSchemaOutputTag })
+        return matchedTag?.id
     }, [appearance])
     const descriptionOutput = useMemo(() => (extractOutput('Description')), [extractOutput])
     const nameOutput = useMemo(() => (extractOutput('Name')), [extractOutput])
@@ -145,16 +145,14 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         <DescriptionEditor
-            ComponentId={ComponentId}
-            output={nameOutput}
+            treeId={nameOutput}
             onChange={onChangeName}
             validLinkTags={[]}
             placeholder="Enter a name"
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
-                ComponentId={ComponentId}
-                output={descriptionOutput}
+                treeId={descriptionOutput}
                 onChange={onChangeDescription}
                 validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                 placeholder="Enter a description"
