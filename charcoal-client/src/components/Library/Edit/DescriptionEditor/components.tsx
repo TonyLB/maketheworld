@@ -19,6 +19,7 @@ import {
     Transforms
 } from 'slate'
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import IfElseTree from '../IfElseTree'
 
 export const Element: FunctionComponent<RenderElementProps> = (props) => {
     const { attributes, children, element } = props
@@ -61,7 +62,10 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                     { children }
             </SlateIndentBox>
         case 'ifWrapper':
-            return <Box sx={{ width: "100%", border: "1px solid" }}>If Wrapper</Box>
+            //
+            // TODO: Figure out how to nest a slate render inside IfElseTree
+            //
+            return <IfElseTree tree={element.tree} render={() => (<span>Stub</span>)} />
         case 'paragraph':
             const paragraphTags = <React.Fragment>
                     { (element.explicitBR || element.softBR) && <span contentEditable={false}>

@@ -19,7 +19,8 @@ import {
     isCustomParagraphContents
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaOutputTag, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []
@@ -57,7 +58,8 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
             case 'If':
                 returnValue.push({
                     type: 'ifWrapper',
-                    tree: children
+                    tree: treeTypeGuard({ tree: children, typeGuard: (data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) }),
+                    children: []
                 })
                 // const predicateToSrc = (predicate: NormalConditionStatement): string => {
                 //     return `${ predicate.not ? '!' : ''}${predicate.if}`

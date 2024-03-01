@@ -76,7 +76,8 @@ describe('descendantsToRender', () => {
                     tree: [
                         { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }], id: '' },
                         { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
-                    ]
+                    ],
+                    children: []
                 }
             ]
         },

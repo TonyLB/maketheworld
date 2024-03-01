@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
 
 import { useSlate } from 'slate-react'
@@ -20,8 +21,10 @@ import {
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
+import TreeIcon from '@mui/icons-material/AccountTree';
 
 import {
+    CustomIfWrapper,
     isCustomBlock
 } from '../baseClasses'
 
@@ -115,8 +118,49 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     </Button>
 }
 
+interface AddIfButtonProps {}
+
+const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
+    const { readonly } = useLibraryAsset()
+    const editor = useSlate()
+    const handleClick = useCallback(() => {
+        const { selection } = editor
+        const isCollapsed = selection && Range.isCollapsed(selection)
+        const wrapper: CustomIfWrapper = {
+            type: 'ifWrapper',
+            tree: [
+                { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: ''}, children: [], id: uuidv4() }], id: uuidv4() }
+            ],
+            children: [{ text: '' }]
+        }
+      
+        if (isCollapsed) {
+            Transforms.insertNodes(editor, [wrapper], { voids: true })
+        } else {
+            //
+            // TODO: Extract data from current selection and run it through descendantsToRender
+            // to populate the tree in the ifWrapper object
+            //
+            Transforms.removeNodes(editor)
+            Transforms.insertNodes(editor, [wrapper], { voids: true })
+            Transforms.collapse(editor, { edge: 'end' })
+            editor.saveSelection = undefined
+        }
+    }, [editor])
+    return <Button
+        variant="outlined"
+        disabled={readonly}
+        onClick={handleClick}
+    >
+        <TreeIcon />
+    </Button>
+}
+
+//
+// TODO: ISS-3500 Refactor DescriptionEditor to accept TreeId rather than ComponentId, output, and onChange
+//
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[], placeholder }) => {
-    const { normalForm, components, readonly } = useLibraryAsset()
+    const { normalForm, readonly } = useLibraryAsset()
     const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
@@ -184,10 +228,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                         <RemoveLinkButton />
                     </React.Fragment>) || null
                 }
-                {/* <AddIfButton defaultBlock={{
-                    type: 'paragraph',
-                    children: [{ text: '' }]
-                }} /> */}
+                <AddIfButton />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
