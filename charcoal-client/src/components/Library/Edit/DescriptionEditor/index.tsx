@@ -37,13 +37,14 @@ import LinkDialog from './LinkDialog'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
+import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 
 interface DescriptionEditorProps {
-    ComponentId: string;
-    output: GenericTree<SchemaOutputTag, TreeId>;
+    treeId?: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
     placeholder?: string;
@@ -159,8 +160,16 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
 //
 // TODO: ISS-3500 Refactor DescriptionEditor to accept TreeId rather than ComponentId, output, and onChange
 //
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[], placeholder }) => {
-    const { normalForm, readonly } = useLibraryAsset()
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ treeId, onChange = () => {}, validLinkTags=[], placeholder }) => {
+    const { normalForm, select, readonly } = useLibraryAsset()
+    const output = useMemo(() => (
+            treeId
+                ? treeTypeGuard({
+                    tree: (select({ selector: selectById(treeId) }) ?? { data: { tag: 'String', value: '' }, children: [], id: treeId }).children,
+                    typeGuard: isSchemaOutputTag
+                })
+                : []
+        ), [select, treeId])
     const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
