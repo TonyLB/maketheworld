@@ -130,18 +130,19 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
             type: 'ifWrapper',
             tree: [
                 { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: ''}, children: [], id: uuidv4() }], id: uuidv4() }
-            ]
+            ],
+            children: [{ text: '' }]
         }
       
         if (isCollapsed) {
-            Transforms.insertNodes(editor, [wrapper])
+            Transforms.insertNodes(editor, [wrapper], { voids: true })
         } else {
             //
             // TODO: Extract data from current selection and run it through descendantsToRender
             // to populate the tree in the ifWrapper object
             //
             Transforms.removeNodes(editor)
-            Transforms.insertNodes(editor, [wrapper])
+            Transforms.insertNodes(editor, [wrapper], { voids: true })
             Transforms.collapse(editor, { edge: 'end' })
             editor.saveSelection = undefined
         }
@@ -155,8 +156,11 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
     </Button>
 }
 
+//
+// TODO: ISS-3500 Refactor DescriptionEditor to accept TreeId rather than ComponentId, output, and onChange
+//
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[], placeholder }) => {
-    const { normalForm, components, readonly } = useLibraryAsset()
+    const { normalForm, readonly } = useLibraryAsset()
     const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({

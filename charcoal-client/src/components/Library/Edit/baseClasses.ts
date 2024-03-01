@@ -1,5 +1,5 @@
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
+import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
@@ -52,29 +52,15 @@ export type CustomInheritedReadOnlyElement = {
     children: CustomBlock[];
 }
 
-export type CustomIfWrapper = {
-    type: 'ifWrapper';
-    tree: GenericTree<SchemaOutputTag, TreeId>
+export type EmptyText = {
+    text: string;
 }
 
-// export type CustomIfBlock = {
-//     type: 'ifBase';
-//     source: string;
-//     isElseValid?: boolean;
-//     children: CustomBlock[];
-// }
-
-// export type CustomElseIfBlock = {
-//     type: 'elseif';
-//     source: string;
-//     isElseValid?: boolean;
-//     children: CustomBlock[];
-// }
-
-// export type CustomElseBlock = {
-//     type: 'else';
-//     children: CustomBlock[];
-// }
+export type CustomIfWrapper = {
+    type: 'ifWrapper';
+    children: EmptyText[];
+    tree: GenericTreeFiltered<SchemaConditionStatementTag | SchemaConditionFallthroughTag, SchemaOutputTag, TreeId>
+}
 
 export type CustomExitBlock = {
     type: 'exit';
