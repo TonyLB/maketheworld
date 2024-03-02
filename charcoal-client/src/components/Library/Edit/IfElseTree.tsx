@@ -108,6 +108,7 @@ type IfElseTreeProps = {
 
 export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
     if (tree.length === 0 || !(isSchemaConditionStatement(tree[0].data))) {
+        console.log(`tree: ${JSON.stringify(tree, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
     return <React.Fragment>

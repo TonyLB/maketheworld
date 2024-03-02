@@ -12,6 +12,7 @@ import {
     CustomParagraphElement,
     CustomText,
     isCustomBlock,
+    isCustomIfWrapper,
     // isCustomElseBlock,
     // isCustomElseIfBlock,
     // isCustomIfBlock,
@@ -105,13 +106,22 @@ export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeI
         const translated = descendantsTranslate(render, options)
         descendantsCompact(translated).forEach((item) => {
             if (isCustomBlock(item)) {
-                // if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
-                //     if (accumulator.length) {
-                //         returnValue = [...returnValue, { type: 'paragraph', children: accumulator }]
-                //     }
-                //     returnValue = [...returnValue, item]
-                //     accumulator = []
-                // }
+                if (isCustomIfWrapper(item)) {
+                    if (accumulator.length) {
+                        returnValue = [
+                            ...returnValue,
+                            { type: 'paragraph', children: accumulator }
+                        ]
+                        accumulator = []
+                    }
+                    returnValue = [
+                        ...returnValue,
+                        { type: 'ifWrapper', treeId: item.treeId, children: [{ text: '' }] }
+                    ]
+                }
+                else {
+                    return returnValue
+                }
             }
             else {
                 if (isCustomLineBreak(item)) {
