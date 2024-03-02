@@ -165,7 +165,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
                 })
                 : []
         ), [select, treeId])
-    const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
+    const defaultValue = useMemo(() => {
+        const returnValue = descendantsFromRender(output, { normal: normalForm })
+        console.log(`DefaultValue: ${JSON.stringify(returnValue, null, 4)}`)
+        return returnValue
+    }, [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
@@ -200,7 +204,9 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
+        console.log(`saveToReduce: ${JSON.stringify(value, null, 4)}`)
         const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
+        console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
         onChange(genericIDFromTree(newRender))
     }, [onChange, value, schema])
 

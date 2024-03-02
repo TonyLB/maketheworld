@@ -79,7 +79,7 @@ export type CustomExitBlock = {
     children: CustomText[];
 }
 
-export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock | CustomIfWrapper | CustomNewIfWrapper
+export type CustomParagraphContents = CustomText | EmptyText | CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock | CustomIfWrapper | CustomNewIfWrapper
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 export const isCustomActionLink = (item: CustomParagraphContents): item is CustomActionLinkElement => ('type' in item && item.type === 'actionLink')
@@ -119,12 +119,14 @@ type CustomElement = CustomLineElement |
     // CustomElseBlock
 
 export type CustomBlock = CustomParagraphElement |
-    CustomInheritedReadOnlyElement
+    CustomInheritedReadOnlyElement |
+    CustomIfWrapper |
+    CustomNewIfWrapper
     // CustomIfBlock |
     // CustomElseIfBlock |
     // CustomElseBlock
 
-export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'before', 'replace', 'ifBase', 'elseif', 'else', 'exit'].includes(item.type))
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'before', 'replace', 'exit', 'ifWrapper', 'newIfWrapper'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {

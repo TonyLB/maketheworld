@@ -98,10 +98,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         //
         // Use internal UUIDs in appearance to update schema with new output data
         //
+        console.log(`appearanceID: ${appearance.id}`)
         if (appearance.id) {
             const tagToReplace = appearance.children
                 .find((appearance) => (appearance.data.tag === tag))
             if (tagToReplace) {
+                console.log(`replace (${tagToReplace.id}): ${JSON.stringify({ data: tagToReplace.data, children: adjustedRender }, null, 4)}`)
                 updateSchema({
                     type: 'replace',
                     id: tagToReplace.id,
@@ -112,6 +114,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 })
             }
             else {
+                console.log(`addChild (${appearance.id}): ${JSON.stringify({ data: { tag }, children: adjustedRender }, null, 4)}`)
                 updateSchema({
                     type: 'addChild',
                     id: appearance.id,
