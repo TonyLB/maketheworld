@@ -121,7 +121,7 @@ export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
             { render({ tree: tree[0].children }) }
         </IfElseWrapBox>
         { 
-            tree.map(({ data, children, id }) => {
+            tree.slice(1).map(({ data, children, id }) => {
                 const childrenRender = render({ tree: children })
                 return isSchemaConditionStatement(data)
                     ? <IfElseWrapBox

@@ -5,31 +5,47 @@ import {
     isCustomBeforeBlock,
     isCustomIfWrapper,
     isCustomLink,
+    isCustomNewIfWrapper,
     isCustomParagraph,
     isCustomParagraphContents,
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaOutputTag, SchemaTag, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { stripIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { selectById } from "@tonylb/mtw-wml/dist/normalize/selectors/byId"
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 //
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
-export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
+export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
     const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item, index) => {
         if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<GenericTree<SchemaOutputTag>>((previous, item) => {
-                    if (isCustomIfWrapper(item)) {
+                    if (isCustomNewIfWrapper(item)) {
                         return [
                             ...previous,
                             {
-                                data: { tag: 'If' as const },
-                                children: stripIDFromTree(item.tree)
+                                data: { tag: 'If' },
+                                children: [{
+                                    data: { tag: 'Statement', if: '' },
+                                    children: []
+                                }]
                             }
+                        ]
+                    }
+                    if (isCustomIfWrapper(item)) {
+                        const node = selectById(item.treeId)(schema)
+                        if (typeof node === 'undefined') {
+                            return previous
+                        }
+                        return [
+                            ...previous,
+                            ...stripIDFromTree(treeTypeGuard({ tree: [node], typeGuard: isSchemaOutputTag }))
                         ]
                     }
                     if (isCustomLink(item)) {
@@ -53,7 +69,7 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                             ...previous,
                             {
                                 data: { tag: item.type === 'before' ? 'Before' : 'Replace' },
-                                children: descendantsToRender([item])
+                                children: descendantsToRender(schema)([item])
                             }
                         ]
                     }

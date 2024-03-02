@@ -24,7 +24,7 @@ import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []
-    tree.forEach(({ data: item, children }) => {
+    tree.forEach(({ data: item, children, id }) => {
         switch(item.tag) {
             case 'Space':
                 returnValue.push({
@@ -58,68 +58,9 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
             case 'If':
                 returnValue.push({
                     type: 'ifWrapper',
-                    tree: treeTypeGuard({ tree: children, typeGuard: (data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) }),
-                    children: []
+                    treeId: id,
+                    children: [{ text: "" }]
                 })
-                // const predicateToSrc = (predicate: NormalConditionStatement): string => {
-                //     return `${ predicate.not ? '!' : ''}${predicate.if}`
-                // }
-                // const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
-                //     return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
-                // }
-                // const { elseContext, elseDefined } = conditionElseContext(currentIfSequence)
-                // //
-                // // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
-                // //
-                // const matchesElseConditions = elseContext.length &&
-                //     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
-                // if (matchesElseConditions) {
-                //     const remainingConditions = item.conditions.slice(elseContext.length)
-                //     const translatedChildren = descendantsFromRender(children, options)
-                //     if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
-                //         currentIfSequence = [
-                //             ...currentIfSequence,
-                //             {
-                //                 type: 'elseif',
-                //                 source: conditionsToSrc(remainingConditions),
-                //                 children: translatedChildren
-                //             }
-                //         ]
-                //     }
-                //     else if (currentIfSequence.length && !elseDefined) {
-                //         currentIfSequence = [
-                //             ...currentIfSequence,
-                //             {
-                //                 type: 'else',
-                //                 children: translatedChildren
-                //             }
-                //         ]
-                //     }
-                //     else {
-                //         if (currentIfSequence.length) {
-                //             //
-                //             // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
-                //             // blocks in descendantsFromRender
-                //             //
-                //             returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-                //         }
-                //         currentIfSequence = [{
-                //             type: 'ifBase',
-                //             source: conditionsToSrc(item.conditions),
-                //             children: translatedChildren
-                //         }]
-                //     }
-                // }
-                // else {
-                //     if (currentIfSequence) {
-                //         returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
-                //     }
-                //     currentIfSequence = [{
-                //         type: 'ifBase',
-                //         source: conditionsToSrc(item.conditions),
-                //         children: descendantsFromRender(children, options),
-                //     }]
-                // }
                 break
         }
     })

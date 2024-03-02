@@ -42,47 +42,8 @@ Array [
         "text": "This is a test ",
       },
       Object {
-        "tree": Array [
-          Object {
-            "children": Array [
-              Object {
-                "children": Array [],
-                "data": Object {
-                  "tag": "String",
-                  "value": "with an If",
-                },
-                "id": "",
-              },
-            ],
-            "data": Object {
-              "if": "testVariable",
-              "tag": "Statement",
-            },
-            "id": "",
-          },
-        ],
-        "type": "ifWrapper",
-      },
-      Object {
-        "tree": Array [
-          Object {
-            "children": Array [
-              Object {
-                "children": Array [],
-                "data": Object {
-                  "tag": "String",
-                  "value": "and an Else",
-                },
-                "id": "",
-              },
-            ],
-            "data": Object {
-              "if": "testVariable",
-              "tag": "Statement",
-            },
-            "id": "",
-          },
-        ],
+        "children": Array [],
+        "treeId": "ABC",
         "type": "ifWrapper",
       },
       Object {

@@ -2,11 +2,11 @@ import descendantsToRender from "./descendantsToRender"
 
 describe('descendantsToRender', () => {
     it('should return an empty list from empty paragraph', () => {
-        expect(descendantsToRender([{ type: 'paragraph', children: [{ text: '' }]}])).toEqual([])
+        expect(descendantsToRender([])([{ type: 'paragraph', children: [{ text: '' }]}])).toEqual([])
     })
 
     it('should return a text description', () => {
-        expect(descendantsToRender([{
+        expect(descendantsToRender([])([{
             type: 'paragraph',
             children: [{
                 text: 'This is a test ',
@@ -27,7 +27,7 @@ describe('descendantsToRender', () => {
     })
 
     it('should replace paragraph breaks with LineBreak tags', () => {
-        expect(descendantsToRender([{
+        expect(descendantsToRender([])([{
             type: 'paragraph',
             children: [{ text: 'This is a test.' }]
         },
@@ -42,7 +42,7 @@ describe('descendantsToRender', () => {
     })
 
     it('should replace space at end of last line (only) with Space tag', () => {
-        expect(descendantsToRender([{
+        expect(descendantsToRender([])([{
             type: 'paragraph',
             children: [{ text: 'This is a test. ' }]
         },
@@ -67,17 +67,23 @@ describe('descendantsToRender', () => {
     })
 
     it('should decode a single-level condition', () => {
-        expect(descendantsToRender([{
+        expect(descendantsToRender([
+            {
+                data: { tag: 'If' },
+                children: [
+                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }], id: '' },
+                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
+                ],
+                id: 'ABC'
+            }
+        ])([{
             type: 'paragraph',
             children: [
                 { text: 'This is a test ' },
                 {
                     type: 'ifWrapper',
-                    tree: [
-                        { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }], id: '' },
-                        { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
-                    ],
-                    children: []
+                    treeId: 'ABC',
+                    children: [{ text: '' }]
                 }
             ]
         },

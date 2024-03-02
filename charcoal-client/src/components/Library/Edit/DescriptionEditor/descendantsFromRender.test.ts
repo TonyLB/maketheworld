@@ -33,20 +33,13 @@ describe('descendantsFromRender', () => {
                     },
                     children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }],
                     id: ''
-                }],
-                id: ''
-            },
-            {
-                data: { tag: 'If' },
-                children: [{
-                    data: {
-                        tag: 'Statement',
-                        if: 'testVariable'
-                    },
+                },
+                {
+                    data: { tag: 'Fallthrough' },
                     children: [{ data: { tag: 'String', value: 'and an Else'}, children: [], id: '' }],
                     id: ''
                 }],
-                id: ''
+                id: 'ABC'
             },
             { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' }
         ], { normal: {} })).toMatchSnapshot()

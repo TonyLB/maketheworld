@@ -5,10 +5,10 @@ import {
 } from "slate";
 
 export const withConditionals = (editor: Editor): Editor => {
-    const { normalizeNode, isVoid } = editor
+    const { isVoid } = editor
 
     editor.isVoid = (element) => {
-        return element.type === 'ifWrapper' ? true : isVoid(element)
+        return ['newIfWrapper', 'ifWrapper'].includes(element.type) ? true : isVoid(element)
     }
 
     // editor.normalizeNode = ([node, path]) => {
