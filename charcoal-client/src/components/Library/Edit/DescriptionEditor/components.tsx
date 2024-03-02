@@ -20,8 +20,13 @@ import {
 } from 'slate'
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
+import { useLibraryAsset } from '../LibraryAsset'
+import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
-export const Element: FunctionComponent<RenderElementProps> = (props) => {
+export const elementFactory = (render: FunctionComponent<{ tree: GenericTree<SchemaTag, TreeId>; }>): FunctionComponent<RenderElementProps> => (props) => {
+    const { select } = useLibraryAsset()
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -61,11 +66,17 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                 >
                     { children }
             </SlateIndentBox>
+        case 'newIfWrapper':
+            return <div {...attributes} contentEditable={false}>
+                <IfElseTree tree={[{ data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }]} render={render} />
+            </div>
         case 'ifWrapper':
             //
-            // TODO: Figure out how to nest a slate render inside IfElseTree
+            // TODO: ISS-3501: Figure out how to nest a slate render inside IfElseTree
             //
-            return <IfElseTree tree={element.tree} render={() => (<span>Stub</span>)} />
+            return <div {...attributes} contentEditable={false}>
+                <IfElseTree tree={(select({ selector: selectById(element.treeId) })?.children ?? []) as any} render={render} />
+            </div>
         case 'paragraph':
             const paragraphTags = <React.Fragment>
                     { (element.explicitBR || element.softBR) && <span contentEditable={false}>

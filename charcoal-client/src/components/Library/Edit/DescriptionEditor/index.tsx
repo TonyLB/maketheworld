@@ -25,6 +25,7 @@ import TreeIcon from '@mui/icons-material/AccountTree';
 
 import {
     CustomIfWrapper,
+    CustomNewIfWrapper,
     isCustomBlock
 } from '../baseClasses'
 
@@ -32,7 +33,7 @@ import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
+import { decorateFactory, elementFactory, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
@@ -127,23 +128,16 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
     const handleClick = useCallback(() => {
         const { selection } = editor
         const isCollapsed = selection && Range.isCollapsed(selection)
-        const wrapper: CustomIfWrapper = {
-            type: 'ifWrapper',
-            tree: [
-                { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: ''}, children: [], id: uuidv4() }], id: uuidv4() }
-            ],
-            children: [{ text: '' }]
+      
+        const ifWrapper: CustomNewIfWrapper = {
+            type: 'newIfWrapper',
+            children: isCollapsed ? [{ text: '' }] : [],
         }
       
         if (isCollapsed) {
-            Transforms.insertNodes(editor, [wrapper], { voids: true })
+            Transforms.insertNodes(editor, [ifWrapper, { type: 'paragraph', children: [{ text: '' }] }])
         } else {
-            //
-            // TODO: Extract data from current selection and run it through descendantsToRender
-            // to populate the tree in the ifWrapper object
-            //
-            Transforms.removeNodes(editor)
-            Transforms.insertNodes(editor, [wrapper], { voids: true })
+            Transforms.wrapNodes(editor, ifWrapper, { split: true })
             Transforms.collapse(editor, { edge: 'end' })
             editor.saveSelection = undefined
         }
@@ -161,7 +155,8 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
 // TODO: ISS-3500 Refactor DescriptionEditor to accept TreeId rather than ComponentId, output, and onChange
 //
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ treeId, onChange = () => {}, validLinkTags=[], placeholder }) => {
-    const { normalForm, select, readonly } = useLibraryAsset()
+    const { normalForm, select, schema, readonly } = useLibraryAsset()
+    const Element = useMemo(() => (elementFactory((props) => (<DescriptionEditor {...props} validLinkTags={validLinkTags} placeholder={placeholder} />))), [])
     const output = useMemo(() => (
             treeId
                 ? treeTypeGuard({
@@ -175,7 +170,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender
+        comparisonOutput: descendantsToRender(schema)
     })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
@@ -205,9 +200,9 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender((value || []).filter(isCustomBlock))
+        const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
         onChange(genericIDFromTree(newRender))
-    }, [onChange, value])
+    }, [onChange, value, schema])
 
     const onChangeHandler = useCallback((value) => {
         setValue(value)
