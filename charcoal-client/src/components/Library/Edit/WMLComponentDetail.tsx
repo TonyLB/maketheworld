@@ -109,7 +109,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     id: tagToReplace.id,
                     item: {
                         data: tagToReplace.data,
-                        children: adjustedRender
+                        children: adjustedRender,
+                        id: tagToReplace.id
                     }
                 })
             }

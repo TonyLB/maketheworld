@@ -12,17 +12,16 @@ import {
     isCustomText
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaOutputTag, SchemaTag, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { stripIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { SchemaOutputTag, SchemaTag, isSchemaCondition, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { selectById } from "@tonylb/mtw-wml/dist/normalize/selectors/byId"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 //
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
-export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
+export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag, Partial<TreeId>> => {
     console.log(`items: ${JSON.stringify(items, null, 4)}`)
-    const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item, index) => {
+    const returnValue = items.reduce<GenericTree<SchemaOutputTag, Partial<TreeId>>>((tree, item, index) => {
         if (isCustomNewIfWrapper(item)) {
             return [
                 ...tree,
@@ -40,9 +39,13 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
             if (typeof node === 'undefined') {
                 return tree
             }
+            const { data } = node
+            if (!isSchemaCondition(data)) {
+                return tree
+            }
             return [
                 ...tree,
-                ...stripIDFromTree(treeTypeGuard({ tree: [node], typeGuard: isSchemaOutputTag }))
+                { data, id: item.treeId, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
             ]
         }
         if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {

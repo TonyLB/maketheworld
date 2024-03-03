@@ -4,11 +4,12 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
+import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
 import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
-import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -64,14 +65,12 @@ type UpdateSchemaPayloadDelete = {
 
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
-const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTree<SchemaTag, TreeId> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
-
 export const deriveWorkingSchema = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): PersonalAssetsPublic["schema"] => {
     const standardized = standardizeSchema(
-        ...Object.values(importData),
+        ...Object.values(importData).map(markInherited),
         baseSchema
     )
-    return genericIDFromTree(standardized)
+    return maybeGenericIDFromTree(standardized)
 }
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
@@ -97,7 +96,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
         case 'replace':
             const replacedSchema = map(schema, (node) => {
                 if (node.id === payload.id) {
-                    return addKeyIfNeeded(addIdIfNeeded([payload.item])[0])
+                    return addKeyIfNeeded(maybeGenericIDFromTree([payload.item])[0])
                 }
                 else {
                     return node
@@ -120,7 +119,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                         ...node,
                         children: [
                             ...node.children,
-                            ...addIdIfNeeded([payload.item]).map(addKeyIfNeeded)
+                            ...maybeGenericIDFromTree([payload.item]).map(addKeyIfNeeded)
                         ]
                     }
                 }

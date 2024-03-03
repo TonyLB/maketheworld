@@ -32,11 +32,11 @@ export interface PersonalAssetsPublic {
     // baseSchema is the schema derived purely from WML (i.e., the local
     // schema without inherited data)
     //
-    baseSchema: GenericTree<SchemaTag>;
+    baseSchema: GenericTree<SchemaTag, TreeId>;
     //
     // importData is the set of schemata that are inherited from imports
     //
-    importData: Record<string, GenericTree<SchemaTag>>;
+    importData: Record<string, GenericTree<SchemaTag, TreeId>>;
     //
     // schema is the combination of the baseSchema with all of the
     // data it inherits from imports
