@@ -11,8 +11,9 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import { useLibraryAsset } from "./LibraryAsset"
 import { Button, Stack } from "@mui/material"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaTag, isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
+import { EditSchema, useEditContext } from "./EditContext"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -62,7 +63,7 @@ type IfElseWrapBoxProps = {
 }
 
 const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, children }) => {
-    const { updateSchema } = useLibraryAsset()
+    const { updateSchema } = useEditContext()
     return <LabelledIndentBox
         color={blue}
         label={
@@ -102,28 +103,46 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
 }
 
 type IfElseTreeProps = {
-    tree: GenericTreeFiltered<SchemaConditionStatementTag | SchemaConditionFallthroughTag, SchemaTag, TreeId>;
-    render: RenderType;
+    render: FunctionComponent<{}>;
 }
 
-export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
-    if (tree.length === 0 || !(isSchemaConditionStatement(tree[0].data))) {
-        console.log(`tree: ${JSON.stringify(tree, null, 4)}`)
+//
+// IfElseTree assumes that the EditContext passed will have a single conditional top-level element,
+// and renders the statements and fallthrough of its children
+//
+export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
+    const { schema } = useEditContext()
+    const { updateSchema } = useLibraryAsset()
+    if (
+        schema.length !== 1 ||
+        !(isSchemaCondition(schema[0].data)) ||
+        schema[0].children.length === 0 ||
+        !isSchemaConditionStatement(schema[0].children[0].data) ||
+        Boolean(schema[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
+    ) {
+        console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
+    const firstStatement = schema[0].children[0]
+    if (!isSchemaConditionStatement(firstStatement.data)) {
+        console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
+        throw new Error('Invalid arguments in IfElseTree')
+    }
+    const otherStatements = schema[0].children.slice(1)
     return <React.Fragment>
         <IfElseWrapBox
-            key={tree[0].id}
-            id={tree[0].id}
+            key={firstStatement.id}
+            id={firstStatement.id}
             type={'if'}
-            source={tree[0].data.if}
+            source={firstStatement.data.if}
             actions={[]}
         >
-            { render({ tree: tree[0].children }) }
+            <EditSchema schema={[firstStatement]} updateSchema={updateSchema}>
+                <Render />
+            </EditSchema>
         </IfElseWrapBox>
         { 
-            tree.slice(1).map(({ data, children, id }) => {
-                const childrenRender = render({ tree: children })
+            otherStatements.map(({ data, children, id }) => {
                 return isSchemaConditionStatement(data)
                     ? <IfElseWrapBox
                         key={id}
@@ -132,7 +151,9 @@ export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
                         source={data.if}
                         actions={[]}
                     >
-                        { childrenRender }
+                        <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
+                            <Render />
+                        </EditSchema>
                     </IfElseWrapBox>
                     : <IfElseWrapBox
                         key={id}
@@ -141,7 +162,9 @@ export const IfElseTree = ({ tree, render }: IfElseTreeProps): ReactElement => {
                         source=''
                         actions={[]}
                     >
-                        { childrenRender }
+                        <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
+                            <Render />
+                        </EditSchema>
                     </IfElseWrapBox>
             })
         }

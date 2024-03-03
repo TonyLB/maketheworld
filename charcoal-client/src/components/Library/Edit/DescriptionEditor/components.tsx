@@ -20,13 +20,13 @@ import {
 } from 'slate'
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
-import { useLibraryAsset } from '../LibraryAsset'
 import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { EditSchema, useEditContext } from '../EditContext'
 
-export const elementFactory = (render: FunctionComponent<{ tree: GenericTree<SchemaTag, TreeId>; }>): FunctionComponent<RenderElementProps> => (props) => {
-    const { select } = useLibraryAsset()
+export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
+    const { schema, updateSchema } = useEditContext()
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -68,16 +68,18 @@ export const elementFactory = (render: FunctionComponent<{ tree: GenericTree<Sch
             </SlateIndentBox>
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
-                <IfElseTree tree={[{ data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }]} render={render} />
+                <EditSchema schema={[{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }]} updateSchema={updateSchema}>
+                    <IfElseTree render={render} />
+                </EditSchema>
             </div>
         case 'ifWrapper':
-            //
-            // TODO: ISS-3501: Figure out how to nest a slate render inside IfElseTree
-            //
-            const nodeById = select({ selector: selectById(element.treeId) })
-            console.log(`nodeById: ${JSON.stringify(nodeById, null, 4)}`)
+            const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
-                <IfElseTree tree={(nodeById?.children ?? []) as any} render={render} />
+                <EditSchema schema={[nodeById]} updateSchema={updateSchema}>
+                    <IfElseTree
+                        render={render}
+                    />
+                </EditSchema>
             </div>
         case 'paragraph':
             const paragraphTags = <React.Fragment>

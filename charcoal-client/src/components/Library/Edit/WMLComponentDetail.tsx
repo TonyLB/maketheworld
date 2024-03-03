@@ -21,10 +21,12 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
-import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/explicitSpaces'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
+import { EditSchema } from './EditContext'
+import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -86,11 +88,11 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             }, undefined)
     }, [schema, ComponentId])
 
-    const onChange = useCallback((tag: 'Name' | 'Description') => (newRender: GenericTree<SchemaOutputTag>) => {
-        //
-        // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
-        // miscalibrations of the descendantsToRender function
-        //
+    const onChange = useCallback((tag: 'Name' | 'Description') => (action: UpdateSchemaPayload) => {
+        if (action.type !== 'replace') {
+            throw new Error('Incorrect arguments to WMLComponentDetail onChange')
+        }
+        const newRender = treeTypeGuard({ tree: action.item.children, typeGuard: isSchemaOutputTag })
         const adjustedRender = explicitSpaces(newRender)
         if (isSchemaRoom(appearance.data) && adjustedRender?.length)  {
             dispatch(addOnboardingComplete(['describeRoom']))
@@ -98,24 +100,29 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         //
         // Use internal UUIDs in appearance to update schema with new output data
         //
-        console.log(`appearanceID: ${appearance.id}`)
         if (appearance.id) {
             const tagToReplace = appearance.children
                 .find((appearance) => (appearance.data.tag === tag))
             if (tagToReplace) {
-                console.log(`replace (${tagToReplace.id}): ${JSON.stringify({ data: tagToReplace.data, children: adjustedRender }, null, 4)}`)
-                updateSchema({
-                    type: 'replace',
-                    id: tagToReplace.id,
-                    item: {
-                        data: tagToReplace.data,
-                        children: adjustedRender,
+                if (adjustedRender.length) {
+                    updateSchema({
+                        type: 'replace',
+                        id: tagToReplace.id,
+                        item: {
+                            data: tagToReplace.data,
+                            children: adjustedRender,
+                            id: tagToReplace.id
+                        }
+                    })
+                }
+                else {
+                    updateSchema({
+                        type: 'delete',
                         id: tagToReplace.id
-                    }
-                })
+                    })
+                }
             }
             else {
-                console.log(`addChild (${appearance.id}): ${JSON.stringify({ data: { tag }, children: adjustedRender }, null, 4)}`)
                 updateSchema({
                     type: 'addChild',
                     id: appearance.id,
@@ -129,10 +136,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     }, [appearance, updateSchema, dispatch])
     const onChangeDescription = useCallback(onChange('Description'), [onChange])
     const onChangeName = useCallback(onChange('Name'), [onChange])
-    const extractOutput = useCallback((tag: 'Name' | 'Description'): string | undefined => {
+    const extractOutput = useCallback((tag: 'Name' | 'Description'): GenericTreeNode<SchemaTag, TreeId> | undefined => {
         const matchedTag = appearance.children
             .find((appearance) => (appearance.data.tag === tag))
-        return matchedTag?.id
+        return matchedTag
     }, [appearance])
     const descriptionOutput = useMemo(() => (extractOutput('Description')), [extractOutput])
     const nameOutput = useMemo(() => (extractOutput('Name')), [extractOutput])
@@ -148,20 +155,20 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
-        <DescriptionEditor
-            treeId={nameOutput}
-            onChange={onChangeName}
-            validLinkTags={[]}
-            placeholder="Enter a name"
-        />
-        <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
+        <EditSchema schema={nameOutput ? [nameOutput] : [{ data: { tag: 'Name' }, children: [], id: 'STUB' }]} updateSchema={onChangeName}>
             <DescriptionEditor
-                treeId={descriptionOutput}
-                onChange={onChangeDescription}
-                validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                placeholder="Enter a description"
+                validLinkTags={[]}
+                placeholder="Enter a name"
             />
-        </Box>
+        </EditSchema>
+        <EditSchema schema={descriptionOutput ? [descriptionOutput] : [{ data: { tag: 'Description' }, children: [], id: 'STUB' }]} updateSchema={onChangeDescription}>
+            <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
+                <DescriptionEditor
+                    validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
+                    placeholder="Enter a description"
+                />
+            </Box>
+        </EditSchema>
         {
             (tag === 'Room') && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
         }

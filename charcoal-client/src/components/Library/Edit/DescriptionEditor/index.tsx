@@ -44,9 +44,9 @@ import { genericIDFromTree, maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/
 import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { useEditContext } from '../EditContext'
 
 interface DescriptionEditorProps {
-    treeId?: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
     placeholder?: string;
@@ -152,23 +152,26 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
     </Button>
 }
 
-//
-// TODO: ISS-3500 Refactor DescriptionEditor to accept TreeId rather than ComponentId, output, and onChange
-//
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ treeId, onChange = () => {}, validLinkTags=[], placeholder }) => {
-    const { normalForm, select, schema, readonly } = useLibraryAsset()
-    const Element = useMemo(() => (elementFactory((props) => (<DescriptionEditor {...props} validLinkTags={validLinkTags} placeholder={placeholder} />))), [])
-    const output = useMemo(() => (
-            treeId
-                ? treeTypeGuard({
-                    tree: (select<GenericTreeNode<SchemaTag, TreeId> | undefined>({ selector: selectById(treeId) }) ?? { data: { tag: 'String', value: '' }, children: [], id: treeId }).children,
-                    typeGuard: isSchemaOutputTag
-                })
-                : []
-        ), [select, treeId])
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder }) => {
+    const { schema, updateSchema } = useEditContext()
+    const { normalForm, readonly } = useLibraryAsset()
+    const onChange = (newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
+        updateSchema({
+            type: 'replace',
+            id: schema[0].id,
+            item: {
+                ...schema[0],
+                children: newRender
+            }
+        })
+    }
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
+    const output = useMemo(() => (treeTypeGuard({
+        tree: schema[0]?.children ?? [],
+        typeGuard: isSchemaOutputTag
+    })), [schema])
     const defaultValue = useMemo(() => {
         const returnValue = descendantsFromRender(output, { normal: normalForm })
-        console.log(`DefaultValue: ${JSON.stringify(returnValue, null, 4)}`)
         return returnValue
     }, [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
@@ -205,9 +208,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        console.log(`saveToReduce: ${JSON.stringify(value, null, 4)}`)
         const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
-        console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
         onChange(maybeGenericIDFromTree(newRender))
     }, [onChange, value, schema])
 
