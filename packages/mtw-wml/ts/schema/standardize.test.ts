@@ -436,4 +436,94 @@ describe('standardizeSchema', () => {
             </Asset>
         `))
     })
+
+    it('should preserve tree IDs on combination', () => {
+        const inheritedSchema: GenericTree<SchemaTag, { inherited: boolean; id: string }> = [{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'Asset',
+            inherited: true,
+            children: [{
+                data: { tag: 'Inherited' },
+                id: 'Inherited',
+                inherited: true,
+                children: [{
+                    data: { tag: 'Room', key: 'testRoomOne' },
+                    id: 'Room',
+                    inherited: true,
+                    children: [{
+                        data: { tag: 'Description' },
+                        id: 'Description',
+                        inherited: true,
+                        children: [{
+                            data: { tag: 'String', value: 'A plain lobby.' },
+                            id: 'String',
+                            inherited: true,
+                            children: []
+                        }]
+                    }]
+                }]
+            }]
+        }]
+        const testSchema: GenericTree<SchemaTag, { id: string }> = [{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'ABC',
+            children: [{
+                data: { tag: 'Room', key: 'testRoomOne' },
+                id: 'DEF',
+                children: [{
+                    data: { tag: 'Name' },
+                    id: 'GHI',
+                    children: [{
+                        data: { tag: 'String', value: 'Lobby' },
+                        id: 'JKL',
+                        children: []
+                    }]
+                },
+                {
+                    data: { tag: 'Description' },
+                    id: 'MNO',
+                    children: [{
+                        data: { tag: 'String', value: 'In darkness.' },
+                        id: 'QRS',
+                        children: []
+                    }]
+                }]
+            }]
+        }]
+        expect(standardizeSchema(inheritedSchema, testSchema)).toEqual([{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'ABC',
+            children: [{
+                data: { tag: 'Room', key: 'testRoomOne' },
+                id: 'DEF',
+                children: [{
+                    data: { tag: 'Name' },
+                    id: 'GHI',
+                    children: [{
+                        data: { tag: 'String', value: 'Lobby' },
+                        id: 'JKL',
+                        children: []
+                    }]
+                },
+                {
+                    data: { tag: 'Description' },
+                    id: 'MNO',
+                    children: [{
+                        data: { tag: 'Inherited' },
+                        id: 'Inherited',
+                        children: [{
+                            data: { tag: 'String', value: 'A plain lobby.'},
+                            id: 'String',
+                            children: []
+                        }]
+                    },
+                    {
+                        data: { tag: 'String', value: 'In darkness.' },
+                        id: 'QRS',
+                        children: []
+                    }]
+                }]
+            }]
+        }])
+    })
 })
