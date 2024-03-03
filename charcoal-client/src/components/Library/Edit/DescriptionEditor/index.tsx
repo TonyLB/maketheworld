@@ -166,7 +166,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         })
     }
     const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
-    const output = useMemo(() => (treeTypeGuard({
+    const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
         tree: schema[0]?.children ?? [],
         typeGuard: isSchemaOutputTag
     })), [schema])

@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
-import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement } from "react"
+import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement, useMemo } from "react"
 import CodeEditor from "./CodeEditor"
 import { LabelledIndentBox } from "./LabelledIndentBox"
 
@@ -63,7 +63,7 @@ type IfElseWrapBoxProps = {
 }
 
 const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, children }) => {
-    const { updateSchema } = useEditContext()
+    const { updateSchema } = useLibraryAsset()
     return <LabelledIndentBox
         color={blue}
         label={
@@ -113,6 +113,8 @@ type IfElseTreeProps = {
 export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
     const { schema } = useEditContext()
     const { updateSchema } = useLibraryAsset()
+    const firstStatement = useMemo(() => (schema[0]?.children?.[0]), [schema])
+    const otherStatements = useMemo(() => ((schema[0]?.children ?? []).slice(1)), [schema])
     if (
         schema.length !== 1 ||
         !(isSchemaCondition(schema[0].data)) ||
@@ -123,12 +125,10 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
         console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
-    const firstStatement = schema[0].children[0]
     if (!isSchemaConditionStatement(firstStatement.data)) {
         console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
-    const otherStatements = schema[0].children.slice(1)
     return <React.Fragment>
         <IfElseWrapBox
             key={firstStatement.id}
