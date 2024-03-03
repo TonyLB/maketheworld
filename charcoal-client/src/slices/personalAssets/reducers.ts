@@ -49,6 +49,7 @@ type UpdateSchemaPayloadUpdateNode = {
 type UpdateSchemaPayloadAddChild = {
     type: 'addChild';
     id: string;
+    afterId?: string;
     item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
@@ -113,18 +114,31 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = updatedSchema
             break
         case 'addChild':
-            const addedSchema = map(schema, (node) => {
+            const addedSchema = map(schema, (node: GenericTreeNode<SchemaTag, TreeId>) => {
                 if (node.id === payload.id) {
-                    return {
-                        ...node,
-                        children: [
-                            ...node.children,
-                            ...maybeGenericIDFromTree([payload.item]).map(addKeyIfNeeded)
-                        ]
+                    const afterIndex = payload.afterId ? node.children.findIndex(({ id }) => (id === payload.afterId)) : -1
+                    if (afterIndex !== -1) {
+                        return [{
+                            ...node,
+                            children: [
+                                ...node.children.slice(0, afterIndex + 1),
+                                ...maybeGenericIDFromTree([payload.item]).map(addKeyIfNeeded),
+                                ...node.children.slice(afterIndex + 1)
+                            ]
+                        }]
+                    }
+                    else {
+                        return [{
+                            ...node,
+                            children: [
+                                ...node.children,
+                                ...maybeGenericIDFromTree([payload.item]).map(addKeyIfNeeded)
+                            ]
+                        }]
                     }
                 }
                 else {
-                    return node
+                    return [node]
                 }
             })
             state.baseSchema = addedSchema

@@ -147,6 +147,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                 }
             }}
             actions={[
+                <AddItemButton key="elseIf" addItemIcon={<React.Fragment>elseIf</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, afterId: firstStatement.id, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] } })}} />,
                 ...(otherStatements.length === 0 ? [<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />] : [])
             ]}
         >
@@ -155,7 +156,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
             </EditSchema>
         </IfElseWrapBox>
         { 
-            otherStatements.map(({ data, children, id }) => {
+            otherStatements.map(({ data, children, id }, index) => {
                 return isSchemaConditionStatement(data)
                     ? <IfElseWrapBox
                         key={id}
@@ -163,7 +164,10 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         type={'elseIf'}
                         source={data.if}
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
-                        actions={[]}
+                        actions={[
+                            <AddItemButton key="elseIf" addItemIcon={<React.Fragment>elseIf</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, afterId: id, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] } })}} />,
+                            ...(index === otherStatements.length - 1 ? [<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />] : [])
+                        ]}
                     >
                         <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
                             <Render />
