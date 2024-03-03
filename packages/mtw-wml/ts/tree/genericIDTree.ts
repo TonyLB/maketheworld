@@ -1,12 +1,19 @@
 import { v4 as uuidv4 } from 'uuid'
 import { GenericTree, GenericTreeNode, TreeId } from "./baseClasses"
-import dfsWalk from './dfsWalk'
 
 export const genericIDFromTree = <N extends {}>(tree: GenericTree<N>): GenericTree<N, TreeId> => (
     tree.map(({ data, children }) => ({
         data,
         children: genericIDFromTree(children),
         id: uuidv4()
+    }))
+)
+
+export const maybeGenericIDFromTree = <N extends {}>(tree: GenericTree<N, Partial<TreeId>>): GenericTree<N, TreeId> => (
+    tree.map(({ data, children, id }) => ({
+        data,
+        children: maybeGenericIDFromTree(children),
+        id: id ?? uuidv4()
     }))
 )
 

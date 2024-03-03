@@ -82,9 +82,9 @@ describe('SchemaTagTree', () => {
                         }]
                     }
                 ],
-                id: 'MNO'
+                id: 'DEF'
             }],
-            id: 'JKL'
+            id: 'ABC'
         }])
     })
 
