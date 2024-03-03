@@ -21,6 +21,7 @@ import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaCondi
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
+import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 
 type MapLayersProps = {
     mapId: string;
@@ -182,10 +183,20 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
     </React.Fragment>
 }
 
+const MapStubRender: FunctionComponent<{}> = () => {
+    const { schema } = useEditContext()
+    return <React.Fragment>{ schema.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>
+}
+
 //
 // MapItemLayer component accepts any of GenericTreeNode<MapItem>, and farms out the top-level
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
+//
+
+//
+// TODO: Create lens function on tagTree that returns synthetic schema and updateSchema functions,
+// and use that where IfElseTree is used in Map component
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
     const { data } = item
@@ -197,10 +208,11 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
-            return <IfElseTree
-                tree={treeTypeGuard({ tree: item.children, typeGuard: (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (Boolean(['Statement', 'Fallthrough'].includes(data.tag))) })}
-                render={({ tree }) => (<React.Fragment>{ tree.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>)}
-            />
+            return <EditSchema schema={[item]} updateSchema={() => {}}>
+                <IfElseTree
+                    render={() => (<MapStubRender />)}
+                />
+            </EditSchema>
         default:
             return null
     }
