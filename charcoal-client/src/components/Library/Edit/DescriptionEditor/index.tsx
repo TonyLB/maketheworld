@@ -39,10 +39,11 @@ import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
 import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { genericIDFromTree, maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 interface DescriptionEditorProps {
     treeId?: string;
@@ -160,7 +161,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
     const output = useMemo(() => (
             treeId
                 ? treeTypeGuard({
-                    tree: (select({ selector: selectById(treeId) }) ?? { data: { tag: 'String', value: '' }, children: [], id: treeId }).children,
+                    tree: (select<GenericTreeNode<SchemaTag, TreeId> | undefined>({ selector: selectById(treeId) }) ?? { data: { tag: 'String', value: '' }, children: [], id: treeId }).children,
                     typeGuard: isSchemaOutputTag
                 })
                 : []
@@ -207,7 +208,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ t
         console.log(`saveToReduce: ${JSON.stringify(value, null, 4)}`)
         const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
         console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
-        onChange(genericIDFromTree(newRender))
+        onChange(maybeGenericIDFromTree(newRender))
     }, [onChange, value, schema])
 
     const onChangeHandler = useCallback((value) => {

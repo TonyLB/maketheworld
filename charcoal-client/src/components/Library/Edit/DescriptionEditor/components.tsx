@@ -74,7 +74,6 @@ export const elementFactory = (render: FunctionComponent<{ tree: GenericTree<Sch
             //
             // TODO: ISS-3501: Figure out how to nest a slate render inside IfElseTree
             //
-            console.log(`schema: ${JSON.stringify(select({ selector: (tree) => (tree) }), null, 4)}`)
             const nodeById = select({ selector: selectById(element.treeId) })
             console.log(`nodeById: ${JSON.stringify(nodeById, null, 4)}`)
             return <div {...attributes} contentEditable={false}>

@@ -61,7 +61,7 @@ type LibraryAssetContextType = {
     readonly: boolean;
     serialized: boolean;
     status?: keyof PersonalAssetsNodes;
-    select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output;
+    select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag, TreeId>, options?: { tag: string, key: string }) => Output }) => Output;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -133,8 +133,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         normalizer.loadNormal(normalForm)
         return normalizer
     }, [normalForm])
-    const isKeyedCallback = <T extends {}>(args: { key?: string, selector (tree: GenericTree<SchemaTag>, options?: {tag: string; key: string }): T }): args is { key: string, selector (tree: GenericTree<SchemaTag>, options?: {tag: string; key: string }): T } => (typeof args.key !== 'undefined')
-    const select = useCallback(<T extends {}>(args: { key?: string, selector: (tree: GenericTree<SchemaTag>, options?: { tag: string; key: string }) => T }): T => (isKeyedCallback(args) ? normalizer.select(args) : args.selector(schema)), [normalizer, schema])
+    const isKeyedCallback = <T extends {}>(args: { key?: string, selector (tree: GenericTree<SchemaTag, TreeId>, options?: {tag: string; key: string }): T }): args is { key: string, selector (tree: GenericTree<SchemaTag, TreeId>, options?: {tag: string; key: string }): T } => (typeof args.key !== 'undefined')
+    const select = useCallback(<T extends {}>(args: { key?: string, selector: (tree: GenericTree<SchemaTag, TreeId>, options?: { tag: string; key: string }) => T }): T => (isKeyedCallback(args) ? normalizer.select(args) : args.selector(schema)), [normalizer, schema])
     const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
         dispatch(updateSchemaAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
