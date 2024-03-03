@@ -40,19 +40,24 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
     />
 }
 
-type RenderType = FunctionComponent<{
-    tree: GenericTree<SchemaTag, TreeId>;
-}>
-
 const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: ReactElement }> = ({ onClick, addItemIcon }) => {
     const { readonly } = useLibraryAsset()
-    return <Button
-        variant="outlined"
+    return <Chip
+        sx={{
+            "&&:hover": {
+                background: blue[200]
+            },
+            background: blue[50],
+            borderColor: blue[500],
+            borderWidth: '2px',
+            borderStyle: "solid"
+        }}
+        size="small"
         disabled={readonly}
         onClick={onClick}
-    >
-        <AddIcon />{ addItemIcon }
-    </Button>
+        icon={<AddIcon />}
+        label={addItemIcon}
+    />
 }
 
 type IfElseWrapBoxProps = {
