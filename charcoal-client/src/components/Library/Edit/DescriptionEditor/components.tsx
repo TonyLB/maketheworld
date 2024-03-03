@@ -21,8 +21,6 @@ import {
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { EditSchema, useEditContext } from '../EditContext'
 
 export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
@@ -76,9 +74,7 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
             const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
                 <EditSchema schema={[nodeById]} updateSchema={updateSchema}>
-                    <IfElseTree
-                        render={render}
-                    />
+                    <IfElseTree render={render} />
                 </EditSchema>
             </div>
         case 'paragraph':

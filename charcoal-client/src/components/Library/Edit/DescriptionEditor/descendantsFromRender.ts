@@ -100,58 +100,58 @@ const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagrap
 }
 
 export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): CustomBlock[] => {
-    if (render.length > 0) {
-        let returnValue = [] as CustomBlock[]
-        let accumulator = [] as CustomParagraphContents[]
-        const translated = descendantsTranslate(render, options)
-        descendantsCompact(translated).forEach((item) => {
-            if (isCustomBlock(item)) {
-                if (isCustomIfWrapper(item)) {
-                    if (accumulator.length) {
-                        returnValue = [
-                            ...returnValue,
-                            { type: 'paragraph', children: accumulator }
-                        ]
-                        accumulator = []
-                    }
+    let returnValue = [] as CustomBlock[]
+    let accumulator = [] as CustomParagraphContents[]
+    const translated = descendantsTranslate(render, options)
+    descendantsCompact(translated).forEach((item) => {
+        if (isCustomBlock(item)) {
+            if (isCustomIfWrapper(item)) {
+                if (accumulator.length) {
                     returnValue = [
                         ...returnValue,
-                        { type: 'ifWrapper', treeId: item.treeId, children: [{ text: '' }] }
+                        { type: 'paragraph', children: accumulator }
                     ]
-                }
-                else {
-                    return returnValue
-                }
-            }
-            else {
-                if (isCustomLineBreak(item)) {
-                    returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
                     accumulator = []
                 }
-                else {
-                    accumulator.push(item)
-                }
+                returnValue = [
+                    ...returnValue,
+                    { type: 'ifWrapper', treeId: item.treeId, children: [{ text: '' }] }
+                ]
             }
-        })
-        return [
-            ...returnValue,
-            ...(accumulator.length > 0
-                //
-                // TODO: Make or find a join procedure that joins children where possible (i.e. combines adjacent text children)
-                //
-                ? [{
-                    type: "paragraph" as "paragraph",
-                    children: accumulator
-                }]
-                : [] as CustomParagraphElement[])
-        ]
+            else {
+                return returnValue
+            }
+        }
+        else {
+            if (isCustomLineBreak(item)) {
+                returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
+                accumulator = []
+            }
+            else {
+                accumulator.push(item)
+            }
+        }
+    })
+    if (returnValue.length + accumulator.length === 0) {
+        return [{
+            type: 'paragraph',
+            children: [{
+                text: ''
+            } as CustomText]
+        }]
     }
-    return [{
-        type: 'paragraph',
-        children: [{
-            text: ''
-        } as CustomText]
-    }]
+    return [
+        ...returnValue,
+        ...(accumulator.length > 0
+            //
+            // TODO: Make or find a join procedure that joins children where possible (i.e. combines adjacent text children)
+            //
+            ? [{
+                type: "paragraph" as "paragraph",
+                children: accumulator
+            }]
+            : [] as CustomParagraphElement[])
+    ]
 }
 
 export default descendantsFromRender
