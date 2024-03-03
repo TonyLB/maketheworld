@@ -60,9 +60,10 @@ type IfElseWrapBoxProps = {
     type: 'if' | 'elseIf' | 'else';
     source: string;
     actions: ReactChild[] | ReactChildren;
+    onDelete: () => void;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, children }) => {
     const { updateSchema } = useLibraryAsset()
     return <LabelledIndentBox
         color={blue}
@@ -96,7 +97,7 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                 </React.Fragment>
         }
         actions={actions}
-        onDelete={() => { updateSchema({ type: 'delete', id }) }}
+        onDelete={onDelete}
     >
         { children }
     </LabelledIndentBox>
@@ -135,7 +136,14 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
             id={firstStatement.id}
             type={'if'}
             source={firstStatement.data.if}
-            actions={[]}
+            onDelete={() => {
+                if (otherStatements.length && isSchemaConditionStatement(otherStatements[0].data)) {
+                    updateSchema({ type: 'delete', id: firstStatement.id })
+                }
+            }}
+            actions={[
+                ...(otherStatements.length === 0 ? [<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />] : [])
+            ]}
         >
             <EditSchema schema={[firstStatement]} updateSchema={updateSchema}>
                 <Render />
@@ -149,6 +157,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         id={id}
                         type={'elseIf'}
                         source={data.if}
+                        onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[]}
                     >
                         <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
@@ -160,6 +169,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         id={id}
                         type={'else'}
                         source=''
+                        onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[]}
                     >
                         <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
