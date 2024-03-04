@@ -165,7 +165,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
             }
         })
     }
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
         tree: schema[0]?.children ?? [],
         typeGuard: isSchemaOutputTag
@@ -181,31 +180,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         comparisonOutput: descendantsToRender(schema)
     })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
-    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((event) => {
-        const { selection } = editor
-    
-        // Default left/right behavior is unit:'character'.
-        // This fails to distinguish between two cursor positions, such as
-        // <inline>foo<cursor/></inline> vs <inline>foo</inline><cursor/>.
-        // Here we modify the behavior to unit:'offset'.
-        // This lets the user step into and out of the inline without stepping over characters.
-        // You may wish to customize this further to only use unit:'offset' in specific cases.
-        if (selection && Range.isCollapsed(selection)) {
-            const { nativeEvent } = event
-            if (isKeyHotkey('left', nativeEvent)) {
-                event.preventDefault()
-                Transforms.move(editor, { unit: 'offset', reverse: true })
-                return
-            }
-            if (isKeyHotkey('right', nativeEvent)) {
-                event.preventDefault()
-                Transforms.move(editor, { unit: 'offset' })
-                return
-            }
-        }
-    }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
@@ -216,13 +190,16 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         setValue(value)
     }, [setValue])
 
-    useDebouncedOnChange({
+    const [_, forceOnChange] = useDebouncedOnChange({
         value,
         delay: 1000,
         onChange: (value) => {
             saveToReduce(value)
         }
     })
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
+    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
+    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
 
     const decorate = useCallback(decorateFactory(editor), [editor])
 
