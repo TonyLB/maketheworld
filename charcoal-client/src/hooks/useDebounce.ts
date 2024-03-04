@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { deepEqual } from '../lib/objects';
+import { deepEqual } from '../lib/objects'
 
 //
 // useDebounce lifted from https://usehooks.com/useDebounce/
@@ -28,9 +28,24 @@ export const useDebounce = <T>(value: T, delay: number) => {
 //
 // TODO: Refactor useDebouncedOnChange to return value and "force" function that bypasses the debounce
 //
-export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }) => {
+export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, () => void] => {
     const [baseValue, setBaseValue] = useState<T>(value)
-    const debouncedValue = useDebounce(value, delay)
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    useEffect(
+        () => {
+            // Update debounced value after delay
+            const handler = setTimeout(() => {
+                setDebouncedValue(value)
+            }, delay)
+            // Cancel the timeout if value changes (also on delay change or unmount)
+            // This is how we prevent debounced value from updating if value is changed
+            // within the delay period. Timeout gets cleared and restarted.
+            return () => {
+                clearTimeout(handler)
+            }
+        },
+        [value, delay] // Only re-call effect if value or delay changes
+    )
     useEffect(
         () => {
             if (!deepEqual(baseValue, debouncedValue)) {
@@ -40,6 +55,10 @@ export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; 
         },
         [baseValue, debouncedValue, onChange, setBaseValue]
     )
+    return [debouncedValue, () => {
+        onChange(debouncedValue)
+        setBaseValue(debouncedValue)
+    }]
 }
 
 export const useDebouncedState = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, (value: T) => void] => {
