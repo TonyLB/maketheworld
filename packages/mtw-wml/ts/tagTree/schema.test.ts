@@ -6,6 +6,7 @@ import parse from '../simpleParser'
 import { deIndentWML } from '../schema/utils'
 import { SchemaTag } from '../schema/baseClasses'
 import { GenericTree, TreeId } from '../tree/baseClasses'
+import { maybeGenericIDFromTree } from '../tree/genericIDTree'
 
 describe('SchemaTagTree', () => {
     it('should condense order-independent entries', () => {
@@ -86,6 +87,30 @@ describe('SchemaTagTree', () => {
             }],
             id: 'ABC'
         }])
+    })
+
+    it('should not condense identical condition statements', () => {
+        const testTree = maybeGenericIDFromTree(schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>
+                        Test
+                        <If {true}>Item one</If>
+                        <ElseIf {true}>Item two</ElseIf>
+                    </Description>
+                </Room>
+            </Asset>
+        `)))))
+        const tagTree = new SchemaTagTree(testTree)
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>
+                        Test <If {true}>Item one</If><ElseIf {true}>Item two</ElseIf>
+                    </Description>
+                </Room>
+            </Asset>
+        `))
     })
 
 })
