@@ -28,7 +28,7 @@ export const useDebounce = <T>(value: T, delay: number) => {
 //
 // TODO: Refactor useDebouncedOnChange to return value and "force" function that bypasses the debounce
 //
-export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, () => void] => {
+export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, (value: T) => void] => {
     const [baseValue, setBaseValue] = useState<T>(value)
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
     useEffect(
@@ -55,9 +55,9 @@ export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; 
         },
         [baseValue, debouncedValue, onChange, setBaseValue]
     )
-    return [debouncedValue, () => {
-        onChange(debouncedValue)
-        setBaseValue(debouncedValue)
+    return [debouncedValue, (value) => {
+        onChange(value)
+        setBaseValue(value)
     }]
 }
 

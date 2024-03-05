@@ -119,8 +119,18 @@ type IfElseTreeProps = {
 export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
     const { schema } = useEditContext()
     const { updateSchema } = useLibraryAsset()
-    const firstStatement = useMemo(() => (schema[0]?.children?.[0]), [schema])
-    const otherStatements = useMemo(() => ((schema[0]?.children ?? []).slice(1)), [schema])
+    const schemaZero = useMemo(() => (schema[0]), [schema])
+    const firstStatement = useMemo(() => (schemaZero?.children?.[0]), [schemaZero])
+    const otherStatements = useMemo(() => ((schemaZero?.children ?? []).slice(1)), [schemaZero])
+    const addElseIf = useCallback((afterId: string) => (
+        <AddItemButton
+            key="elseIf"
+            addItemIcon={<React.Fragment>elseIf</React.Fragment>}
+            onClick={() => {
+                updateSchema({ type: 'addChild', id: schemaZero.id, afterId, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }]
+            } })}}
+        />), [schemaZero, firstStatement, updateSchema])
+    const addElse = useMemo(() => (<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schemaZero.id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />), [schemaZero, otherStatements, updateSchema])
     if (
         schema.length !== 1 ||
         !(isSchemaCondition(schema[0].data)) ||
@@ -128,11 +138,9 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
         !isSchemaConditionStatement(schema[0].children[0].data) ||
         Boolean(schema[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
     ) {
-        console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
     if (!isSchemaConditionStatement(firstStatement.data)) {
-        console.log(`incoming schema: ${JSON.stringify(schema, null, 4)}`)
         throw new Error('Invalid arguments in IfElseTree')
     }
     return <React.Fragment>
@@ -147,8 +155,8 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                 }
             }}
             actions={[
-                <AddItemButton key="elseIf" addItemIcon={<React.Fragment>elseIf</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, afterId: firstStatement.id, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] } })}} />,
-                ...(otherStatements.length === 0 ? [<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />] : [])
+                addElseIf(firstStatement.id),
+                ...(otherStatements.length === 0 ? [addElse] : [])
             ]}
         >
             <EditSchema schema={[firstStatement]} updateSchema={updateSchema}>
@@ -165,8 +173,8 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         source={data.if}
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[
-                            <AddItemButton key="elseIf" addItemIcon={<React.Fragment>elseIf</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, afterId: id, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] } })}} />,
-                            ...(index === otherStatements.length - 1 ? [<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schema[0].id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />] : [])
+                            addElseIf(id),
+                            ...(index === otherStatements.length - 1 ? [addElse] : [])
                         ]}
                     >
                         <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>

@@ -121,9 +121,11 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     </Button>
 }
 
-interface AddIfButtonProps {}
+interface AddIfButtonProps {
+    forceOnChange: (value: Descendant[]) => void;
+}
 
-const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
+const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => {
     const { readonly } = useLibraryAsset()
     const editor = useSlate()
     const handleClick = useCallback(() => {
@@ -142,7 +144,8 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = () => {
             Transforms.collapse(editor, { edge: 'end' })
             editor.saveSelection = undefined
         }
-    }, [editor])
+        forceOnChange(editor.children)
+    }, [editor, forceOnChange])
     return <Button
         variant="outlined"
         disabled={readonly}
@@ -186,11 +189,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         onChange(maybeGenericIDFromTree(newRender))
     }, [onChange, value, schema])
 
-    const onChangeHandler = useCallback((value) => {
+    const onChangeHandler = useCallback((value: Descendant[]) => {
         setValue(value)
     }, [setValue])
 
-    const [_, forceOnChange] = useDebouncedOnChange({
+    useDebouncedOnChange({
         value,
         delay: 1000,
         onChange: (value) => {
@@ -217,7 +220,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
                         <RemoveLinkButton />
                     </React.Fragment>) || null
                 }
-                <AddIfButton />
+                <AddIfButton forceOnChange={(value: Descendant[]) => {
+                    setValue(value)
+                    saveToReduce(value)
+                }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
