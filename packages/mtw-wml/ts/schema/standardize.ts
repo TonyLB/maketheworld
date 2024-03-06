@@ -78,15 +78,24 @@ export const standardizeSchema = (...schemata: GenericTree<SchemaTag, Partial<Tr
                 // Aggregate and reorder all top-level information
                 //
                 const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }) => (data.tag === tag && data.key === key) }
-                const items = unmarkInherited(maybeGenericIDFromTree(tagTree
+                let filteredTagTree = tagTree
                     .filter(nodeMatch)
-                    //
-                    // TODO: Refactor reordered to accept more general matching criteria, and include childNodeMatch between Name and Description
-                    //
                     .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
                     .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                     .prune({ before: nodeMatch })
-                    .tree))
+                switch(tag) {
+                    case 'Room':
+                        filteredTagTree = filteredTagTree.filter({ not: { match: 'Position' }})
+                        break
+                    case 'Map':
+                        filteredTagTree = tagTree
+                            .filter(nodeMatch)
+                            .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
+                            .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                            .prune({ before: nodeMatch })
+                        break
+                }
+                const items = unmarkInherited(maybeGenericIDFromTree(filteredTagTree.tree))
                 items.forEach((item) => {
                     topLevelItems.push({
                         data: stripProperties(item.data),
