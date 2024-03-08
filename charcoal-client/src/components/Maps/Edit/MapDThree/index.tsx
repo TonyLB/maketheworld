@@ -58,7 +58,7 @@ const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, n
     if (isSchemaRoom(nodeData)) {
         return {
             ...previous,
-            data: children.reduce<SimulationTreeNode>((accumulator, { data: child }) => {
+            data: children.reduce<SimulationTreeNode>((accumulator, { data: child, id: childId }) => {
                 if (isSchemaExit(child)) {
                     return {
                         ...accumulator,
@@ -78,7 +78,7 @@ const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, n
                         nodes: [
                             ...accumulator.nodes,
                             {
-                                id,
+                                id: childId,
                                 roomId: nodeData.key,
                                 x: child.x,
                                 y: child.y,
@@ -263,7 +263,6 @@ export class MapDThree extends Object {
     // in the incoming map tree.
     //
     update(tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): void {
-        console.log(`incoming tree: ${JSON.stringify(tree, null, 4)}`)
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         
         this.tree.update(simulatorTree)

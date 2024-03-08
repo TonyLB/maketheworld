@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaTag, isSchemaPosition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
@@ -10,7 +10,7 @@ export const stabilizeFactory = (props: { schema: GenericTree<SchemaTag, TreeId>
         const previousNode = treeFindByID(schema, id)
         if (typeof previousNode !== 'undefined') {
             const { data: previousSchema } = previousNode
-            if (isSchemaRoom(previousSchema) && (previousSchema.x !== Math.round(x) || previousSchema.y !== Math.round(y))) {
+            if (isSchemaPosition(previousSchema) && (previousSchema.x !== Math.round(x) || previousSchema.y !== Math.round(y))) {
                 updateSchema({
                     type: 'updateNode',
                     id,
