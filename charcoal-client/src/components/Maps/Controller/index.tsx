@@ -16,7 +16,7 @@ import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
-import { genericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
@@ -199,7 +199,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }] } })
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Exit' }, { match: 'Position'}] }])
             .tree
-        return genericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
+        return maybeGenericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
     }, [schema, mapId])
 
     //
@@ -214,26 +214,26 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsHelper = (context?: { nodeId: string; roomId: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
+    const extractRoomsHelper = (contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const name = selectName(schema, { tag: 'Room', key: data.key })
-            return children.reduce(extractRoomsHelper({ nodeId: id, roomId: data.key }), [
+            return children.reduce(extractRoomsHelper(data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
-                    id,
                     roomId: data.key,
                     name: schemaOutputToString(name),
                 }
             ])
         }
-        if (isSchemaPosition(data) && context) {
-            const contextItem = previous.find(({ id }) => (id === context.nodeId))
+        if (isSchemaPosition(data) && contextRoomId) {
+            const contextItem = previous.find(({ roomId }) => (roomId === contextRoomId))
             if (contextItem) {
                 return [
-                    ...previous.filter(({ id }) => (id !== context.nodeId)),
+                    ...previous.filter(({ roomId }) => (roomId !== contextRoomId)),
                     {
                         ...contextItem,
+                        id,
                         x: data.x,
                         y: data.y
                     }
