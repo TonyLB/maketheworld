@@ -44,21 +44,16 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
     return [ ...Object.entries(currentExits).filter(([_, { to }]) => (to)).map(([key]) => key), roomId ]
 }
 
-type MapTreeTranslateReduce = {
-    nextConditionIndex: number;
-    keyStack: string;
-    visible: boolean;
-    nodes: SimNode[],
-    links: (SimulationLinkDatum<SimNode> & { id: string })[]
-}
-
 const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
     const { data: nodeData, children, id } = node
     if (isSchemaCondition(nodeData)) {
-        //
-        // TODO: Parse conditions
-        //
-        return previous
+        return {
+            ...previous,
+            children: [
+                ...previous.children,
+                ...children.map(({ children, id }) => (mapTreeTranslate(children).map(({ data, ...rest }) => ({ data: { ...data, key: id }, ...rest })))).flat(1)
+            ]
+        }
     }
     if (isSchemaRoom(nodeData)) {
         return {
@@ -101,7 +96,7 @@ const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, n
     }
 }
 
-export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SimulationTreeNode> => {
     const reorderedTree = new SchemaTagTree(tree)
         .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
         .tree
@@ -228,7 +223,7 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
             onTick,
@@ -268,7 +263,8 @@ export class MapDThree extends Object {
     // in the incoming map tree.
     //
     update(tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
+        console.log(`incoming tree: ${JSON.stringify(tree, null, 4)}`)
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         
         this.tree.update(simulatorTree)
         this.tree.checkStability()

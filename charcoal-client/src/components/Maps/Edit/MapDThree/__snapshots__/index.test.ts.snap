@@ -11,7 +11,7 @@ Array [
           Object {
             "children": Array [],
             "data": Object {
-              "key": "Root::If-1",
+              "key": "If-1",
               "links": Array [],
               "nodes": Array [
                 Object {
