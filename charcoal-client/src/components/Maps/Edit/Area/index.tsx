@@ -4,13 +4,13 @@ import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
 import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type MapAreaProps = {
     fileURL?: string;
 }
 
-export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag, TreeId>): MapTreeExit[] => {
+export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>): MapTreeExit[] => {
     return tree.reduce<MapTreeExit[]>((
         previous,
         { data, children }

@@ -210,12 +210,14 @@ describe('standardizeSchema', () => {
         const testSchema = schemaTestWML(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Name>Test map</Name>
-                <Room key=(testRoomOne) x="0" y="0">
+                <Room key=(testRoomOne)>
+                    <Position x="0" y="0" />
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <If {false}>
-                    <Room key=(testRoomTwo) x="-100" y="0">
+                    <Room key=(testRoomTwo)>
+                        <Position x="-100" y="0" />
                         <Description>Test Room Two</Description>
                         <Exit to=(testRoomOne)>one</Exit>
                     </Room>
@@ -236,8 +238,10 @@ describe('standardizeSchema', () => {
                 <Map key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
-                    <Room key=(testRoomOne) x="0" y="0" />
-                    <If {false}><Room key=(testRoomTwo) x="-100" y="0" /></If>
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                    <Room key=(testRoomTwo)>
+                        <If {false}><Position x="-100" y="0" /></If>
+                    </Room>
                 </Map>
             </Asset>
         `))

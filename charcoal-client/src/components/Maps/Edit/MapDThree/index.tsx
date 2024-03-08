@@ -9,10 +9,11 @@ import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaTag, isSchemaCondition, isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -43,115 +44,166 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
     return [ ...Object.entries(currentExits).filter(([_, { to }]) => (to)).map(([key]) => key), roomId ]
 }
 
-type MapTreeTranslateReduce = {
-    nextConditionIndex: number;
-    keyStack: string;
-    visible: boolean;
-    nodes: SimNode[],
-    links: (SimulationLinkDatum<SimNode> & { id: string })[]
+const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
+    const { data: nodeData, children, id } = node
+    if (isSchemaCondition(nodeData)) {
+        return {
+            ...previous,
+            children: [
+                ...previous.children,
+                ...children.map(({ children, id }) => (mapTreeTranslate(children).map(({ data, ...rest }) => ({ data: { ...data, key: id }, ...rest })))).flat(1)
+            ]
+        }
+    }
+    if (isSchemaRoom(nodeData)) {
+        return {
+            ...previous,
+            data: children.reduce<SimulationTreeNode>((accumulator, { data: child }) => {
+                if (isSchemaExit(child)) {
+                    return {
+                        ...accumulator,
+                        links: [
+                            ...accumulator.links,
+                            {
+                                id: child.key,
+                                source: nodeData.key,
+                                target: child.to
+                            }
+                        ]
+                    }
+                }
+                else if (isSchemaPosition(child)) {
+                    return {
+                        ...accumulator,
+                        nodes: [
+                            ...accumulator.nodes,
+                            {
+                                id,
+                                roomId: nodeData.key,
+                                x: child.x,
+                                y: child.y,
+                                cascadeNode: false,
+                                visible: previous.data.visible
+                            }
+                        ]
+                    }
+                }
+                else {
+                    return accumulator
+                }
+            }, previous.data)
+        }
+    }
 }
 
-export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]) => (dfsWalk<(previous: { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }, data: SchemaTag, extra: TreeId) => { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }>({
-    nest: ({ state, data }) => {
-        if (data.tag === 'If') {
-            return {
-                ...state,
-                nextConditionIndex: state.nextConditionIndex + 1,
-                keyStack: `${state.keyStack}::If-${state.nextConditionIndex}`,
-                //
-                // TODO: Add non-persistent "selected" tag and use it to determine which parts of the Tree are
-                // visible
-                //
-                visible: state.visible,
-                nodes: [],
-                links: []
-            }
-        }
-        else {
-            return state
-        }
-    },
-    unNest: ({ previous, state, data }) => {
-        if (data.tag === 'If') {
-            return {
-                ...state,
-                visible: previous.visible,
-                keyStack: previous.keyStack,
-                nodes: previous.nodes,
-                links: previous.links
-            }
-        }
-        return state
-    },
-    aggregate: ({ direct, children, data }) => {
-        if (!data || data.tag === 'If') {
-            return {
-                output: [
-                    ...direct.output,
-                    {
-                        data: {
-                            key: children.state.keyStack,
-                            nodes: children.state.nodes,
-                            links: children.state.links,
-                            visible: children.state.visible
-                        },
-                        children: children.output
-                    }
-                ],
-                state: children.state
-            }
-        }
-        else {
-            return {
-                output: [...direct.output, ...children.output],
-                state: children.state
-            }
-        }
-    },
-    callback: (previous, data, { id }) => {
-        //
-        // Add room and exit data to the running record of nodes and links in state (this record
-        // is turned into a SimulationTreeNode in the aggregate method)
-        //
-        switch(data.tag) {
-            case 'Room':
-                if ((typeof data.x !== 'undefined') && (typeof data.y !== 'undefined')) {
-                    return {
-                        output: previous.output,
-                        state: {
-                            ...previous.state,
-                            nodes: [
-                                ...previous.state.nodes,
-                                {
-                                    id,
-                                    roomId: data.key,
-                                    x: data.x,
-                                    y: data.y,
-                                    cascadeNode: false,
-                                    visible: previous.state.visible
-                                }
-                            ]
-                        }
-                    }
-                }
-                return previous
-            case 'Exit':
-                return {
-                    output: previous.output,
-                    state: {
-                        ...previous.state,
-                        links: [...previous.state.links, {
-                            id: data.key,
-                            source: data.from,
-                            target: data.to
-                        }]
-                    }
-                }
-        }
-        return previous
-    },
-    default: { output: [] as GenericTree<SimulationTreeNode>, state: { nextConditionIndex: 1, keyStack: 'Root', visible: true, nodes: [], links: [] } }
-})(tree))
+export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SimulationTreeNode> => {
+    const reorderedTree = new SchemaTagTree(tree)
+        .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
+        .tree
+    return [reorderedTree.reduce<GenericTreeNode<SimulationTreeNode>>(mapTreeTranslateHelper, { data: { nodes: [], links: [], visible: true, key: 'Root' }, children: [] })]
+}
+
+// export const oldMapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]) => (dfsWalk<(previous: { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }, data: SchemaTag, extra: TreeId) => { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }>({
+//     nest: ({ state, data }) => {
+//         if (data.tag === 'If') {
+//             return {
+//                 ...state,
+//                 nextConditionIndex: state.nextConditionIndex + 1,
+//                 keyStack: `${state.keyStack}::If-${state.nextConditionIndex}`,
+//                 //
+//                 // TODO: Add non-persistent "selected" tag and use it to determine which parts of the Tree are
+//                 // visible
+//                 //
+//                 visible: state.visible,
+//                 nodes: [],
+//                 links: []
+//             }
+//         }
+//         else {
+//             return state
+//         }
+//     },
+//     unNest: ({ previous, state, data }) => {
+//         if (data.tag === 'If') {
+//             return {
+//                 ...state,
+//                 visible: previous.visible,
+//                 keyStack: previous.keyStack,
+//                 nodes: previous.nodes,
+//                 links: previous.links
+//             }
+//         }
+//         return state
+//     },
+//     aggregate: ({ direct, children, data }) => {
+//         if (!data || data.tag === 'If') {
+//             return {
+//                 output: [
+//                     ...direct.output,
+//                     {
+//                         data: {
+//                             key: children.state.keyStack,
+//                             nodes: children.state.nodes,
+//                             links: children.state.links,
+//                             visible: children.state.visible
+//                         },
+//                         children: children.output
+//                     }
+//                 ],
+//                 state: children.state
+//             }
+//         }
+//         else {
+//             return {
+//                 output: [...direct.output, ...children.output],
+//                 state: children.state
+//             }
+//         }
+//     },
+//     callback: (previous, data, { id }) => {
+//         //
+//         // Add room and exit data to the running record of nodes and links in state (this record
+//         // is turned into a SimulationTreeNode in the aggregate method)
+//         //
+//         switch(data.tag) {
+//             case 'Room':
+//                 if ((typeof data.x !== 'undefined') && (typeof data.y !== 'undefined')) {
+//                     return {
+//                         output: previous.output,
+//                         state: {
+//                             ...previous.state,
+//                             nodes: [
+//                                 ...previous.state.nodes,
+//                                 {
+//                                     id,
+//                                     roomId: data.key,
+//                                     x: data.x,
+//                                     y: data.y,
+//                                     cascadeNode: false,
+//                                     visible: previous.state.visible
+//                                 }
+//                             ]
+//                         }
+//                     }
+//                 }
+//                 return previous
+//             case 'Exit':
+//                 return {
+//                     output: previous.output,
+//                     state: {
+//                         ...previous.state,
+//                         links: [...previous.state.links, {
+//                             id: data.key,
+//                             source: data.from,
+//                             target: data.to
+//                         }]
+//                     }
+//                 }
+//         }
+//         return previous
+//     },
+//     default: { output: [] as GenericTree<SimulationTreeNode>, state: { nextConditionIndex: 1, keyStack: 'Root', visible: true, nodes: [], links: [] } }
+// })(tree))
 
 export class MapDThree extends Object {
     tree: MapDThreeTree;
@@ -171,7 +223,7 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
             onTick,
@@ -211,7 +263,8 @@ export class MapDThree extends Object {
     // in the incoming map tree.
     //
     update(tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
+        console.log(`incoming tree: ${JSON.stringify(tree, null, 4)}`)
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         
         this.tree.update(simulatorTree)
         this.tree.checkStability()

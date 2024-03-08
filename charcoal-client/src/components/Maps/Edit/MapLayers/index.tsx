@@ -202,9 +202,11 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     const { data } = item
     switch(data.tag) {
         case 'Room':
-            return <RoomLayer roomId={data.key} name={schemaOutputToString(treeTypeGuard({ tree: item.children.find(({ data }) => (isSchemaName(data))).children ?? [], typeGuard: isSchemaOutputTag })) || data.key}>
+            return <RoomLayer roomId={data.key} name={schemaOutputToString(treeTypeGuard({ tree: item.children.find(({ data }) => (isSchemaName(data)))?.children ?? [], typeGuard: isSchemaOutputTag })) || data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
+        case 'Position':
+            return <span>Position: { data.x } x { data.y }</span>
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':

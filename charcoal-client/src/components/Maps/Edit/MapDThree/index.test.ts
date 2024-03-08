@@ -18,17 +18,26 @@ describe('mapTreeTranslate', () => {
 
     it('should aggregate nodes and links', () => {
         const testTree: GenericTree<SchemaTag, TreeId> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExit' }, children: [], id: 'JKL'}], id: 'GHI' }
-            ], id: 'DEF' }
+            {
+                data: { tag: 'Room', key: 'Room1' },
+                children: [{ data: { tag: 'Position', x: 100, y: 100 }, children: [], id: 'DEF' }],
+                id: 'ABC'
+            },
+            {
+                data: { tag: 'Room', key: 'Room2' },
+                children: [
+                    { data: { tag: 'Position', x: 0, y: 100 }, children: [], id: 'JKL' },
+                    { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExit' }, children: [], id: 'QRS'}], id: 'MNO' }
+                ],
+                id: 'GHI'
+            }
         ]
 
-        expect(mapTreeTranslate(testTree, [])).toEqual([{
+        expect(mapTreeTranslate(testTree)).toEqual([{
             data: {
                 nodes: [
                     { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
-                    { id: 'DEF', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false }
+                    { id: 'GHI', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -42,37 +51,56 @@ describe('mapTreeTranslate', () => {
 
     it('should nest conditionals as children of nodes and links', () => {
         const testTree: GenericTree<SchemaTag, TreeId> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExt' }, children: [], id: '' }], id: '' },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'true' },
-                        children: [
-                            { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2' }, children: [{ data: { tag: 'String', value: 'TestExitBack' }, children: [], id: '' }], id: '' }
-                        ],
+            {
+                data: { tag: 'Room', key: 'Room1' },
+                children: [
+                    { data: { tag: 'Position', x: 100, y: 100 }, children: [], id: 'BCD' },
+                    {
+                        data: { tag: 'If' },
+                        children: [{
+                            data: { tag: 'Statement', if: 'true' },
+                            children: [
+                                { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2' }, children: [{ data: { tag: 'String', value: 'TestExitBack' }, children: [], id: '' }], id: '' }
+                            ],
+                            id: 'If-1'
+                        }],
                         id: ''
-                    }],
-                    id: ''
-                }
+                    }
+                ],
+                id: 'ABC'
+            },
+            { data: { tag: 'Room', key: 'Room2' }, children: [
+                { data: { tag: 'Position', x: 0, y: 100 }, children: [], id: '' },
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExt' }, children: [], id: '' }], id: '' },
             ], id: 'DEF' },
             {
                 data: { tag: 'If' },
                 children: [{
                     data: { tag: 'Statement', if: 'true' },
                     children: [
-                        { data: { tag: 'Room', key: 'Room3', x: -200, y: 100 }, children: [], id: 'ZZZ' },
-                        { data: { tag: 'Room', key: 'Room4', x: 200, y: 100 }, children: [], id: 'JKL' }
+                        {
+                            data: { tag: 'Room', key: 'Room3' },
+                            children: [{ data: { tag: 'Position', x: -200, y: 100 }, children: [], id: 'YYY' }],
+                            id: 'ZZZ'
+                        },
+                        {
+                            data: { tag: 'Room', key: 'Room4' },
+                            children: [{ data: { tag: 'Position', x: 200, y: 100 }, children: [], id: 'XXX' }],
+                            id: 'JKL'
+                        }
                     ],
-                    id: ''
+                    id: 'If-2'
                 }],
                 id: ''
             },
-            { data: { tag: 'Room', key: 'Room3', x: -100, y: 100 }, children: [], id: 'GHI' }
+            {
+                data: { tag: 'Room', key: 'Room3' },
+                children: [{ data: { tag: 'Position', x: -100, y: 100 }, children: [], id: 'HIJ' }],
+                id: 'GHI'
+            }
         ]
 
-        expect(mapTreeTranslate(testTree, [])).toEqual([{
+        expect(mapTreeTranslate(testTree)).toEqual([{
             data: {
                 nodes: [
                     { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
@@ -93,7 +121,7 @@ describe('mapTreeTranslate', () => {
                             { id: 'Room1#Room2', source: 'Room1', target: 'Room2' }
                         ],
                         visible: true,
-                        key: 'Root::If-1'
+                        key: 'If-1'
                     },
                     children: []
                 },
@@ -102,7 +130,7 @@ describe('mapTreeTranslate', () => {
                         nodes: [{ id: 'ZZZ', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false }, { id: 'JKL', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false }],
                         links: [],
                         visible: true,
-                        key: 'Root::If-2'
+                        key: 'If-2'
                     },
                     children: []
                 }
@@ -124,13 +152,8 @@ describe('MapDThree', () => {
 
         const testMapDThree = new MapDThree({
             tree: [{
-                data: {
-                    tag: 'Room',
-                    key: 'GHI',
-                    x: 300,
-                    y: 300,
-                },
-                children: [],
+                data: { tag: 'Room', key: 'GHI' },
+                children: [{ data: { tag: 'Position', x: 300, y: 300 }, children: [], id: '' }],
                 id: ''
             },
             {
@@ -138,26 +161,16 @@ describe('MapDThree', () => {
                 children: [{
                     data: { tag: 'Statement', if: 'true' },
                     children: [{
-                        data: {
-                            tag: 'Room',
-                            key: 'DEF',
-                            x: 300,
-                            y: 200,
-                        },
-                        children: [],
+                        data: { tag: 'Room', key: 'DEF' },
+                        children: [{ data: { tag: 'Position', x: 300, y: 200 }, children: [], id: '' }],
                         id: ''
                     },
                     {
-                        data: {
-                            tag: 'Room',
-                            key: 'ABC',
-                            x: 200,
-                            y: 200
-                        },
-                        children: [],
+                        data: { tag: 'Room', key: 'ABC' },
+                        children: [{ data: { tag: 'Position', x: 200, y: 200 }, children: [], id: '' }],
                         id: ''
                     }],
-                    id: ''
+                    id: 'If-1'
                 }],
                 id: ''
             }],

@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree, TreeId  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
@@ -176,20 +176,19 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Create a GenericTree representation of the items relevant to the map
     //
-    const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag, TreeId>>(() => {
+    const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>>(() => {
         const tagTree = new SchemaTagTree(schema)
-        const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag => (
-            isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item)
+        const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
+            isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
         )
         const positions = tagTree
             .filter({ and: [
                 { match: ({ data }) => (isSchemaMap(data) && data.key === mapId) },
-                { match: ({ data }) => (isSchemaRoom(data) && (typeof data.x !== 'undefined' && typeof data.y !== 'undefined')) }
+                { match: 'Room' },
+                { match: 'Position' }
             ] })
-            .prune({ or: [
-                { not: { or: [{ match: 'Room' }, { match: 'If' }] } },
-                { and: [{ after: { match: 'Room' } }, { match: 'If' }]}
-            ] })
+            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }]}})
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Position' }])
             .tree
         const roomKeys = selectKeysByTag('Room')(positions)
         const exits = tagTree
@@ -197,8 +196,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 { match: ({ data }) => (isSchemaRoom(data) && (roomKeys.includes(data.key))) },
                 { match: ({ data }) => (isSchemaExit(data) && (roomKeys.includes(data.to))) }
             ] })
-            .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }] } })
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
+            .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }] } })
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Exit' }, { match: 'Position'}] }])
             .tree
         return genericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
     }, [schema, mapId])
@@ -215,30 +214,48 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x: number; y: number }>) => (previous: { output: MapContextPosition[]; state: {} }, item: SchemaTag, extra: TreeId): { output: MapContextPosition[]; state: {} } => {
-        if (isSchemaRoom(item)) {
-            if (item.key in incomingPositions) {
-                const name = selectName(schema, { tag: 'Room', key: item.key })
-                return {
-                    ...previous,
-                    output: [
-                        ...previous.output.filter(({ roomId }) => (roomId !== item.key)),
-                        {
-                            id: extra.id,
-                            roomId: item.key,
-                            name: schemaOutputToString(name),
-                            x: incomingPositions[item.key]?.x,
-                            y: incomingPositions[item.key]?.y
-                        }
-                    ]
+    const extractRoomsHelper = (context?: { nodeId: string; roomId: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
+        const { data, children, id } = item
+        if (isSchemaRoom(data)) {
+            const name = selectName(schema, { tag: 'Room', key: data.key })
+            return children.reduce(extractRoomsHelper({ nodeId: id, roomId: data.key }), [
+                ...previous.filter(({ roomId }) => (roomId !== data.key)),
+                {
+                    id,
+                    roomId: data.key,
+                    name: schemaOutputToString(name),
                 }
+            ])
+        }
+        if (isSchemaPosition(data) && context) {
+            const contextItem = previous.find(({ id }) => (id === context.nodeId))
+            if (contextItem) {
+                return [
+                    ...previous.filter(({ id }) => (id !== context.nodeId)),
+                    {
+                        ...contextItem,
+                        x: data.x,
+                        y: data.y
+                    }
+                ]
             }
-            return previous
         }
         return previous
     }
+    const extractRoomsById = (incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
+        const basePositions = tree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(), [])
+        const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
+        const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
+            (typeof item.id !== 'undefined') &&
+            (typeof item.name !== 'undefined') &&
+            (typeof item.roomId !== 'undefined') &&
+            (typeof item.x !== 'undefined') &&
+            (typeof item.y !== 'undefined')
+        )
+        return overwrittenPositions.filter(valuesPresentTypeguard)
+    }
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
-        dfsWalk({ callback: extractRoomsByIdWalk({}), default: { output: [], state: {} } })(tree)
+        extractRoomsById({})(tree)
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes
@@ -248,8 +265,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     : previous
             ), {})
 
-        const walkedPositions = dfsWalk({ callback: extractRoomsByIdWalk(xyByRoomId), default: { output: [], state: {} } })(tree)
-        return setLocalPositions(walkedPositions)
+        const extractedPositions = extractRoomsById(xyByRoomId)(tree)
+        return setLocalPositions(extractedPositions)
     }, [tree])
 
     //
@@ -355,6 +372,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
                 data,
                 children: [
                     { data: { tag: 'Name'  }, children: name },
+                    ...(data.tag === 'Room' ? [{ data: { tag: 'Position', x: data.x, y: data.y }, children: [] }] : []),
                     ...children
                 ]
             }
