@@ -22,7 +22,8 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOu
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { select } from "slate"
 import { updateSchema } from "../../../../slices/personalAssets"
-import { genericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { selectItemsByKey } from "@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -81,7 +82,9 @@ type EditExitProps = {
 const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, addExit }) => {
     const { readonly, updateSchema } = useLibraryAsset()
     const { data, children, id } = node
-    const name = selectNameAsString(children)
+
+    const nameTree = useMemo(() => (treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), [children])
+    const name = useMemo(() => (schemaOutputToString(nameTree)), [nameTree])
     useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
     useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && data.from !== RoomId && name)})
     const targetElement = <ExitTargetSelector
@@ -90,11 +93,10 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
         inherited={inherited}
         onChange={(event) => {
             updateSchema({ type: 'delete', id })
-            addExit({ from: data.from, to: event.target.value, name: selectNameAsString(children) })
+            addExit({ from: data.from, to: event.target.value, name })
         }}
     />
     return <Box
-        key={id}
         sx={{
             width: "calc(100% - 0.5em)",
             display: "inline-flex",
@@ -115,9 +117,9 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
                 hiddenLabel
                 size="small"
                 required
-                id="exit-name"
+                id={ nameTree[0]?.id ?? "exit-name"}
                 value={name}
-                onChange={(event) => { updateSchema({ type: 'replace', id, item: { data, children: [{ data: { tag: 'String', value: event.target.value }, children: [] }]} }) } }
+                onChange={(event) => { updateSchema({ type: 'replace', id, item: { data, id, children: [{ data: { tag: 'String', value: event.target.value }, children: [], id: nameTree[0]?.id }]} }) } }
                 disabled={readonly || inherited}
             />
         </Box>
@@ -148,6 +150,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                         throw new Error('Invalid entry to RoomExitComponent')
                     }
                     return <EditExit
+                        key={id}
                         RoomId={from.key}
                         node={{ data, children, id }}
                         addExit={({ from: fromId, to, name }) => {
@@ -236,16 +239,18 @@ const useIncomingExitTree = (RoomId: string) => {
 // }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { schema, select, updateSchema } = useLibraryAsset()
+    const { select, updateSchema } = useLibraryAsset()
+    const roomNodes = select({ selector: selectItemsByKey(RoomId) })
+    const roomTreeId = roomNodes[0]?.id ?? ''
 
-    const exitTree = select({ key: RoomId, selector: (tree) => {
-        const tagTree = new SchemaTagTree(tree)
+    const exitTree = useMemo(() => (select({ selector: (tree) => {
+        const tagTree = new SchemaTagTree(selectItemsByKey(RoomId)(tree))
         return tagTree
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
             .filter({ match: 'Exit' })
             .prune({ not: { or: [{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' },  { match: 'Exit' }, { after: { match: 'Exit' } }] }})
             .tree    
-    }})
+    }})), [select, RoomId])
 
     return <Box sx={{
         display: 'flex',
@@ -279,7 +284,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             { exitTree.map((node) => (
-                <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={genericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: schema[0].id, item: node })}} />
+                <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: roomTreeId, item: node })}} />
             ))}
             {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
             {/* <IfElseTree
