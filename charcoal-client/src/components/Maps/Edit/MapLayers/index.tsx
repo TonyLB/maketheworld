@@ -22,6 +22,7 @@ import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
+import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 
 type MapLayersProps = {
     mapId: string;
@@ -199,10 +200,10 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // and use that where IfElseTree is used in Map component
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
-    const { data } = item
+    const { data, children } = item
     switch(data.tag) {
         case 'Room':
-            return <RoomLayer roomId={data.key} name={schemaOutputToString(treeTypeGuard({ tree: item.children.find(({ data }) => (isSchemaName(data)))?.children ?? [], typeGuard: isSchemaOutputTag })) || data.key}>
+            return <RoomLayer roomId={data.key} name={selectNameAsString(children) || data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':
