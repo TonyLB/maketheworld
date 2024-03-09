@@ -217,10 +217,12 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const extractRoomsHelper = (contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
+            const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const name = selectName(schema, { tag: 'Room', key: data.key })
             return children.reduce(extractRoomsHelper(data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
+                    ...previousItem,
                     roomId: data.key,
                     name: schemaOutputToString(name),
                 }
