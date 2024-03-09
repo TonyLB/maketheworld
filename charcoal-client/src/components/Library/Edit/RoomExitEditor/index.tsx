@@ -238,7 +238,7 @@ const useIncomingExitTree = (RoomId: string) => {
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { schema, select, updateSchema } = useLibraryAsset()
 
-    const exitTree = select({ selector: (tree) => {
+    const exitTree = select({ key: RoomId, selector: (tree) => {
         const tagTree = new SchemaTagTree(tree)
         return tagTree
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
@@ -279,7 +279,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             { exitTree.map((node) => (
-                <RoomExitComponent RoomId={RoomId} node={genericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: schema[0].id, item: node })}} />
+                <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={genericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: schema[0].id, item: node })}} />
             ))}
             {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
             {/* <IfElseTree
