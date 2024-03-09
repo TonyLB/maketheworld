@@ -22,6 +22,8 @@ import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
+import { selectItemsByKey } from '@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey'
+import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 
 type MapLayersProps = {
     mapId: string;
@@ -38,24 +40,45 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const { inheritedInvisible } = useMapLayersContext()
-    const { normalForm } = useLibraryAsset()
+    const { updateSchema, select } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
-        //
-        // TODO: Refactor onRename to use Schema rather than updateNormal
-        //
-
-        // const normalizer = new Normalizer()
-        // normalizer._normalForm = normalForm
-        // const reference: NormalReference = { tag: 'Room', key: roomId, index: 0 }
-        // const baseSchema = normalizer.referenceToSchema(reference)
-        // if (isSchemaRoom(baseSchema)) {
-        //     updateNormal({ type: 'put', item: { ...baseSchema, name: [{ tag: 'String', value }] }, position: { ...normalizer._referenceToInsertPosition(reference), replace: true } })
-        // }
-    }, [normalForm, roomId])
+        if (value !== name ?? roomId) {
+            const roomNodes = select({ selector: selectItemsByKey(roomId) })
+            if (roomNodes.length) {
+                const tagTree = new SchemaTagTree(roomNodes)
+                const nameTree = tagTree
+                    .filter({ match: 'Name' })
+                    .prune({ not: { match: 'Name' } })
+                    .tree
+                const nameId = nameTree?.[0]?.id
+                if (nameId) {
+                    updateSchema({
+                        type: 'replace',
+                        id: nameId,
+                        item: {
+                            data: { tag: 'Name' },
+                            id: nameId,
+                            children: [{ data: { tag: 'String', value }, children: [] }]
+                        }
+                    })
+                }
+                else {
+                    updateSchema({
+                        type: 'addChild',
+                        id: roomNodes[0].id,
+                        item: {
+                            data: { tag: 'Name' },
+                            children: [{ data: { tag: 'String', value }, children: [] }]
+                        }
+                    })
+                }
+            }
+        }
+    }, [select, updateSchema, roomId, name])
     return <React.Fragment>
         <ListItemButton
             dense
