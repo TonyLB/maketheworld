@@ -33,10 +33,10 @@ export class MapDThreeIterator extends Object {
         //
         // TODO: When we refactor to stop storing links by internal ID and store roomID, this will need to be changed.
         //
-        const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
+        const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.roomId]: node }), {})
         return forceFlexLink(
                 this._links
-                    .map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest })),
+                    .map(({ source, target, ...rest }) => ({ source: nodesById[source as string]?.id ?? '', target: nodesById[target as string]?.id ?? '', ...rest })),
                     // .filter(({ source, target }) => (nodesById[source]?.cascadeNode === false || nodesById[target]?.cascadeNode === false)),
                 this._nodes
             ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
