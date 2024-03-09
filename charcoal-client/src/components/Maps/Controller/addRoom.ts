@@ -16,7 +16,6 @@ export const addRoomFactory = ({ mapId, schema, updateSchema }: { mapId: string;
         unNest: ({ previous }) => (previous)
     })(schema)
     if (mapNodeId) {
-        console.log(`Adding room (${roomId}) at ${x} x ${y}`)
         updateSchema({
             type: 'addChild',
             id: mapNodeId,
