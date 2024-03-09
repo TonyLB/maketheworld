@@ -2,6 +2,7 @@ import { GenericTree } from "../../tree/baseClasses"
 import { treeTypeGuard } from "../../tree/filter"
 import { SchemaBookmarkTag, SchemaMessageTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaOutputTag } from "../../schema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
+import { optionsMatch } from "./utils"
 
 export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {
     if (!options.tag) {
@@ -12,6 +13,7 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         const matchTag: SchemaBookmarkTag = { tag: 'Bookmark', key: options.key }
         return treeTypeGuard({
             tree: tagTree
+                .filter({ match: optionsMatch(options) })
                 .reordered([{ match: options.tag }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                 .prune({ or: [{ before: { match: { data: matchTag } } }, { match: { data: matchTag } }, { after: { match: ({ data: node }) => (isSchemaBookmark(node) && node.key !== options.key) } }] })
                 .tree,
@@ -22,6 +24,7 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key }
         return treeTypeGuard({
             tree: tagTree
+                .filter({ match: optionsMatch(options) })
                 .reordered([{ match: options.tag }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                 .filter({ not: { match: 'Room' } })
                 .prune({ or: [{ before: { match: { data: matchTag } } }, { match: { data: matchTag } }]})
@@ -32,8 +35,8 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
     else {
         return treeTypeGuard({
             tree: tagTree
+                .filter({ and: [{ match: optionsMatch(options) }, { match: 'Description' }] })
                 .reordered([{ match: options.tag }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
-                .filter({ match: 'Description' })
                 .prune({ or: [{ before: { match: 'Description' } }, { match: 'Description' }]})
                 .tree,
             typeGuard: isSchemaOutputTag
