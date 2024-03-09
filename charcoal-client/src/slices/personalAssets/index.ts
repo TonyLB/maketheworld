@@ -19,9 +19,10 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { SchemaImportMapping, SchemaImportTag, isSchemaAsset, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaImportMapping, SchemaImportTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
+import { SchemaTagWithNormalEquivalent } from '@tonylb/mtw-wml/dist/normalize'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -256,27 +257,38 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         return data.from === fromAsset
     })
     if (importItem) {
-        const { data } = importItem
+        const { data, children } = importItem
         if (!isSchemaImport(data)) {
             throw new Error('Type mismatch in addImport')
         }
-        const newItem: SchemaImportTag = {
-            tag: 'Import',
-            key: data.key,
-            from: fromAsset,
-            mapping: {
-                ...Object.entries(data.mapping)
-                    .map(([outerKey, { key, type }]): [string, SchemaImportMapping] | undefined => (['Room', 'Feature', 'Variable', 'Computed', 'Action', 'Map'].includes(type) ? [outerKey, { key, type: type as SchemaImportMapping["type"] }] : undefined))
-                    .filter((value): value is [string, SchemaImportMapping] => (Boolean(value)))
-                    .reduce<Record<string, SchemaImportMapping>>((previous, [key, value]) => ({ ...previous, [key]: value }), {}),
-                [as || key]: { key, type }
+        if (key && type) {
+            const currentImportItem = children.find(({ data }) => (isSchemaWithKey(data) && data.key === key))
+            if (currentImportItem) {
+                const { data: importItemData } = currentImportItem
+                if (!isImportable(importItemData)) {
+                    throw new Error('Type mismatch in addImport')
+                }
+                if (importItemData.as !== as) {
+                    dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
+                        type: 'updateNode',
+                        id: currentImportItem.id,
+                        item: { data: { tag: type, key, as }, children: [], id: currentImportItem.id }
+                    }))
+                }
+            }
+            else {
+                const newItem: SchemaTag = {
+                    tag: type,
+                    key,
+                    as
+                } as SchemaTag
+                dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
+                    type: 'addChild',
+                    id: importItem.id,
+                    item: { data: newItem, children: [] }
+                }))
             }
         }
-        dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-            type: 'replace',
-            id: importItem.id,
-            item: { data: newItem, children: [] }
-        }))
     }
     else {
         const newItem: SchemaImportTag = {
@@ -289,9 +301,9 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
             type: 'addChild',
             id: schema[0].id,
-            item: { data: newItem, children: [] }
+            item: { data: newItem, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
         }))
-}
+    }
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
     dispatch(heartbeat)

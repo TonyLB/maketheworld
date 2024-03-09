@@ -42,31 +42,17 @@ describe('personalAssets slice', () => {
             overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
         })
 
-        it('should return same mapping on a repeated import', () => {
+        it('should no-op on a repeated import', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImport',
                 key: 'testRoom',
                 type: 'Room'
             }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
-            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
-            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'replace',
-                id: importItems[0].id,
-                item: {
-                    data: {
-                        tag: 'Import',
-                        from: 'testImport',
-                        mapping: {
-                            testRoom: { key: 'testRoom', type: 'Room' }
-                        }
-                    },
-                    children: []
-                }
-            })
+            expect(overrideUpdateSchemaInternal).not.toHaveBeenCalled()
         })
 
-        it('should return extended mapping on an import from same asset', () => {
+        it('should add children on an import from same asset', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImport',
@@ -75,17 +61,10 @@ describe('personalAssets slice', () => {
             }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
             const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
             expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'replace',
+                type: 'addChild',
                 id: importItems[0].id,
                 item: {
-                    data: {
-                        tag: 'Import',
-                        from: 'testImport',
-                        mapping: {
-                            testRoom: { key: 'testRoom', type: 'Room' },
-                            testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
-                        }
-                    },
+                    data: { tag: 'Room', key: 'testRoomTwo' },
                     children: []
                 }
             })
@@ -109,7 +88,10 @@ describe('personalAssets slice', () => {
                             testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
                         }
                     },
-                    children: []
+                    children: [{
+                        data: { tag: 'Room', key: 'testRoomTwo' },
+                        children: []
+                    }]
                 }
             })
         })
