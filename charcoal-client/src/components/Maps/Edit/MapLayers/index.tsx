@@ -10,6 +10,7 @@ import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
 import AcceptIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
+import PositionIcon from '@mui/icons-material/ControlCamera'
 import { grey } from '@mui/material/colors'
 import { useMapContext } from '../../Controller'
 import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -17,9 +18,7 @@ import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
@@ -150,6 +149,16 @@ const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
     </ListItem>
 }
 
+const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boolean }> = ({ x, y, inherited }) => {
+    const { inheritedInvisible } = useMapLayersContext()
+    return <ListItem dense disablePadding sx={{ paddingLeft: '1em'}}>
+        <ListItemIcon>
+            <PositionIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+        </ListItemIcon>
+        <ListItemText primary={`X: ${x}, Y: ${y}`} />
+    </ListItem>
+}
+
 const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
     const { inheritedInvisible, mapId } = useMapLayersContext()
     const { UI: { hiddenBranches }, mapDispatch } = useMapContext()
@@ -207,7 +216,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':
-            return <span>Position: { data.x } x { data.y }</span>
+            return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
