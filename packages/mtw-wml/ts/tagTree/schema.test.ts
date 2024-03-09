@@ -18,18 +18,22 @@ describe('SchemaTagTree', () => {
                     <Exit to=(room2) />
                 </Room>
                 <Room key=(room2) />
-                <Room key=(room1)>
-                    <Description>: Added</Description>
-                </Room>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Description>: Added</Description>
+                        <Position x="0" y="0" />
+                    </Room>
+                </Map>
             </Asset>
         `))))
-        const tagTree = new SchemaTagTree(testTree)
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' })
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Description>Test description: Added</Description>
                     <Name>Test room</Name>
                     <Exit to=(room2) />
+                    <Position x="0" y="0" />
                 </Room>
                 <Room key=(room2) />
             </Asset>

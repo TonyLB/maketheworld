@@ -199,7 +199,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }] } })
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Exit' }, { match: 'Position'}] }])
             .tree
-        return maybeGenericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
+        const combinedTree = new SchemaTagTree([...positions, ...exits]).tree
+        return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
     }, [schema, mapId])
 
     //
