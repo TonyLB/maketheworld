@@ -11,7 +11,6 @@ import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch, useSelector } from "react-redux"
 import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
-import dfsWalk from "@tonylb/mtw-wml/dist/tree/dfsWalk"
 import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
@@ -187,10 +186,18 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 { match: 'Room' },
                 { match: 'Position' }
             ] })
-            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }]}})
+            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' } ]}})
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Position' }])
             .tree
         const roomKeys = selectKeysByTag('Room')(positions)
+        const roomNames = tagTree
+            .filter({ and: [
+                { match: ({ data }) => (isSchemaRoom(data) && roomKeys.includes(data.key)) },
+                { match: 'Name' }
+            ] })
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Name' }])
+            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Name' }, { after: { match: 'Name' } } ]}})
+            .tree
         const exits = tagTree
             .filter({ and: [
                 { match: ({ data }) => (isSchemaRoom(data) && (roomKeys.includes(data.key))) },
@@ -199,7 +206,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }] } })
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Exit' }, { match: 'Position'}] }])
             .tree
-        const combinedTree = new SchemaTagTree([...positions, ...exits]).tree
+        const combinedTree = new SchemaTagTree([...positions, ...roomNames, ...exits]).tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
     }, [schema, mapId])
 
@@ -219,7 +226,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const name = selectName(schema, { tag: 'Room', key: data.key })
+            const name = selectName(children)
             return children.reduce(extractRoomsHelper(data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
