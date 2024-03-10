@@ -8,86 +8,11 @@ import messageBus from '../messageBus'
 import { graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
-
-// const tagRenderLink = (normalForm) => (renderItem) => {
-//     if (typeof renderItem === 'object') {
-//         if (renderItem.tag === 'Link') {
-//             return {
-//                 ...renderItem,
-//                 targetTag: normalForm[renderItem.to]?.tag
-//             }
-//         }
-//     }
-//     return renderItem
-// }
-
-// const denormalizeExits = (normalForm: NormalForm) => (contents: NormalReference[]) => {
-//     const exitTags = contents.filter(({ tag }) => (tag === 'Exit'))
-//     const exits = exitTags.map(({ key }) => (normalForm[key])).filter(isNormalExit)
-//     return exits.map(({ name, to }) => ({ name, to }))
-// }
-
-// const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If')))
-
-// const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
-//     if (isNormalMap(item)) {
-//         const mapDefaultAppearances = item.appearances
-//             .filter(noConditionContext)
-//             .map(({ rooms }) => ({
-//                 rooms: rooms.map(({ key, ...rest }) => {
-//                     const lookup = normalForm[key]
-//                     if (!isNormalRoom(lookup)) {
-//                         throw new EphemeraError(`Invalid item in map room lookup: ${key}`)
-//                     }
-//                     return {
-//                         ...rest,
-//                         name: (lookup.appearances || [])
-//                             .filter(noConditionContext)
-//                             .map<string>(({ name }) => ((name || []).map((namePart) => (namePart.tag === 'String' ? namePart.value : '')).join('')))
-//                             .join('')
-//                     }
-//                 })
-//             }))
-//         return {
-//             tag: item.tag,
-//             key: item.key,
-//             defaultAppearances: mapDefaultAppearances
-//         }
-//     }
-//     if (isNormalRoom(item)) {
-//         return {
-//             tag: item.tag,
-//             key: item.key,
-//             defaultAppearances: item.appearances
-//                 .filter(noConditionContext)
-//                 .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
-//                 .map(({ contents = [], render = [], name = [] }) => ({
-//                     exits: denormalizeExits(normalForm)(contents),
-//                     render: render.map(tagRenderLink(normalForm)),
-//                     name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
-//                 }))
-//         }
-//     }
-//     if (isNormalFeature(item)) {
-//         return {
-//             tag: item.tag,
-//             key: item.key,
-//             defaultAppearances: item.appearances
-//                 .filter(noConditionContext)
-//                 .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
-//                 .map(({ render, name = [] }) => ({
-//                     render: (render || []).map(tagRenderLink(normalForm)),
-//                     name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
-//                 }))
-//         }
-//     }
-// }
+import Normalizer from '@tonylb/mtw-wml/ts/normalize'
+import { selectNameAsString } from '@tonylb/mtw-wml/ts/normalize/selectors/name'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
-    // if (assetWorkspace.status.json !== 'Clean') {
-    //     await assetWorkspace.loadJSON()
-    // }
     const assets: NormalForm = assetWorkspace.normal || {}
     const asset = Object.values(assets).find(isNormalAsset)
     if (asset && asset.key) {
@@ -142,6 +67,9 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
     }
     const character = Object.values(assets).find(isNormalCharacter)
     if (character && character.key) {
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(assets)
+        const Name = normalizer.select({ key: character.key, selector: selectNameAsString })
         const universalKey = assetWorkspace.universalKey(character.key) as EphemeraCharacterId
         if (!universalKey) {
             return
@@ -152,11 +80,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         const updatedCharacters = {
             [universalKey]: {
                 CharacterId: universalKey,
-                Name: character.Name,
-                FirstImpression: character.FirstImpression,
-                OneCoolThing: character.OneCoolThing,
-                Pronouns: character.Pronouns,
-                Outfit: character.Outfit,
+                Name,
                 fileName: '',
                 fileURL: images[0] || undefined,
                 scopedId: character.key,        
@@ -188,11 +112,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
                 DataCategory: `Meta::Character`,
                 address,
                 zone: address.zone,
-                Name: character.Name,
-                FirstImpression: character.FirstImpression,
-                OneCoolThing: character.OneCoolThing,
-                Pronouns: character.Pronouns,
-                Outfit: character.Outfit,
+                Name,
                 images,
                 scopedId: character.key,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
