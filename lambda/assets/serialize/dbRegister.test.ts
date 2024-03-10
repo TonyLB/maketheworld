@@ -46,30 +46,40 @@ describe('dbRegister', () => {
                 TESS: {
                     tag: 'Character',
                     key: 'TESS',
-                    Name: 'Tess',
                     fileURL: 'testIcon.png',
-                    Pronouns: {
-                        subject: 'she',
-                        object: 'her',
-                        possessive: 'her',
-                        adjective: 'hers',
-                        reflexive: 'herself'
-                    },
-                    FirstImpression: 'Frumpy Goth',
-                    OneCoolThing: 'Fuchsia eyes',
-                    Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
-                    images: ['TESSIcon']
+                    images: ['TESSIcon'],
+                    appearances: [{
+                        contextStack: [],
+                        data: { tag: 'Character', key: 'TESS' },
+                        children: [
+                            { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+                            {
+                                data: {
+                                    tag: 'Pronouns',
+                                    subject: 'she',
+                                    object: 'her',
+                                    possessive: 'her',
+                                    adjective: 'hers',
+                                    reflexive: 'herself'
+                                },
+                                children: []
+                            },
+                            { data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }
+                        ]
+                    }]
                 },
                 TESSIcon: {
                     tag: 'Image',
-                    key: 'TESSIcon'
+                    key: 'TESSIcon',
+                    appearances: []
                 },
                 'Import-0': {
                     tag: 'Import',
                     key: 'Import-0',
                     appearances: [{
                         contextStack: [{ key: 'TESS', tag: 'Character', index: 0 }],
-                        contents: []
+                        data: { tag: 'Import', key: 'Import-0', from: 'primitives' },
+                        children: []
                     }],
                     from: 'primitives',
                 }
