@@ -8,19 +8,19 @@ import {
     SchemaNameTag,
     SchemaPositionTag,
     SchemaRoomTag,
+    SchemaShortNameTag,
     SchemaTag,
     isSchemaBookmark,
     isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
-    isSchemaFeatureIncomingContents,
     isSchemaKnowledge,
-    isSchemaKnowledgeIncomingContents,
     isSchemaMap,
     isSchemaMapContents,
     isSchemaName,
     isSchemaPosition,
     isSchemaRoom,
+    isSchemaShortName,
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
@@ -44,6 +44,7 @@ const componentTemplates = {
         as: { type: ParsePropertyTypes.Key }
     },
     Name: {},
+    ShortName: {},
     Room: {
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
@@ -159,6 +160,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
+    ShortName: {
+        initialize: ({ parseOpen }): SchemaShortNameTag => ({
+            tag: 'ShortName',
+            ...validateProperties(componentTemplates.ShortName)(parseOpen)
+        }),
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaShortNameTag, SchemaTag> => {
+            if (!isSchemaShortName(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
+    },
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
             const { x, y, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
@@ -180,15 +197,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
             tag: 'Feature',
             ...validateProperties(componentTemplates.Feature)(parseOpen)
-        }),
-        typeCheckContents: isSchemaFeatureIncomingContents
+        })
     },
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => ({
             tag: 'Knowledge',
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
-        }),
-        typeCheckContents: isSchemaKnowledgeIncomingContents
+        })
     },
     Position: {
         initialize: ({ parseOpen }): SchemaPositionTag => {
@@ -265,6 +280,14 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         tagRender({
             ...args,
             tag: 'Name',
+            properties: [],
+            node: { data, children }
+        })
+    ),
+    ShortName: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+        tagRender({
+            ...args,
+            tag: 'ShortName',
             properties: [],
             node: { data, children }
         })
