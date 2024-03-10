@@ -1,8 +1,13 @@
 // Copyright 2023 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 import { unmarshall } from "@aws-sdk/util-dynamodb"
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns"
+import AWSXRay from 'aws-xray-sdk'
+
+const { FEEDBACK_TOPIC } = process.env
+
+const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({ region: process.env.AWS_REGION }))
 
 export const handler = async (event: any) => {
 
@@ -18,46 +23,62 @@ export const handler = async (event: any) => {
 
     if (TargetId.split('#').length > 1) {
         if (RequestId) {
-            await apiClient.send({
-                ConnectionId,
-                Data: JSON.stringify({
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
                     messageType: 'Messages',
                     messages,
                     LastSync: Math.max(...messages.map(({ CreatedTime }) => (CreatedTime))),
-                    RequestId
-                })
-            })
+                }),
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: RequestId },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
         }
         else {
-            await apiClient.send({
-                ConnectionId,
-                Data: JSON.stringify({
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
                     messageType: 'Messages',
                     messages
-                })
-            })    
+                }),
+                MessageAttributes: {
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
         }
     }
     else {
         if (RequestId) {
-            await apiClient.send({
-                ConnectionId,
-                Data: JSON.stringify({
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
                     messageType: 'Notifications',
                     notifications: messages,
                     LastSync: Math.max(...messages.map(({ CreatedTime }) => (CreatedTime))),
-                    RequestId
-                })
-            })
+                }),
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: RequestId },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
         }
         else {
-            await apiClient.send({
-                ConnectionId,
-                Data: JSON.stringify({
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
                     messageType: 'Notifications',
                     notifications: messages
-                })
-            })
+                }),
+                MessageAttributes: {
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
         }
     }
 
