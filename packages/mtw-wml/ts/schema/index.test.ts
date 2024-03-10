@@ -20,6 +20,7 @@ describe('schemaFromParse', () => {
                     <Knowledge key=(baseInfo) />
                 </Import>
                 <Room key=(ABC)>
+                    <ShortName>Vortex</ShortName>
                     <Name>Vortex</Name>
                     <Description>
                         <Space />
@@ -94,6 +95,10 @@ describe('schemaFromParse', () => {
                         display: undefined
                     },
                     children: [{
+                        data: { tag: 'ShortName' },
+                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                    },
+                    {
                         data: { tag: 'Name' },
                         children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                     },
@@ -529,6 +534,7 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(VORTEX)>
+                    <ShortName>Vortex</ShortName>
                     <Name>Vortex</Name>
                     <Description>
                         You float in a swirling mass of energy and debris.
@@ -541,6 +547,7 @@ describe('schemaToWML', () => {
                     <Description>Doors drifting in space</Description>
                 </Feature>
                 <Room key=(welcome)>
+                    <ShortName>Welcome</ShortName>
                     <Name>Welcome room</Name>
                     <Description>
                         A clean and sterile welcome room. The lights are
