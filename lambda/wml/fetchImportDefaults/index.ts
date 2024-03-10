@@ -45,6 +45,7 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
             }
         })
     )
+    console.log(`sending SNS`)
     await snsClient.send(new PublishCommand({
         TopicArn: FEEDBACK_TOPIC,
         Message: JSON.stringify({
