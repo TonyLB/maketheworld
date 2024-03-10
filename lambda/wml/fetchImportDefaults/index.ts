@@ -1,6 +1,5 @@
-import { apiClient } from "../clients"
+import { snsClient } from "../clients"
 import { splitType } from "@tonylb/mtw-utilities/ts/types"
-import Normalizer from "@tonylb/mtw-wml/ts/normalize"
 
 import { SchemaAssetTag } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
@@ -8,6 +7,9 @@ import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursive
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import standardizeSchema from "@tonylb/mtw-wml/ts/schema/standardize"
+import { PublishCommand } from "@aws-sdk/client-sns"
+
+const { FEEDBACK_TOPIC } = process.env
 
 type FetchImportsArguments = {
     ConnectionId: string;
@@ -43,12 +45,17 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
             }
         })
     )
-    await apiClient.send({
-        ConnectionId,
-        Data: JSON.stringify({
-            RequestId,
+    await snsClient.send(new PublishCommand({
+        TopicArn: FEEDBACK_TOPIC,
+        Message: JSON.stringify({
             messageType: 'FetchImports',
             importsByAsset
-        })
-    })
+        }),
+        MessageAttributes: {
+            RequestId: { DataType: 'String', StringValue: RequestId },
+            ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+            Type: { DataType: 'String', StringValue: 'Success' }
+        }
+    }))
+
 }
