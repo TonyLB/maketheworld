@@ -1,5 +1,5 @@
 jest.mock('../clients')
-import { apiClient } from "../clients"
+import { snsClient } from "../clients"
 jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
@@ -36,7 +36,7 @@ import internalCache from "../internalCache"
 
 import returnValueMessage from './index'
 
-const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
+const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
 const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('ReturnValueMessage', () => {
@@ -47,7 +47,7 @@ describe('ReturnValueMessage', () => {
         internalCacheMock.Connection.get.mockResolvedValue("TestConnection")
     })
 
-    it('should call apiClient against registered connectionId', async () => {
+    it('should call snsClient against registered connectionId', async () => {
         await returnValueMessage({
             payloads: [{
                 type: 'ReturnValue',
@@ -56,9 +56,6 @@ describe('ReturnValueMessage', () => {
                 }
             }]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith({
-            ConnectionId: 'TestConnection',
-            Data: '{"result":"ActionSuccessful"}'
-        })
+        expect((snsClientMock.send.mock.calls[0][0].input as any).Message).toEqual('{"result":"ActionSuccessful"}')
     })
 })

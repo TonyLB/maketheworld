@@ -14,6 +14,8 @@ export const apiClient = {
         if (!localApiClient) {
             apiInitialize()
         }
-        (localApiClient as ApiGatewayManagementApiClient).send(new PostToConnectionCommand(message))
+        if (localApiClient) {
+            await localApiClient.send(new PostToConnectionCommand(message))
+        }
     }
 }

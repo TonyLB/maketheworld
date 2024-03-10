@@ -1,7 +1,10 @@
-import { apiClient } from "../clients"
+import { snsClient } from "../clients"
 import { PlayerInfoMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
+import { PublishCommand } from "@aws-sdk/client-sns"
+
+const { FEEDBACK_TOPIC } = process.env
 
 export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: PlayerInfoMessage[], messageBus: MessageBus }): Promise<void> => {
     internalCache.ConnectionsByPlayer.clear()
@@ -15,17 +18,21 @@ export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: Pl
             ])
             if (connections.length > 0) {
                 await Promise.all(connections.map((ConnectionId) => (
-                    apiClient.send({
-                        ConnectionId,
-                        Data: JSON.stringify({
+                    snsClient.send(new PublishCommand({
+                        TopicArn: FEEDBACK_TOPIC,
+                        Message: JSON.stringify({
                             messageType: 'Player',
                             Characters: Object.values(Characters),
                             Assets: Object.values(Assets),
                             Settings: settings,
-                            PlayerName: derivedPlayer,
-                            RequestId
-                        })
-                    })
+                            PlayerName: derivedPlayer
+                        }),
+                        MessageAttributes: {
+                            RequestId: { DataType: 'String', StringValue: RequestId },
+                            ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                            Type: { DataType: 'String', StringValue: 'Success' }
+                        }
+                    }))
                 )))
             }
         }

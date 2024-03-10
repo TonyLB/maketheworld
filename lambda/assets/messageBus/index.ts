@@ -11,7 +11,8 @@ import {
     isFetchImportsAPIMessage,
     isLibraryUnsubscribeMessage,
     isPlayerSettingMessage,
-    isRemoveAssetMessage
+    isRemoveAssetMessage,
+    isReturnValueMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -23,6 +24,7 @@ import libraryUpdateMessage from "../libraryUpdate"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
 import removeAssetMessage from "../removeAsset"
+import returnValueMessage from "../returnValue"
 
 export const messageBus = new MessageBus()
 
@@ -97,6 +99,12 @@ messageBus.subscribe({
     priority: 6,
     filter: isLibraryUpdateMessage,
     callback: libraryUpdateMessage
+})
+messageBus.subscribe({
+    tag: 'ReturnValue',
+    priority: 9,
+    filter: isReturnValueMessage,
+    callback: returnValueMessage
 })
 
 export default messageBus
