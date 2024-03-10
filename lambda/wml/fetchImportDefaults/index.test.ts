@@ -2,7 +2,7 @@ import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { fetchImports } from '.'
 
 jest.mock('../clients')
-import { apiClient } from '../clients'
+import { snsClient } from '../clients'
 jest.mock('./baseClasses')
 import { FetchImportsJSONHelper } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
@@ -10,7 +10,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 
-const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
+const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
 
 const testNormalFromWML = (wml: string): NormalForm => {
     const normalizer = new Normalizer()
@@ -150,32 +150,33 @@ describe('fetchImports', () => {
 
     it('should return empty when passed no keys', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: [] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        console.log(`clientMock: ${JSON.stringify(snsClientMock.send.mock.calls[0][0], null, 4)}`)
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
     it('should return element and stubs when passed non-import key', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testNonImport'] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
     it('should recursive fetch one level of element and stubs when passed import key', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testImportOne'] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
     it('should follow dynamic renames in imports', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testNonImportTwo'] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
     it('should import multilevel and avoid colliding stub names', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testImportThree'] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
     it('should properly stub out features in room description', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testRoomWithFeatures'] }] })
-        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+        expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
 })

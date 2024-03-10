@@ -917,6 +917,7 @@ Resources:
                   COGNITO_POOL_ID: !Ref UserPool
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
                   CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
+                  FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine
           Policies:
             - DynamoDBCrudPolicy:
@@ -927,6 +928,8 @@ Resources:
                 StateMachineName: !Sub '${TablePrefix}_cache_assets_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_parse_wml_step_function'
+            - StepFunctionsExecutionPolicy:
+                StateMachineName: !Sub '${TablePrefix}_fetch_imports_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - Statement:
@@ -1068,6 +1071,7 @@ Resources:
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
             CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
+            WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'
@@ -1102,6 +1106,10 @@ Resources:
                 Fn::Sub:
                     - "arn:aws:s3:::${ImageBucket}/*"
                     - AssetBucket: !Sub '${TablePrefix}-images'
+          - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
           - Statement:
             - Effect: Allow
               Resource: '*'

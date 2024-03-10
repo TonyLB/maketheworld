@@ -2,7 +2,6 @@
 
 exports[`fetchImports should follow dynamic renames in imports 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
@@ -22,7 +21,6 @@ exports[`fetchImports should follow dynamic renames in imports 1`] = `
 
 exports[`fetchImports should import multilevel and avoid colliding stub names 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
@@ -47,7 +45,6 @@ exports[`fetchImports should import multilevel and avoid colliding stub names 1`
 
 exports[`fetchImports should properly stub out features in room description 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
@@ -67,7 +64,6 @@ exports[`fetchImports should properly stub out features in room description 1`] 
 
 exports[`fetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
@@ -88,7 +84,6 @@ exports[`fetchImports should recursive fetch one level of element and stubs when
 
 exports[`fetchImports should return element and stubs when passed non-import key 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
@@ -109,7 +104,6 @@ exports[`fetchImports should return element and stubs when passed non-import key
 
 exports[`fetchImports should return empty when passed no keys 1`] = `
 {
-  "RequestId": "456",
   "importsByAsset": [
     {
       "assetId": "ASSET#testFinal",
