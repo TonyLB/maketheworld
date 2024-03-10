@@ -2,7 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaTag, isSchemaAsset, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -67,8 +67,16 @@ type UpdateSchemaPayloadDelete = {
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
 export const deriveWorkingSchema = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): PersonalAssetsPublic["schema"] => {
+    const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
     const standardized = standardizeSchema(
-        ...Object.values(importData).map(markInherited),
+        ...Object.values(importData)
+            .map(markInherited)
+            .map((tree) => (
+                tree.length === 1 && isSchemaAsset(tree[0].data)
+                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                    : []
+            ))
+            .filter((tree) => (tree.length)),
         baseSchema
     )
     return maybeGenericIDFromTree(standardized)
