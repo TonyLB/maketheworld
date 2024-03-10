@@ -22,13 +22,14 @@ import {
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
-import { extractReturnValue } from './returnValue'
-import { apiClient, sfnClient } from "./clients"
+import { sfnClient, snsClient } from "./clients"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import { healGlobalValues } from "./selfHealing/globalValues"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
+import { PublishCommand } from "@aws-sdk/client-sns"
 
+const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
 
@@ -96,7 +97,7 @@ export const handler = async (event, context) => {
                     assetId
                 })
                 await messageBus.flush()
-                return await extractReturnValue(messageBus)
+                return {}
             }
             else {
                 return JSON.stringify(`Invalid arguments specified for Remove Asset event`)
@@ -111,7 +112,7 @@ export const handler = async (event, context) => {
                     toZone: event["detail-type"] === 'Canonize Asset' ? 'Canon' : 'Library'
                 })
                 await messageBus.flush()
-                return await extractReturnValue(messageBus)
+                return {}
             }
             else {
                 return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
@@ -166,15 +167,19 @@ export const handler = async (event, context) => {
             const addresses = await internalCache.Meta.get(request.assetIds)
             if (connectionId) {
                 await Promise.all(addresses.map(({ AssetId, address }) => (
-                    apiClient.send({
-                        ConnectionId: connectionId,
-                        Data: JSON.stringify({
-                            RequestId: request.RequestId,
+                    snsClient.send(new PublishCommand({
+                        TopicArn: FEEDBACK_TOPIC,
+                        Message: JSON.stringify({
                             messageType: 'MetaData',
                             AssetId,
                             zone: address ? address.zone : 'None'
-                        })
-                    })
+                        }),
+                        MessageAttributes: {
+                            RequestId: { DataType: 'String', StringValue: request.RequestId },
+                            ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                            Type: { DataType: 'String', StringValue: 'Success' }
+                        }
+                    }))
                 )))
             }
             else {
@@ -217,7 +222,10 @@ export const handler = async (event, context) => {
                     uploadName: request.uploadName
                 })
             }))
-            return
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: 'Success' })
+            }
         }
         if (isAssetCheckinAPIMessage(request)) {
             messageBus.send({
@@ -270,6 +278,9 @@ export const handler = async (event, context) => {
         }
     }
     await messageBus.flush()
-    return await extractReturnValue(messageBus)
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: 'Success' })
+    }
 
 }
