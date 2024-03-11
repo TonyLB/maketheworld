@@ -81,7 +81,7 @@ export const standardizeSchema = (...schemata: GenericTree<SchemaTag, Partial<Tr
                 let filteredTagTree = tagTree
                     .filter(nodeMatch)
                     .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
-                    .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                    .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                     .prune({ before: nodeMatch })
                 switch(tag) {
                     case 'Room':
@@ -99,7 +99,7 @@ export const standardizeSchema = (...schemata: GenericTree<SchemaTag, Partial<Tr
                 items.forEach((item) => {
                     topLevelItems.push({
                         data: stripProperties(item.data),
-                        children: reorderChildren(['Name', 'Description', 'Exit', 'Image', 'Room', 'If'])(item.children),
+                        children: reorderChildren(['ShortName', 'Name', 'Summary', 'Description', 'Exit', 'Image', 'Room', 'If'])(item.children),
                         id: item.id
                     })
                 })
