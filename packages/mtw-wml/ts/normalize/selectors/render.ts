@@ -43,3 +43,26 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         })
     }
 }
+
+export const selectSummary = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {
+    if (!options.tag) {
+        const tagTree = new SchemaTagTree(tree)
+        return treeTypeGuard({
+            tree: tagTree
+                .filter({ match: 'Summary' })
+                .reordered([{ match: 'Summary' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                .prune({ or: [{ before: { match: 'Summary' } }, { match: 'Summary' }] })
+                .tree,
+            typeGuard: isSchemaOutputTag
+        })
+    }
+    const tagTree = new SchemaTagTree(tree)
+    return treeTypeGuard({
+        tree: tagTree
+            .filter({ and: [{ match: optionsMatch(options) }, { match: 'Summary' }] })
+            .reordered([{ match: options.tag }, { match: 'Summary' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+            .prune({ or: [{ before: { match: 'Summary' } }, { match: 'Summary' }] })
+            .tree,
+        typeGuard: isSchemaOutputTag
+    })
+}

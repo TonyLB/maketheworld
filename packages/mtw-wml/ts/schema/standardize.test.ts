@@ -22,20 +22,21 @@ describe('standardizeSchema', () => {
     it('should combine descriptions in rooms and features', () => {
         const testSchema = schemaTestWML(`<Asset key=(Test)>
             <Room key=(test)>
-                <Description>
+                <Summary>
                     One
                     <br />
-                </Description>
+                </Summary>
+                <Description>Three</Description>
             </Room>
             <If {false}>
                 <Room key=(test)>
-                    <Description>
+                    <Summary>
                         Two
-                    </Description>
+                    </Summary>
                 </Room>
                 <Feature key=(testFeature)>
                     <Description>
-                        Three
+                        Four
                     </Description>
                 </Feature>
             </If>
@@ -47,10 +48,11 @@ describe('standardizeSchema', () => {
             <Asset key=(Test)>
                 <Room key=(test)>
                     <Name>Test Room</Name>
-                    <Description>One<br /><If {false}>Two</If></Description>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Description>Three</Description>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false}>Three</If></Description>
+                    <Description><If {false}>Four</If></Description>
                 </Feature>
             </Asset>
         `))
