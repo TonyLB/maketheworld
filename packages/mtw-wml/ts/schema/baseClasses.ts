@@ -176,6 +176,10 @@ export type SchemaDescriptionTag = {
     tag: 'Description';
 } & SchemaBase
 
+export type SchemaSummaryTag = {
+    tag: 'Summary';
+} & SchemaBase
+
 export type SchemaAfterTag = {
     tag: 'After';
 } & SchemaBase
@@ -210,12 +214,6 @@ export type SchemaShortNameTag = {
     tag: 'ShortName';
 } & SchemaBase
 
-//
-// TODO: Refactor room schema formation to keep name and description tags not folded into name
-// and render properties
-//
-export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTag
-export type SchemaRoomLegalIncomingContents = SchemaShortNameTag | SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTag
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -223,13 +221,11 @@ export type SchemaRoomTag = {
     y?: number;
 } & SchemaImportableBase
 
-export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTag
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
 } & SchemaImportableBase
 
-export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTag
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     key: string;
@@ -292,6 +288,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaConditionFallthroughTag |
     SchemaExitTag |
     SchemaDescriptionTag |
+    SchemaSummaryTag |
     SchemaLineBreakTag |
     SchemaSpacerTag |
     SchemaLinkTag |
@@ -320,6 +317,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaFeatureTag |
     SchemaKnowledgeTag |
     SchemaDescriptionTag |
+    SchemaSummaryTag |
     SchemaBookmarkTag |
     SchemaExitTag |
     SchemaCharacterTag |
@@ -340,6 +338,7 @@ export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value
 export const isSchemaShortName = (value: SchemaTag): value is SchemaShortNameTag => (value.tag === 'ShortName')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
+export const isSchemaSummary = (value: SchemaTag): value is SchemaSummaryTag => (value.tag === 'Summary')
 export const isSchemaAfter = (value: SchemaTag): value is SchemaAfterTag => (value.tag === 'After')
 export const isSchemaBefore = (value: SchemaTag): value is SchemaBeforeTag => (value.tag === 'Before')
 export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => (value.tag === 'Replace')
@@ -381,7 +380,7 @@ export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Bookmark', 'Knowledge', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Inherited'].includes(value.tag)
+    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Bookmark', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Inherited'].includes(value.tag)
 )
 
 export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaActionTag | SchemaComputedTag | SchemaVariableTag => (

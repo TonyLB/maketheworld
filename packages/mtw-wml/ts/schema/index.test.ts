@@ -536,9 +536,14 @@ describe('schemaToWML', () => {
                 <Room key=(VORTEX)>
                     <ShortName>Vortex</ShortName>
                     <Name>Vortex</Name>
+                    <Summary>
+                        You float in a swirling mass of energy and debris.
+                        <Link to=(doors)>Doors</Link> to other realms drift around you.
+                    </Summary>
                     <Description>
                         You float in a swirling mass of energy and debris.
                         <Link to=(doors)>Doors</Link> to other realms drift around you.
+                        Crackling bursts of energy snap through space in the distance.
                     </Description>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>

@@ -9,6 +9,7 @@ import {
     SchemaPositionTag,
     SchemaRoomTag,
     SchemaShortNameTag,
+    SchemaSummaryTag,
     SchemaTag,
     isSchemaBookmark,
     isSchemaDescription,
@@ -22,6 +23,7 @@ import {
     isSchemaRoom,
     isSchemaShortName,
     isSchemaString,
+    isSchemaSummary,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
@@ -37,6 +39,7 @@ const componentTemplates = {
         to: { type: ParsePropertyTypes.Key }
     },
     Description: {},
+    Summary: {},
     Bookmark: {
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
@@ -113,6 +116,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
             if (!isSchemaDescription(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
+    },
+    Summary: {
+        initialize: ({ parseOpen }): SchemaSummaryTag => ({
+            tag: 'Summary',
+            ...validateProperties(componentTemplates.Summary)(parseOpen)
+        }),
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
+            if (!isSchemaSummary(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
@@ -272,6 +291,14 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         tagRender({
             ...args,
             tag: 'Description',
+            properties: [],
+            node: { data, children }
+        })
+    ),
+    Summary: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+        tagRender({
+            ...args,
+            tag: 'Summary',
             properties: [],
             node: { data, children }
         })
