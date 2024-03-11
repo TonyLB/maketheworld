@@ -74,7 +74,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                         }
                         else {
                             currentWhitespace = undefined
-                            if (currentContext.find(({ tag }) => (tag === 'Description'))) {
+                            if (currentContext.find(({ tag }) => (['Description', 'Summary'].includes(tag)))) {
                                 returnValue.push(token)
                             }
                         }

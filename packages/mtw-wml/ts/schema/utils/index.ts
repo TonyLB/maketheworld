@@ -1,24 +1,11 @@
-import { deepEqual } from "../../lib/objects"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 import {
     isSchemaCondition,
     isSchemaDescription,
     isSchemaName,
-    isSchemaTag,
-    SchemaConditionMixin,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
-    isSchemaLineBreak,
-    isSchemaSpacer,
-    isSchemaString,
-    isSchemaTaggedMessageLegalContents,
-    isSchemaWhitespace,
-    isSchemaAfter,
-    isSchemaBefore,
-    isSchemaReplace,
-    isSchemaLink,
-    isSchemaBookmark,
-    SchemaOutputTag
+    isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
