@@ -1,4 +1,4 @@
-import { SchemaTag } from "../schema/baseClasses";
+import { SchemaOutputTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTree, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
@@ -11,11 +11,11 @@ export type StandardField<T> = {
     value: T;
 }
 
-export type SchemaStandardField = StandardField<GenericTree<SchemaTag, TreeId>>
+export type SchemaStandardField = StandardField<GenericTree<SchemaOutputTag, TreeId>>
 
 export type StandardRoom = {
     tag: 'Room';
-    shortName: StandardField<string>;
+    shortName: SchemaStandardField;
     name: SchemaStandardField;
     summary: SchemaStandardField;
     description: SchemaStandardField;
@@ -42,18 +42,19 @@ export type StandardBookmark = {
 export type StandardMap = {
     tag: 'Map';
     name: SchemaStandardField;
+    images: GenericTree<SchemaTag, TreeId>;
     positions: GenericTree<SchemaTag, TreeId>;
-}
+} & StandardBase
 
 export type StandardMessage = {
     tag: 'Message';
     description: SchemaStandardField;
-    roomIds: StandardField<string>[];
+    rooms: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardMoment = {
     tag: 'Moment';
-    messageIds: StandardField<string>[];
+    messages: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardVariable = {

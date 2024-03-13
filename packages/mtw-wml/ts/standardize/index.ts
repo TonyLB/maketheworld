@@ -1,12 +1,14 @@
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaOutputTag, isSchemaRoom, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
+import { schemaOutputToString } from "../schema/utils/schemaOutput/schemaOutputToString"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, TreeId } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId } from "../tree/baseClasses"
+import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
-import { StandardComponent } from "./baseClasses"
+import { SchemaStandardField, StandardComponent, StandardField } from "./baseClasses"
 
 const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return children.sort(({ data: dataA }, { data: dataB }): number => {
@@ -28,6 +30,175 @@ const stripProperties = (tag: SchemaTag): SchemaTag => {
         }
     })
     return returnValue
+}
+
+const outputNodeToStandardItem = (node: GenericTreeNode<SchemaTag, TreeId> | undefined): SchemaStandardField => (
+    node
+        ? { id: node.id, value: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
+        : { id: '', value: [] }
+)
+
+const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>): StandardComponent | undefined => {
+    if (isSchemaRoom(data)) {
+        const shortNameItem = children.find(({ data }) => (data.tag === 'ShortName'))
+        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
+        const summaryItem = children.find(({ data }) => (data.tag === 'Summary'))
+        const descriptionItem = children.find(({ data }) => (data.tag === 'Description'))
+        const exitTagTree = new SchemaTagTree(children).filter({ match: 'Exit' })
+        return {
+            tag: 'Room',
+            key: data.key,
+            id,
+            shortName: outputNodeToStandardItem(shortNameItem),
+            name: outputNodeToStandardItem(nameItem),
+            summary: outputNodeToStandardItem(summaryItem),
+            description: outputNodeToStandardItem(descriptionItem),
+            exits: maybeGenericIDFromTree(exitTagTree.tree)
+        }
+    }
+    if (isSchemaFeature(data) || isSchemaKnowledge(data)) {
+        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
+        const descriptionItem = children.find(({ data }) => (data.tag === 'Description'))
+        return {
+            tag: data.tag,
+            key: data.key,
+            id,
+            name: outputNodeToStandardItem(nameItem),
+            description: outputNodeToStandardItem(descriptionItem)
+        }
+    }
+    if (isSchemaBookmark(data)) {
+        return {
+            tag: data.tag,
+            key: data.key,
+            id,
+            description: outputNodeToStandardItem({ data, children, id })
+        }
+    }
+    if (isSchemaMessage(data)) {
+        const roomsTagTree = new SchemaTagTree(children).filter({ match: 'Room' })
+        return {
+            tag: data.tag,
+            key: data.key,
+            id,
+            description: outputNodeToStandardItem({ data, children, id }),
+            rooms: maybeGenericIDFromTree(roomsTagTree.tree)
+        }
+    }
+    if (isSchemaMoment(data)) {
+        const messagesTagTree = new SchemaTagTree(children).filter({ match: 'Message' })
+        return {
+            tag: data.tag,
+            key: data.key,
+            id,
+            messages: maybeGenericIDFromTree(messagesTagTree.tree)
+        }
+    }
+    if (isSchemaMap(data)) {
+        const positionsTagTree = new SchemaTagTree(children).filter({ match: 'Position' })
+        const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
+        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
+        return {
+            tag: 'Map',
+            key: data.key,
+            id,
+            name: outputNodeToStandardItem(nameItem),
+            images: maybeGenericIDFromTree(imagesTagTree.tree),
+            positions: maybeGenericIDFromTree(positionsTagTree.tree)
+        }
+    }
+    if (isSchemaVariable(data)) {
+        return {
+            tag: 'Variable',
+            key: data.key,
+            id,
+            default: data.default ?? ''
+        }
+    }
+    if (isSchemaComputed(data) || isSchemaAction(data)) {
+        return {
+            tag: data.tag,
+            key: data.key,
+            id,
+            src: data.src ?? ''
+        }
+    }
+    return undefined
+}
+
+const standardFieldToOutputNode = (tag: 'ShortName' | 'Name' | 'Summary' | 'Description', field: SchemaStandardField): GenericTree<SchemaTag, TreeId> => (
+    field.id ? [{ data: { tag }, id: field.id, children: field.value }] : []
+)
+
+const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag, TreeId> => {
+    switch(item.tag) {
+        case 'Room':
+            return {
+                data: { tag: 'Room', key: item.key },
+                id: item.id,
+                children: [
+                    ...standardFieldToOutputNode('ShortName', item.shortName),
+                    ...standardFieldToOutputNode('Name', item.name),
+                    ...standardFieldToOutputNode('Summary', item.summary),
+                    ...standardFieldToOutputNode('Description', item.description),
+                    ...item.exits
+                ]
+            }
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                data: { tag: item.tag, key: item.key },
+                id: item.id,
+                children: [
+                    ...standardFieldToOutputNode('Name', item.name),
+                    ...standardFieldToOutputNode('Description', item.description)
+                ]
+            }
+        case 'Bookmark':
+            return {
+                data: { tag: 'Bookmark', key: item.key },
+                id: item.id,
+                children: item.description.value ?? []
+            }
+        case 'Message':
+            return {
+                data: { tag: 'Message', key: item.key },
+                id: item.id,
+                children: [
+                    ...item.rooms,
+                    ...item.description.value
+                ]
+            }
+        case 'Moment':
+            return {
+                data: { tag: 'Moment', key: item.key },
+                id: item.id,
+                children: item.messages
+            }
+        case 'Map':
+            return {
+                data: { tag: 'Map', key: item.key },
+                id: item.id,
+                children: [
+                    ...standardFieldToOutputNode('Name', item.name),
+                    ...item.images,
+                    ...item.positions
+                ]
+            }
+        case 'Variable':
+            return {
+                data: { tag: 'Variable', key: item.key, default: item.default },
+                id: item.id,
+                children: []
+            }
+        case 'Computed':
+        case 'Action':
+            return {
+                data: { tag: item.tag, key: item.key, src: item.src },
+                id: item.id,
+                children: []
+            }
+    }
 }
 
 export class Standardizer {
@@ -92,7 +263,7 @@ export class Standardizer {
                             filteredTagTree = tagTree
                                 .filter(nodeMatch)
                                 .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
-                                .reordered([{ match: tag }, { match: 'Name' }, { match: 'Description' }, { match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                                .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                                 .prune({ before: nodeMatch })
                             break
                     }
@@ -101,6 +272,10 @@ export class Standardizer {
                     // TODO: Replace topLevelItems.push with a write of a StandardItem into this._byId
                     //
                     items.forEach((item) => {
+                        const standardItem = schemaItemToStandardItem(item)
+                        if (standardItem) {
+                            this._byId[key] = standardItem
+                        }
                         topLevelItems.push({
                             data: stripProperties(item.data),
                             children: reorderChildren(['ShortName', 'Name', 'Summary', 'Description', 'Exit', 'Image', 'Room', 'If'])(item.children),
@@ -169,13 +344,20 @@ export class Standardizer {
         }
         this._assetKey = allStandardAssets[0].data.key
         this._assetId = allStandardAssets[0].id ?? ''
-        this._byId = {}
     }
 
     get schema(): GenericTree<SchemaTag, TreeId> {
+        const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+        const children = componentKeys
+            .map((tagToList) => (
+                Object.values(this._byId)
+                    .filter(({ tag }) => (tag === tagToList))
+                    .map(standardItemToSchemaItem)
+            ))
+            .flat(1)
         return [{
             data: { tag: 'Asset', key: this._assetKey, Story: undefined },
-            children: [],
+            children,
             id: this._assetId
         }]
     }
