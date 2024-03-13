@@ -368,15 +368,15 @@ describe('standardizeSchema', () => {
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
+                <Import from=(vanishingPoint)>
+                    <Variable key=(testVar) from=(power) />
+                    <Room key=(testRoomOne) />
+                </Import>
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Variable key=(testVar) />
-                <Import from=(vanishingPoint)>
-                    <Variable key=(testVar) from=(power) />
-                    <Room key=(testRoomOne) />
-                </Import>
             </Asset>
         `))
     })
@@ -389,8 +389,8 @@ describe('standardizeSchema', () => {
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Room key=(testRoomOne) />
                 <Import from=(vanishingPoint)><Room key=(testRoomOne) /></Import>
+                <Room key=(testRoomOne) />
             </Asset>
         `))
     })
