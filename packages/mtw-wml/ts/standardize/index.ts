@@ -206,11 +206,11 @@ export class Standardizer {
     _assetId: string;
     _byId: Record<string, StandardComponent>;
     _imports: Record<string, StandardField<GenericTree<SchemaTag, TreeId>>>;
-    _exports: Record<string, StandardField<SchemaTag>>;
+    _exports: GenericTree<SchemaTag, TreeId>;
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
         this._byId = {}
         this._imports = {}
-        this._exports = {}
+        this._exports = []
         const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
@@ -328,12 +328,8 @@ export class Standardizer {
                     { before: { match: 'Export' } },
                     { after: anyKeyedComponent }
                 ]})
-            const exportItems = exportTagTree.tree.filter(({ children }) => (children.length))
-        
-            // if (exportItems.length) {
-            //     topLevelItems = [...topLevelItems, ...exportItems]
-            // }
-        
+            this._exports = maybeGenericIDFromTree(exportTagTree.tree.filter(({ children }) => (children.length)))
+
             const id = schemata.reduce<string | undefined>((previous, tree) => {
                 const item = tree.find(({ data }) => (isSchemaWithKey(data) && data.key === assetKey))
                 if (item && !item.inherited) {
@@ -364,7 +360,8 @@ export class Standardizer {
                         .filter(({ tag }) => (tag === tagToList))
                         .map(standardItemToSchemaItem)
                 ))
-                .flat(1)
+                .flat(1),
+            ...this._exports
         ]
         return [{
             data: { tag: 'Asset', key: this._assetKey, Story: undefined },
