@@ -358,13 +358,12 @@ describe('standardizeSchema', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
                 <Variable key=(testVar) from=(power) />
-                <Room key=(testRoomOne) />
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
             </Import>
             <Variable key=(testVar) />
-            <Room key=(testRoomOne)>
-                <Description>Test Room One</Description>
-                <Exit to=(testRoomTwo)>two</Exit>
-            </Room>
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
@@ -376,7 +375,6 @@ describe('standardizeSchema', () => {
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
-                <Variable key=(testVar) />
             </Asset>
         `))
     })
@@ -390,7 +388,6 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)><Room key=(testRoomOne) /></Import>
-                <Room key=(testRoomOne) />
             </Asset>
         `))
     })

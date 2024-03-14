@@ -224,7 +224,42 @@ export class Standardizer {
                     ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
                     : { data: { ...dataA, ...dataB }, id: idA ?? idB }
             )
-            let topLevelItems: GenericTree<SchemaTag, Partial<TreeId>> = []
+
+                        //
+            // Add standardized view of all Imports to the results
+            //
+            const importTagTree = tagTree
+                .filter({ match: 'Import' })
+                .prune({ or: [
+                    { before: { match: 'Import' } },
+                    { after: { or: [
+                        { match: 'Room' },
+                        { match: 'Feature' },
+                        { match: 'Knowledge' },
+                        { match: 'Bookmark' },
+                        { match: 'Map' },
+                        { match: 'Message' },
+                        { match: 'Moment' },
+                        { match: 'Variable' },
+                        { match: 'Computed' },
+                        { match: 'Action' }
+                    ]}}
+                ]})
+            const importItems = importTagTree.tree.filter(({ children }) => (children.length))
+            const importedKeys = unique(tagTree
+                .filter({ match: 'Import' })
+                .prune({ or: [{ before: { match: 'Import' } }, { match: 'Import' }] })
+                .tree
+                .map(({ data }) => (data))
+                .filter(isSchemaWithKey)
+                .map(({ key }) => (key)))
+        
+            this._imports = Object.assign({}, ...importItems.map(({ data, children, id }) => {
+                if (!isSchemaImport(data)) {
+                    throw new Error('Import mismatch on Standardizer')
+                }
+                return { [data.from]: { id, value: children } }
+            }))
         
             const keysByComponentType = (tag: SchemaWithKey["tag"]) => (
                 unique(tagTree
@@ -277,50 +312,13 @@ export class Standardizer {
                     //
                     items.forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item)
-                        if (standardItem) {
+                        if (standardItem && (item.children.length || !importedKeys.includes(key))) {
                             this._byId[key] = standardItem
                         }
-                        topLevelItems.push({
-                            data: stripProperties(item.data),
-                            children: reorderChildren(['ShortName', 'Name', 'Summary', 'Description', 'Exit', 'Image', 'Room', 'If'])(item.children),
-                            id: item.id
-                        })
                     })
                 })
             })
-    
-            //
-            // Add standardized view of all Imports to the results
-            //
-            const importTagTree = tagTree
-                .filter({ match: 'Import' })
-                .prune({ or: [
-                    { before: { match: 'Import' } },
-                    { after: { or: [
-                        { match: 'Room' },
-                        { match: 'Feature' },
-                        { match: 'Knowledge' },
-                        { match: 'Bookmark' },
-                        { match: 'Map' },
-                        { match: 'Message' },
-                        { match: 'Moment' },
-                        { match: 'Variable' },
-                        { match: 'Computed' },
-                        { match: 'Action' }
-                    ]}}
-                ]})
-            const importItems = importTagTree.tree.filter(({ children }) => (children.length))
-        
-            this._imports = Object.assign({}, ...importItems.map(({ data, children, id }) => {
-                if (!isSchemaImport(data)) {
-                    throw new Error('Import mismatch on Standardizer')
-                }
-                return { [data.from]: { id, value: children } }
-            }))
-            if (importItems.length) {
-                topLevelItems = [...topLevelItems, ...importItems]
-            }
-        
+
             //
             // Add standardized view of all Exports to the results
             //
@@ -332,9 +330,9 @@ export class Standardizer {
                 ]})
             const exportItems = exportTagTree.tree.filter(({ children }) => (children.length))
         
-            if (exportItems.length) {
-                topLevelItems = [...topLevelItems, ...exportItems]
-            }
+            // if (exportItems.length) {
+            //     topLevelItems = [...topLevelItems, ...exportItems]
+            // }
         
             const id = schemata.reduce<string | undefined>((previous, tree) => {
                 const item = tree.find(({ data }) => (isSchemaWithKey(data) && data.key === assetKey))
@@ -345,7 +343,7 @@ export class Standardizer {
             }, undefined)
             return {
                 data: { tag: 'Asset', key: assetKey, Story: undefined },
-                children: topLevelItems,
+                children: [],
                 id
             }
         })
