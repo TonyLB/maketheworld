@@ -227,6 +227,7 @@ export const {
     getDraftWML,
     getNormalized,
     getSchema,
+    getStandardForm,
     getProperties,
     getLoadedImages,
     getSerialized,

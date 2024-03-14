@@ -27,7 +27,8 @@ import {
     getDraftWML,
     getStatus,
     getSerialized,
-    getSchema
+    getSchema,
+    getStandardForm
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -42,6 +43,7 @@ import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaOutputTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { StandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -50,6 +52,7 @@ type LibraryAssetContextType = {
     draftWML: string;
     normalForm: NormalForm;
     schema: GenericTree<SchemaTag, TreeId>;
+    standardForm: Record<string, StandardComponent>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -71,6 +74,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     normalForm: {},
     schema: [],
+    standardForm: {},
     updateSchema: () => {},
     properties: {},
     loadedImages: {},
@@ -123,6 +127,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const schema = useSelector(getSchema(AssetId))
+    const standardForm = useSelector(getStandardForm(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
@@ -159,6 +164,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             select,
             schema,
+            standardForm,
             updateSchema,
             properties,
             loadedImages,
