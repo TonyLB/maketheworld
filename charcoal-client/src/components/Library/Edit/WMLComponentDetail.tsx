@@ -27,6 +27,7 @@ import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { EditSchema } from './EditContext'
 import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
+import { isStandardFeature, isStandardKnowledge, isStandardRoom, SchemaStandardField, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -34,98 +35,66 @@ import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 //
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { updateSchema, schema, normalForm } = useLibraryAsset()
+    const { updateSchema, standardForm } = useLibraryAsset()
     const dispatch = useDispatch()
-    const component = useMemo(() => (normalForm[ComponentId || '']), [ComponentId, normalForm])
-    const { tag } = component || {}
+    const component: StandardFeature | StandardKnowledge | StandardRoom = useMemo(() => {
+        if (ComponentId) {
+            const component = standardForm[ComponentId]
+            if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
+                return component
+            }
+        }
+        return {
+            key: ComponentId,
+            id: '',
+            tag: 'Room',
+            shortName: { id: '', value: [] },
+            name: { id: '', value: [] },
+            summary: { id: '', value: [] },
+            description: { id: '', value: [] },
+            exits: []
+        }
+    }, [ComponentId, standardForm])
+    const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
-    //
-    // Look up data directly through Normalize, and use that (plus the assumption that the
-    // Schema is in standardized format) to find the appearance that holds all of the top-level
-    // data for the component
-    //
-    const appearance = useMemo((): GenericTreeNodeFiltered<SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag, SchemaTag, TreeId> | undefined => {
-        //
-        // Temporary work-around:  Right now, the Appearance type constraints in NormalForm are too
-        // complicated to accept a nested Extra argument. So in the short-term, instead of passing
-        // GenericTree<SchemaTag, TreeId> into NormalForm, we're constructing the non-ID tree in
-        // NormalForm, and just fetching the correct data straight out of the schema here.
-        //
-
-        //
-        // TODO: When BaseAppearance has been rationalized down to a less complex type, and
-        // Normalizer has been simplified down to a read-only entity rather than the complex
-        // tangle it is now, refactor so that normalForm appearances already *have* the ID
-        // data we're looking up here.
-        //
-        if (schema.length === 0) {
-            throw new Error('No data in schema at WMLComponentDetail')
-        }
-        const { data: assetData } = schema[0]
-        if (schema.length > 1 || !isSchemaAsset(assetData)) {
-            throw new Error('Non-asset top level tag in schema at WMLComponentDetail')
-        }
-        const topLevelChildren = schema[0].children
-        return topLevelChildren
-            .reduce<GenericTreeNodeFiltered<SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag, SchemaTag, TreeId> | undefined>((previous, appearance) => {
-                const { data } = appearance
-                if (!(isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data))) {
-                    return previous
-                }
-                if (data.key !== ComponentId) {
-                    return previous
-                }
-                if (previous) {
-                    console.log(`Unexpected data: ${JSON.stringify(appearance, null, 4)}`)
-                    throw new Error('Schema not standardized in WMLComponentAppearance')
-                }
-                return {
-                    ...appearance,
-                    data
-                }
-            }, undefined)
-    }, [schema, ComponentId])
-
-    const onChange = useCallback((tag: 'Name' | 'Description') => (action: UpdateSchemaPayload) => {
+    const onChange = useCallback((tag: 'Name' | 'Description', current: SchemaStandardField) => (action: UpdateSchemaPayload) => {
         if (action.type !== 'replace') {
             throw new Error('Incorrect arguments to WMLComponentDetail onChange')
         }
         const newRender = treeTypeGuard({ tree: action.item.children, typeGuard: isSchemaOutputTag })
         const adjustedRender = explicitSpaces(newRender)
-        if (isSchemaRoom(appearance.data) && adjustedRender?.length)  {
+        if (isStandardRoom(component) && adjustedRender?.length)  {
             dispatch(addOnboardingComplete(['describeRoom']))
         }
         //
         // Use internal UUIDs in appearance to update schema with new output data
         //
-        if (appearance.id) {
-            const tagToReplace = appearance.children
-                .find((appearance) => (appearance.data.tag === tag))
-            if (tagToReplace) {
+        if (component.id) {
+            if (current.id) {
                 if (adjustedRender.length) {
                     updateSchema({
                         type: 'replace',
-                        id: tagToReplace.id,
+                        id: current.id,
                         item: {
-                            data: tagToReplace.data,
+                            data: { tag },
                             children: adjustedRender,
-                            id: tagToReplace.id
+                            id: current.id
                         }
                     })
                 }
                 else {
                     updateSchema({
                         type: 'delete',
-                        id: tagToReplace.id
+                        id: current.id
                     })
                 }
             }
             else {
                 updateSchema({
                     type: 'addChild',
-                    id: appearance.id,
+                    id: component.id,
                     item: {
                         data: { tag },
                         children: adjustedRender
@@ -133,17 +102,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 })
             }
         }
-    }, [appearance, updateSchema, dispatch])
-    const onChangeDescription = useCallback(onChange('Description'), [onChange])
-    const onChangeName = useCallback(onChange('Name'), [onChange])
-    const extractOutput = useCallback((tag: 'Name' | 'Description'): GenericTreeNode<SchemaTag, TreeId> | undefined => {
-        const matchedTag = appearance.children
-            .find((appearance) => (appearance.data.tag === tag))
-        return matchedTag
-    }, [appearance])
-    const descriptionOutput = useMemo(() => (extractOutput('Description')), [extractOutput])
-    const nameOutput = useMemo(() => (extractOutput('Name')), [extractOutput])
-    if (!component || !appearance) {
+    }, [component, updateSchema, dispatch])
+    const onChangeDescription = useCallback(onChange('Description', component.description), [onChange])
+    const onChangeName = useCallback(onChange('Name', component.name), [onChange])
+    const descriptionOutput = useMemo(() => (component.description.value), [component])
+    const nameOutput = useMemo(() => (component.name.value), [component])
+    if (!component.id) {
         return <Box />
     }
     return <Box sx={{
@@ -155,13 +119,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
-        <EditSchema schema={nameOutput ? [nameOutput] : [{ data: { tag: 'Name' }, children: [], id: 'STUB' }]} updateSchema={onChangeName}>
+        <EditSchema schema={nameOutput ? nameOutput : [{ data: { tag: 'Name' }, children: [], id: 'STUB' }]} updateSchema={onChangeName}>
             <DescriptionEditor
                 validLinkTags={[]}
                 placeholder="Enter a name"
             />
         </EditSchema>
-        <EditSchema schema={descriptionOutput ? [descriptionOutput] : [{ data: { tag: 'Description' }, children: [], id: 'STUB' }]} updateSchema={onChangeDescription}>
+        <EditSchema schema={descriptionOutput ? descriptionOutput : [{ data: { tag: 'Description' }, children: [], id: 'STUB' }]} updateSchema={onChangeDescription}>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
