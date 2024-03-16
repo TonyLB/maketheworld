@@ -11,8 +11,6 @@ export type StandardField<T> = {
     value: T;
 }
 
-export type SchemaStandardField = StandardField<GenericTree<SchemaOutputTag, TreeId>>
-
 export type StandardRoom = {
     tag: 'Room';
     shortName: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag, TreeId>;

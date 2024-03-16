@@ -12,8 +12,7 @@ import { blue } from '@mui/material/colors'
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
-import { isSchemaAsset, isSchemaKnowledge, isSchemaOutputTag, isSchemaRoom, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
@@ -21,13 +20,13 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/explicitSpaces'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { EditSchema } from './EditContext'
 import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
-import { isStandardFeature, isStandardKnowledge, isStandardRoom, SchemaStandardField, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardFeature, isStandardKnowledge, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -48,10 +47,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             key: ComponentId,
             id: '',
             tag: 'Room',
-            shortName: { id: '', value: [] },
-            name: { id: '', value: [] },
-            summary: { id: '', value: [] },
-            description: { id: '', value: [] },
+            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+            name: { data: { tag: 'Name' }, id: '', children: [] },
+            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            description: { data: { tag: 'Description' }, id: '', children: [] },
             exits: []
         }
     }, [ComponentId, standardForm])
@@ -59,7 +58,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
-    const onChange = useCallback((tag: 'Name' | 'Description', current: SchemaStandardField) => (action: UpdateSchemaPayload) => {
+    const onChange = useCallback((tag: 'Name' | 'Description', current: GenericTreeNode<SchemaTag, TreeId>) => (action: UpdateSchemaPayload) => {
         if (action.type !== 'replace') {
             throw new Error('Incorrect arguments to WMLComponentDetail onChange')
         }
@@ -103,10 +102,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             }
         }
     }, [component, updateSchema, dispatch])
-    const onChangeDescription = useCallback(onChange('Description', component.description), [onChange])
-    const onChangeName = useCallback(onChange('Name', component.name), [onChange])
-    const descriptionOutput = useMemo(() => (component.description.value), [component])
-    const nameOutput = useMemo(() => (component.name.value), [component])
     if (!component.id) {
         return <Box />
     }
@@ -119,13 +114,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
-        <EditSchema tag="Name" field={component ? component.name : { value: [], id: '' }} parentId={component?.id ?? ''}>
+        <EditSchema tag="Name" field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
             <DescriptionEditor
                 validLinkTags={[]}
                 placeholder="Enter a name"
             />
         </EditSchema>
-        <EditSchema tag="Description" field={component ? component.description : { value: [], id: '' } } parentId={component?.id ?? ''}>
+        <EditSchema tag="Description" field={component ? component.description : { data: { tag: 'Description' }, children: [], id: '' } } parentId={component?.id ?? ''}>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}

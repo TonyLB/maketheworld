@@ -8,7 +8,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
-import { SchemaStandardField, StandardComponent, StandardField } from "./baseClasses"
+import { StandardComponent, StandardField } from "./baseClasses"
 
 const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return children.sort(({ data: dataA }, { data: dataB }): number => {

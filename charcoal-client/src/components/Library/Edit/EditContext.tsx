@@ -1,14 +1,16 @@
 import React, { FunctionComponent, useContext } from "react"
-import { SchemaStandardField } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
+import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 
 type EditContextType = {
-    field: SchemaStandardField;
+    field: GenericTreeNode<SchemaTag, TreeId>;
     parentId: string;
     tag: 'Name' | 'Description' | 'Statement' | 'Fallthrough' | 'If'
 }
 
 const EditContext = React.createContext<EditContextType>({
-    field: { id: '', value: [] },
+    field: { data: { tag: 'Name' }, id: '', children: [] },
     parentId: '',
     tag: 'Name'
 })

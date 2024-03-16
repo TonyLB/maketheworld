@@ -116,8 +116,8 @@ type IfElseTreeProps = {
 export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
     const { field } = useEditContext()
     const { updateSchema } = useLibraryAsset()
-    const firstStatement = useMemo(() => (field.value[0]), [field])
-    const otherStatements = useMemo(() => (field.value.slice(1)), [field])
+    const firstStatement = useMemo(() => (field.children[0]), [field])
+    const otherStatements = useMemo(() => (field.children.slice(1)), [field])
     const addElseIf = useCallback((afterId: string) => (
         <AddItemButton
             key="elseIf"
@@ -128,10 +128,10 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
         />), [field, firstStatement, updateSchema])
     const addElse = useMemo(() => (<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: field.id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />), [field, otherStatements, updateSchema])
     if (
-        !(isSchemaCondition(field.value[0].data)) ||
-        field.value[0].children.length === 0 ||
-        !isSchemaConditionStatement(field.value[0].children[0].data) ||
-        Boolean(field.value[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
+        !(isSchemaCondition(field.data)) ||
+        field.children.length === 0 ||
+        !isSchemaConditionStatement(field.children[0].data) ||
+        Boolean(field.children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
     ) {
         throw new Error('Invalid arguments in IfElseTree')
     }
@@ -154,7 +154,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                 ...(otherStatements.length === 0 ? [addElse] : [])
             ]}
         >
-            <EditSchema tag="Statement" field={{ id: firstStatement.id, value: firstStatement.children }} parentId={field.id}>
+            <EditSchema tag="Statement" field={firstStatement} parentId={field.id}>
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -172,7 +172,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
                         ]}
                     >
-                        <EditSchema tag="Statement" field={{ value: children, id }} parentId={field.id}>
+                        <EditSchema tag="Statement" field={{ data, children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -184,7 +184,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[]}
                     >
-                        <EditSchema tag="Fallthrough" field={{ value: children, id }} parentId={field.id}>
+                        <EditSchema tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>

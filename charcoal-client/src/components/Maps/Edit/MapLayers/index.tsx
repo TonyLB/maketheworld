@@ -218,7 +218,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 
 const MapStubRender: FunctionComponent<{}> = () => {
     const { field } = useEditContext()
-    return <React.Fragment>{ field.value.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>
+    return <React.Fragment>{ field.children.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>
 }
 
 //
@@ -243,7 +243,10 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
-            return <EditSchema tag="If" field={{ value: item.children as any, id: item.id }} parentId={item.id}>
+            //
+            // TODO: Get correct parentId
+            //
+            return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
                     render={() => (<MapStubRender />)}
                 />
