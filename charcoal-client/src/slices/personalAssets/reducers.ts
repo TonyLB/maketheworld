@@ -10,6 +10,7 @@ import { map } from '@tonylb/mtw-wml/dist/tree/map'
 import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -66,9 +67,9 @@ type UpdateSchemaPayloadDelete = {
 
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
-export const deriveWorkingSchema = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): PersonalAssetsPublic["schema"] => {
+export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
-    const standardized = standardizeSchema(
+    const standardizer = new Standardizer(
         ...Object.values(importData)
             .map(markInherited)
             .map((tree) => (
@@ -79,7 +80,7 @@ export const deriveWorkingSchema = ({ baseSchema, importData={} }: { baseSchema:
             .filter((tree) => (tree.length)),
         baseSchema
     )
-    return maybeGenericIDFromTree(standardized)
+    return standardizer
 }
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
@@ -183,7 +184,9 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             break
     }
     const normalizer = new Normalizer()
-    state.schema = deriveWorkingSchema(state)
+    const standarizer = deriveWorkingStandardizer(state)
+    state.standard = standarizer._byId
+    state.schema = standarizer.schema
     normalizer.loadSchema(state.schema)
     state.normal = normalizer.normal
 }
