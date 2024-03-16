@@ -184,7 +184,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         }
     }, [field, updateSchema])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: field.value,
+        tree: field.children,
         typeGuard: isSchemaOutputTag
     })), [field])
     const defaultValue = useMemo(() => {
@@ -195,12 +195,12 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(field.value)
+        comparisonOutput: descendantsToRender(field.children)
     })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender(field.value)((value || []).filter(isCustomBlock))
+        const newRender = descendantsToRender(field.children)((value || []).filter(isCustomBlock))
         onChange(maybeGenericIDFromTree(newRender))
     }, [onChange, value, field])
 

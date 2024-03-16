@@ -1,14 +1,14 @@
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaOutputTag, isSchemaRoom, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { schemaOutputToString } from "../schema/utils/schemaOutput/schemaOutputToString"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, GenericTreeNode, TreeId } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
-import { SchemaStandardField, StandardComponent, StandardField } from "./baseClasses"
+import { StandardComponent, StandardField } from "./baseClasses"
 
 const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return children.sort(({ data: dataA }, { data: dataB }): number => {
@@ -32,39 +32,43 @@ const stripProperties = (tag: SchemaTag): SchemaTag => {
     return returnValue
 }
 
-const outputNodeToStandardItem = (node: GenericTreeNode<SchemaTag, TreeId> | undefined): SchemaStandardField => (
-    node
-        ? { id: node.id, value: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
-        : { id: '', value: [] }
-)
+const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
+    node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
+    typeGuard: (value: SchemaTag) => value is ChildType,
+    defaultValue: T
+): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
+    return node
+        ? { ...node, children: treeTypeGuard({ tree: node.children, typeGuard }) }
+        : { data: defaultValue, id: '', children: [] }
+}
 
 const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>): StandardComponent | undefined => {
     if (isSchemaRoom(data)) {
-        const shortNameItem = children.find(({ data }) => (data.tag === 'ShortName'))
-        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
-        const summaryItem = children.find(({ data }) => (data.tag === 'Summary'))
-        const descriptionItem = children.find(({ data }) => (data.tag === 'Description'))
+        const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
+        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
+        const summaryItem = children.find(treeNodeTypeguard(isSchemaSummary))
+        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
         const exitTagTree = new SchemaTagTree(children).filter({ match: 'Exit' })
         return {
             tag: 'Room',
             key: data.key,
             id,
-            shortName: outputNodeToStandardItem(shortNameItem),
-            name: outputNodeToStandardItem(nameItem),
-            summary: outputNodeToStandardItem(summaryItem),
-            description: outputNodeToStandardItem(descriptionItem),
+            shortName: outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaOutputTag, { tag: 'ShortName' }),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
+            summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaOutputTag, { tag: 'Summary' }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
             exits: maybeGenericIDFromTree(exitTagTree.tree)
         }
     }
     if (isSchemaFeature(data) || isSchemaKnowledge(data)) {
-        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
-        const descriptionItem = children.find(({ data }) => (data.tag === 'Description'))
+        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
+        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
         return {
             tag: data.tag,
             key: data.key,
             id,
-            name: outputNodeToStandardItem(nameItem),
-            description: outputNodeToStandardItem(descriptionItem)
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
         }
     }
     if (isSchemaBookmark(data)) {
@@ -72,7 +76,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: data.tag,
             key: data.key,
             id,
-            description: outputNodeToStandardItem({ data, children, id })
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' })
         }
     }
     if (isSchemaMessage(data)) {
@@ -81,7 +85,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: data.tag,
             key: data.key,
             id,
-            description: outputNodeToStandardItem({ data, children, id }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' }),
             rooms: maybeGenericIDFromTree(roomsTagTree.tree)
         }
     }
@@ -97,12 +101,12 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     if (isSchemaMap(data)) {
         const positionsTagTree = new SchemaTagTree(children).filter({ match: 'Position' })
         const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
-        const nameItem = children.find(({ data }) => (data.tag === 'Name'))
+        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         return {
             tag: 'Map',
             key: data.key,
             id,
-            name: outputNodeToStandardItem(nameItem),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             images: maybeGenericIDFromTree(imagesTagTree.tree),
             positions: maybeGenericIDFromTree(positionsTagTree.tree)
         }
@@ -126,8 +130,8 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     return undefined
 }
 
-const standardFieldToOutputNode = (tag: 'ShortName' | 'Name' | 'Summary' | 'Description', field: SchemaStandardField): GenericTree<SchemaTag, TreeId> => (
-    field.id ? [{ data: { tag }, id: field.id, children: field.value }] : []
+const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => (
+    field.id ? [field] : []
 )
 
 const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag, TreeId> => {
@@ -137,10 +141,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Room', key: item.key },
                 id: item.id,
                 children: [
-                    ...standardFieldToOutputNode('ShortName', item.shortName),
-                    ...standardFieldToOutputNode('Name', item.name),
-                    ...standardFieldToOutputNode('Summary', item.summary),
-                    ...standardFieldToOutputNode('Description', item.description),
+                    ...[item.shortName, item.name, item.summary, item.description].map(standardFieldToOutputNode).flat(1),
                     ...item.exits
                 ]
             }
@@ -149,16 +150,13 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
             return {
                 data: { tag: item.tag, key: item.key },
                 id: item.id,
-                children: [
-                    ...standardFieldToOutputNode('Name', item.name),
-                    ...standardFieldToOutputNode('Description', item.description)
-                ]
+                children: [item.name, item.description].map(standardFieldToOutputNode).flat(1)
             }
         case 'Bookmark':
             return {
                 data: { tag: 'Bookmark', key: item.key },
                 id: item.id,
-                children: item.description.value ?? []
+                children: standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1)
             }
         case 'Message':
             return {
@@ -166,7 +164,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 id: item.id,
                 children: [
                     ...item.rooms,
-                    ...item.description.value
+                    ...standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1)
                 ]
             }
         case 'Moment':
@@ -180,7 +178,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Map', key: item.key },
                 id: item.id,
                 children: [
-                    ...standardFieldToOutputNode('Name', item.name),
+                    ...standardFieldToOutputNode(item.name),
                     ...item.images,
                     ...item.positions
                 ]
