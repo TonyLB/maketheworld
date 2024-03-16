@@ -48,7 +48,6 @@ import { useEditContext } from '../EditContext'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
-    onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
     placeholder?: string;
 }
 
@@ -156,22 +155,38 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder }) => {
-    const { schema, updateSchema } = useEditContext()
-    const { normalForm, readonly } = useLibraryAsset()
-    const onChange = (newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        updateSchema({
-            type: 'replace',
-            id: schema[0].id,
-            item: {
-                ...schema[0],
-                children: newRender
+    const { field, parentId, tag } = useEditContext()
+    const { normalForm, readonly, updateSchema } = useLibraryAsset()
+    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
+        if (field.id) {
+            if (newRender.length) {
+                updateSchema({
+                    type: 'replaceChildren',
+                    id: field.id,
+                    children: newRender
+                })
             }
-        })
-    }
+            else {
+                updateSchema({
+                    type: 'delete',
+                    id: field.id
+                })
+            }
+        }
+        else {
+            if (tag !== 'Statement') {
+                updateSchema({
+                    type: 'addChild',
+                    id: parentId,
+                    item: { data: { tag }, children: newRender }
+                })
+            }
+        }
+    }, [field, updateSchema])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: schema[0]?.children ?? [],
+        tree: field.value,
         typeGuard: isSchemaOutputTag
-    })), [schema])
+    })), [field])
     const defaultValue = useMemo(() => {
         const returnValue = descendantsFromRender(output, { normal: normalForm })
         return returnValue
@@ -180,14 +195,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(schema)
+        comparisonOutput: descendantsToRender(field.value)
     })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender(schema)((value || []).filter(isCustomBlock))
+        const newRender = descendantsToRender(field.value)((value || []).filter(isCustomBlock))
         onChange(maybeGenericIDFromTree(newRender))
-    }, [onChange, value, schema])
+    }, [onChange, value, field])
 
     const onChangeHandler = useCallback((value: Descendant[]) => {
         setValue(value)

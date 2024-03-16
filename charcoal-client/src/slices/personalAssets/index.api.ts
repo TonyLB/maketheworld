@@ -13,7 +13,7 @@ import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
-import { deriveWorkingSchema } from './reducers'
+import { deriveWorkingStandardizer } from './reducers'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -54,7 +54,8 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         }
     }
     const baseSchema = schemaConverter.schema
-    const schema = deriveWorkingSchema({ ...publicData, baseSchema })
+    const standardizer = deriveWorkingStandardizer({ ...publicData, baseSchema })
+    const schema = standardizer.schema
     const normalizer = new Normalizer()
     normalizer.loadSchema(schema)
     const normal = normalizer.normal
@@ -64,6 +65,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             currentWML: assetWML,
             normal,
             baseSchema,
+            standard: standardizer._byId,
             schema,
             serialized: true
         }
