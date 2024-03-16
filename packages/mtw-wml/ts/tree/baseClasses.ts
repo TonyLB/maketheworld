@@ -46,3 +46,5 @@ export type TreeCallbackNode<Callback extends TreeCallback<any>> =
         : Parameters<Callback> extends [infer A extends {}]
             ? GenericTreeNode<A>
             : never
+
+export const treeNodeTypeguard = <TreeType extends {}, SubType extends TreeType, Extra extends {}={}>(typeGuard: (value: TreeType) => value is SubType) => (node: GenericTreeNode<TreeType, Extra>): node is GenericTreeNodeFiltered<SubType, TreeType, Extra> => (typeGuard(node.data))

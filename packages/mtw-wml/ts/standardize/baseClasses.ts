@@ -1,5 +1,5 @@
-import { SchemaOutputTag, SchemaTag } from "../schema/baseClasses";
-import { GenericTree, TreeId } from "../tree/baseClasses";
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
+import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
     key: string;
@@ -15,40 +15,40 @@ export type SchemaStandardField = StandardField<GenericTree<SchemaOutputTag, Tre
 
 export type StandardRoom = {
     tag: 'Room';
-    shortName: SchemaStandardField;
-    name: SchemaStandardField;
-    summary: SchemaStandardField;
-    description: SchemaStandardField;
+    shortName: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag, TreeId>;
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag, TreeId>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     exits: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardFeature = {
     tag: 'Feature';
-    name: SchemaStandardField;
-    description: SchemaStandardField;
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardKnowledge = {
     tag: 'Knowledge';
-    name: SchemaStandardField;
-    description: SchemaStandardField;
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardBookmark = {
     tag: 'Bookmark';
-    description: SchemaStandardField;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardMap = {
     tag: 'Map';
-    name: SchemaStandardField;
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
     images: GenericTree<SchemaTag, TreeId>;
     positions: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardMessage = {
     tag: 'Message';
-    description: SchemaStandardField;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
