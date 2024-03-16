@@ -22,9 +22,11 @@ import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../b
 import IfElseTree from '../IfElseTree'
 import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
 import { EditSchema, useEditContext } from '../EditContext'
+import { useLibraryAsset } from '../LibraryAsset'
 
 export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
-    const { schema, updateSchema } = useEditContext()
+    const { field } = useEditContext()
+    const { updateSchema, schema } = useLibraryAsset()
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -66,14 +68,14 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
             </SlateIndentBox>
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
-                <EditSchema schema={[{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }]} updateSchema={updateSchema}>
+                <EditSchema tag="If" field={{ value: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }} parentId="">
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>
         case 'ifWrapper':
             const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
-                <EditSchema schema={[nodeById]} updateSchema={updateSchema}>
+                <EditSchema tag="If" field={field} parentId="">
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>

@@ -41,6 +41,12 @@ type UpdateSchemaPayloadReplace = {
     item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
+type UpdateSchemaPayloadReplaceChildren = {
+    type: 'replaceChildren';
+    id: string;
+    children: GenericTree<SchemaTag, Partial<TreeId>>
+}
+
 type UpdateSchemaPayloadUpdateNode = {
     type: 'updateNode';
     id: string;
@@ -65,7 +71,7 @@ type UpdateSchemaPayloadDelete = {
     id: string;
 }
 
-export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
+export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadReplaceChildren | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -113,6 +119,17 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 }
             })
             state.baseSchema = replacedSchema
+            break
+        case 'replaceChildren':
+            const replaceChildrenSchema = map(schema, (node) => {
+                if (node.id === payload.id) {
+                    return { ...node, children: maybeGenericIDFromTree(payload.children) }
+                }
+                else {
+                    return node
+                }
+            })
+            state.baseSchema = replaceChildrenSchema
             break
         case 'updateNode':
             const updatedSchema = map(schema, ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>) => ([{

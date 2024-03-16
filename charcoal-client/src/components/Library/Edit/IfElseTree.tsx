@@ -9,10 +9,7 @@ import AddIcon from '@mui/icons-material/Add'
 import ExitIcon from '@mui/icons-material/CallMade'
 
 import { useLibraryAsset } from "./LibraryAsset"
-import { Button, Stack } from "@mui/material"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { deepEqual } from "../../../lib/objects"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
@@ -117,26 +114,24 @@ type IfElseTreeProps = {
 // and renders the statements and fallthrough of its children
 //
 export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
-    const { schema } = useEditContext()
+    const { field } = useEditContext()
     const { updateSchema } = useLibraryAsset()
-    const schemaZero = useMemo(() => (schema[0]), [schema])
-    const firstStatement = useMemo(() => (schemaZero?.children?.[0]), [schemaZero])
-    const otherStatements = useMemo(() => ((schemaZero?.children ?? []).slice(1)), [schemaZero])
+    const firstStatement = useMemo(() => (field.value[0]), [field])
+    const otherStatements = useMemo(() => (field.value.slice(1)), [field])
     const addElseIf = useCallback((afterId: string) => (
         <AddItemButton
             key="elseIf"
             addItemIcon={<React.Fragment>elseIf</React.Fragment>}
             onClick={() => {
-                updateSchema({ type: 'addChild', id: schemaZero.id, afterId, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }]
+                updateSchema({ type: 'addChild', id: field.id, afterId, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }]
             } })}}
-        />), [schemaZero, firstStatement, updateSchema])
-    const addElse = useMemo(() => (<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: schemaZero.id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />), [schemaZero, otherStatements, updateSchema])
+        />), [field, firstStatement, updateSchema])
+    const addElse = useMemo(() => (<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: field.id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />), [field, otherStatements, updateSchema])
     if (
-        schema.length !== 1 ||
-        !(isSchemaCondition(schema[0].data)) ||
-        schema[0].children.length === 0 ||
-        !isSchemaConditionStatement(schema[0].children[0].data) ||
-        Boolean(schema[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
+        !(isSchemaCondition(field.value[0].data)) ||
+        field.value[0].children.length === 0 ||
+        !isSchemaConditionStatement(field.value[0].children[0].data) ||
+        Boolean(field.value[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
     ) {
         throw new Error('Invalid arguments in IfElseTree')
     }
@@ -159,7 +154,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                 ...(otherStatements.length === 0 ? [addElse] : [])
             ]}
         >
-            <EditSchema schema={[firstStatement]} updateSchema={updateSchema}>
+            <EditSchema tag="Statement" field={{ id: firstStatement.id, value: firstStatement.children }} parentId={field.id}>
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -177,7 +172,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
                         ]}
                     >
-                        <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
+                        <EditSchema tag="Statement" field={{ value: children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -189,7 +184,7 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[]}
                     >
-                        <EditSchema schema={[{ data, children, id }]} updateSchema={updateSchema}>
+                        <EditSchema tag="Fallthrough" field={{ value: children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>

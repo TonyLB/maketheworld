@@ -1,23 +1,20 @@
 import React, { FunctionComponent, useContext } from "react"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
+import { SchemaStandardField } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
 type EditContextType = {
-    schema: GenericTree<SchemaTag, TreeId>;
-    updateSchema: (action: UpdateSchemaPayload) => void;
+    field: SchemaStandardField;
+    parentId: string;
+    tag: 'Name' | 'Description' | 'Statement' | 'Fallthrough' | 'If'
 }
 
 const EditContext = React.createContext<EditContextType>({
-    schema: [],
-    updateSchema: () => {}
+    field: { id: '', value: [] },
+    parentId: '',
+    tag: 'Name'
 })
 
-export const EditSchema: FunctionComponent<EditContextType> = ({ schema, updateSchema, children }) => {
-    return <EditContext.Provider value={({
-        schema, 
-        updateSchema
-    })}>
+export const EditSchema: FunctionComponent<EditContextType> = ({ field, parentId, tag, children }) => {
+    return <EditContext.Provider value={{ field, parentId, tag }}>
         { children }
     </EditContext.Provider>
 }

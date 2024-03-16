@@ -119,13 +119,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
-        <EditSchema schema={nameOutput ? [{ data: { tag: 'Name' }, children: nameOutput, id: component.name.id }] : [{ data: { tag: 'Name' }, children: [], id: 'STUB' }]} updateSchema={onChangeName}>
+        <EditSchema tag="Name" field={component ? component.name : { value: [], id: '' }} parentId={component?.id ?? ''}>
             <DescriptionEditor
                 validLinkTags={[]}
                 placeholder="Enter a name"
             />
         </EditSchema>
-        <EditSchema schema={descriptionOutput ? [{ data: { tag: 'Description' }, children: descriptionOutput, id: component.description.id }] : [{ data: { tag: 'Description' }, children: [], id: 'STUB' }]} updateSchema={onChangeDescription}>
+        <EditSchema tag="Description" field={component ? component.description : { value: [], id: '' } } parentId={component?.id ?? ''}>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
