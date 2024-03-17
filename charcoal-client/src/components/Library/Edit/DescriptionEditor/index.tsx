@@ -49,6 +49,7 @@ import { useEditContext } from '../EditContext'
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     placeholder?: string;
+    toolbar?: boolean;
 }
 
 const withInlines = (editor: Editor) => {
@@ -154,7 +155,7 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
     </Button>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder }) => {
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder, toolbar=true }) => {
     const { field, parentId, tag } = useEditContext()
     const { normalForm, readonly, updateSchema } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
@@ -228,18 +229,19 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
-            <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                { (validLinkTags.length &&
-                    <React.Fragment>
-                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                        <RemoveLinkButton />
-                    </React.Fragment>) || null
-                }
-                <AddIfButton forceOnChange={(value: Descendant[]) => {
-                    setValue(value)
-                    saveToReduce(value)
-                }} />
-            </Toolbar>
+            { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                    { (validLinkTags.length &&
+                        <React.Fragment>
+                            <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                            <RemoveLinkButton />
+                        </React.Fragment>) || null
+                    }
+                    <AddIfButton forceOnChange={(value: Descendant[]) => {
+                        setValue(value)
+                        saveToReduce(value)
+                    }} />
+                </Toolbar>
+            }
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
                     renderElement={renderElement}

@@ -6,7 +6,7 @@ import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 type EditContextType = {
     field: GenericTreeNode<SchemaTag, TreeId>;
     parentId: string;
-    tag: 'Name' | 'Description' | 'Statement' | 'Fallthrough' | 'If'
+    tag: 'ShortName' | 'Name' | 'Description' | 'Statement' | 'Fallthrough' | 'If'
 }
 
 const EditContext = React.createContext<EditContextType>({
