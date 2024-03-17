@@ -2,7 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { SchemaTag, isSchemaAsset, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -89,19 +89,23 @@ export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseS
     return standardizer
 }
 
+export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: SchemaWithKey["tag"] }): string => {
+    const keysByTag = selectKeysByTag(tag)(schema)
+    let nextIndex = 1
+    while (keysByTag.includes(`${tag}${nextIndex}`)) { nextIndex++ }
+    return `${tag}${nextIndex}`
+}
+
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
     const { payload } = action
     const addKeyIfNeeded = (node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SchemaTag, TreeId> => {
         const { data } = node
         if (isSchemaWithKey(data) && !data.key)  {
-            const keysByTag = selectKeysByTag(data.tag)(schema)
-            let nextIndex = 1
-            while (keysByTag.includes(`${data.tag}${nextIndex}`)) { nextIndex++ }
             return {
                 ...node,
                 data: {
                     ...data,
-                    key: `${data.tag}${nextIndex}`
+                    key: nextSyntheticKey({ schema, tag: data.tag })
                 },
             }
         }

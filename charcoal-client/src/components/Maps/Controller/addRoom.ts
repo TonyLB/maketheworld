@@ -1,4 +1,4 @@
-import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
+import { UpdateSchemaPayload, nextSyntheticKey } from "../../../slices/personalAssets/reducers"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaCondition, isSchemaMap } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import dfsWalk from "@tonylb/mtw-wml/dist/tree/dfsWalk"
@@ -15,12 +15,22 @@ export const addRoomFactory = ({ mapId, schema, updateSchema }: { mapId: string;
         nest: ({ state, data }) => ({ conditioned: state.conditioned || isSchemaCondition(data) }),
         unNest: ({ previous }) => (previous)
     })(schema)
+    const assetNodeId = schema[0].id
+    const defaultedRoomId = roomId || nextSyntheticKey({ schema, tag: 'Room' })
     if (mapNodeId) {
+        updateSchema({
+            type: 'addChild',
+            id: assetNodeId,
+            item: {
+                data: { tag: 'Room', key: defaultedRoomId },
+                children: []
+            }
+        })
         updateSchema({
             type: 'addChild',
             id: mapNodeId,
             item: {
-                data: { tag: 'Room', key: roomId ?? '' },
+                data: { tag: 'Room', key: defaultedRoomId },
                 children: [{ data: { tag: 'Position', x, y }, children: [] }]
             }
         })

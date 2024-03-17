@@ -18,6 +18,7 @@ import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysBy
 import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
+import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
 // //
 // // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -164,7 +165,7 @@ const MapContext = React.createContext<MapContextType>({
 export const useMapContext = () => (useContext(MapContext))
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { schema, updateSchema } = useLibraryAsset()
+    const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
@@ -208,7 +209,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .tree
         const combinedTree = new SchemaTagTree([...positions, ...roomNames, ...exits]).tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
-    }, [schema, mapId])
+    }, [schema, standardForm, mapId])
 
     //
     // Make local data and setters for exit decorator source and drag location.
@@ -226,13 +227,14 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const name = selectName(children)
+            const roomComponent = standardForm[data.key]
+            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) : data.key
             return children.reduce(extractRoomsHelper(data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
                     ...previousItem,
                     roomId: data.key,
-                    name: schemaOutputToString(name),
+                    name
                 }
             ])
         }
@@ -381,7 +383,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             {
                 data,
                 children: [
-                    { data: { tag: 'Name'  }, children: name },
+                    { data: { tag: 'ShortName'  }, children: name },
                     ...(data.tag === 'Room' ? [{ data: { tag: 'Position', x: data.x, y: data.y }, children: [] }] : []),
                     ...children
                 ]
@@ -401,17 +403,17 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
         return setLocalPositions(tree
-                .map(({ data }) => (data))
-                .filter(isMapTreeRoomWithPosition)
-                .map((room) => ({
-                    id: '',
-                    roomId: room.key,
-                    x: 0,
-                    y: 0,
-                    key: room.key,
-                    name: taggedMessageToString(room.name as any),
-                    ...(xyByRoomId[room.key] || {})
-                }))
+            .map(({ data }) => (data))
+            .filter(isMapTreeRoomWithPosition)
+            .map((room) => ({
+                id: '',
+                roomId: room.key,
+                x: 0,
+                y: 0,
+                key: room.key,
+                name: taggedMessageToString(room.name as any),
+                ...(xyByRoomId[room.key] || {})
+            }))
         )
     }, [tree])
 
