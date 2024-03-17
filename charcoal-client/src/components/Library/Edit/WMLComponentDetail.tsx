@@ -19,8 +19,9 @@ import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { EditSchema } from './EditContext'
-import { isStandardFeature, isStandardKnowledge, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, updateSchema } = useLibraryAsset()
@@ -129,11 +130,22 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, normalForm, updateSchema, select } = useLibraryAsset()
+    const { assetKey, normalForm, updateSchema, select, standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
-    const componentName = useMemo(() => (select({ key: ComponentId, selector: selectNameAsString })), [select, ComponentId])
+    const componentName = useMemo(() => {
+        const component = standardForm[ComponentId]
+        if (component) {
+            if (isStandardRoom(component)) {
+                return schemaOutputToString(component.shortName.children)
+            }
+            else if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
+                return schemaOutputToString(component.name.children)
+            }
+        }
+        return ''
+    }, [standardForm, ComponentId])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
         label: componentName || 'Untitled',
