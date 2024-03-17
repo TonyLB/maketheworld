@@ -87,11 +87,21 @@ type EditExitProps = {
 }
 
 const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, addExit }) => {
-    const { readonly, updateSchema } = useLibraryAsset()
+    const { readonly, standardForm, updateSchema } = useLibraryAsset()
     const { data, children, id } = node
 
     const nameTree = useMemo(() => (treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), [children])
     const name = useMemo(() => (schemaOutputToString(nameTree)), [nameTree])
+    const targetName = useMemo(() => {
+        if (!data.to) {
+            return ''
+        }
+        const targetComponent = standardForm[data.to]
+        if (!(targetComponent && isStandardRoom(targetComponent))) {
+            return ''
+        }
+        return schemaOutputToString(targetComponent.shortName.children) ?? targetComponent.key
+    }, [data, standardForm])
     useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
     useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && data.from !== RoomId && name)})
     const targetElement = <ExitTargetSelector
@@ -127,6 +137,7 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
                 value={name}
                 onChange={(event) => { updateSchema({ type: 'replace', id, item: { data, id, children: [{ data: { tag: 'String', value: event.target.value }, children: [], id: nameTree[0]?.id }]} }) } }
                 disabled={readonly || inherited}
+                placeholder={targetName}
             />
         </Box>
         <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}>{ targetElement }</Box>
