@@ -75,7 +75,7 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
         case 'ifWrapper':
             const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
-                <EditSchema tag="If" field={field} parentId="">
+                <EditSchema tag="If" field={nodeById} parentId="">
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>
