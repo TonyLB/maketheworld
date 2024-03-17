@@ -7,35 +7,23 @@ import {
 
 import Box from '@mui/material/Box'
 import HomeIcon from '@mui/icons-material/Home'
-import { blue } from '@mui/material/colors'
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
-import { isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
-import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
-import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { explicitSpaces } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/explicitSpaces'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { EditSchema } from './EditContext'
-import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 import { isStandardFeature, isStandardKnowledge, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
 
-//
-// TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
-// format on the passed schema)
-//
-
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { standardForm } = useLibraryAsset()
+    const { standardForm, updateSchema } = useLibraryAsset()
     const component: StandardFeature | StandardKnowledge | StandardRoom = useMemo(() => {
         if (ComponentId) {
             const component = standardForm[ComponentId]
@@ -57,6 +45,38 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
+    const onChangeShortName = useCallback((event: any) => {
+        if (isStandardRoom(component)) {
+            const newValue = event.target.value
+            if (newValue) {
+                if (component.shortName.id) {
+                    updateSchema({
+                        type: 'replaceChildren',
+                        id: component.shortName.id,
+                        children: [{ data: { tag: 'String', value: newValue }, children: [] }]
+                    })
+                }
+                else {
+                    updateSchema({
+                        type: 'addChild',
+                        id: component.id,
+                        item: {
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: newValue }, children: [] }]
+                        }
+                    })
+                }
+            }
+            else {
+                if (component.shortName.id) {
+                    updateSchema({
+                        type: 'delete',
+                        id: component.shortName.id
+                    })
+                }
+            }
+        }
+    }, [component, updateSchema])
 
     if (!component.id) {
         return <Box />
@@ -70,6 +90,17 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
+        {
+            (isStandardRoom(component)) && <EditSchema tag="ShortName" field={component ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                <TitledBox title="Short Name">
+                    <DescriptionEditor
+                        validLinkTags={[]}
+                        placeholder="Enter a short name"
+                        toolbar={false}
+                    />
+                </TitledBox>
+            </EditSchema>
+        }
         <EditSchema tag="Name" field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
