@@ -24,6 +24,7 @@ import { select } from "slate"
 import { updateSchema } from "../../../../slices/personalAssets"
 import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { selectItemsByKey } from "@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey"
+import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -31,14 +32,20 @@ type RoomExitEditorProps = {
 }
 
 const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
-    const { readonly, select } = useLibraryAsset()
-    const roomKeys = select({ selector: selectKeysByTag('Room') })
+    const { readonly, standardForm } = useLibraryAsset()
+    const roomKeys = Object.values(standardForm).filter(isStandardRoom).map(({ key }) => (key))
     const roomNamesInScope: Record<string, string> = Object.assign({},
         ...roomKeys
-            .filter((key) => (key !== RoomId))
-            .map((key) => ({
-                [key]: schemaOutputToString(select({ key, selector: selectName }))
-            }))
+            .map((key) => {
+                if (key === RoomId) {
+                    return []
+                }
+                const component = standardForm[key]
+                if (!(component && isStandardRoom(component))) {
+                    return []
+                }
+                return [{ [key]: schemaOutputToString(component.shortName.children) || key }]
+            }).flat(1)
     )
     const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
         if (!readonly) {
@@ -92,8 +99,7 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
         RoomId={data.from}
         inherited={inherited}
         onChange={(event) => {
-            updateSchema({ type: 'delete', id })
-            addExit({ from: data.from, to: event.target.value, name })
+            updateSchema({ type: 'replace', id, item: { data: { tag: 'Exit', key: `${RoomId}:${event.target.value}`, from: RoomId, to: event.target.value }, children: nameTree, id } })
         }}
     />
     return <Box
