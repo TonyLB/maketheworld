@@ -24,6 +24,8 @@ import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectItemsByKey } from '@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
 type MapLayersProps = {
     mapId: string;
@@ -40,45 +42,36 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const { inheritedInvisible } = useMapLayersContext()
-    const { updateSchema, select } = useLibraryAsset()
+    const { standardForm, updateSchema } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
-        if (value !== name ?? roomId) {
-            const roomNodes = select({ selector: selectItemsByKey(roomId) })
-            if (roomNodes.length) {
-                const tagTree = new SchemaTagTree(roomNodes)
-                const nameTree = tagTree
-                    .filter({ match: 'Name' })
-                    .prune({ not: { match: 'Name' } })
-                    .tree
-                const nameId = nameTree?.[0]?.id
-                if (nameId) {
-                    updateSchema({
-                        type: 'replace',
-                        id: nameId,
-                        item: {
-                            data: { tag: 'Name' },
-                            id: nameId,
-                            children: [{ data: { tag: 'String', value }, children: [] }]
-                        }
-                    })
-                }
-                else {
-                    updateSchema({
-                        type: 'addChild',
-                        id: roomNodes[0].id,
-                        item: {
-                            data: { tag: 'Name' },
-                            children: [{ data: { tag: 'String', value }, children: [] }]
-                        }
-                    })
-                }
+        const roomComponent = standardForm[roomId]
+        if (!(roomComponent && isStandardRoom(roomComponent))) {
+            return
+        }
+        if (value !== schemaOutputToString(roomComponent.shortName.children) ?? roomId) {
+            if (roomComponent.shortName.id) {
+                updateSchema({
+                    type: 'replaceChildren',
+                    id: roomComponent.shortName.id,
+                    children: [{ data: { tag: 'String', value }, children: [] }]
+                })
+            }
+            else {
+                updateSchema({
+                    type: 'addChild',
+                    id: roomComponent.id,
+                    item: {
+                        data: { tag: 'ShortName' },
+                        children: [{ data: { tag: 'String', value }, children: [] }]
+                    }
+                })
             }
         }
-    }, [select, updateSchema, roomId, name])
+    }, [standardForm, updateSchema, roomId, name])
     return <React.Fragment>
         <ListItemButton
             dense
@@ -232,10 +225,12 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // and use that where IfElseTree is used in Map component
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
+    const { standardForm } = useLibraryAsset()
     const { data, children } = item
     switch(data.tag) {
         case 'Room':
-            return <RoomLayer roomId={data.key} name={selectNameAsString(children) || data.key}>
+            const roomComponent = standardForm[data.key]
+            return <RoomLayer roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) || data.key : data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':
