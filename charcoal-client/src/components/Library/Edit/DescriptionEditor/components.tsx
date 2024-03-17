@@ -68,7 +68,7 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
             </SlateIndentBox>
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
-                <EditSchema tag="If" field={{ data: { tag: 'Statement', if: '' }, children: [], id: '' }} parentId="">
+                <EditSchema tag="If" field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }} parentId="">
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>

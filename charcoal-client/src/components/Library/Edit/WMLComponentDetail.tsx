@@ -110,6 +110,16 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 />
             </TitledBox>
         </EditSchema>
+        {
+            isStandardRoom(component) && <EditSchema tag="Summary" field={component ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                <TitledBox title="Summary">
+                    <DescriptionEditor
+                        validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
+                        placeholder="Enter a summary"
+                    />
+                </TitledBox>
+            </EditSchema>
+        }
         <EditSchema tag="Description" field={component ? component.description : { data: { tag: 'Description' }, children: [], id: '' } } parentId={component?.id ?? ''}>
             <TitledBox>
                 <DescriptionEditor
