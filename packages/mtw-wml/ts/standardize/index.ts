@@ -1,12 +1,13 @@
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
+import { map } from "../tree/map"
 import { StandardComponent, StandardField, StandardForm } from "./baseClasses"
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
@@ -351,5 +352,32 @@ export class Standardizer {
 
     get standardForm(): StandardForm {
         return this._byId
+    }
+
+    assignDependencies(extract: (src: string) => string[]) {
+        const assignedSchema = 
+            map(this.schema, (node: GenericTreeNode<SchemaTag, TreeId>): GenericTree<SchemaTag,TreeId> => {
+                if (isSchemaConditionStatement(node.data)) {
+                    return [{
+                        ...node,
+                        data: {
+                            ...node.data,
+                            dependencies: extract(node.data.if)
+                        }
+                    }]
+                }
+                if (isSchemaComputed(node.data)) {
+                    return [{
+                        ...node,
+                        data: {
+                            ...node.data,
+                            dependencies: extract(node.data.src),
+                        }
+                    }]
+                }
+                return [node]
+            })
+        const assignedStandardizer = new Standardizer(assignedSchema)
+        this.loadStandardForm(assignedStandardizer.standardForm)
     }
 }

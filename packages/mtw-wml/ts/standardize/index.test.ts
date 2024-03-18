@@ -526,4 +526,43 @@ describe('standardizeSchema', () => {
     //         }]
     //     }])
     // })
+
+    it('should assign dependencies correctly', () => {
+        const extract = () => ['Test']
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Unconditioned<If {testVar}>Conditioned</If></Name>
+                </Room>
+                <Variable key=(testVar) default={true} />
+            </Asset>
+        `)
+        const test = schemaTestStandarized(testSource)
+        test.assignDependencies(extract)
+        expect(test.standardForm.testRoomOne).toEqual({
+            tag: 'Room',
+            key: 'testRoomOne',
+            id: expect.any(String),
+            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+            name: {
+                data: { tag: 'Name' },
+                id: expect.any(String),
+                children: [
+                    { data: { tag: 'String', value: 'Unconditioned' }, id: expect.any(String), children: [] },
+                    {
+                        data: { tag: 'If' },
+                        id: expect.any(String),
+                        children: [{
+                            data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'] },
+                            id: expect.any(String),
+                            children: [{ data: { tag: 'String', value: 'Conditioned' }, id: expect.any(String), children: [] }]
+                        }]
+                    }
+                ]
+            },
+            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            description: { data: { tag: 'Description' }, id: '', children: [] },
+            exits: []
+        })
+    })
 })
