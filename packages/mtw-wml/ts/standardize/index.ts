@@ -2,35 +2,12 @@ import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
-import { schemaOutputToString } from "../schema/utils/schemaOutput/schemaOutputToString"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
-import { StandardComponent, StandardField } from "./baseClasses"
-
-const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
-    return children.sort(({ data: dataA }, { data: dataB }): number => {
-        const orderLookupA = order.findIndex((tag) => (tag === dataA.tag))
-        const orderLookupB = order.findIndex((tag) => (tag === dataB.tag))
-        if (orderLookupA === -1) {
-            return orderLookupB === -1 ? 0 : 1
-        }
-        return orderLookupB === -1 ? -1 : orderLookupA - orderLookupB
-    })
-}
-
-const stripProperties = (tag: SchemaTag): SchemaTag => {
-    let returnValue = tag
-    const propertiesToStrip = ['x', 'y', 'from', 'as']
-    propertiesToStrip.forEach((property) => {
-        if (property in returnValue) {
-            returnValue = { ...returnValue, [property]: undefined }
-        }
-    })
-    return returnValue
-}
+import { StandardComponent, StandardField, StandardForm } from "./baseClasses"
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
@@ -202,7 +179,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
 export class Standardizer {
     _assetKey: string;
     _assetId: string;
-    _byId: Record<string, StandardComponent>;
+    _byId: StandardForm;
     _imports: Record<string, StandardField<GenericTree<SchemaTag, TreeId>>>;
     _exports: GenericTree<SchemaTag, TreeId>;
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
@@ -366,5 +343,13 @@ export class Standardizer {
             children,
             id: this._assetId
         }]
+    }
+
+    loadStandardForm(standard: StandardForm): void {
+        this._byId = standard
+    }
+
+    get standardForm(): StandardForm {
+        return this._byId
     }
 }

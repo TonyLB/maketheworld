@@ -95,3 +95,5 @@ export const isStandardBookmark = isStandardFactory<StandardBookmark>("Bookmark"
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
+
+export type StandardForm = Record<string, StandardComponent>
