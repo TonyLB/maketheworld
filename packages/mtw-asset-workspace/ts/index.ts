@@ -35,17 +35,13 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.standard = standardizer.standardForm
 
         if (this._workspaceFromKey) {
-            await Promise.all(Object.values(standardizer._imports)
-                .map(async ({ value }) => {
-                    const node = value[0]
-                    if (!isSchemaImport(node.data)) {
-                        return
-                    }
-                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${node.data.from}`)
+            await Promise.all(Object.entries(standardizer._imports)
+                .map(async ([importFrom, { value }]) => {
+                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${importFrom}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
                         const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
-                        node.children
+                        value
                             .map(({ data }) => (data))
                             .filter(isImportable)
                             .forEach(({ key, from }) => {
@@ -64,11 +60,12 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         //
         // TODO (ISS-3603): Refactor namespaceIdToDB mapping to derive from standard rather than normal
         //
-        Object.values(this.normal)
-            .filter(isMappableNormalItem)
+        Object.values(this.standard)
             .filter(({ key }) => (!(this.universalKey(key))))
-            .forEach(({ tag, key, exportAs }) => {
+            .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
+                const exportNode = standardizer._exports.map(({ children }) => (children.map(({ data }) => (data)))).flat(1).find((data) => (isSchemaWithKey(data) && data.key === key))
+                const exportAs = exportNode && isImportable(exportNode) && exportNode.as
                 this.namespaceIdToDB = [
                     ...this.namespaceIdToDB,
                     { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`, ...(exportAs ? { exportAs } : {} ) }

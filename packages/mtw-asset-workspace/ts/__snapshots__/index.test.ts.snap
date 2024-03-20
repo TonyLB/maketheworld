@@ -224,11 +224,11 @@ Array [
   },
   Object {
     "internalKey": "a123",
-    "universalKey": "ROOM#UUID-10",
+    "universalKey": "testImport",
   },
   Object {
     "internalKey": "c789",
-    "universalKey": "FEATURE#UUID-11",
+    "universalKey": "testFeature",
   },
 ]
 `;
