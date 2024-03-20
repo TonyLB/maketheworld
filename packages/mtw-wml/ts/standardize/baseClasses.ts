@@ -97,3 +97,82 @@ export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 
 export type StandardForm = Record<string, StandardComponent>
+
+type SerializableStandardBase = {
+    key: string;
+}
+
+export type SerializableStandardRoom = {
+    tag: 'Room';
+    shortName: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag>;
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    exits: GenericTree<SchemaTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardFeature = {
+    tag: 'Feature';
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardKnowledge = {
+    tag: 'Knowledge';
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardBookmark = {
+    tag: 'Bookmark';
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardMap = {
+    tag: 'Map';
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    images: GenericTree<SchemaTag>;
+    positions: GenericTree<SchemaTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardMessage = {
+    tag: 'Message';
+    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    rooms: GenericTree<SchemaTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardMoment = {
+    tag: 'Moment';
+    messages: GenericTree<SchemaTag>;
+} & SerializableStandardBase
+
+export type SerializableStandardVariable = {
+    tag: 'Variable';
+    default: string;
+} & SerializableStandardBase
+
+export type SerializableStandardComputed = {
+    tag: 'Computed';
+    src: string;
+} & SerializableStandardBase
+
+export type SerializableStandardAction = {
+    tag: 'Action';
+    src: string;
+} & SerializableStandardBase
+
+export type SerializableStandardImage = {
+    tag: 'Image';
+} & SerializableStandardBase
+
+export type SerializableStandardComponent =
+    SerializableStandardRoom |
+    SerializableStandardFeature |
+    SerializableStandardKnowledge |
+    SerializableStandardBookmark |
+    SerializableStandardMap |
+    SerializableStandardMessage |
+    SerializableStandardMoment |
+    SerializableStandardVariable |
+    SerializableStandardComputed |
+    SerializableStandardAction
