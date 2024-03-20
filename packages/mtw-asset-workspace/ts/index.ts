@@ -2,12 +2,14 @@ import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
 import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
-import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
+import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 import { isNormalImport, NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import { stripIdFromNormal } from '@tonylb/mtw-wml/ts/normalize/genericId'
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace from "./readOnly"
+import { isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -24,31 +26,30 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const normalizer = new Normalizer()
         const schema = new Schema()
         schema.loadWML(source)
-        normalizer.loadSchema(standardizeSchema(schema.schema))
-        if (!(this.normal && deepEqual(this.normal, normalizer.normal))) {
+        const standardizer = new Standardizer(schema.schema)
+        normalizer.loadSchema(standardizer.schema)
+        if (!(this.normal && deepEqual(stripIdFromNormal(this.normal), stripIdFromNormal(normalizer.normal)))) {
             this.status.json = 'Dirty'
         }
         this.normal = normalizer.normal
-        //
-        // TODO: For any imports, pull in the JSON for the asset being imported from, and extract
-        // the namespaceIdToDB 
-        //
+        this.standard = standardizer.standardForm
+
         if (this._workspaceFromKey) {
-            const normal = this.normal
-            await Promise.all(Object.values(normal)
-                .filter(isNormalImport)
-                .map(async ({ from, mapping }) => {
-                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${from}`)
+            await Promise.all(Object.entries(standardizer._imports)
+                .map(async ([importFrom, { value }]) => {
+                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${importFrom}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
                         const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
-                        Object.entries(mapping)
-                            .forEach(([localKey, { key: sourceKey }]) => {
-                                const exportAs = normal[localKey]?.exportAs
-                                if (importNamespaceIdToDB[sourceKey]) {
+                        value
+                            .map(({ data }) => (data))
+                            .filter(isImportable)
+                            .forEach(({ key, from }) => {
+                                const exportAs = (this.normal ?? {})[key]?.exportAs
+                                if (importNamespaceIdToDB[from ?? '']) {
                                     this.namespaceIdToDB = [
-                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== localKey)),
-                                        { internalKey: localKey, universalKey: importNamespaceIdToDB[sourceKey], ...(exportAs ? { exportAs } : {} ) }
+                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== key)),
+                                        { internalKey: key, universalKey: importNamespaceIdToDB[from ?? ''], ...(exportAs ? { exportAs } : {} ) }
                                     ]
                                 }
                             })
@@ -56,11 +57,15 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 })
             )
         }
-        Object.values(this.normal)
-            .filter(isMappableNormalItem)
+        //
+        // TODO (ISS-3603): Refactor namespaceIdToDB mapping to derive from standard rather than normal
+        //
+        Object.values(this.standard)
             .filter(({ key }) => (!(this.universalKey(key))))
-            .forEach(({ tag, key, exportAs }) => {
+            .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
+                const exportNode = standardizer._exports.map(({ children }) => (children.map(({ data }) => (data)))).flat(1).find((data) => (isSchemaWithKey(data) && data.key === key))
+                const exportAs = exportNode && isImportable(exportNode) && exportNode.as
                 this.namespaceIdToDB = [
                     ...this.namespaceIdToDB,
                     { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`, ...(exportAs ? { exportAs } : {} ) }

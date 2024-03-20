@@ -1,6 +1,7 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -124,6 +125,7 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     normal?: NormalForm;
+    standard?: StandardForm;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
@@ -198,6 +200,7 @@ export class ReadOnlyAssetWorkspace {
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.normal = {}
+                this.standard = {}
                 this.namespaceIdToDB = []
                 this.properties = {}
                 this.status.json = 'Clean'
@@ -206,9 +209,10 @@ export class ReadOnlyAssetWorkspace {
             throw err
         }
         
-        const { namespaceIdToDB = [], normal = {}, properties = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = [], normal = {}, standard = {}, properties = {} } = JSON.parse(contents)
 
         this.normal = normal as NormalForm
+        this.standard = standard as StandardForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'

@@ -369,7 +369,6 @@ describe('AssetWorkspace', () => {
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
-            console.log(`Normal: ${JSON.stringify(testWorkspace.normal, null, 4)}`)
 
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
