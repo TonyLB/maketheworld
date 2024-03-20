@@ -9,6 +9,7 @@ import { stripIdFromNormal } from '@tonylb/mtw-wml/ts/normalize/genericId'
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace from "./readOnly"
+import { isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -32,25 +33,27 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         }
         this.normal = normalizer.normal
         this.standard = standardizer.standardForm
-        //
-        // TODO (ISS-3603): Refactor import mapping using standardizer.imports
-        //
+
         if (this._workspaceFromKey) {
-            const normal = this.normal
-            await Promise.all(Object.values(normal)
-                .filter(isNormalImport)
-                .map(async ({ from, mapping }) => {
-                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${from}`)
+            await Promise.all(Object.values(standardizer._imports)
+                .map(async ({ value }) => {
+                    const node = value[0]
+                    if (!isSchemaImport(node.data)) {
+                        return
+                    }
+                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${node.data.from}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
                         const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
-                        Object.entries(mapping)
-                            .forEach(([localKey, { key: sourceKey }]) => {
-                                const exportAs = normal[localKey]?.exportAs
-                                if (importNamespaceIdToDB[sourceKey]) {
+                        node.children
+                            .map(({ data }) => (data))
+                            .filter(isImportable)
+                            .forEach(({ key, from }) => {
+                                const exportAs = (this.normal ?? {})[key]?.exportAs
+                                if (importNamespaceIdToDB[from ?? '']) {
                                     this.namespaceIdToDB = [
-                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== localKey)),
-                                        { internalKey: localKey, universalKey: importNamespaceIdToDB[sourceKey], ...(exportAs ? { exportAs } : {} ) }
+                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== key)),
+                                        { internalKey: key, universalKey: importNamespaceIdToDB[from ?? ''], ...(exportAs ? { exportAs } : {} ) }
                                     ]
                                 }
                             })
