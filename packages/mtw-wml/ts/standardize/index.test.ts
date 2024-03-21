@@ -571,4 +571,57 @@ describe('standardizeSchema', () => {
             exits: []
         })
     })
+
+    it('should produced a serializable format stripped of UUIDs', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    One
+                    <br />
+                </Description>
+            </Room>
+            <Room key=(testTwo) />
+            <Map key=(testMap)>
+                <Room key=(test)><Position x="0" y="0" /></Room>
+                <Room key=(testTwo)><Position x="100" y="0" /></Room>
+            </Map>
+        </Asset>`)
+        expect(test.stripped).toEqual({
+            test: {
+                key: 'test',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: {
+                    data: { tag: 'Description' },
+                    children: [
+                        { data: { tag: 'String', value: 'One' }, children: [] },
+                        { data: { tag: 'br' }, children: [] }
+                    ]
+                },
+                exits: []
+            },
+            testTwo: {
+                key: 'testTwo',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: []
+            },
+            testMap: {
+                key: 'testMap',
+                tag: 'Map',
+                name: { data: { tag: 'Name' }, children: [] },
+                images: [],
+                positions: [
+                    { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
+                    { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
+                ]
+            }
+        })
+
+    })
 })

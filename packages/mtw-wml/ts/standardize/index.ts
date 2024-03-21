@@ -1,3 +1,4 @@
+import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
@@ -6,9 +7,9 @@ import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
-import { maybeGenericIDFromTree } from "../tree/genericIDTree"
+import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { StandardComponent, StandardField, StandardForm } from "./baseClasses"
+import { SerializableStandardComponent, StandardComponent, StandardField, StandardForm, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
@@ -379,5 +380,60 @@ export class Standardizer {
             })
         const assignedStandardizer = new Standardizer(assignedSchema)
         this.loadStandardForm(assignedStandardizer.standardForm)
+    }
+
+    get stripped(): Record<string, SerializableStandardComponent> {
+        return objectMap(this._byId, (value) => {
+            const { id, ...rest } = value
+            const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never => {
+                const { id, ...subItem } = item[key] as GenericTreeNodeFiltered<FilterType, InnerType, TreeId>
+                return { ...subItem, children: stripIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never
+            }
+            if (isStandardBookmark(value)) {
+                return {
+                    ...rest,
+                    description: stripValue(value, 'description')
+                }
+            }
+            if (isStandardFeature(value) || isStandardKnowledge(value)) {
+                return {
+                    ...rest,
+                    name: stripValue(value, 'name'),
+                    description: stripValue(value, 'description')
+                }
+            }
+            if (isStandardMap(value)) {
+                return {
+                    ...rest,
+                    name: stripValue(value, 'name'),
+                    positions: stripIDFromTree(value.positions),
+                    images: stripIDFromTree(value.images)
+                }
+            }
+            if (isStandardRoom(value)) {
+                return {
+                    ...rest,
+                    shortName: stripValue(value, 'shortName'),
+                    name: stripValue(value, 'name'),
+                    summary: stripValue(value, 'summary'),
+                    description: stripValue(value, 'description'),
+                    exits: stripIDFromTree(value.exits)
+                }
+            }
+            if (isStandardMessage(value)) {
+                return {
+                    ...rest,
+                    description: stripValue(value, 'description'),
+                    rooms: stripIDFromTree(value.rooms)
+                }
+            }
+            if (isStandardMoment(value)) {
+                return {
+                    ...rest,
+                    messages: stripIDFromTree(value.messages)
+                }
+            }
+            return rest
+        })
     }
 }
