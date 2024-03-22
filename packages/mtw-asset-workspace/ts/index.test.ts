@@ -78,14 +78,9 @@ describe('AssetWorkspace', () => {
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
             s3ClientMock.get.mockResolvedValue(`{
+                "assetId": "ASSET#Test",
                 "namespaceIdToDB": [{ "internalKey": "a123", "universalKey": "Test" }],
-                "normal": {
-                    "Test": {
-                        "tag": "Asset",
-                        "key": "Test",
-                        "fileName": "Test"
-                    }
-                }
+                "standard": {}
             }`)
     
             const testWorkspace = new AssetWorkspace({
@@ -178,6 +173,7 @@ describe('AssetWorkspace', () => {
                 zone: 'Personal',
                 player: 'Test'
             })
+            testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.normal = {
                 Test: {
                     tag: "Asset",
@@ -186,13 +182,14 @@ describe('AssetWorkspace', () => {
                     appearances: []
                 }
             }
+            testWorkspace.standard = {}
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{"namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{}}`
             })
         })
 
@@ -201,6 +198,7 @@ describe('AssetWorkspace', () => {
                 fileName: 'Test',
                 zone: 'Library'
             })
+            testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.normal = {
                 Test: {
                     tag: "Asset",
@@ -209,13 +207,14 @@ describe('AssetWorkspace', () => {
                     appearances: []
                 }
             }
+            testWorkspace.standard = {}
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.json',
-                Body: `{"namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{}}`
             })
         })
 
@@ -225,6 +224,7 @@ describe('AssetWorkspace', () => {
                 zone: 'Personal',
                 player: 'Test'
             })
+            testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.normal = {
                 Test: {
                     tag: "Asset",
@@ -243,7 +243,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{"namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{"Test":{"fileName":"test"}}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{"Test":{"fileName":"test"}}}`
             })
         })
     })
