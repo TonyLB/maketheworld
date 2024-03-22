@@ -35,13 +35,15 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.standard = standardizer.standardForm
 
         if (this._workspaceFromKey) {
-            await Promise.all(Object.entries(standardizer._imports)
-                .map(async ([importFrom, { value }]) => {
+            await Promise.all(standardizer._imports
+                .map(async (node) => {
+                    const { data } = node
+                    const { from: importFrom } = data
                     const importWorkspace = await this._workspaceFromKey?.(`ASSET#${importFrom}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
                         const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
-                        value
+                        node.children
                             .map(({ data }) => (data))
                             .filter(isImportable)
                             .forEach(({ key, from }) => {

@@ -1,11 +1,11 @@
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaDescriptionTag, SchemaExportTag, SchemaImportTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
@@ -182,11 +182,11 @@ export class Standardizer {
     _assetKey: string;
     _assetId: string;
     _byId: StandardForm;
-    _imports: Record<string, StandardField<GenericTree<SchemaTag, TreeId>>>;
-    _exports: GenericTree<SchemaTag, TreeId>;
+    _imports: GenericTreeFiltered<SchemaImportTag, SchemaTag, TreeId>;
+    _exports: GenericTreeFiltered<SchemaExportTag, SchemaTag, TreeId>;
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
         this._byId = {}
-        this._imports = {}
+        this._imports = []
         this._exports = []
         const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
@@ -231,12 +231,7 @@ export class Standardizer {
                 .filter(isSchemaWithKey)
                 .map(({ key }) => (key)))
         
-            this._imports = Object.assign({}, ...importItems.map(({ data, children, id }) => {
-                if (!isSchemaImport(data)) {
-                    throw new Error('Import mismatch on Standardizer')
-                }
-                return { [data.from]: { id, value: children } }
-            }))
+            this._imports = importItems.filter((node): node is GenericTreeNodeFiltered<SchemaImportTag, SchemaTag, TreeId> => (isSchemaImport(node.data)))
         
             const keysByComponentType = (tag: SchemaWithKey["tag"]) => (
                 unique(tagTree
@@ -305,7 +300,7 @@ export class Standardizer {
                     { before: { match: 'Export' } },
                     { after: anyKeyedComponent }
                 ]})
-            this._exports = maybeGenericIDFromTree(exportTagTree.tree.filter(({ children }) => (children.length)))
+            this._exports = maybeGenericIDFromTree(exportTagTree.tree).filter((node): node is GenericTreeNodeFiltered<SchemaExportTag, SchemaTag, TreeId> => (isSchemaExport(node.data)))
 
             const id = schemata.reduce<string | undefined>((previous, tree) => {
                 const item = tree.find(({ data }) => (isSchemaWithKey(data) && data.key === assetKey))
@@ -330,7 +325,7 @@ export class Standardizer {
     get schema(): GenericTree<SchemaTag, TreeId> {
         const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const children = [
-            ...Object.entries(this._imports).map(([from, { id, value: children }]): GenericTreeNode<SchemaTag, TreeId> => ({ data: { tag: 'Import' as const, from, mapping: {} }, id, children })),
+            ...this._imports,
             ...componentKeys
                 .map((tagToList) => (
                     Object.values(this._byId)
