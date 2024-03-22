@@ -78,14 +78,9 @@ describe('AssetWorkspace', () => {
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
             s3ClientMock.get.mockResolvedValue(`{
+                "assetId": "Test",
                 "namespaceIdToDB": [{ "internalKey": "a123", "universalKey": "Test" }],
-                "normal": {
-                    "Test": {
-                        "tag": "Asset",
-                        "key": "Test",
-                        "fileName": "Test"
-                    }
-                }
+                "standard": {}
             }`)
     
             const testWorkspace = new AssetWorkspace({

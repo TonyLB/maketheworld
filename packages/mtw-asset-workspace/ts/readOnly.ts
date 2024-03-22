@@ -6,6 +6,8 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import Normalizer from "@tonylb/mtw-wml/dist/normalize"
+import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -88,14 +90,6 @@ type AssetWorkspaceStatus = {
     wml: AssetWorkspaceStatusItem;
 }
 
-//
-// TODO: Refactor NamespaceMapping from a Record<string, string> to:
-//        {
-//            internalKey: string;
-//            universalKey: string;
-//            exportAs?: string;
-//        }[]
-//
 export type NamespaceMappingItem = {
     internalKey: string;
     universalKey: string;
@@ -120,6 +114,7 @@ type AddressLookup = {
 
 export class ReadOnlyAssetWorkspace {
     address: AssetWorkspaceAddress;
+    assetId?: string;
     status: AssetWorkspaceStatus = {
         json: 'Initial',
         wml: 'Initial'
@@ -164,17 +159,17 @@ export class ReadOnlyAssetWorkspace {
         return matchingNamespaceItem?.universalKey
     }
 
-    get assetId(): `ASSET#${string}` | `CHARACTER#${string}` | undefined {
-        const assets: NormalForm = this.normal || {}
-        const asset = Object.values(assets).find(isNormalAsset)
-        if (asset && asset.key) {
-            return `ASSET#${asset.key}`
-        }
-        const character = Object.values(assets).find(isNormalCharacter)
-        if (character && character.key) {
-            return this.universalKey(character.key) as `CHARACTER#${string}`
-        }
-    }
+    // get assetId(): `ASSET#${string}` | `CHARACTER#${string}` | undefined {
+    //     const assets: NormalForm = this.normal || {}
+    //     const asset = Object.values(assets).find(isNormalAsset)
+    //     if (asset && asset.key) {
+    //         return `ASSET#${asset.key}`
+    //     }
+    //     const character = Object.values(assets).find(isNormalCharacter)
+    //     if (character && character.key) {
+    //         return this.universalKey(character.key) as `CHARACTER#${string}`
+    //     }
+    // }
 
     async presignedURL(): Promise<string> {
         const getCommand = new GetObjectCommand({
@@ -209,10 +204,22 @@ export class ReadOnlyAssetWorkspace {
             throw err
         }
         
-        const { namespaceIdToDB = [], normal = {}, standard = {}, properties = {} } = JSON.parse(contents)
+        const { assetId = '', namespaceIdToDB = [], standard = {}, properties = {} } = JSON.parse(contents)
+        if (!assetId) {
+            this.normal = {}
+            this.standard = {}
+            this.namespaceIdToDB = []
+            this.properties = {}
+            this.status.json = 'Clean'
+            return
+        }
 
-        this.normal = normal as NormalForm
         this.standard = standard as StandardForm
+        const normalizer = new Normalizer()
+        const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetId, Story: undefined }, children: [] }])
+        standardizer.loadStandardForm(standard)
+        normalizer.loadSchema(standardizer.schema)
+        this.normal = normalizer.normal
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'

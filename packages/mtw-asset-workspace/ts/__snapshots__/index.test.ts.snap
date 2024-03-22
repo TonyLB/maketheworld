@@ -3,9 +3,24 @@
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
   "Test": Object {
-    "fileName": "Test",
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "children": Array [],
+        "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "key": "Test",
+          "tag": "Asset",
+        },
+        "id": "",
+      },
+    ],
+    "fileName": undefined,
+    "instance": false,
     "key": "Test",
     "tag": "Asset",
+    "zone": undefined,
   },
 }
 `;
