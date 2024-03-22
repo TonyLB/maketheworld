@@ -176,3 +176,5 @@ export type SerializableStandardComponent =
     SerializableStandardVariable |
     SerializableStandardComputed |
     SerializableStandardAction
+
+export type SerializableStandardForm = Record<string, SerializableStandardComponent>

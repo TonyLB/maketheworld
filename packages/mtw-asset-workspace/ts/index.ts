@@ -3,17 +3,15 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
 import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
-import { isNormalImport, NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
-import { stripIdFromNormal } from '@tonylb/mtw-wml/ts/normalize/genericId'
+import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace from "./readOnly"
-import { isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isImportable, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
-
-const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Knowledge', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     wml?: string;
@@ -23,16 +21,16 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     // reading in a stream, and processing it as it arrives
     //
     async setWML(source: string): Promise<void> {
-        const normalizer = new Normalizer()
         const schema = new Schema()
         schema.loadWML(source)
         const standardizer = new Standardizer(schema.schema)
-        normalizer.loadSchema(standardizer.schema)
-        if (!(this.normal && deepEqual(stripIdFromNormal(this.normal), stripIdFromNormal(normalizer.normal)))) {
+        if (!(this.standard && deepEqual(standardizer.stripped, this.standard))) {
             this.status.json = 'Dirty'
+            this.standard = standardizer.stripped
+            const normalizer = new Normalizer()
+            normalizer.loadSchema(standardizer.schema)
+            this.normal = normalizer.normal
         }
-        this.normal = normalizer.normal
-        this.standard = standardizer.standardForm
 
         if (this._workspaceFromKey) {
             await Promise.all(standardizer._imports
@@ -73,6 +71,16 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                     { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`, ...(exportAs ? { exportAs } : {} ) }
                 ]
             })
+
+        const asset = Object.values(this.normal || {}).find(isNormalAsset)
+        if (asset && asset.key) {
+            this.assetId = `ASSET#${asset.key}`
+        }
+        const character = Object.values(this.normal || {}).find(isNormalCharacter)
+        if (character && character.key) {
+            this.assetId = this.universalKey(character.key) as `CHARACTER#${string}`
+        }
+
         //
         // TODO: Extend setWML to check for entries in namespaceIdToDB that no longer have a
         // corresponding normal entry, and remove
@@ -120,8 +128,10 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     async pushJSON(): Promise<void> {
         const filePath = `${this.fileNameBase}.json`
         const contents = JSON.stringify({
+            assetId: this.assetId ?? '',
             namespaceIdToDB: this.namespaceIdToDB,
             normal: this.normal || {},
+            standard: this.standard || {},
             properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
         })
         await s3Client.put({

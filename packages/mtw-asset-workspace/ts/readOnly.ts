@@ -1,7 +1,7 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -120,7 +120,7 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     normal?: NormalForm;
-    standard?: StandardForm;
+    standard?: SerializableStandardForm;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
@@ -216,7 +216,7 @@ export class ReadOnlyAssetWorkspace {
 
         this.standard = standard as StandardForm
         const normalizer = new Normalizer()
-        const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetId, Story: undefined }, children: [] }])
+        const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetId.split('#').slice(1)[0] ?? '', Story: undefined }, children: [] }])
         standardizer.loadStandardForm(standard)
         normalizer.loadSchema(standardizer.schema)
         this.normal = normalizer.normal
