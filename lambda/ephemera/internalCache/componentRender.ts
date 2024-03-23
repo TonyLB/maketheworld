@@ -32,13 +32,13 @@ import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomChar
 import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
-import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
-import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map';
 import dfsWalk from '@tonylb/mtw-wml/ts/tree/dfsWalk';
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -58,26 +58,51 @@ type ComponentRenderGetOptions = {
 }
 
 export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (address: EvaluateCodeAddress) => Promise<boolean>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
-    const callback = async (tag: T): Promise<boolean> => {
-        if (isSchemaCondition(tag)) {
-            const conditionEvaluations = await Promise.all(
-                tag.conditions.map(async ({ if: source, not }) => {
-                    const evaluation = await evaluateCode({ source, mapping })
-                    return not ? !evaluation : evaluation
-                })
-            )
-            return conditionEvaluations.reduce<boolean>((previous, evaluation) => (previous && evaluation), true)
+    const finalTree = (await Promise.all(tree.map(async (node) => {
+        const { data, children } = node
+        if (isSchemaCondition(data)) {
+            const recursiveEvaluate = async (statements: GenericTree<SchemaTag>): Promise<GenericTree<SchemaTag>> => {
+                if (!statements.length) {
+                    return []
+                }
+                const { data, children } = statements[0]
+                if (isSchemaConditionFallthrough(data)) {
+                    return children
+                }
+                if (isSchemaConditionStatement(data)) {
+                    const passed = await evaluateCode({ source: data.if, mapping })
+                    if (passed) {
+                        return children
+                    }
+                }
+                return await recursiveEvaluate(statements.slice(1))
+            }
+            return await recursiveEvaluate(children)
         }
-        return true
-    }
-    const filteredTree = await asyncFilter({ tree, callback })
-    const tagTree = new SchemaTagTree(filteredTree)
-    const finalTree = tagTree.prune({ match: 'If' })
+        else {
+            return [node]
+        }
+    }))).flat(1)
+    // const callback = async (tag: T): Promise<boolean> => {
+    //     if (isSchemaCondition(tag)) {
+    //         const conditionEvaluations = await Promise.all(
+    //             tag.conditions.map(async ({ if: source, not }) => {
+    //                 const evaluation = await evaluateCode({ source, mapping })
+    //                 return not ? !evaluation : evaluation
+    //             })
+    //         )
+    //         return conditionEvaluations.reduce<boolean>((previous, evaluation) => (previous && evaluation), true)
+    //     }
+    //     return true
+    // }
+    // const filteredTree = await asyncFilter({ tree, callback })
+    // const tagTree = new SchemaTagTree(filteredTree)
+    // const finalTree = tagTree.prune({ match: 'If' })
     if (typeGuard) {
-        return treeTypeGuard({ tree: finalTree.tree, typeGuard })
+        return treeTypeGuard({ tree: finalTree, typeGuard })
     }
     else {
-        return finalTree.tree as GenericTree<T>
+        return finalTree as GenericTree<T>
     }
 }
 
@@ -290,7 +315,7 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
                 to: lookupTarget
             }
         }
-        if (isSchemaCondition(data) || isSchemaBookmark(data) || isSchemaAfter(data) || isSchemaBefore(data) || isSchemaReplace(data)) {
+        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) || isSchemaInherited(data) || isSchemaBookmark(data) || isSchemaAfter(data) || isSchemaBefore(data) || isSchemaReplace(data)) {
             return { tag: 'String', value: '' }
         }
         if (isSchemaLineBreak(data)) {
@@ -558,7 +583,7 @@ export class ComponentRenderData {
                     RoomId: EphemeraId,
                     Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
                     assets,
-                    Exits: exits.map(({ data }) => (isSchemaExit(data) ? [{ Name: data.name, RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
+                    Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
                     ...rest
                 }
             }
@@ -675,12 +700,11 @@ export class ComponentRenderData {
                     roomId: ephemeraId,
                     name: flattenSchemaOutputTags(name),
                     exits: exits
-                        .map(({ data }) => (data))
-                        .filter(isSchemaExit)
-                        .filter(({ to }) => (isEphemeraRoomId(to) && allRooms.includes(to)))
-                        .map(({ name, to }) => ({
-                            name,
-                            to: to as EphemeraRoomId
+                        .filter(treeNodeTypeguard(isSchemaExit))
+                        .filter(({ data: { to } }) => (isEphemeraRoomId(to) && allRooms.includes(to)))
+                        .map(({ data, children }) => ({
+                            name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })),
+                            to: data.to as EphemeraRoomId
                         })),
                     x: roomPositions[ephemeraId].x,
                     y: roomPositions[ephemeraId].y
