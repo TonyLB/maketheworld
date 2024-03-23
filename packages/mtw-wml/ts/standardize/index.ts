@@ -1,7 +1,7 @@
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaImportTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -115,6 +115,15 @@ const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag, TreeId>): G
 
 const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag, TreeId> => {
     switch(item.tag) {
+        case 'Character':
+            const { tag, ...pronouns } = item.pronouns.data
+            return {
+                data: { tag: 'Character', key: item.key, Pronouns: pronouns },
+                id: item.id,
+                children: [
+                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit].map(standardFieldToOutputNode).flat(1),
+                ]
+            }
         case 'Room':
             return {
                 data: { tag: 'Room', key: item.key },
@@ -180,7 +189,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
 
 export class Standardizer {
     _assetKey: string;
-    _assetTag: SchemaAssetTag["tag"];
+    _assetTag: (SchemaAssetTag | SchemaCharacterTag)["tag"];
     _assetId: string;
     _byId: StandardForm;
     metaData: GenericTree<SchemaTag, TreeId>;
@@ -190,6 +199,42 @@ export class Standardizer {
         const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
+        const allCharacterKeys = unique(...schemata.map((tree) => (selectKeysByTag('Character')(tree))))
+        const allStandardCharacters = allCharacterKeys.map((characterKey) => {
+            this._assetTag = 'Character'
+            const tagTree = new SchemaTagTree(schemata.map((tree) => {
+                const characterNode = tree.find(({ data }) => (isSchemaCharacter(data) && data.key === characterKey))
+                return characterNode ? [characterNode] : []
+            }).flat(1))
+            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
+                inheritedA && !inheritedB
+                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
+                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
+            )
+            const characterTree = tagTree.tree
+            if (characterTree.length !== 1) {
+                throw new Error('Too many characters in Standarizer')
+            }
+            const character = maybeGenericIDFromTree(characterTree)[0]
+            const pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId> = (character.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }, id: '' })
+            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag, TreeId>): GenericTreeNodeFiltered<InputNode, SchemaOutputTag, TreeId> => ({ data: node.data, id: node.id, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })})
+            const name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId> = confirmOutputChildren(character.children.find(treeNodeTypeguard(isSchemaName)) ?? { children: [], data: { tag: 'Name' }, id: '' })
+            const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaFirstImpression)) ?? { children: [], data: { tag: 'FirstImpression', value: '' }, id: '' }
+            const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing)) ?? { children: [], data: { tag: 'OneCoolThing', value: '' }, id: '' }
+            const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOutfit)) ?? { children: [], data: { tag: 'Outfit', value: '' }, id: '' }
+            this._byId[characterKey] = {
+                tag: 'Character',
+                key: characterKey,
+                id: character.id,
+                pronouns,
+                name,
+                firstImpression,
+                oneCoolThing,
+                outfit
+            }
+            this.metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
+            return character
+        })
         const allStandardAssets = allAssetKeys.map((assetKey) => {
             const tagTree = new SchemaTagTree(schemata.map((tree) => {
                 const assetNode = tree.find(({ data }) => (isSchemaAsset(data) && data.key === assetKey))
@@ -317,36 +362,59 @@ export class Standardizer {
                 id
             }
         })
-        if (allStandardAssets.length !== 1) {
+        if (allStandardAssets.length + allStandardCharacters.length !== 1) {
             throw new Error('Too many assets in Standarizer')
         }
-        const { data: assetData } = allStandardAssets[0]
-        if (!isSchemaTag(assetData) && (isSchemaAsset(assetData) || isSchemaCharacter(assetData))) {
-            throw new Error('Type mismatch in Standardizer')
+        if (allStandardCharacters.length) {
+            const { data: characterData } = allStandardCharacters[0]
+            if (!(isSchemaTag(characterData) && isSchemaCharacter(characterData))) {
+                throw new Error('Type mismatch in Standardizer')
+            }
+            this._assetKey = characterData.key
+            this._assetTag = characterData.tag
+            this._assetId = allStandardCharacters[0].id ?? ''
         }
-        this._assetKey = assetData.key
-        this._assetTag = assetData.tag
-        this._assetId = allStandardAssets[0].id ?? ''
+        else {
+            const { data: assetData } = allStandardAssets[0]
+            if (!(isSchemaTag(assetData) && isSchemaAsset(assetData))) {
+                throw new Error('Type mismatch in Standardizer')
+            }
+            this._assetKey = assetData.key
+            this._assetTag = assetData.tag
+            this._assetId = allStandardAssets[0].id ?? ''
+        }
     }
 
     get schema(): GenericTree<SchemaTag, TreeId> {
-        const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-        const children = [
-            ...this.metaData.filter(treeNodeTypeguard(isSchemaImport)),
-            ...componentKeys
-                .map((tagToList) => (
-                    Object.values(this._byId)
-                        .filter(({ tag }) => (tag === tagToList))
-                        .map(standardItemToSchemaItem)
-                ))
-                .flat(1),
-            ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))
-        ]
-        return [{
-            data: { tag: this._assetTag, key: this._assetKey, Story: undefined },
-            children,
-            id: this._assetId
-        }]
+        if (this._assetTag === 'Asset') {
+            const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+            const children = [
+                ...this.metaData.filter(treeNodeTypeguard(isSchemaImport)),
+                ...componentKeys
+                    .map((tagToList) => (
+                        Object.values(this._byId)
+                            .filter(({ tag }) => (tag === tagToList))
+                            .map(standardItemToSchemaItem)
+                    ))
+                    .flat(1),
+                ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))
+            ]
+            return [{
+                data: { tag: this._assetTag, key: this._assetKey, Story: undefined },
+                children,
+                id: this._assetId
+            }]
+        }
+        if (this._assetTag === 'Character') {
+            return [standardItemToSchemaItem(this._byId[this._assetKey])]
+            const { tag, ...pronouns }: SchemaPronounsTag = (this.metaData.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } }).data
+            return [{
+                data: { tag: 'Character', key: this._assetKey, Pronouns: pronouns },
+                children: this.metaData,
+                id: this._assetId
+            }]
+        }
+        throw new Error('Invalid internal tags on Standardizer schema')
     }
 
     loadStandardForm(standard: StandardForm): void {
