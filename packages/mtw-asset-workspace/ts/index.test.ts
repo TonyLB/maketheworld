@@ -80,7 +80,7 @@ describe('AssetWorkspace', () => {
             s3ClientMock.get.mockResolvedValue(`{
                 "assetId": "ASSET#Test",
                 "namespaceIdToDB": [{ "internalKey": "a123", "universalKey": "Test" }],
-                "standard": {}
+                "standard": { "byId": {}, "metaData": [] }
             }`)
     
             const testWorkspace = new AssetWorkspace({
@@ -182,14 +182,14 @@ describe('AssetWorkspace', () => {
                     appearances: []
                 }
             }
-            testWorkspace.standard = {}
+            testWorkspace.standard = { byId: {}, metaData: [] }
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{"byId":{},"metaData":[]},"properties":{}}`
             })
         })
 
@@ -207,14 +207,14 @@ describe('AssetWorkspace', () => {
                     appearances: []
                 }
             }
-            testWorkspace.standard = {}
+            testWorkspace.standard = { byId: {}, metaData: [] }
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{"byId":{},"metaData":[]},"properties":{}}`
             })
         })
 
@@ -243,7 +243,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{},"properties":{"Test":{"fileName":"test"}}}`
+                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{"byId":{},"metaData":[]},"properties":{"Test":{"fileName":"test"}}}`
             })
         })
     })

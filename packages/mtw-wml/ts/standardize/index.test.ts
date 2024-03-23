@@ -568,7 +568,7 @@ describe('standardizeSchema', () => {
         `)
         const test = schemaTestStandarized(testSource)
         test.assignDependencies(extract)
-        expect(test.standardForm.testRoomOne).toEqual({
+        expect(test.standardForm.byId.testRoomOne).toEqual({
             tag: 'Room',
             key: 'testRoomOne',
             id: expect.any(String),
@@ -609,7 +609,7 @@ describe('standardizeSchema', () => {
                 <Room key=(testTwo)><Position x="100" y="0" /></Room>
             </Map>
         </Asset>`)
-        expect(test.stripped).toEqual({
+        expect(test.stripped.byId).toEqual({
             test: {
                 key: 'test',
                 tag: 'Room',
