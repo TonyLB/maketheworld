@@ -353,16 +353,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testTwo' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 exits: [],
                 key: 'testRoom',
@@ -376,16 +385,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testFour' }] },
-                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testFour' },
+                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    }]
                 }],
                 exits: [],
                 key: 'testRoom',
@@ -433,16 +451,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testTwo' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 key: 'testFeature',
                 stateMapping: {
@@ -455,16 +482,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testFour' }] },
-                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testFour' },
+                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    }]
                 }],
                 key: 'testFeature',
                 stateMapping: {
@@ -509,16 +545,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'TestKnowledge' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'TestKnowledge' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
-                    children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testOne' },
+                        children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testTwo' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 key: 'testKnowledge',
                 stateMapping: {
@@ -531,16 +576,25 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Base',
                 name: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 }],
                 render: [{
-                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
-                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testThree' },
+                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                    }]
                 },
                 {
-                    data: { tag: 'If', conditions: [{ if: 'testFour' }] },
-                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'testFour' },
+                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                    }]
                 }],
                 key: 'testKnowledge',
                 stateMapping: {
@@ -734,8 +788,8 @@ describe('ComponentRender cache handler', () => {
                             name: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }],
                             render: [],
                             exits: [
-                                { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1', name: 'Other Room' }, children: [] },
-                                { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1', name: 'Not in Map' }, children: [] }
+                                { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Other Room' }, children: [] }] },
+                                { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Not in Map' }, children: [] }] }
                             ],
                             key: 'room1',
                             stateMapping: {},
@@ -752,7 +806,7 @@ describe('ComponentRender cache handler', () => {
                             name: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }],
                             render: [],
                             exits: [
-                                { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2', name: 'First Room' }, children: [] }
+                                { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2' }, children: [{ data: { tag: 'String', value: 'First Room' }, children: [] }] }
                             ],
                             key: 'testMap',
                             stateMapping: {},
@@ -820,8 +874,11 @@ describe('ComponentRender cache handler', () => {
                             render: [
                                 { data: { tag: 'String', value: 'First' }, children: [] },
                                 {
-                                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
-                                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                                    data: { tag: 'If' },
+                                    children: [{
+                                        data: { tag: 'Statement', if: 'testTwo' },
+                                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                                    }]
                                 }
                             ],
                             exits: [],
