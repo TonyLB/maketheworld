@@ -405,6 +405,29 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(testSource)
     })
 
+
+    it('should handle characters correctly', () => {
+        const testSource = deIndentWML(`
+            <Character key=(Tess)>
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <FirstImpression>Frumpy Goth</FirstImpression>
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>
+                    A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
+                </Outfit>
+            </Character>
+        `)
+        const test = schemaTestStandarized(testSource)
+        expect(schemaToWML(test.schema)).toEqual(testSource)
+    })
+
     it('should combine multiple schemata correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>

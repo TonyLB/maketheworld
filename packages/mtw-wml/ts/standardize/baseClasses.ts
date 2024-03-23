@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
+import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
@@ -10,6 +10,15 @@ export type StandardField<T> = {
     id: string;
     value: T;
 }
+
+export type StandardCharacter = {
+    tag: 'Character';
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId>;
+    oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId>;
+    outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId>;
+    pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId>;
+} & StandardBase
 
 export type StandardRoom = {
     tag: 'Room';
@@ -75,6 +84,7 @@ export type StandardImage = {
 } & StandardBase
 
 export type StandardComponent =
+    StandardCharacter |
     StandardRoom |
     StandardFeature |
     StandardKnowledge |
@@ -101,6 +111,15 @@ export type StandardForm = Record<string, StandardComponent>
 type SerializableStandardBase = {
     key: string;
 }
+
+export type SerializableStandardCharacter = {
+    tag: 'Character';
+    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag>;
+    oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag>;
+    outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag>;
+    pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag>;
+} & SerializableStandardBase
 
 export type SerializableStandardRoom = {
     tag: 'Room';
@@ -166,6 +185,7 @@ export type SerializableStandardImage = {
 } & SerializableStandardBase
 
 export type SerializableStandardComponent =
+    SerializableStandardCharacter |
     SerializableStandardRoom |
     SerializableStandardFeature |
     SerializableStandardKnowledge |
