@@ -135,7 +135,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             assetId: this.assetId ?? '',
             namespaceIdToDB: this.namespaceIdToDB,
             normal: this.normal || {},
-            standard: this.standard || { byId: {}, metaData: [] },
+            standard: this.standard || { key: this.assetId?.split('#')?.slice(1)?.[0] || '', tag: 'Asset', byId: {}, metaData: [] },
             properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
         })
         await s3Client.put({
