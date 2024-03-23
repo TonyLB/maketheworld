@@ -107,6 +107,8 @@ export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 
 export type StandardForm = {
+    key: string;
+    tag: 'Asset' | 'Character';
     byId: Record<string, StandardComponent>;
     metaData: GenericTree<SchemaTag, TreeId>;
 }
@@ -201,6 +203,8 @@ export type SerializableStandardComponent =
     SerializableStandardAction
 
 export type SerializableStandardForm = {
+    key: string;
+    tag: 'Asset' | 'Character';
     byId: Record<string, SerializableStandardComponent>;
     metaData: GenericTree<SchemaTag>;
 }

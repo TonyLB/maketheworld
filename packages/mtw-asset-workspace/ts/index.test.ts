@@ -80,7 +80,7 @@ describe('AssetWorkspace', () => {
             s3ClientMock.get.mockResolvedValue(`{
                 "assetId": "ASSET#Test",
                 "namespaceIdToDB": [{ "internalKey": "a123", "universalKey": "Test" }],
-                "standard": { "byId": {}, "metaData": [] }
+                "standard": { "key": "Test", "tag": "Asset", "byId": {}, "metaData": [] }
             }`)
     
             const testWorkspace = new AssetWorkspace({

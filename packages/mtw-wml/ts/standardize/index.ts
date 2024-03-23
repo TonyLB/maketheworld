@@ -418,12 +418,16 @@ export class Standardizer {
     }
 
     loadStandardForm(standard: StandardForm): void {
+        this._assetKey = standard.key
+        this._assetTag = standard.tag
         this._byId = standard.byId
         this.metaData = standard.metaData
     }
 
     get standardForm(): StandardForm {
         return {
+            key: this._assetKey,
+            tag: this._assetTag,
             byId: this._byId,
             metaData: this.metaData
         }
@@ -510,6 +514,8 @@ export class Standardizer {
             return rest
         })
         return {
+            key: this._assetKey,
+            tag: this._assetTag,
             byId,
             metaData: stripIDFromTree(this.metaData)
         }
