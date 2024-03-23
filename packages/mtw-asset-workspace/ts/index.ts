@@ -8,8 +8,9 @@ import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFe
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace from "./readOnly"
-import { isImportable, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -33,7 +34,8 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         }
 
         if (this._workspaceFromKey) {
-            await Promise.all(standardizer._imports
+            await Promise.all(standardizer.metaData
+                .filter(treeNodeTypeguard(isSchemaImport))
                 .map(async (node) => {
                     const { data } = node
                     const { from: importFrom } = data
@@ -64,7 +66,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
-                const exportNode = standardizer._exports.map(({ children }) => (children.map(({ data }) => (data)))).flat(1).find((data) => (isSchemaWithKey(data) && data.key === key))
+                const exportNode = standardizer.metaData
+                    .filter(treeNodeTypeguard(isSchemaExport))
+                    .map(({ children }) => (children.map(({ data }) => (data)))).flat(1).find((data) => (isSchemaWithKey(data) && data.key === key))
                 const exportAs = exportNode && isImportable(exportNode) && exportNode.as
                 this.namespaceIdToDB = [
                     ...this.namespaceIdToDB,
