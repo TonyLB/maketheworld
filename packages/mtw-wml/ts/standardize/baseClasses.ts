@@ -106,7 +106,10 @@ export const isStandardMap = isStandardFactory<StandardMap>("Map")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 
-export type StandardForm = Record<string, StandardComponent>
+export type StandardForm = {
+    byId: Record<string, StandardComponent>;
+    metaData: GenericTree<SchemaTag, TreeId>;
+}
 
 type SerializableStandardBase = {
     key: string;
@@ -197,4 +200,8 @@ export type SerializableStandardComponent =
     SerializableStandardComputed |
     SerializableStandardAction
 
-export type SerializableStandardForm = Record<string, SerializableStandardComponent>
+export type SerializableStandardForm = {
+    byId: Record<string, SerializableStandardComponent>;
+    metaData: GenericTree<SchemaTag>;
+}
+    

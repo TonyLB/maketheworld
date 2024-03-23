@@ -62,7 +62,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         //
         // TODO (ISS-3603): Refactor namespaceIdToDB mapping to derive from standard rather than normal
         //
-        Object.values(this.standard)
+        Object.values(this.standard.byId)
             .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
@@ -135,7 +135,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             assetId: this.assetId ?? '',
             namespaceIdToDB: this.namespaceIdToDB,
             normal: this.normal || {},
-            standard: this.standard || {},
+            standard: this.standard || { byId: {}, metaData: [] },
             properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
         })
         await s3Client.put({

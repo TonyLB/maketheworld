@@ -5,11 +5,11 @@ import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportT
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, StandardComponent, StandardField, StandardForm, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
+import { SerializableStandardForm, StandardComponent, StandardForm, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
@@ -191,8 +191,8 @@ export class Standardizer {
     _assetKey: string;
     _assetTag: (SchemaAssetTag | SchemaCharacterTag)["tag"];
     _assetId: string;
-    _byId: StandardForm;
-    metaData: GenericTree<SchemaTag, TreeId>;
+    _byId: StandardForm["byId"];
+    metaData: StandardForm["metaData"];
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
         this._byId = {}
         this.metaData = []
@@ -418,11 +418,15 @@ export class Standardizer {
     }
 
     loadStandardForm(standard: StandardForm): void {
-        this._byId = standard
+        this._byId = standard.byId
+        this.metaData = standard.metaData
     }
 
     get standardForm(): StandardForm {
-        return this._byId
+        return {
+            byId: this._byId,
+            metaData: this.metaData
+        }
     }
 
     assignDependencies(extract: (src: string) => string[]) {
@@ -452,8 +456,8 @@ export class Standardizer {
         this.loadStandardForm(assignedStandardizer.standardForm)
     }
 
-    get stripped(): Record<string, SerializableStandardComponent> {
-        return objectMap(this._byId, (value) => {
+    get stripped(): SerializableStandardForm {
+        const byId: SerializableStandardForm["byId"] = objectMap(this._byId, (value) => {
             const { id, ...rest } = value
             const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never => {
                 const { id, ...subItem } = item[key] as GenericTreeNodeFiltered<FilterType, InnerType, TreeId>
@@ -505,5 +509,9 @@ export class Standardizer {
             }
             return rest
         })
+        return {
+            byId,
+            metaData: stripIDFromTree(this.metaData)
+        }
     }
 }
