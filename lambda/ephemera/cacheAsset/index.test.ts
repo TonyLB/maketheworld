@@ -22,6 +22,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -30,28 +31,7 @@ import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspa
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
-let mockTestAsset: NormalForm = {
-    'Import-0': {
-        tag: 'Import',
-        from: 'BASE',
-        key: 'Import-0',
-        appearances: [{
-            data: { tag: 'Import', from: 'BASE', key: 'Import-0', mapping: {} },
-            children: [],
-            contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
-        }],
-        mapping: {}
-    },
-    Test: {
-        tag: 'Asset',
-        key: 'Test',
-        appearances: [{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            children: [{ data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }],
-            contextStack: []
-        }]
-    }
-}
+let mockTestAsset: SerializableStandardForm = {}
 let mockNamespaceMap: NamespaceMapping = [
     { internalKey: 'Test', universalKey: 'ASSET#Test' },
     { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
@@ -93,28 +73,7 @@ describe('cacheAsset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        mockTestAsset = {
-            'Import-0': {
-                tag: 'Import',
-                from: 'BASE',
-                key: 'Import-0',
-                appearances: [{
-                    data: { tag: 'Import', from: 'BASE', key: 'Import-0', mapping: {} },
-                    children: [],
-                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
-                }],
-                mapping: {}
-            },
-            Test: {
-                tag: 'Asset',
-                key: 'Test',
-                appearances: [{
-                    data: { tag: 'Asset', key: 'Test', Story: undefined },
-                    children: [{ data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }],
-                    contextStack: []
-                }]
-            }
-        }
+        mockTestAsset = {}
         mockNamespaceMap = [
             { internalKey: 'Test', universalKey: 'ASSET#Test' }
         ]
@@ -160,93 +119,46 @@ describe('cacheAsset', () => {
             { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' }
         ]
         mockTestAsset = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    data: { tag: 'Asset', fileName: 'test', key: 'test', Story: undefined },
-                    children: [
-                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] },
-                        { data: { key: 'If-0', tag: 'If', index: 0 }, children: [] },
-                        { data: { key: 'testKnowledge', tag: 'Knowledge', index: 0 }, children: [] },
-                        { data: { key: 'powered', tag: 'Variable', index: 0 }, children: [] },
-                        { data: { key: 'switchedOn', tag: 'Variable', index: 0 }, children: [] },
-                        { data: { key: 'active', tag: 'Computed', index: 0 }, children: [] },
-                        { data: { key: 'toggleSwitch', tag: 'Action', index: 0 }, children: [] }
-                    ]
-                }]
-            },
             ABC: {
                 key: 'ABC',
                 tag: 'Room',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Room', key: 'ABC' },
-                    children: [{
-                        data: { tag: 'Name' },
-                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
-                    }]
-                },
-                {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
-                    data: { tag: 'Room', key: 'ABC' },
-                    children: [{
-                        data: { tag: 'Description' },
-                        children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
-                    }]
-                }]
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [
+                    { data: { tag: 'String', value: 'Vortex' }, children: [] },
+                    { data: { tag: 'If' }, children: [
+                        { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                    ] }
+                ] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
+                exits: []
             },
             testKnowledge: {
                 key: 'testKnowledge',
                 tag: 'Knowledge',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Knowledge', key: 'testKnowledge' },
-                    children: [
-                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
-                        { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
-                    ]
-                }]
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
             },
             powered: {
                 key: 'powered',
                 tag: 'Variable',
-                default: 'false',
-                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'powered', default: 'false' } }]
+                default: 'false'
             },
             switchedOn: {
                 key: 'switchedOn',
                 tag: 'Variable',
-                default: 'true',
-                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'switchedOn', default: 'true' }}]
+                default: 'true'
             },
             active: {
                 key: 'active',
                 tag: 'Computed',
                 src: 'powered && switchedOn',
-                dependencies: ['switchedOn', 'powered'],
-                appearances: [{ ...topLevelAppearance, data: { tag: 'Computed', key: 'active', src: 'powered && switchedOn', dependencies: ['switchedOn', 'powered'] } }]
+                dependencies: ['switchedOn', 'powered']
             },
             toggleSwitch: {
                 key: 'toggleSwitch',
                 tag: 'Action',
                 src: 'switchedOn = !switchedOn',
-                appearances: [{ ...topLevelAppearance, data: { tag: 'Action', key: 'toggleSwitch', src: 'switchedOn = !switchedOn' } }]
-            },
-            ['If-0']: {
-                key: 'If-0',
-                tag: 'If',
-                conditions: [{
-                    if: 'active',
-                    dependencies: ['active'],    
-                }],
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'active', dependencies: ['active'] }] },
-                    children: [{ data: { key: 'ABC', tag: 'Room', index: 1 }, children: [] }]
-                }]
             }
         }
 
@@ -259,11 +171,15 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
-                render: [{
-                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'active', dependencies: ['active'] }] },
-                    children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
-                }],
+                shortName: [],
+                name: [
+                    { data: { tag: 'String', value: 'Vortex' }, children: [] },
+                    { data: { tag: 'If' }, children: [
+                        { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                    ] }
+                ],
+                summary: [],
+                render: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }],
                 exits: [],
                 stateMapping: { active: 'COMPUTED#XYZ' },
                 keyMapping: {}
@@ -333,56 +249,23 @@ describe('cacheAsset', () => {
             { internalKey: 'image1', universalKey: 'IMAGE#GHI' }
         ]
         mockTestAsset = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    data: { tag: 'Asset', fileName: 'test', key: 'test', Story: undefined },
-                    children: [
-                        { data: { key: 'room1', tag: 'Room', index: 0 }, children: [] },
-                        { data: { key: 'map1', tag: 'Map', index: 0 }, children: [] }
-                    ]
-                }]
-            },
             room1: {
                 key: 'room1',
                 tag: 'Room',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Room', key: 'room1' },
-                    children: [{
-                        data: { tag: 'Name' },
-                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
-                    }]
-                },
-                {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }],
-                    data: { tag: 'Room', key: 'room1' },
-                    children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }]
-                }]
-            },
-            image1: {
-                key: 'image1',
-                tag: 'Image',
-                appearances: [{
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }],
-                    data: { tag: 'Image', key: 'image1' },
-                    children: []
-                }]
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: []
             },
             map1: {
                 key: 'map1',
                 tag: 'Map',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Map', key: 'map1' },
-                    children: [
-                        { data: { tag: 'Room', key: 'room1', index: 1 }, children: [] },
-                        { data: { tag: 'Image', key: 'image1' }, children: [] }
-                    ]
-                }]
+                name: { data: { tag: 'Name' }, children: [] },
+                positions: [
+                    { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }
+                ],
+                images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }]
             }
         }
 
@@ -448,70 +331,33 @@ describe('cacheAsset', () => {
             { internalKey: 'open', universalKey: 'VARIABLE#QRS' }
         ]
         mockTestAsset = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    data: { tag: 'Asset', key: 'test', fileName: 'test', Story: undefined },
-                    children: [
-                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] },
-                        { data: { key: 'DEF', tag: 'Room', index: 0 }, children: [] },
-                        { data: { key: 'open', tag: 'Variable', index: 0 }, children: [] }
-                    ]
-                }]
-            },
             ABC: {
                 key: 'ABC',
                 tag: 'Room',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Room', key: 'ABC' },
-                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
-                }]
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: []
             },
             DEF: {
                 key: 'DEF',
                 tag: 'Room',
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'Room', key: 'DEF' },
-                    children: [
-                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
-                        { data: { tag: 'If', key: 'If-0', index: 0 }, children: [] }
-                    ]
-                }]
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: [
+                    { data: { tag: 'If' }, children: [{
+                        data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
+                        children: [{ data: { tag: 'Exit', to: 'ABC', key: 'DEF#ABC', from: 'DEF' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]}]
+                    }] }
+                ]
             },
             open: {
                 key: 'open',
                 tag: 'Variable',
-                default: 'false',
-                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'open', default: 'false' } }]
-            },
-            ['DEF#ABC']: {
-                key: 'DEF#ABC',
-                tag: 'Exit',
-                from: 'DEF',
-                to: 'ABC',
-                appearances: [{
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0}, { key: 'If-0', tag: 'If', index: 0 }],
-                    data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' },
-                    children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
-                }]
-            },
-            ['If-0']: {
-                key: 'If-0',
-                tag: 'If',
-                conditions: [{                    
-                    if: 'open',
-                    dependencies: ['open']
-                }],
-                appearances: [{
-                    ...topLevelAppearance,
-                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'open', dependencies: ['open'] }] },
-                    children: [{ data: { key: 'DEF#ABC', tag: 'Exit', index: 0 }, children: [] }]
-                }]
+                default: 'false'
             }
         }
 
@@ -534,8 +380,11 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#DEF',
                 key: 'DEF',
                 exits: [{
-                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'open', dependencies: ['open'] }] },
-                    children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
+                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                    }]
                 }],
                 name: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }],
                 render: [],
@@ -576,48 +425,27 @@ describe('cacheAsset', () => {
             { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
         ]
         mockTestAsset = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    data: { tag: 'Asset', key: 'test', fileName: 'test', Story: undefined },
-                    children: [
-                        { data: { key: 'Import-0', tag: 'Import', index: 0 }, children: [] },
-                        { data: { key: 'ABC', tag: 'Room', index: 1 }, children: [] }
-                    ]
-                }]
-            },
-            'Import-0': {
-                tag: 'Import',
-                key: 'Import-0',
-                appearances: [{
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-                    data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
-                    children: [
-                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] }
-                    ]
-                }],
-                from: 'base',
-                mapping: {}
-            },
+            // 'Import-0': {
+            //     tag: 'Import',
+            //     key: 'Import-0',
+            //     appearances: [{
+            //         contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+            //         data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
+            //         children: [
+            //             { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] }
+            //         ]
+            //     }],
+            //     from: 'base',
+            //     mapping: {}
+            // },
             ABC: {
                 key: 'ABC',
                 tag: 'Room',
-                appearances: [{
-                    contextStack: [
-                        { key: 'test', tag: 'Asset', index: 0 },
-                        { key: 'Import-0', tag: 'Import', index: 0 }
-                    ],
-                    data: { tag: 'Room', key: 'ABC' },
-                    children: []
-                },
-                {
-                    ...topLevelAppearance,
-                    data: { tag: 'Room', key: 'ABC' },
-                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
-                }]
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: []
             },
         }
 
@@ -659,60 +487,42 @@ describe('cacheAsset', () => {
             Tess: {
                 key: 'Tess',
                 tag: 'Character',
-                images: [],
-                Pronouns: {
+                pronouns: { data: {
+                    tag: 'Pronouns',
                     subject: 'they',
                     object: 'them',
                     possessive: 'their',
                     adjective: 'theirs',
                     reflexive: 'themself'
-                },
-                assets: ['Test', 'BASE'],
-                appearances: [{
-                    contextStack: [],
-                    data: {
-                        key: 'Tess',
-                        tag: 'Character',
-                        Pronouns: {
-                            subject: 'they',
-                            object: 'them',
-                            possessive: 'their',
-                            adjective: 'theirs',
-                            reflexive: 'themself'
-                        }
-                    },
-                    children: [
-                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-                        { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
-                        { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
-                        { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
-                        { data: { key: 'Import-0', tag: 'Import', index: 0 }, children: [] },
-                        { data: { key: 'Import-1', tag: 'Import', index: 0 }, children: [] }
-                    ]
-                }]
+                }, children: [] },
+                // assets: ['Test', 'BASE'],
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+                firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
+                oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
+                outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
             },
-            'Import-0': {
-                tag: 'Import',
-                key: 'Import-0',
-                appearances: [{
-                    contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-                    data: { tag: 'Import', key: 'Import-0', from: 'BASE', mapping: {} },
-                    children: []
-                }],
-                from: 'BASE',
-                mapping: {}
-            },
-            'Import-1': {
-                tag: 'Import',
-                key: 'Import-1',
-                appearances: [{
-                    contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-                    data: { tag: 'Import', key: 'Import-1', from: 'Test', mapping: {} },
-                    children: []
-                }],
-                from: 'Test',
-                mapping: {}
-            }
+            // 'Import-0': {
+            //     tag: 'Import',
+            //     key: 'Import-0',
+            //     appearances: [{
+            //         contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
+            //         data: { tag: 'Import', key: 'Import-0', from: 'BASE', mapping: {} },
+            //         children: []
+            //     }],
+            //     from: 'BASE',
+            //     mapping: {}
+            // },
+            // 'Import-1': {
+            //     tag: 'Import',
+            //     key: 'Import-1',
+            //     appearances: [{
+            //         contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
+            //         data: { tag: 'Import', key: 'Import-1', from: 'Test', mapping: {} },
+            //         children: []
+            //     }],
+            //     from: 'Test',
+            //     mapping: {}
+            // }
         }
 
         await cacheAsset({

@@ -72,6 +72,7 @@ export type StandardVariable = {
 export type StandardComputed = {
     tag: 'Computed';
     src: string;
+    dependencies?: string[];
 } & StandardBase
 
 export type StandardAction = {
@@ -178,6 +179,7 @@ export type SerializableStandardVariable = {
 export type SerializableStandardComputed = {
     tag: 'Computed';
     src: string;
+    dependencies?: string[];
 } & SerializableStandardBase
 
 export type SerializableStandardAction = {

@@ -178,10 +178,84 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 children: []
             }
         case 'Computed':
+            return {
+                data: { tag: item.tag, key: item.key, src: item.src, dependencies: item.dependencies },
+                id: item.id,
+                children: []
+            }
         case 'Action':
             return {
                 data: { tag: item.tag, key: item.key, src: item.src },
                 id: item.id,
+                children: []
+            }
+    }
+}
+
+export const serializedStandardItemToSchemaItem = (item: SerializableStandardComponent): GenericTreeNode<SchemaTag> => {
+    switch(item.tag) {
+        case 'Character':
+            const { tag, ...pronouns } = item.pronouns.data
+            return {
+                data: { tag: 'Character', key: item.key, Pronouns: pronouns },
+                children: [
+                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit],
+                ]
+            }
+        case 'Room':
+            return {
+                data: { tag: 'Room', key: item.key },
+                children: [
+                    ...[item.shortName, item.name, item.summary, item.description],
+                    ...item.exits
+                ]
+            }
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                data: { tag: item.tag, key: item.key },
+                children: [item.name, item.description]
+            }
+        case 'Bookmark':
+            return {
+                data: { tag: 'Bookmark', key: item.key },
+                children: item.description.children
+            }
+        case 'Message':
+            return {
+                data: { tag: 'Message', key: item.key },
+                children: [
+                    ...item.rooms,
+                    ...item.description.children
+                ]
+            }
+        case 'Moment':
+            return {
+                data: { tag: 'Moment', key: item.key },
+                children: item.messages
+            }
+        case 'Map':
+            return {
+                data: { tag: 'Map', key: item.key },
+                children: [
+                    item.name,
+                    ...item.images,
+                    ...item.positions
+                ]
+            }
+        case 'Variable':
+            return {
+                data: { tag: 'Variable', key: item.key, default: item.default },
+                children: []
+            }
+        case 'Computed':
+            return {
+                data: { tag: item.tag, key: item.key, src: item.src, dependencies: item.dependencies },
+                children: []
+            }
+        case 'Action':
+            return {
+                data: { tag: item.tag, key: item.key, src: item.src },
                 children: []
             }
     }
