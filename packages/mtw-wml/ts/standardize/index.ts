@@ -1,7 +1,7 @@
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaDescriptionTag, SchemaExportTag, SchemaImportTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaImportTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -180,6 +180,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
 
 export class Standardizer {
     _assetKey: string;
+    _assetTag: SchemaAssetTag["tag"];
     _assetId: string;
     _byId: StandardForm;
     _imports: GenericTreeFiltered<SchemaImportTag, SchemaTag, TreeId>;
@@ -202,7 +203,7 @@ export class Standardizer {
                     : { data: { ...dataA, ...dataB }, id: idA ?? idB }
             )
 
-                        //
+            //
             // Add standardized view of all Imports to the results
             //
             const importTagTree = tagTree
@@ -310,7 +311,7 @@ export class Standardizer {
                 return previous
             }, undefined)
             return {
-                data: { tag: 'Asset', key: assetKey, Story: undefined },
+                data: { tag: 'Asset' as const, key: assetKey, Story: undefined },
                 children: [],
                 id
             }
@@ -318,7 +319,12 @@ export class Standardizer {
         if (allStandardAssets.length !== 1) {
             throw new Error('Too many assets in Standarizer')
         }
-        this._assetKey = allStandardAssets[0].data.key
+        const { data: assetData } = allStandardAssets[0]
+        if (!isSchemaTag(assetData) && (isSchemaAsset(assetData) || isSchemaCharacter(assetData))) {
+            throw new Error('Type mismatch in Standardizer')
+        }
+        this._assetKey = assetData.key
+        this._assetTag = assetData.tag
         this._assetId = allStandardAssets[0].id ?? ''
     }
 
@@ -336,7 +342,7 @@ export class Standardizer {
             ...this._exports
         ]
         return [{
-            data: { tag: 'Asset', key: this._assetKey, Story: undefined },
+            data: { tag: this._assetTag, key: this._assetKey, Story: undefined },
             children,
             id: this._assetId
         }]
