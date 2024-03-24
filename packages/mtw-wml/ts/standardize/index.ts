@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
@@ -593,5 +594,80 @@ export class Standardizer {
             byId,
             metaData: stripIDFromTree(this.metaData)
         }
+    }
+
+    deserialize(standard: SerializableStandardForm): void {
+        const byId: StandardForm["byId"] = objectMap(standard.byId, (value) => {
+            const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
+                const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
+                return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
+            }
+            if (value.tag === 'Bookmark') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    description: deserializeValue(value, 'description')
+                }
+            }
+            if (value.tag === 'Feature' || value.tag === 'Knowledge') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    description: deserializeValue(value, 'description')
+                }
+            }
+            if (value.tag === 'Map') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    positions: maybeGenericIDFromTree(value.positions),
+                    images: maybeGenericIDFromTree(value.images)
+                }
+            }
+            if (value.tag === 'Room') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    shortName: deserializeValue(value, 'shortName'),
+                    name: deserializeValue(value, 'name'),
+                    summary: deserializeValue(value, 'summary'),
+                    description: deserializeValue(value, 'description'),
+                    exits: maybeGenericIDFromTree(value.exits)
+                }
+            }
+            if (value.tag === 'Message') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    description: deserializeValue(value, 'description'),
+                    rooms: maybeGenericIDFromTree(value.rooms)
+                }
+            }
+            if (value.tag === 'Moment') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    messages: maybeGenericIDFromTree(value.messages)
+                }
+            }
+            if (value.tag === 'Character') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    firstImpression: deserializeValue(value, 'firstImpression'),
+                    oneCoolThing: deserializeValue(value, 'oneCoolThing'),
+                    outfit: deserializeValue(value, 'outfit'),
+                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) }
+                }
+            }
+            return { ...value, id: uuidv4() }
+        })
+        this._assetKey = standard.key
+        this._assetTag = standard.tag
+        this._byId = byId
+        this.metaData = maybeGenericIDFromTree(standard.metaData)
     }
 }
