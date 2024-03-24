@@ -1,6 +1,7 @@
 import { splitType } from "@tonylb/mtw-utilities/ts/types"
 import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import {
+    isImportable,
     isSchemaExit,
     isSchemaRoom,
     SchemaTag
@@ -8,6 +9,10 @@ import {
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import normalSubset from "./normalSubset"
 import { FetchImportsJSONHelper } from "./baseClasses"
+import standardSubset from "./standardSubset"
+import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 
 //
 // The translateToFinal class accepts:
@@ -42,8 +47,16 @@ export class NestedTranslateImportToFinal extends Object {
             this.localToFinal = [...localKeys, ...localStubKeys].reduce<Record<string, string>>((previous, key) => ({ ...previous, [key]: key }), {})
         }
     }
-    nestMapping(keys: string[], stubKeys: string[], mapping: NormalImport["mapping"]): NestedTranslateImportToFinal {
-        const localToImport = Object.assign({}, ...Object.entries(mapping).map(([from, { key }]) => ({ [from]: key }))) as Record<string, string>
+    nestMapping(keys: string[], stubKeys: string[], mapping: GenericTreeNodeFiltered<SchemaImportTag, SchemaTag>): NestedTranslateImportToFinal {
+        const localToImport = Object.assign({},
+            ...mapping.children
+                .map(({ data }) => {
+                    if (isImportable(data)) {
+                        return { [data.as ?? data.key]: data.key }
+                    }
+                    return {}
+                })
+        ) as Record<string, string>
         const keyMapping = keys
             .reduce<NestedTranslateLocalToFinal>((previous, key) => {
                 if (key in localToImport) {
@@ -113,25 +126,32 @@ type RecursiveFetchImportArgument = {
 
 export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<GenericTree<SchemaTag>> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
-    const { normal } = await jsonHelper.get(assetId)
+    const { standard } = await jsonHelper.get(assetId)
     //
     // Coming straight from the datalake, this normal should already be in standardized form,
     // and can be fed directly to normalSubset
     //
-    const { newStubKeys, schema } = normalSubset({ normal, keys, stubKeys })
+
+    //
+    // TODO: Refactor normalSubset as standardSubset to operate on standardForm
+    //
+    const { newStubKeys, standard: newStandard } = standardSubset({ standard, keys, stubKeys })
     newStubKeys.forEach((key) => {
         translate.addTranslation(key, prefixStubKeys ? `${splitType(assetId)[1]}.${key}` : key)
     })
 
-    const relevantImports = Object.values(normal)
-        .filter(isNormalImport)
-        .reduce<{ assetId: `ASSET#${string}`; mapping: NormalImport["mapping"] }[]>((previous, { from, mapping }) => {
-            if ([...keys, ...stubKeys, ...newStubKeys].find((key) => (key in mapping))) {
+    const relevantImports = newStandard.metaData
+        .filter(treeNodeTypeguard(isSchemaImport))
+        .reduce<{ assetId: `ASSET#${string}`; mapping: GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> }[]>((previous, { data, children }) => {
+            const filteredChildren = children
+                .filter(treeNodeTypeguard(isImportable))
+                .filter(({ data }) => ([...keys, ...stubKeys, ...newStubKeys].includes(data.as ?? data.key)))
+            if (filteredChildren.length) {
                 return [
                     ...previous,
                     {
-                        assetId: `ASSET#${from}`,
-                        mapping
+                        assetId: `ASSET#${data.from}`,
+                        mapping: { data, children: filteredChildren }
                     }
                 ]
             }
@@ -149,9 +169,12 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
 
+    const finalStandardizer = new Standardizer([{ data: { key: 'Test', tag: 'Asset', Story: undefined }, children: [] }])
+    finalStandardizer.deserialize({ ...newStandard, metaData: [] })
+
     return [
         ...importSchema,
-        ...schema.map((tag) => (translate.translateSchemaTag(tag)))
+        ...finalStandardizer.schema.map((tag) => (translate.translateSchemaTag(tag)))
     ]
 
 }

@@ -9,17 +9,24 @@ import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
+import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
+import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
 
-const testNormalFromWML = (wml: string): NormalForm => {
-    const normalizer = new Normalizer()
-    normalizer.loadWML(wml)
-    return normalizer.normal
+//
+// TODO: Refactor testNormalFromWML as testStandardFromWML
+//
+const testStandardFromWML = (wml: string): SerializableStandardForm => {
+    const schema = new Schema()
+    schema.loadWML(wml)
+    const standardizer = new Standardizer(schema.schema)
+    return standardizer.stripped
 }
 
 describe('fetchImports', () => {
-    const testFinal = testNormalFromWML(`<Asset key=(testFinal)>
+    const testFinal = testStandardFromWML(`<Asset key=(testFinal)>
         <Room key=(testNonImport)>
             <Description>
                 DescriptionOne
@@ -59,7 +66,7 @@ describe('fetchImports', () => {
             <Room key=(testRoomWithFeatures) />
         </Import>
     </Asset>`)
-    const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
+    const testImportOne = testStandardFromWML(`<Asset key=(testImportAssetOne)>
         <Room key=(testImportOne)>
             <Description>
                 One
@@ -75,7 +82,7 @@ describe('fetchImports', () => {
             </Description>
         </Room>
     </Asset>`)
-    const testImportTwo = testNormalFromWML(`<Asset key=(testImportAssetTwo)>
+    const testImportTwo = testStandardFromWML(`<Asset key=(testImportAssetTwo)>
         <Room key=(basic)>
             <Description>
                 Asset Two
@@ -88,14 +95,14 @@ describe('fetchImports', () => {
             <Room key=(basic) from=(basicOne) />
         </Import>
     </Asset>`)
-    const testImportThree = testNormalFromWML(`<Asset key=(testImportAssetThree)>
+    const testImportThree = testStandardFromWML(`<Asset key=(testImportAssetThree)>
         <Room key=(basicOne)>
             <Exit to=(stub)>test exit</Exit>
         </Room>
         <Room key=(basicTwo)><Name>Asset Three</Name></Room>
         <Room key=(stub)><Name>AssetThreeStub</Name></Room>
     </Asset>`)
-    const testImportFour = testNormalFromWML(`<Asset key=(testImportAssetFour)>
+    const testImportFour = testStandardFromWML(`<Asset key=(testImportAssetFour)>
         <Feature key=(testFeature)>
             <Description>Feature test</Description>
         </Feature>
@@ -123,26 +130,26 @@ describe('fetchImports', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
-            let normal: NormalForm = {}
+            let standard: SerializableStandardForm = { key: '', tag: 'Asset', byId: {}, metaData: [] }
             switch(assetId) {
                 case 'ASSET#testFinal':
-                    normal = testFinal
+                    standard = testFinal
                     break
                 case 'ASSET#testImportAssetOne':
-                    normal = testImportOne
+                    standard = testImportOne
                     break
                 case 'ASSET#testImportAssetTwo':
-                    normal = testImportTwo
+                    standard = testImportTwo
                     break
                 case 'ASSET#testImportAssetThree':
-                    normal = testImportThree
+                    standard = testImportThree
                     break
                 case 'ASSET#testImportAssetFour':
-                    normal = testImportFour
+                    standard = testImportFour
                     break
             }
             return {
-                normal,
+                standard,
                 namespaceIdToDB: []
             }
         })
