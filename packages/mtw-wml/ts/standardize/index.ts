@@ -597,19 +597,19 @@ export class Standardizer {
     }
 
     deserialize(standard: SerializableStandardForm): void {
-        const byId: StandardForm["byId"] = objectMap(this._byId, (value) => {
+        const byId: StandardForm["byId"] = objectMap(standard.byId, (value) => {
             const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
                 const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
                 return { ...subItem, id: uuidv4(), children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
             }
-            if (isStandardBookmark(value)) {
+            if (value.tag === 'Bookmark') {
                 return {
                     ...value,
                     id: uuidv4(),
                     description: deserializeValue(value, 'description')
                 }
             }
-            if (isStandardFeature(value) || isStandardKnowledge(value)) {
+            if (value.tag === 'Feature' || value.tag === 'Knowledge') {
                 return {
                     ...value,
                     id: uuidv4(),
@@ -617,7 +617,7 @@ export class Standardizer {
                     description: deserializeValue(value, 'description')
                 }
             }
-            if (isStandardMap(value)) {
+            if (value.tag === 'Map') {
                 return {
                     ...value,
                     id: uuidv4(),
@@ -626,7 +626,7 @@ export class Standardizer {
                     images: maybeGenericIDFromTree(value.images)
                 }
             }
-            if (isStandardRoom(value)) {
+            if (value.tag === 'Room') {
                 return {
                     ...value,
                     id: uuidv4(),
@@ -637,7 +637,7 @@ export class Standardizer {
                     exits: maybeGenericIDFromTree(value.exits)
                 }
             }
-            if (isStandardMessage(value)) {
+            if (value.tag === 'Message') {
                 return {
                     ...value,
                     id: uuidv4(),
@@ -645,11 +645,22 @@ export class Standardizer {
                     rooms: maybeGenericIDFromTree(value.rooms)
                 }
             }
-            if (isStandardMoment(value)) {
+            if (value.tag === 'Moment') {
                 return {
                     ...value,
                     id: uuidv4(),
                     messages: maybeGenericIDFromTree(value.messages)
+                }
+            }
+            if (value.tag === 'Character') {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    firstImpression: deserializeValue(value, 'firstImpression'),
+                    oneCoolThing: deserializeValue(value, 'oneCoolThing'),
+                    outfit: deserializeValue(value, 'outfit'),
+                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) }
                 }
             }
             return { ...value, id: uuidv4() }
