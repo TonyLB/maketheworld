@@ -81,7 +81,9 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId: EphemeraId,
+            shortName: item.shortName.children,
             name: item.name.children,
+            summary: item.summary.children,
             render: item.description.children,
             exits: item.exits,
             stateMapping,
