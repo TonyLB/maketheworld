@@ -78,6 +78,8 @@ export type EphemeraBookmark = {
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
+    shortName: GenericTree<SchemaOutputTag>;
+    summary: GenericTree<SchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
 } & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 

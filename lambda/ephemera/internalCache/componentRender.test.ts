@@ -5,331 +5,6 @@ import { ComponentMetaItem } from "./componentMeta"
 // import { componentAppearanceReduce } from "./componentRender"
 
 describe('ComponentRender cache handler', () => {
-    // describe('componentAppearanceReduce', () => {
-    //     const options = {
-    //         evaluateConditional: jest.fn().mockResolvedValue(false),
-    //         renderBookmark: jest.fn().mockResolvedValue([])
-    //     }
-
-    //     beforeEach(() => {
-    //         options.renderBookmark.mockClear()
-    //         options.renderBookmark.mockRestore()
-    //     })
-        
-    //     it('should return empty from empty string', async () => {
-    //         expect(await componentAppearanceReduce(options)).toEqual({
-    //             Description: [],
-    //             Name: [],
-    //             Exits: []
-    //         })
-    //     })
-
-    //     it('should correctly join render strings', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'Test '
-    //             },
-    //             {
-    //                 tag: 'String',
-    //                 value: 'One'
-    //             }]
-    //         })).toEqual({
-    //             Description: [{ tag: 'String', value: 'Test One' }],
-    //             Name: [],
-    //             Exits: []
-    //         })
-    //     })
-
-    //     it('should correctly join link after string', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'Test '
-    //             },
-    //             {
-    //                 tag: 'Link',
-    //                 text: 'One',
-    //                 to: 'FEATURE#TestOne'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'Test ' },
-    //                 { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly join string after link', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'Link',
-    //                 text: 'Test',
-    //                 to: 'FEATURE#TestOne'
-    //             },
-    //             {
-    //                 tag: 'String',
-    //                 value: ' One'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
-    //                 { tag: 'String', value: ' One' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly join links with space between', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'Link',
-    //                 text: 'Test',
-    //                 to: 'FEATURE#TestOne'
-    //             },
-    //             {
-    //                 tag: 'String',
-    //                 value: ' '
-    //             },
-    //             {
-    //                 tag: 'Link',
-    //                 text: 'One',
-    //                 to: 'FEATURE#TestOne'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
-    //                 { tag: 'String', value: ' ' },
-    //                 { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly join items with line breaks', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'Link',
-    //                 text: 'Test',
-    //                 to: 'FEATURE#TestOne'
-    //             },
-    //             {
-    //                 tag: 'LineBreak'
-    //             },
-    //             {
-    //                 tag: 'Link',
-    //                 text: 'One',
-    //                 to: 'FEATURE#TestOne'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
-    //                 { tag: 'LineBreak' },
-    //                 { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly join items without spacing fields', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'Test ',
-    //             },
-    //             {
-    //                 tag: 'Link',
-    //                 text: 'One',
-    //                 to: 'FEATURE#TestOne'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'Test ' },
-    //                 { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly evaluate conditionals', async () => {
-    //         const testOptions = {
-    //             ...options,
-    //             evaluateConditional: jest.fn().mockImplementation(async (source) => {
-    //                 switch(source) {
-    //                     case 'checkOne': return true
-    //                     case 'checkTwo': return false
-    //                 }
-    //             })
-    //         }
-    //         expect(await componentAppearanceReduce(testOptions, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [
-    //                 { tag: 'String', value: 'Show this, ' },
-    //                 {
-    //                     tag: 'Condition',
-    //                     conditions: [{
-    //                         if: 'checkOne',
-    //                         dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
-    //                     }],
-    //                     contents: [
-    //                         { tag: 'String', value: 'and this, ' },
-    //                         {
-    //                             tag: 'Condition',
-    //                             conditions: [{
-    //                                 if: 'checkOne',
-    //                                 dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
-    //                             }],
-    //                             contents: [
-    //                                 { tag: 'String', value: `and also this` },
-    //                             ]
-    //                         },
-    //                         {
-    //                             tag: 'Condition',
-    //                             conditions: [{
-    //                                 if: 'checkTwo',
-    //                                 dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
-    //                             }],
-    //                             contents: [
-    //                                 { tag: 'String', value: `but not this` },
-    //                             ]
-    //                         }
-    //                     ]
-    //                 },
-    //                 {
-    //                     tag: 'Condition',
-    //                     conditions: [{
-    //                         if: 'checkTwo',
-    //                         dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
-    //                     }],
-    //                     contents: [
-    //                         { tag: 'String', value: `and not this` },
-    //                     ]
-    //                 },
-    //                 { tag: 'String', value: '.' }
-    //             ]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'Show this, and this, and also this.' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-    //     })
-
-    //     it('should correctly parse into after tag', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'One ',
-    //             },
-    //             {
-    //                 tag: 'After',
-    //                 contents: [
-    //                     { tag: 'String', value: 'Two ' },
-    //                     { tag: 'String', value: 'Three' }
-    //                 ]
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'One Two Three' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly parse into before tag', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'Three',
-    //             },
-    //             {
-    //                 tag: 'Before',
-    //                 contents: [
-    //                     { tag: 'String', value: 'One ' },
-    //                     { tag: 'String', value: 'Two ' }
-    //                 ]
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'One Two Three' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    //     it('should correctly parse into replace tag', async () => {
-    //         expect(await componentAppearanceReduce(options, {
-    //             conditions: [],
-    //             name: [],
-    //             exits: [],
-    //             render: [{
-    //                 tag: 'String',
-    //                 value: 'Uno Dos ',
-    //             },
-    //             {
-    //                 tag: 'Replace',
-    //                 contents: [
-    //                     { tag: 'String', value: 'One ' },
-    //                     { tag: 'String', value: 'Two ' }
-    //                 ]
-    //             },
-    //             {
-    //                 tag: 'String',
-    //                 value: 'Three'
-    //             }]
-    //         })).toEqual({
-    //             Description: [
-    //                 { tag: 'String', value: 'One Two Three' }
-    //             ],
-    //             Name: [],
-    //             Exits: []
-    //         })
-
-    //     })
-
-    // })
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -352,13 +27,15 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                name: [{
+                shortName: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
                         children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }]
                     }]
                 }],
+                name: [],
+                summary: [],
                 render: [{
                     data: { tag: 'If' },
                     children: [{
@@ -384,13 +61,15 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                name: [{
+                shortName: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
                 }],
+                name: [],
+                summary: [],
                 render: [{
                     data: { tag: 'If' },
                     children: [{
@@ -424,7 +103,9 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: [{ tag: 'String', value: 'TestRoom' }],
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],
@@ -785,7 +466,9 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'ROOM#TestRoomOne',
                             assetId: 'Base',
-                            name: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }],
+                            shortName: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }],
+                            name: [],
+                            summary: [],
                             render: [],
                             exits: [
                                 { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Other Room' }, children: [] }] },
@@ -795,20 +478,22 @@ describe('ComponentRender cache handler', () => {
                             stateMapping: {},
                             keyMapping: { room2: 'ROOM#TestRoomTwo', room3: 'ROOM#TestRoomThree' }
                         },
-                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', name: [], render: [], exits: [], key: 'testMap', stateMapping: {}, keyMapping: {} }
+                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', shortName: [], name: [], summary: [], render: [], exits: [], key: 'room1', stateMapping: {}, keyMapping: {} }
                     } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraRoomId }>
                 case 'ROOM#TestRoomTwo':
                     return {
-                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', name: [], render: [], exits: [], key: 'testMap', stateMapping: {}, keyMapping: {} },
+                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', shortName: [], name: [], summary: [], render: [], exits: [], key: 'room2', stateMapping: {}, keyMapping: {} },
                         Personal: {
                             EphemeraId: 'ROOM#TestRoomTwo',
                             assetId: 'Personal',
-                            name: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }],
+                            shortName: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }],
+                            name: [],
+                            summary: [],
                             render: [],
                             exits: [
                                 { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2' }, children: [{ data: { tag: 'String', value: 'First Room' }, children: [] }] }
                             ],
-                            key: 'testMap',
+                            key: 'room2',
                             stateMapping: {},
                             keyMapping: { room1: 'ROOM#TestRoomOne' }
                         }
@@ -870,7 +555,9 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'ROOM#TestOne',
                             assetId: 'Base',
-                            name: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+                            shortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+                            name: [],
+                            summary: [],
                             render: [
                                 { data: { tag: 'String', value: 'First' }, children: [] },
                                 {
@@ -902,7 +589,9 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
         expect(outputOne).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: [{ tag: 'String', value: 'TestRoom' }],
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'First' }],
             Exits: [],
@@ -914,7 +603,9 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
         expect(outputTwo).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: [{ tag: 'String', value: 'TestRoom' }],
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],
@@ -926,7 +617,9 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
         expect(outputThree).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: [{ tag: 'String', value: 'TestRoom' }],
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],

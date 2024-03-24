@@ -424,7 +424,9 @@ export type BookmarkDescribeData = {
 
 export type RoomDescribeData = {
     Description: TaggedMessageContentFlat[];
+    ShortName: TaggedMessageContentFlat[];
     Name: TaggedMessageContentFlat[];
+    Summary: TaggedMessageContentFlat[];
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];

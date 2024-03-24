@@ -56,7 +56,7 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
+            ProjectionFields: ['DataCategory', 'key', 'shortName', 'name', 'summary', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 
@@ -65,7 +65,9 @@ describe('ComponentMeta', () => {
             EphemeraId: 'ROOM#TestOne',
             assetId: 'Layer',
             key: 'testTwo',
+            shortName: [],
             name: [],
+            summary: [],
             render: [{ data: { tag: "String", value: 'TestingTwo' }, children: [] }],
             exits: [],
             stateMapping: {},
@@ -73,7 +75,9 @@ describe('ComponentMeta', () => {
         })
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
+            shortName: [],
             name: [],
+            summary: [],
             render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
             exits: [],
             key: 'test',
@@ -85,7 +89,9 @@ describe('ComponentMeta', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
+                shortName: [],
                 name: [],
+                summary: [],
                 render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
                 exits: [],
                 key: 'test',
@@ -95,7 +101,9 @@ describe('ComponentMeta', () => {
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
+                shortName: [],
                 name: [],
+                summary: [],
                 render: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }],
                 exits: [],
                 key: 'testTwo',
@@ -108,14 +116,16 @@ describe('ComponentMeta', () => {
             Keys: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
             ],
-            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
+            ProjectionFields: ['DataCategory', 'key', 'shortName', 'name', 'summary', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 
     it('should default fetches that do not return', async () => {
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
+            shortName: [],
             name: [],
+            summary: [],
             render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
             exits: [],
             key: 'test',
@@ -127,7 +137,9 @@ describe('ComponentMeta', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
+                shortName: [],
                 name: [],
+                summary: [],
                 render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
                 exits: [],
                 key: 'test',
@@ -138,7 +150,9 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
                 key: '',
+                shortName: [],
                 name: [],
+                summary: [],
                 render: [],
                 exits: [],
                 stateMapping: {},
@@ -151,7 +165,7 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
+            ProjectionFields: ['DataCategory', 'key', 'shortName', 'name', 'summary', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 

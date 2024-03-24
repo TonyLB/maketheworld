@@ -81,7 +81,9 @@ export class ComponentMetaData {
                         EphemeraId,
                         assetId,
                         key: '',
+                        shortName: [],
                         name: [],
+                        summary: [],
                         render: [],
                         exits: [],
                         stateMapping: {},
@@ -202,7 +204,7 @@ export class ComponentMetaData {
                 .map((partial) => ({ ...partial, EphemeraId } as T & { DataCategory?: string }))
         }
         if (isEphemeraRoomId(EphemeraId)) {
-            return factoryReturnValue<EphemeraRoom>('name', 'render', 'exits', 'stateMapping', 'keyMapping')
+            return factoryReturnValue<EphemeraRoom>('shortName', 'name', 'summary', 'render', 'exits', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
             return factoryReturnValue<EphemeraFeature | EphemeraKnowledge>('name', 'render', 'stateMapping', 'keyMapping')

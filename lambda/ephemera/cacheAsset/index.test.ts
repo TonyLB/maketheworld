@@ -19,7 +19,6 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { BaseAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
@@ -172,14 +171,14 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                // shortName: [],
+                shortName: [],
                 name: [
                     { data: { tag: 'String', value: 'Vortex' }, children: [] },
                     { data: { tag: 'If' }, children: [
                         { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
                     ] }
                 ],
-                // summary: [],
+                summary: [],
                 render: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }],
                 exits: [],
                 stateMapping: { active: 'COMPUTED#XYZ' },
@@ -280,7 +279,9 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
+                shortName: [],
                 name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                summary: [],
                 render: [],
                 exits: [],
                 stateMapping: {},
@@ -372,7 +373,9 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
                 exits: [],
+                shortName: [],
                 name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                summary: [],
                 render: [],
                 keyMapping: {},
                 stateMapping: {}
@@ -387,7 +390,9 @@ describe('cacheAsset', () => {
                         children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
+                shortName: [],
                 name: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }],
+                summary: [],
                 render: [],
                 keyMapping: { ABC: 'ROOM#ABC', DEF: 'ROOM#DEF' },
                 stateMapping: { open: 'VARIABLE#QRS' }
