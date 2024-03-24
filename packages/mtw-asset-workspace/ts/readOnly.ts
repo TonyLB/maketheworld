@@ -195,7 +195,7 @@ export class ReadOnlyAssetWorkspace {
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.normal = {}
-                this.standard = { byId: {}, metaData: [] }
+                this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
                 this.namespaceIdToDB = []
                 this.properties = {}
                 this.status.json = 'Clean'
@@ -207,7 +207,7 @@ export class ReadOnlyAssetWorkspace {
         const { assetId = '', namespaceIdToDB = [], standard = {}, properties = {} } = JSON.parse(contents)
         if (!assetId) {
             this.normal = {}
-            this.standard = { byId: {}, metaData: [] }
+            this.standard = { key: assetId.split('#').slice(1)[0] ?? '', tag: 'Asset', byId: {}, metaData: [] }
             this.namespaceIdToDB = []
             this.properties = {}
             this.status.json = 'Clean'
