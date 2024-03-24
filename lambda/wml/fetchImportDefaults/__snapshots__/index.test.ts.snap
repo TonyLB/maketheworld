@@ -7,7 +7,7 @@ exports[`fetchImports should follow dynamic renames in imports 1`] = `
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Inherited>
-        <Room key=(testImportTwo)><Name>StubFoo</Name></Room>
+        <Room key=(testImportTwo)><ShortName>StubFoo</ShortName></Room>
         <Room key=(testNonImportTwo)>
             <Exit to=(testImportTwo)>test exit</Exit>
         </Room>
@@ -27,9 +27,11 @@ exports[`fetchImports should import multilevel and avoid colliding stub names 1`
       "wml": "<Asset key=(testFinal)>
     <Inherited>
         <Room key=(testImportAssetThree.stub)>
-            <Name>AssetThreeStub</Name>
+            <ShortName>AssetThreeStub</ShortName>
         </Room>
-        <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
+        <Room key=(testImportAssetTwo.stub)>
+            <ShortName>Asset Three</ShortName>
+        </Room>
         <Room key=(testImportThree)>
             <Description>Asset Two</Description>
             <Exit to=(testImportAssetThree.stub)>test exit</Exit>
@@ -73,7 +75,7 @@ exports[`fetchImports should recursive fetch one level of element and stubs when
             <Description>OneTwo</Description>
             <Exit to=(testImportStubOne)>test exit one</Exit>
         </Room>
-        <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
+        <Room key=(testImportStubOne)><ShortName>StubTwo</ShortName></Room>
     </Inherited>
 </Asset>",
     },
@@ -93,7 +95,7 @@ exports[`fetchImports should return element and stubs when passed non-import key
             <Description>DescriptionOne</Description>
             <Exit to=(testNonImportStub)>test exit</Exit>
         </Room>
-        <Room key=(testNonImportStub)><Name>StubOne</Name></Room>
+        <Room key=(testNonImportStub)><ShortName>StubOne</ShortName></Room>
     </Inherited>
 </Asset>",
     },

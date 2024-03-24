@@ -5,7 +5,6 @@ jest.mock('../clients')
 import { snsClient } from '../clients'
 jest.mock('./baseClasses')
 import { FetchImportsJSONHelper } from './baseClasses'
-import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
@@ -31,7 +30,7 @@ describe('fetchImports', () => {
             <Exit to=(testNonImportStub)>test exit</Exit>
         </Room>
         <Room key=(testNonImportStub)>
-            <Name>StubOne</Name>
+            <ShortName>StubOne</ShortName>
         </Room>
         <Room key=(testImportOne)>
             <Description>
@@ -70,10 +69,10 @@ describe('fetchImports', () => {
             </Description>
         </Room>
         <Room key=(testImportStubOne)>
-            <Name>StubTwo</Name>
+            <ShortName>StubTwo</ShortName>
         </Room>
         <Room key=(testImportFoo)>
-            <Name>StubFoo</Name>
+            <ShortName>StubFoo</ShortName>
             <Description>
                 Foo
             </Description>
@@ -96,8 +95,8 @@ describe('fetchImports', () => {
         <Room key=(basicOne)>
             <Exit to=(stub)>test exit</Exit>
         </Room>
-        <Room key=(basicTwo)><Name>Asset Three</Name></Room>
-        <Room key=(stub)><Name>AssetThreeStub</Name></Room>
+        <Room key=(basicTwo)><ShortName>Asset Three</ShortName></Room>
+        <Room key=(stub)><ShortName>AssetThreeStub</ShortName></Room>
     </Asset>`)
     const testImportFour = testStandardFromWML(`<Asset key=(testImportAssetFour)>
         <Feature key=(testFeature)>
