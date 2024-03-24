@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
@@ -593,5 +594,69 @@ export class Standardizer {
             byId,
             metaData: stripIDFromTree(this.metaData)
         }
+    }
+
+    deserialize(standard: SerializableStandardForm): void {
+        const byId: StandardForm["byId"] = objectMap(this._byId, (value) => {
+            const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
+                const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
+                return { ...subItem, id: uuidv4(), children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
+            }
+            if (isStandardBookmark(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    description: deserializeValue(value, 'description')
+                }
+            }
+            if (isStandardFeature(value) || isStandardKnowledge(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    description: deserializeValue(value, 'description')
+                }
+            }
+            if (isStandardMap(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    name: deserializeValue(value, 'name'),
+                    positions: maybeGenericIDFromTree(value.positions),
+                    images: maybeGenericIDFromTree(value.images)
+                }
+            }
+            if (isStandardRoom(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    shortName: deserializeValue(value, 'shortName'),
+                    name: deserializeValue(value, 'name'),
+                    summary: deserializeValue(value, 'summary'),
+                    description: deserializeValue(value, 'description'),
+                    exits: maybeGenericIDFromTree(value.exits)
+                }
+            }
+            if (isStandardMessage(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    description: deserializeValue(value, 'description'),
+                    rooms: maybeGenericIDFromTree(value.rooms)
+                }
+            }
+            if (isStandardMoment(value)) {
+                return {
+                    ...value,
+                    id: uuidv4(),
+                    messages: maybeGenericIDFromTree(value.messages)
+                }
+            }
+            return { ...value, id: uuidv4() }
+        })
+        this._assetKey = standard.key
+        this._assetTag = standard.tag
+        this._byId = byId
+        this.metaData = maybeGenericIDFromTree(standard.metaData)
     }
 }
