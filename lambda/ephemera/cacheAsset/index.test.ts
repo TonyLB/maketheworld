@@ -31,7 +31,7 @@ import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseCla
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
-let mockTestAsset: SerializableStandardForm = {}
+let mockTestAsset: SerializableStandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
 let mockNamespaceMap: NamespaceMapping = [
     { internalKey: 'Test', universalKey: 'ASSET#Test' },
     { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
@@ -39,7 +39,7 @@ let mockNamespaceMap: NamespaceMapping = [
 
 let mockProperties: WorkspaceProperties = { image1: { fileName: 'test.png' } }
 
-jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
@@ -55,7 +55,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
                 }
             },
             loadJSON: jest.fn(),
-            normal: mockTestAsset,
+            standard: mockTestAsset,
             namespaceIdToDB: mockNamespaceMap,
             universalKey: jest.fn().mockImplementation((key) => {
                 const matchRecord = mockNamespaceMap.find(({ internalKey }) => (internalKey === key))
@@ -73,7 +73,7 @@ describe('cacheAsset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        mockTestAsset = {}
+        mockTestAsset = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
         mockNamespaceMap = [
             { internalKey: 'Test', universalKey: 'ASSET#Test' }
         ]
@@ -119,46 +119,51 @@ describe('cacheAsset', () => {
             { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' }
         ]
         mockTestAsset = {
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
-                name: { data: { tag: 'Name' }, children: [
-                    { data: { tag: 'String', value: 'Vortex' }, children: [] },
-                    { data: { tag: 'If' }, children: [
-                        { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
-                    ] }
-                ] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
-                exits: []
-            },
-            testKnowledge: {
-                key: 'testKnowledge',
-                tag: 'Knowledge',
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
-            },
-            powered: {
-                key: 'powered',
-                tag: 'Variable',
-                default: 'false'
-            },
-            switchedOn: {
-                key: 'switchedOn',
-                tag: 'Variable',
-                default: 'true'
-            },
-            active: {
-                key: 'active',
-                tag: 'Computed',
-                src: 'powered && switchedOn',
-                dependencies: ['switchedOn', 'powered']
-            },
-            toggleSwitch: {
-                key: 'toggleSwitch',
-                tag: 'Action',
-                src: 'switchedOn = !switchedOn',
+            key: 'Test',
+            tag: 'Asset',
+            metaData: [],
+            byId: {
+                ABC: {
+                    key: 'ABC',
+                    tag: 'Room',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [
+                        { data: { tag: 'String', value: 'Vortex' }, children: [] },
+                        { data: { tag: 'If' }, children: [
+                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                        ] }
+                    ] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
+                    exits: []
+                },
+                testKnowledge: {
+                    key: 'testKnowledge',
+                    tag: 'Knowledge',
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
+                },
+                powered: {
+                    key: 'powered',
+                    tag: 'Variable',
+                    default: 'false'
+                },
+                switchedOn: {
+                    key: 'switchedOn',
+                    tag: 'Variable',
+                    default: 'true'
+                },
+                active: {
+                    key: 'active',
+                    tag: 'Computed',
+                    src: 'powered && switchedOn',
+                    dependencies: ['switchedOn', 'powered']
+                },
+                toggleSwitch: {
+                    key: 'toggleSwitch',
+                    tag: 'Action',
+                    src: 'switchedOn = !switchedOn',
+                }
             }
         }
 
@@ -249,23 +254,28 @@ describe('cacheAsset', () => {
             { internalKey: 'image1', universalKey: 'IMAGE#GHI' }
         ]
         mockTestAsset = {
-            room1: {
-                key: 'room1',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                exits: []
-            },
-            map1: {
-                key: 'map1',
-                tag: 'Map',
-                name: { data: { tag: 'Name' }, children: [] },
-                positions: [
-                    { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }
-                ],
-                images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }]
+            key: 'Test',
+            tag: 'Asset',
+            metaData: [],
+            byId: {
+                room1: {
+                    key: 'room1',
+                    tag: 'Room',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
+                    exits: []
+                },
+                map1: {
+                    key: 'map1',
+                    tag: 'Map',
+                    name: { data: { tag: 'Name' }, children: [] },
+                    positions: [
+                        { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }
+                    ],
+                    images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }]
+                }
             }
         }
 
@@ -331,33 +341,38 @@ describe('cacheAsset', () => {
             { internalKey: 'open', universalKey: 'VARIABLE#QRS' }
         ]
         mockTestAsset = {
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                exits: []
-            },
-            DEF: {
-                key: 'DEF',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                exits: [
-                    { data: { tag: 'If' }, children: [{
-                        data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
-                        children: [{ data: { tag: 'Exit', to: 'ABC', key: 'DEF#ABC', from: 'DEF' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]}]
-                    }] }
-                ]
-            },
-            open: {
-                key: 'open',
-                tag: 'Variable',
-                default: 'false'
+            key: 'Test',
+            tag: 'Asset',
+            metaData: [],
+            byId: {
+                ABC: {
+                    key: 'ABC',
+                    tag: 'Room',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
+                    exits: []
+                },
+                DEF: {
+                    key: 'DEF',
+                    tag: 'Room',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
+                    exits: [
+                        { data: { tag: 'If' }, children: [{
+                            data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
+                            children: [{ data: { tag: 'Exit', to: 'ABC', key: 'DEF#ABC', from: 'DEF' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]}]
+                        }] }
+                    ]
+                },
+                open: {
+                    key: 'open',
+                    tag: 'Variable',
+                    default: 'false'
+                }
             }
         }
 
@@ -438,15 +453,20 @@ describe('cacheAsset', () => {
             //     from: 'base',
             //     mapping: {}
             // },
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                exits: []
-            },
+            key: 'Test',
+            tag: 'Asset',
+            metaData: [],
+            byId: {
+                ABC: {
+                    key: 'ABC',
+                    tag: 'Room',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
+                    exits: []
+                }
+            }
         }
 
         await cacheAsset({
@@ -484,45 +504,30 @@ describe('cacheAsset', () => {
             { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' },
         ]
         mockTestAsset = {
-            Tess: {
-                key: 'Tess',
-                tag: 'Character',
-                pronouns: { data: {
-                    tag: 'Pronouns',
-                    subject: 'they',
-                    object: 'them',
-                    possessive: 'their',
-                    adjective: 'theirs',
-                    reflexive: 'themself'
-                }, children: [] },
-                // assets: ['Test', 'BASE'],
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-                firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
-                oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
-                outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
-            },
-            // 'Import-0': {
-            //     tag: 'Import',
-            //     key: 'Import-0',
-            //     appearances: [{
-            //         contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-            //         data: { tag: 'Import', key: 'Import-0', from: 'BASE', mapping: {} },
-            //         children: []
-            //     }],
-            //     from: 'BASE',
-            //     mapping: {}
-            // },
-            // 'Import-1': {
-            //     tag: 'Import',
-            //     key: 'Import-1',
-            //     appearances: [{
-            //         contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-            //         data: { tag: 'Import', key: 'Import-1', from: 'Test', mapping: {} },
-            //         children: []
-            //     }],
-            //     from: 'Test',
-            //     mapping: {}
-            // }
+            key: 'Tess',
+            tag: 'Character',
+            metaData: [
+                { data: { tag: 'Import', from: 'BASE', mapping: {} }, children: [] },
+                { data: { tag: 'Import', from: 'Test', mapping: {} }, children: [] }
+            ],
+            byId: {
+                Tess: {
+                    key: 'Tess',
+                    tag: 'Character',
+                    pronouns: { data: {
+                        tag: 'Pronouns',
+                        subject: 'they',
+                        object: 'them',
+                        possessive: 'their',
+                        adjective: 'theirs',
+                        reflexive: 'themself'
+                    }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+                    firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
+                    oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
+                    outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
+                },
+            }
         }
 
         await cacheAsset({

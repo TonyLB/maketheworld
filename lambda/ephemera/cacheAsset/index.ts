@@ -39,7 +39,7 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
-import { isSchemaImage, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
@@ -47,6 +47,7 @@ import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { SerializableStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { serializedStandardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: SerializableStandardComponent): EphemeraItem | undefined => {
     const { normal = {}, properties = {} } = assetWorkspace
@@ -184,18 +185,22 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
     if (isEphemeraCharacterId(EphemeraId) && item.tag === 'Character') {
         // const image = item.images.length > 0 && normal[item.images.slice(-1)[0]]
         // const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
+        const { tag, ...pronouns } = item.pronouns.data
+        const assets = (assetWorkspace.standard?.metaData ?? [])
+            .filter(treeNodeTypeguard(isSchemaImport))
+            .map(({ data }) => (data.from))
         return {
             key: item.key,
             EphemeraId,
             address: assetWorkspace.address,
             Name: schemaOutputToString(item.name.children),
-            Pronouns: item.pronouns.data,
+            Pronouns: pronouns,
             FirstImpression: item.firstImpression.data.value,
             OneCoolThing: item.oneCoolThing.data.value,
             Outfit: item.outfit.data.value,
             // image,
             // assets: item.assets,
-            assets: [],
+            assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
             // fileURL,
             Connected: false,
@@ -308,10 +313,10 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     //
     // Process file if an Asset
     //
-    const assetItem = Object.values(assetWorkspace.standard || {}).find(({ tag }) => (tag === 'As'))
-    if (assetItem) {
+    if (assetWorkspace.standard && assetWorkspace.standard.tag === 'Asset') {
+        const assetId = assetWorkspace.standard.key
         if (check || updateOnly) {
-            const assetEphemeraId = assetWorkspace.universalKey(assetItem.key) ?? `ASSET#${assetItem.key}`
+            const assetEphemeraId = assetWorkspace.universalKey(assetId) ?? AssetKey(assetId)
             if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
                 return
             }
@@ -321,17 +326,9 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             }
         }
     
-        //
-        // Instanced stories are not directly cached, they are instantiated ... so
-        // this would be a miscall, and should be ignored.
-        //
-        if (assetItem.instance) {
-            return
-        }
-        const assetId = assetItem.key
     
         const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
-        const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.standard || {})
+        const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.standard.byId || {})
             .map(ephemeraExtractor)
             .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
     
@@ -340,7 +337,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
 
         graphUpdate.setEdges([{
-            itemId: AssetKey(assetItem.key),
+            itemId: AssetKey(assetId),
             edges: Object.values(assetWorkspace.normal || {})
                 .filter(isNormalImport)
                 .map(({ from }) => ({ target: AssetKey(from), context: '' })),
@@ -350,7 +347,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         await Promise.all([
             graphUpdate.flush(),
             pushEphemera({
-                EphemeraId: AssetKey(assetItem.key),
+                EphemeraId: AssetKey(assetId),
                 scopeMap: Object.assign({}, ...assetWorkspace.namespaceIdToDB.map(({ internalKey, universalKey }) => ({ [internalKey]: universalKey })))
             })
         ])
@@ -379,9 +376,9 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     //
     // Process file if a Character
     //
-    const characterItem = Object.values(assetWorkspace.standard || {}).find(({ tag }) => (tag === 'Character'))
-    if (characterItem) {
-        const ephemeraItem = ephemeraItemFromStandard(assetWorkspace)(characterItem)
+    if (assetWorkspace.standard && assetWorkspace.standard.tag === 'Character') {
+        const characterId = assetWorkspace.standard.key
+        const ephemeraItem = ephemeraItemFromStandard(assetWorkspace)(assetWorkspace.standard.byId[characterId])
         if (ephemeraItem) {
             const characterEphemeraId = assetWorkspace.universalKey(ephemeraItem.key) || ''
             if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
