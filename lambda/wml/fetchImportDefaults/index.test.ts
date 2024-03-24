@@ -15,9 +15,6 @@ import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseCla
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
 
-//
-// TODO: Refactor testNormalFromWML as testStandardFromWML
-//
 const testStandardFromWML = (wml: string): SerializableStandardForm => {
     const schema = new Schema()
     schema.loadWML(wml)

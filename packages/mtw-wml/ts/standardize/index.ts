@@ -600,7 +600,7 @@ export class Standardizer {
         const byId: StandardForm["byId"] = objectMap(standard.byId, (value) => {
             const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
                 const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
-                return { ...subItem, id: uuidv4(), children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
+                return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
             }
             if (value.tag === 'Bookmark') {
                 return {

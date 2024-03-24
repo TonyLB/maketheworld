@@ -1,18 +1,20 @@
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
 
 import { FetchImportsJSONHelper } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
+import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 
-const testNormalFromWML = (wml: string): NormalForm => {
-    const normalizer = new Normalizer()
-    normalizer.loadWML(wml)
-    return normalizer.normal
-
+const testStandardFromWML = (wml: string): SerializableStandardForm => {
+    const schema = new Schema()
+    schema.loadWML(wml)
+    const standardizer = new Standardizer(schema.schema)
+    return standardizer.stripped
 }
 
 describe('recursiveFetchImports', () => {
-    const testFinal = testNormalFromWML(`<Asset key=(testFinal)>
+    const testFinal = testStandardFromWML(`<Asset key=(testFinal)>
         <Room key=(testNonImport)>
             <Description>
                 DescriptionOne
@@ -20,7 +22,7 @@ describe('recursiveFetchImports', () => {
             <Exit to=(testNonImportStub)>test exit</Exit>
         </Room>
         <Room key=(testNonImportStub)>
-            <Name>StubOne</Name>
+            <ShortName>StubOne</ShortName>
         </Room>
         <Room key=(testImportOne)>
             <Description>
@@ -52,23 +54,23 @@ describe('recursiveFetchImports', () => {
             <Room key=(testRoomWithFeatures) />
         </Import>
     </Asset>`)
-    const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
+    const testImportOne = testStandardFromWML(`<Asset key=(testImportAssetOne)>
         <Room key=(testImportOne)>
             <Description>
                 One
             </Description>
         </Room>
         <Room key=(testImportStubOne)>
-            <Name>StubTwo</Name>
+            <ShortName>StubTwo</ShortName>
         </Room>
         <Room key=(testImportFoo)>
-            <Name>StubFoo</Name>
+            <ShortName>StubFoo</ShortName>
             <Description>
                 Foo
             </Description>
         </Room>
     </Asset>`)
-    const testImportTwo = testNormalFromWML(`<Asset key=(testImportAssetTwo)>
+    const testImportTwo = testStandardFromWML(`<Asset key=(testImportAssetTwo)>
         <Room key=(basic)>
             <Description>
                 Asset Two
@@ -81,14 +83,14 @@ describe('recursiveFetchImports', () => {
             <Room key=(basic) from=(basicOne) />
         </Import>
     </Asset>`)
-    const testImportThree = testNormalFromWML(`<Asset key=(testImportAssetThree)>
+    const testImportThree = testStandardFromWML(`<Asset key=(testImportAssetThree)>
         <Room key=(basicOne)>
             <Exit to=(stub)>test exit</Exit>
         </Room>
-        <Room key=(basicTwo)><Name>Asset Three</Name></Room>
-        <Room key=(stub)><Name>AssetThreeStub</Name></Room>
+        <Room key=(basicTwo)><ShortName>Asset Three</ShortName></Room>
+        <Room key=(stub)><ShortName>AssetThreeStub</ShortName></Room>
     </Asset>`)
-    const testImportFour = testNormalFromWML(`<Asset key=(testImportAssetFour)>
+    const testImportFour = testStandardFromWML(`<Asset key=(testImportAssetFour)>
         <Feature key=(testFeature)>
             <Description>Feature test</Description>
         </Feature>
@@ -103,26 +105,26 @@ describe('recursiveFetchImports', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jsonHelper.get.mockImplementation(async (assetId: string) => {
-            let normal: NormalForm = {}
+            let standard: SerializableStandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
             switch(assetId) {
                 case 'ASSET#testFinal':
-                    normal = testFinal
+                    standard = testFinal
                     break
                 case 'ASSET#testImportAssetOne':
-                    normal = testImportOne
+                    standard = testImportOne
                     break
                 case 'ASSET#testImportAssetTwo':
-                    normal = testImportTwo
+                    standard = testImportTwo
                     break
                 case 'ASSET#testImportAssetThree':
-                    normal = testImportThree
+                    standard = testImportThree
                     break
                 case 'ASSET#testImportAssetFour':
-                    normal = testImportFour
+                    standard = testImportFour
                     break
             }
             return {
-                normal,
+                standard,
                 namespaceIdToDB: []
             }
         })
@@ -147,9 +149,9 @@ describe('recursiveFetchImports', () => {
             {
                 data: { tag: 'Room', key: 'testNonImportStub' },
                 children: [
-                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubOne' }, children: [] }] }
+                    { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'StubOne' }, children: [] }] }
                 ]
-            }
+            },
         ])
     })
 
@@ -158,26 +160,25 @@ describe('recursiveFetchImports', () => {
             {
                 data: { tag: 'Room', key: 'testImportOne' },
                 children: [
-                    { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'One' }, children: [] }] }
-                ]
-            },
-            {
-                data: { tag: 'Room', key: 'testImportStubOne' },
-                children: [
-                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubTwo' }, children: [] }] }
-                ]
-            },
-            {
-                data: { tag: 'Room', key: 'testImportOne' },
-                children: [
-                    { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Two' }, children: [] }] },
+                    {
+                        data: { tag: 'Description' },
+                        children: [
+                            { data: { tag: 'String', value: 'One' }, children: [] },
+                            { data: { tag: 'String', value: 'Two' }, children: [] }
+                        ]
+                    },
                     {
                         data: { tag: 'Exit', key: 'testImportOne#testImportStubOne', from: 'testImportOne', to: 'testImportStubOne' },
                         children: [{ data: { tag: 'String', value: 'test exit one' }, children: [] }]
                     }
                 ]
             },
-            { data: { tag: 'Room', key: 'testImportStubOne' }, children: [] },
+            {
+                data: { tag: 'Room', key: 'testImportStubOne' },
+                children: [
+                    { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'StubTwo' }, children: [] }] }
+                ]
+            },
         ])
     })
 
@@ -186,7 +187,7 @@ describe('recursiveFetchImports', () => {
             {
                 data: { tag: 'Room', key: 'testImportTwo' },
                 children: [
-                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubFoo' }, children: [] }] }
+                    { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'StubFoo' }, children: [] }] }
                 ]
             },
             {
@@ -196,29 +197,21 @@ describe('recursiveFetchImports', () => {
                     children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
                 }]
             },
-            { data: { tag: 'Room', key: 'testImportTwo' }, children: [] }
         ])
     })
 
     it('should import multilevel and avoid colliding stub names', async () => {
         expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toEqual([
             {
-                data: { tag: 'Room', key: 'testImportThree' },
-                children: [{
-                    data: { tag: 'Exit', key: 'testImportThree#testImportAssetThree.stub', from: 'testImportThree', to: 'testImportAssetThree.stub' },
-                    children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
-                }]
+                data: { tag: 'Room', key: 'testImportAssetThree.stub' },
+                children: [
+                    { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'AssetThreeStub' }, children: [] }] }
+                ]
             },
             {
                 data: { tag: 'Room', key: 'testImportAssetTwo.stub' },
                 children: [
-                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Asset Three' }, children: [] }] }
-                ]
-            },
-            {
-                data: { tag: 'Room', key: 'testImportAssetThree.stub' },
-                children: [
-                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'AssetThreeStub' }, children: [] }] }
+                    { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Asset Three' }, children: [] }] }
                 ]
             },
             {
@@ -226,13 +219,15 @@ describe('recursiveFetchImports', () => {
                 children: [
                     { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Asset Two' }, children: [] }] },
                     {
+                        data: { tag: 'Exit', key: 'testImportThree#testImportAssetThree.stub', from: 'testImportThree', to: 'testImportAssetThree.stub' },
+                        children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
+                    },
+                    {
                         data: { tag: 'Exit', key: 'testImportThree#testImportAssetTwo.stub', from: 'testImportThree', to: 'testImportAssetTwo.stub' },
                         children: [{ data: { tag: 'String', value: 'test exit' }, children: [] }]
-                    }
+                    },
                 ]
-            },
-            { data: { tag: 'Room', key: 'testImportAssetTwo.stub' }, children: [] },
-            { data: { tag: 'Room', key: 'testImportThree' }, children: [] }
+            }
         ])
     })
 
@@ -249,7 +244,6 @@ describe('recursiveFetchImports', () => {
                 }]
             },
             { data: { tag: 'Feature', key: 'testFeature' }, children: [] },
-            { data: { tag: 'Room', key: 'testRoomWithFeatures' }, children: [] }
         ])
     })
 

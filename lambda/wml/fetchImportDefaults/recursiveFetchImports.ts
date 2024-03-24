@@ -1,5 +1,4 @@
 import { splitType } from "@tonylb/mtw-utilities/ts/types"
-import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import {
     isImportable,
     isSchemaExit,
@@ -7,12 +6,12 @@ import {
     SchemaTag
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
-import normalSubset from "./normalSubset"
 import { FetchImportsJSONHelper } from "./baseClasses"
 import standardSubset from "./standardSubset"
 import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { stripIDFromTree } from "@tonylb/mtw-wml/ts/tree/genericIDTree"
 
 //
 // The translateToFinal class accepts:
@@ -52,7 +51,7 @@ export class NestedTranslateImportToFinal extends Object {
             ...mapping.children
                 .map(({ data }) => {
                     if (isImportable(data)) {
-                        return { [data.as ?? data.key]: data.key }
+                        return { [data.key]: data.from ?? data.key }
                     }
                     return {}
                 })
@@ -169,13 +168,19 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
 
-    const finalStandardizer = new Standardizer([{ data: { key: 'Test', tag: 'Asset', Story: undefined }, children: [] }])
-    finalStandardizer.deserialize({ ...newStandard, metaData: [] })
+    const deserializeStandardizer = new Standardizer([{ data: { key: 'Test', tag: 'Asset', Story: undefined }, children: [] }])
+    deserializeStandardizer.deserialize({ ...newStandard, metaData: [] })
+    const rawSchema = stripIDFromTree(deserializeStandardizer.schema)
+    const translatedSchema = [{ ...rawSchema[0], children: rawSchema[0].children.map((tag) => (translate.translateSchemaTag(tag))) }]
+    const mergeStandardizer = new Standardizer([{
+        ...translatedSchema[0],
+        children: [
+            ...importSchema,
+            ...translatedSchema[0].children
+        ]
+    }])
 
-    return [
-        ...importSchema,
-        ...finalStandardizer.schema.map((tag) => (translate.translateSchemaTag(tag)))
-    ]
+    return stripIDFromTree(mergeStandardizer.schema[0].children)
 
 }
 

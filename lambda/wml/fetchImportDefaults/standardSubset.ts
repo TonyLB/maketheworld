@@ -77,16 +77,16 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
             if (isStandardRoom(item)) {
                 return [{
                     ...item,
-                    name: [{ data: { tag: 'Name' }, children: [] }],
-                    summary: [{ data: { tag: 'Summary' }, children: [] }],
-                    description: [{ data: { tag: 'Description' }, children: [] }],
+                    name: { data: { tag: 'Name' }, children: [], id: '' },
+                    summary: { data: { tag: 'Summary' }, children: [], id: '' },
+                    description: { data: { tag: 'Description' }, children: [], id: '' },
                 }]
             }
             else if (isStandardFeature(item) || isStandardKnowledge(item)) {
                 return [{
                     ...item,
-                    name: [{ data: { tag: 'Name' }, children: [] }],
-                    description: [{ data: { tag: 'Description' }, children: [] }]
+                    name: { data: { tag: 'Name' }, children: [], id: '' },
+                    description: { data: { tag: 'Description' }, children: [], id: '' }
                 }]
             }
             else if (isStandardAction(item)) {
@@ -100,7 +100,7 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
     const newById = Object.assign({},
         ...stubItems.map((item) => ({ [item.key]: item })),
         ...Object.values(standardizer.standardForm.byId)
-            .filter(({ key }) => (keys.includes(key) || allStubKeys.includes(key)))
+            .filter(({ key }) => (keys.includes(key)))
             .map((item) => ({ [item.key]: item }))
     )
 
