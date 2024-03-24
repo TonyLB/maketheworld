@@ -50,7 +50,7 @@ import { serializedStandardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardi
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: SerializableStandardComponent): EphemeraItem | undefined => {
-    const { normal = {}, properties = {} } = assetWorkspace
+    const { properties = {} } = assetWorkspace
     const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
         return undefined
@@ -199,7 +199,6 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             OneCoolThing: item.oneCoolThing.data.value,
             Outfit: item.outfit.data.value,
             // image,
-            // assets: item.assets,
             assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
             // fileURL,
@@ -336,11 +335,14 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
 
         await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
 
+        const assets = (assetWorkspace.standard?.metaData ?? [])
+            .filter(treeNodeTypeguard(isSchemaImport))
+            .map(({ data }) => (data.from))
+
         graphUpdate.setEdges([{
             itemId: AssetKey(assetId),
-            edges: Object.values(assetWorkspace.normal || {})
-                .filter(isNormalImport)
-                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            edges: assets
+                .map((from) => ({ target: AssetKey(from), context: '' })),
             options: { direction: 'back' }
         }])
 

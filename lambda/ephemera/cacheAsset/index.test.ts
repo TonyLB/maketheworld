@@ -102,16 +102,12 @@ describe('cacheAsset', () => {
 
     it('should send rooms in need of update', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
-            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            children: []
-        }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         mockNamespaceMap = [
-            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'Test', universalKey: 'ASSET#Test' },
             { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
             { internalKey: 'active', universalKey: 'COMPUTED#XYZ' },
             { internalKey: 'powered', universalKey: 'VARIABLE#QRS' },
@@ -172,18 +168,18 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'test',
+            'Test',
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                shortName: [],
+                // shortName: [],
                 name: [
                     { data: { tag: 'String', value: 'Vortex' }, children: [] },
                     { data: { tag: 'If' }, children: [
                         { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
                     ] }
                 ],
-                summary: [],
+                // summary: [],
                 render: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }],
                 exits: [],
                 stateMapping: { active: 'COMPUTED#XYZ' },
@@ -219,10 +215,10 @@ describe('cacheAsset', () => {
             expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#test",
+            EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                test: 'ASSET#test',
+                Test: 'ASSET#Test',
                 ABC: 'ROOM#DEF',
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
@@ -231,7 +227,7 @@ describe('cacheAsset', () => {
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#test',
+            itemId: 'ASSET#Test',
             edges: [],
             options: { direction: 'back' }
         }])
@@ -239,10 +235,6 @@ describe('cacheAsset', () => {
 
     it('should correctly look up fileURLs for map', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
-            contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-            children: []
-        }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
@@ -324,18 +316,12 @@ describe('cacheAsset', () => {
 
     it('should correctly extract query-ready exits from room contents', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
-            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            children: []
-        }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        // ephemeraDBMock.getItem
-        //     .mockResolvedValueOnce({ State: {} })
         mockNamespaceMap = [
-            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'Test', universalKey: 'ASSET#Test' },
             { internalKey: 'ABC', universalKey: 'ROOM#ABC' },
             { internalKey: 'DEF', universalKey: 'ROOM#DEF' },
             { internalKey: 'open', universalKey: 'VARIABLE#QRS' }
@@ -381,7 +367,7 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'test',
+            'Test',
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
@@ -414,10 +400,10 @@ describe('cacheAsset', () => {
             expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#test",
+            EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                test: 'ASSET#test',
+                Test: 'ASSET#Test',
                 ABC: 'ROOM#ABC',
                 DEF: 'ROOM#DEF',
                 open: 'VARIABLE#QRS'
@@ -427,35 +413,23 @@ describe('cacheAsset', () => {
 
     it('should set graph edges when asset has imports', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
-            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            children: []
-        }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         mockNamespaceMap = [
-            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'Test', universalKey: 'ASSET#Test' },
             { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
         ]
         mockTestAsset = {
-            // 'Import-0': {
-            //     tag: 'Import',
-            //     key: 'Import-0',
-            //     appearances: [{
-            //         contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-            //         data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
-            //         children: [
-            //             { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] }
-            //         ]
-            //     }],
-            //     from: 'base',
-            //     mapping: {}
-            // },
             key: 'Test',
             tag: 'Asset',
-            metaData: [],
+            metaData: [
+                {
+                    data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
+                    children: [{ data: { tag: 'Room', key: 'ABC' }, children: [] }]
+                }
+            ],
             byId: {
                 ABC: {
                     key: 'ABC',
@@ -474,7 +448,7 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#test',
+            itemId: 'ASSET#Test',
             edges: [{ target: 'ASSET#base', context: '' }],
             options: { direction: 'back' }
         }])
