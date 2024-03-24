@@ -240,7 +240,7 @@ describe('cacheAsset', () => {
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         mockNamespaceMap = [
-            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'Test', universalKey: 'ASSET#Test' },
             { internalKey: 'room1', universalKey: 'ROOM#ABC' },
             { internalKey: 'map1', universalKey: 'MAP#DEF' },
             { internalKey: 'image1', universalKey: 'IMAGE#GHI' }
@@ -276,7 +276,7 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'test',
+            'Test',
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
@@ -298,17 +298,17 @@ describe('cacheAsset', () => {
             expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#test",
+            EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                test: 'ASSET#test',
+                Test: 'ASSET#Test',
                 room1: 'ROOM#ABC',
                 map1: 'MAP#DEF',
                 image1: 'IMAGE#GHI'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#test',
+            itemId: 'ASSET#Test',
             edges: [],
             options: { direction: 'back' }
         }])
