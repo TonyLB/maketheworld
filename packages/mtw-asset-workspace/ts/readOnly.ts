@@ -216,7 +216,7 @@ export class ReadOnlyAssetWorkspace {
 
         this.standard = standard as StandardForm
         const normalizer = new Normalizer()
-        const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetId.split('#').slice(1)[0] ?? '', Story: undefined }, children: [] }])
+        const standardizer = new Standardizer()
         standardizer.loadStandardForm(standard)
         normalizer.loadSchema(standardizer.schema)
         this.normal = normalizer.normal
