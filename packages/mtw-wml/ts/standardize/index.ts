@@ -271,6 +271,12 @@ export class Standardizer {
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
         this._byId = {}
         this.metaData = []
+        if (!schemata.length) {
+            this._assetId = 'Test'
+            this._assetKey = 'Test'
+            this._assetTag = 'Asset'
+            return
+        }
         const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
