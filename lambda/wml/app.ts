@@ -15,6 +15,7 @@ import { fetchImports } from './fetchImportDefaults';
 import { dbRegister } from './serialize/dbRegister';
 import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { extractDependenciesFromJS } from './utilities/extractDependencies'
+import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -53,9 +54,19 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         })
     }
     if (assetWorkspace.status.json !== 'Clean') {
+        //
+        // TODO: Reconstruct standardizer from JSON and use instead of normalizer for
+        // assignDependencies
+        //
+        const standardizer = new Standardizer()
+        if (!assetWorkspace.standard) {
+            return
+        }
+        standardizer.deserialize(assetWorkspace.standard)
+        standardizer.assignDependencies(extractDependenciesFromJS)
+        assetWorkspace.standard = standardizer.stripped
         const normalizer = new Normalizer()
-        normalizer.loadNormal(assetWorkspace.normal || {})
-        normalizer.assignDependencies(extractDependenciesFromJS)
+        normalizer.loadSchema(standardizer.schema)
         assetWorkspace.normal = normalizer.normal
         await Promise.all([
             assetWorkspace.pushJSON(),

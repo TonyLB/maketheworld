@@ -13,7 +13,7 @@ Object {
           "key": "Test",
           "tag": "Asset",
         },
-        "id": "",
+        "id": "Test",
       },
     ],
     "fileName": undefined,
@@ -80,11 +80,21 @@ Object {
       Object {
         "children": Array [
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "welcome",
+                },
+                "id": "UUID-0",
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "a123",
               "key": "a123#b456",
               "tag": "Exit",
+              "to": "b456",
             },
             "id": "UUID-1",
           },
@@ -106,55 +116,26 @@ Object {
     "key": "a123",
     "tag": "Room",
   },
-  "a123#b456": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "welcome",
-            },
-            "id": "UUID-0",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "a123",
-          "key": "a123#b456",
-          "tag": "Exit",
-          "to": "b456",
-        },
-        "id": "UUID-1",
-      },
-    ],
-    "from": "a123",
-    "key": "a123#b456",
-    "tag": "Exit",
-    "to": "b456",
-  },
   "b456": Object {
     "appearances": Array [
       Object {
         "children": Array [
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "vortex",
+                },
+                "id": "UUID-3",
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "b456",
               "key": "b456#a123",
               "tag": "Exit",
+              "to": "a123",
             },
             "id": "UUID-4",
           },
@@ -175,45 +156,6 @@ Object {
     ],
     "key": "b456",
     "tag": "Room",
-  },
-  "b456#a123": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "vortex",
-            },
-            "id": "UUID-3",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "b456",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "b456",
-          "key": "b456#a123",
-          "tag": "Exit",
-          "to": "a123",
-        },
-        "id": "UUID-4",
-      },
-    ],
-    "from": "b456",
-    "key": "b456#a123",
-    "tag": "Exit",
-    "to": "a123",
   },
 }
 `;

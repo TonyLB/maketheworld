@@ -168,7 +168,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
 
-    const deserializeStandardizer = new Standardizer([{ data: { key: 'Test', tag: 'Asset', Story: undefined }, children: [] }])
+    const deserializeStandardizer = new Standardizer()
     deserializeStandardizer.deserialize({ ...newStandard, metaData: [] })
     const rawSchema = stripIDFromTree(deserializeStandardizer.schema)
     const translatedSchema = [{ ...rawSchema[0], children: rawSchema[0].children.map((tag) => (translate.translateSchemaTag(tag))) }]

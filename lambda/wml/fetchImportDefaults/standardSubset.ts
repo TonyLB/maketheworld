@@ -14,7 +14,7 @@ import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardRoo
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 
 export const standardSubset = ({ standard, keys, stubKeys }: { standard: SerializableStandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: SerializableStandardForm } => {
-    const standardizer = new Standardizer([{ data: { tag: 'Asset', Story: undefined, key: 'Test' }, children: [], id: '' }])
+    const standardizer = new Standardizer()
     standardizer.deserialize(standard)
 
     //
