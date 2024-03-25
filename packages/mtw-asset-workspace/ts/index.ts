@@ -48,10 +48,10 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                             .filter(isImportable)
                             .forEach(({ key, from }) => {
                                 const exportAs = (this.normal ?? {})[key]?.exportAs
-                                if (importNamespaceIdToDB[from ?? '']) {
+                                if (importNamespaceIdToDB[from ?? key]) {
                                     this.namespaceIdToDB = [
                                         ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== key)),
-                                        { internalKey: key, universalKey: importNamespaceIdToDB[from ?? ''], ...(exportAs ? { exportAs } : {} ) }
+                                        { internalKey: key, universalKey: importNamespaceIdToDB[from ?? key], ...(exportAs ? { exportAs } : {} ) }
                                     ]
                                 }
                             })
@@ -59,9 +59,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 })
             )
         }
-        //
-        // TODO (ISS-3603): Refactor namespaceIdToDB mapping to derive from standard rather than normal
-        //
+
         Object.values(this.standard.byId)
             .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key }) => {
