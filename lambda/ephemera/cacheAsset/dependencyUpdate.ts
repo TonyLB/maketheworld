@@ -1,11 +1,11 @@
 import { EphemeraActionId, EphemeraBookmarkId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages"
-import { MergeActionProperty } from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/merge"
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import internalCache from "../internalCache"
 import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
-import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
-import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
+import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||

@@ -212,19 +212,19 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [defaultedAppearance]
                 }
-            case 'Exit':
-                const { exitRoomIndex, exitRoomKey } = appearance.contextStack.reduceRight((previous, context, index) => (((context.tag === 'Room') && (previous.exitRoomIndex === -1)) ? { exitRoomIndex: index, exitRoomKey: context.key } : previous), { exitRoomIndex: -1, exitRoomKey: '' })
-                if (exitRoomIndex === -1) {
-                    throw new Error('Exit tag cannot be created outside of room')
-                }
+            // case 'Exit':
+            //     const { exitRoomIndex, exitRoomKey } = appearance.contextStack.reduceRight((previous, context, index) => (((context.tag === 'Room') && (previous.exitRoomIndex === -1)) ? { exitRoomIndex: index, exitRoomKey: context.key } : previous), { exitRoomIndex: -1, exitRoomKey: '' })
+            //     if (exitRoomIndex === -1) {
+            //         throw new Error('Exit tag cannot be created outside of room')
+            //     }
 
-                return {
-                    key: node.key,
-                    tag: node.tag,
-                    to: node.to,
-                    from: exitRoomKey,
-                    appearances: [appearance]
-                }
+            //     return {
+            //         key: node.key,
+            //         tag: node.tag,
+            //         to: node.to,
+            //         from: exitRoomKey,
+            //         appearances: [appearance]
+            //     }
             case 'Character':
                 return {
                     key: node.key,

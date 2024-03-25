@@ -4,14 +4,14 @@ import {
     isNormalRoom,
     isNormalImport
 } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index.js'
 import {
     EphemeraCharacter,
     EphemeraItem,
     EphemeraPushArgs
 } from './baseClasses'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
-import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
+import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types.js'
 import { MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './mergeIntoEphemera'
 import {
@@ -37,8 +37,8 @@ import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
-import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
+import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
+import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'

@@ -122,7 +122,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         updateKeys: ['activeCharacters'],
                         updateReducer: (draft) => {
                             draft.activeCharacters = roomCharacterListReducer(
-                                draft.activeCharacters,
+                                draft.activeCharacters ?? [],
                                 {
                                     EphemeraId: characterMeta.EphemeraId,
                                     Name: characterMeta.Name,
