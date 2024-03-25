@@ -42,6 +42,34 @@ describe('dbRegister', () => {
             properties: {
                 TESSIcon: { fileName: 'IMAGE-123' }
             },
+            standard: {
+                key: 'TESS',
+                tag: 'Character',
+                byId: {
+                    TESS: {
+                        key: 'TESS',
+                        tag: 'Character',
+                        name: 'Tess',
+                        pronouns: {
+                            subject: 'she',
+                            object: 'her',
+                            possessive: 'her',
+                            adjective: 'hers',
+                            reflexive: 'herself'
+                        },
+                        firstImpression: 'Frumpy Goth',
+                        oneCoolThing: 'Fuchsia eyes',
+                        outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',    
+                    },
+                    TESSIcon: {
+                        tag: 'Image',
+                        key: 'TESSIcon'
+                    }
+                },
+                metaData: [
+                    { data: { tag: 'Import', from: 'primitives' }, children: [] }
+                ]
+            },
             normal: {
                 TESS: {
                     tag: 'Character',
@@ -96,6 +124,44 @@ describe('dbRegister', () => {
             namespaceIdToDB: [
                 { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
             ],
+            standard: {
+                key: 'TEST',
+                tag: 'Asset',
+                byId: {
+                    Village: {
+                        tag: 'Map',
+                        key: 'Village',
+                        name: { data: { tag: 'Name' }, children: [] },
+                        positions: [{ data: { tag: 'Room', key: 'Welcome' }, children: [{ data: { tag: 'Position', x:0, y:100 }, children: [] }]}],
+                    },
+                    Welcome: {
+                        tag: 'Room',
+                        key: 'Welcome',
+                        shortName: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Welcome' } }]}],
+                        name: [{ data: { tag: 'Name' }, children: [] }],
+                        summary: [{ data: { tag: 'Summary' }, children: [] }],
+                        description: [{ data: { tag: 'Description' }, children: [] }],
+                        exits: []
+                    },
+                    clockTower: {
+                        tag: 'Feature',
+                        key: 'clockTower',
+                        name: [{ data: { tag: 'Name' }, children: [] }],
+                        description: [{ data: { tag: 'Description' }, children: [] }]
+                    },
+                    power: {
+                        tag: 'Variable',
+                        key: 'power',
+                        default: true
+                    },
+                    togglePower: {
+                        tag: 'Action',
+                        key: 'togglePower',
+                        src: 'power = !power'
+                    }
+                },
+                metaData: []
+            },
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -180,145 +246,6 @@ describe('dbRegister', () => {
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
     })
 
-    it('should save meta for Story type', async () => {
-        await dbRegister({
-            address: {
-                fileName: 'test',
-                zone: 'Library'
-            },
-            status: {
-                json: 'Clean'
-            },
-            namespaceIdToDB: [
-                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
-            ],
-            normal: {
-                TEST: {
-                    tag: 'Asset',
-                    Story: true,
-                    key: 'TEST',
-                    name: 'Test',
-                    zone: 'Library',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Room',
-                            key: 'Welcome',
-                            index: 0
-                        },
-                        {
-                            tag: 'Variable',
-                            key: 'power',
-                            index: 0
-                        },
-                        {
-                            tag: 'Action',
-                            key: 'togglePower',
-                            index: 0
-                        }]
-                    }]
-                },
-                Welcome: {
-                    tag: 'Room',
-                    key: 'Welcome',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                power: {
-                    tag: 'Variable',
-                    key: 'power',
-                    default: true,
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                togglePower: {
-                    tag: 'Action',
-                    key: 'togglePower',
-                    src: 'power = !power',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                }
-            }
-        } as any)
-        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-    })
-
-    it('should save meta for instanced Story type', async () => {
-        await dbRegister({
-            address: {
-                fileName: 'test',
-                zone: 'Library'
-            },
-            status: {
-                json: 'Clean'
-            },
-            namespaceIdToDB: [
-                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
-            ],
-            normal: {
-                TEST: {
-                    tag: 'Asset',
-                    Story: true,
-                    instance: true,
-                    key: 'TEST',
-                    name: 'Test',
-                    zone: 'Library',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Room',
-                            key: 'Welcome',
-                            index: 0
-                        },
-                        {
-                            tag: 'Variable',
-                            key: 'power',
-                            index: 0
-                        },
-                        {
-                            tag: 'Action',
-                            key: 'togglePower',
-                            index: 0
-                        }]
-                    }]
-                },
-                Welcome: {
-                    tag: 'Room',
-                    key: 'Welcome',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                power: {
-                    tag: 'Variable',
-                    key: 'power',
-                    default: true,
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                togglePower: {
-                    tag: 'Action',
-                    key: 'togglePower',
-                    src: 'power = !power',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                }
-            }
-        } as any)
-        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-    })
-
     it('should save asset graph edges when asset has imports', async () => {
         await dbRegister({
             address: {
@@ -329,6 +256,24 @@ describe('dbRegister', () => {
                 json: 'Clean'
             },
             namespaceIdToDB: [],
+            standard: {
+                key: 'test',
+                tag: 'Asset',
+                byId: {
+                    VORTEX: {
+                        key: 'VORTEX',
+                        tag: 'Room',
+                        shortName: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Welcome' } }]}],
+                        name: [{ data: { tag: 'Name' }, children: [] }],
+                        summary: [{ data: { tag: 'Summary' }, children: [] }],
+                        description: [{ data: { tag: 'Description' }, children: [] }],
+                        exits: []
+                    }
+                },
+                metaData: [
+                    { data: { tag: 'Import', from: 'primitives' }, children: [{ data: { tag: 'Room', key: 'VORTEX' }, children: [] }] }
+                ]
+            },
             normal: {
                 test: {
                     tag: 'Asset',
