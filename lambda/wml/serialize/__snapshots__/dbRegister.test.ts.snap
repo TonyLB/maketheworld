@@ -19,9 +19,7 @@ exports[`dbRegister should put a single element for a Character file 1`] = `
     "fileName": "test",
     "zone": "Library",
   },
-  "images": [
-    "IMAGE-123",
-  ],
+  "images": [],
   "scopedId": "TESS",
   "zone": "Library",
 }
@@ -37,34 +35,6 @@ exports[`dbRegister should save meta for Asset type 1`] = `
     "zone": "Library",
   },
   "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta for Story type 1`] = `
-{
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": true,
-  "address": {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta for instanced Story type 1`] = `
-{
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": true,
-  "address": {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": true,
   "zone": "Library",
 }
 `;
