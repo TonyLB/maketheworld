@@ -1,14 +1,14 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import {
     ephemeraDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
+} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/ts/graphStorage/update/index')
+import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update/index'
 
-jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
-import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
+jest.mock('@tonylb/mtw-utilities/ts/computation/sandbox')
+import { evaluateCode } from '@tonylb/mtw-utilities/ts/computation/sandbox'
 jest.mock('./mergeIntoEphemera')
 import { mergeIntoEphemera } from './mergeIntoEphemera'
 
@@ -19,8 +19,8 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
-import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
+import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 //
@@ -291,7 +291,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 name: [],
-                rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
+                rooms: [{ data: { tag: 'Room', key: 'ROOM#ABC' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 keyMapping: {},
                 stateMapping: {}
@@ -387,7 +387,7 @@ describe('cacheAsset', () => {
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
-                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ROOM#ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
                 shortName: [],
