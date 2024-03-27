@@ -291,7 +291,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 name: [],
-                rooms: [{ data: { tag: 'Room', key: 'ROOM#ABC' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
+                rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 keyMapping: {},
                 stateMapping: {}
@@ -387,7 +387,7 @@ describe('cacheAsset', () => {
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
-                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ROOM#ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
                 shortName: [],

@@ -46,45 +46,6 @@ import { SerializableStandardComponent } from '@tonylb/mtw-wml/ts/standardize/ba
 import { serializedStandardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
-const keyTranslate = (assetWorkspace: ReadOnlyAssetWorkspace) => <T extends SchemaTag>(tree: GenericTree<T>): GenericTree<T> => {
-    return tree.map(({ data, children }) => {
-        if (isSchemaRoom(data)) {
-            const key = assetWorkspace.universalKey(data.key)
-            if (!key) {
-                throw new Error('Workspace lookup in cacheAsset')
-            }
-            return {
-                data: { ...data, key },
-                children: keyTranslate(assetWorkspace)(children)
-            }
-        }
-        if (isSchemaLink(data)) {
-            const to = assetWorkspace.universalKey(data.to)
-            if (!to) {
-                throw new Error('Workspace lookup in cacheAsset')
-            }
-            return {
-                data: { ...data, to },
-                children: keyTranslate(assetWorkspace)(children)
-            }
-        }
-        if (isSchemaExit(data)) {
-            const to = assetWorkspace.universalKey(data.to)
-            if (!to) {
-                throw new Error('Workspace lookup in cacheAsset')
-            }
-            return {
-                data: { ...data, to },
-                children: keyTranslate(assetWorkspace)(children)
-            }
-        }
-        return {
-            data,
-            children: keyTranslate(assetWorkspace)(children)
-        }
-})
-}
-
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: SerializableStandardComponent): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
     const EphemeraId = assetWorkspace.universalKey(item.key)
@@ -117,11 +78,11 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId: EphemeraId,
-            shortName: keyTranslate(assetWorkspace)(item.shortName.children),
-            name: keyTranslate(assetWorkspace)(item.name.children),
-            summary: keyTranslate(assetWorkspace)(item.summary.children),
-            render: keyTranslate(assetWorkspace)(item.description.children),
-            exits: keyTranslate(assetWorkspace)(item.exits),
+            shortName: item.shortName.children,
+            name: item.name.children,
+            summary: item.summary.children,
+            render: item.description.children,
+            exits: item.exits,
             stateMapping,
             keyMapping
         }
@@ -130,8 +91,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: keyTranslate(assetWorkspace)(item.name.children),
-            render: keyTranslate(assetWorkspace)(item.description.children),
+            name: item.name.children,
+            render: item.description.children,
             stateMapping,
             keyMapping
         }
@@ -140,8 +101,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: keyTranslate(assetWorkspace)(item.name.children),
-            render: keyTranslate(assetWorkspace)(item.description.children),
+            name: item.name.children,
+            render: item.description.children,
             stateMapping,
             keyMapping
         }
@@ -150,7 +111,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            render: keyTranslate(assetWorkspace)(item.description.children),
+            render: item.description.children,
             stateMapping,
             keyMapping
         }
@@ -171,7 +132,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             key: item.key,
             EphemeraId,
             rooms,
-            render: keyTranslate(assetWorkspace)(item.description.children),
+            render: item.description.children,
             stateMapping,
             keyMapping
         }
@@ -198,7 +159,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: keyTranslate(assetWorkspace)(item.name.children),
+            name: item.name.children,
             images: map(item.images, (node) => {
                 const { data, children } = node
                 if (isSchemaImage(data)) {
@@ -215,7 +176,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
                 }
                 return [{ data, children }]
             }),
-            rooms: keyTranslate(assetWorkspace)(item.positions),
+            rooms: item.positions,
             stateMapping,
             keyMapping
         }
