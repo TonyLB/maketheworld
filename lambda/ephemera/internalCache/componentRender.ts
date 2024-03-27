@@ -324,35 +324,65 @@ export class ComponentRenderData {
             this._getAssets(),
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] })
         ])
-        // const evaluateConditional = (source: string, dependencies: TaggedConditionalItemDependency[]) => (
-        //     this._evaluateCode({
-        //         source,
-        //         mapping: dependencies.reduce<EvaluateCodeAddress["mapping"]>((previous, { key, EphemeraId }) => ((isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)) ?
-        //             {
-        //                 ...previous,
-        //                 [key]: EphemeraId
-        //             }
-        //             : previous ), {})
-        //     })
-        // )
-        // const options: FlattenTaggedMessageContentOptions = {
-        //     evaluateConditional,
-        //     renderBookmark: async (bookmarkId) => {
-        //         const renderChain = getOptions?.priorRenderChain ?? []
-        //         if (renderChain.includes(bookmarkId)) {
-        //             return [{ tag: 'String', value: '#CIRCULAR' }]
-        //         }
-        //         const { Description } = await this.get(CharacterId, bookmarkId, { priorRenderChain: [...renderChain, bookmarkId] })
-        //         return Description
-        //     }
-        // }
-
         const allAssets = unique(globalAssets || [], characterAssets) as string[]
         const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
 
+        const remapSchemaTagKeys = <T extends SchemaTag>(tag: T, keyMapping: Record<string, EphemeraId>): T | undefined => {
+            if (isSchemaLink(tag)) {
+                const remappedTarget = keyMapping[tag.to]
+                if (remappedTarget) {
+                    return {
+                        ...tag,
+                        to: remappedTarget
+                    }
+                }
+                else {
+                    return undefined
+                }
+            }
+            if (isSchemaRoom(tag)) {
+                const remappedKey = keyMapping[tag.key]
+                if (remappedKey) {
+                    return {
+                        ...tag,
+                        key: remappedKey
+                    }
+                }
+                else {
+                    return undefined
+                }
+            }
+            if (isSchemaExit(tag)) {
+                const remappedTarget = keyMapping[tag.to]
+                if (remappedTarget) {
+                    return {
+                        ...tag,
+                        to: remappedTarget
+                    }
+                }
+                else {
+                    return undefined
+                }
+            }
+            return tag
+        }
+        const remapKeys = <T extends SchemaTag>(tree: GenericTree<T>, keyMapping: Record<string, EphemeraId>): GenericTree<T> => {
+            return tree.map((node) => {
+                const remappedNode = remapSchemaTagKeys(node.data, keyMapping)
+                if (remappedNode) {
+                    return [{
+                        data: remappedNode,
+                        children: remapKeys(node.children, keyMapping)
+                    }]
+                }
+                else {
+                    return []
+                }
+            }).flat(1)
+        }
         const evaluateSchemaOutputPromise = async <T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
-            compressStrings((await Promise.all(assetData.map(async (data) => (
-                await evaluateSchemaBookmarks(
+            compressStrings((await Promise.all(assetData.map(async (data) => {
+                const evaluatedOutput = await evaluateSchemaBookmarks(
                     async ({ key }) => {
                         const BookmarkId = data.keyMapping[key]
                         if (isEphemeraBookmarkId(BookmarkId)) {
@@ -368,40 +398,9 @@ export class ComponentRenderData {
                     await evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping),
                     data.stateMapping
                 )
-            )))).flat(1))
+                return remapKeys(evaluatedOutput, data.keyMapping)
+            }))).flat(1))
         )
-        //
-        // TODO: Create remapKeys treeMap using data.keyMapping
-        //
-        const remapSchemaTagKeys = (tag: SchemaTag, keyMapping: Record<string, EphemeraId>): SchemaTag | undefined => {
-            if (isSchemaExit(tag)) {
-                const remappedTarget = keyMapping[tag.to]
-                if (remappedTarget) {
-                    return {
-                        ...tag,
-                        to: remappedTarget
-                    }
-                }
-                else {
-                    return undefined
-                }
-            }
-            return tag
-        }
-        const remapKeys = (tree: GenericTree<SchemaTag>, keyMapping: Record<string, EphemeraId>): GenericTree<SchemaTag> => {
-            return tree.map((node) => {
-                const remappedNode = remapSchemaTagKeys(node.data, keyMapping)
-                if (remappedNode) {
-                    return [{
-                        data: remappedNode,
-                        children: remapKeys(node.children, keyMapping)
-                    }]
-                }
-                else {
-                    return []
-                }
-            }).flat(1)
-        }
         const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(
             assetData: T[],
             key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]
