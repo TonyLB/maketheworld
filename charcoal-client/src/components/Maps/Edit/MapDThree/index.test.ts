@@ -36,8 +36,8 @@ describe('mapTreeTranslate', () => {
         expect(mapTreeTranslate(testTree)).toEqual([{
             data: {
                 nodes: [
-                    { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
-                    { id: 'GHI', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false }
+                    { id: 'DEF', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
+                    { id: 'JKL', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -60,18 +60,18 @@ describe('mapTreeTranslate', () => {
                         children: [{
                             data: { tag: 'Statement', if: 'true' },
                             children: [
-                                { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2' }, children: [{ data: { tag: 'String', value: 'TestExitBack' }, children: [], id: '' }], id: '' }
+                                { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2' }, children: [{ data: { tag: 'String', value: 'TestExitBack' }, children: [], id: 'UUID1' }], id: 'UUID2' }
                             ],
                             id: 'If-1'
                         }],
-                        id: ''
+                        id: 'UUID3'
                     }
                 ],
                 id: 'ABC'
             },
             { data: { tag: 'Room', key: 'Room2' }, children: [
-                { data: { tag: 'Position', x: 0, y: 100 }, children: [], id: '' },
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExt' }, children: [], id: '' }], id: '' },
+                { data: { tag: 'Position', x: 0, y: 100 }, children: [], id: 'UUID4' },
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1' }, children: [{ data: { tag: 'String', value: 'TestExt' }, children: [], id: 'UUID5' }], id: 'UUID6' },
             ], id: 'DEF' },
             {
                 data: { tag: 'If' },
@@ -91,7 +91,7 @@ describe('mapTreeTranslate', () => {
                     ],
                     id: 'If-2'
                 }],
-                id: ''
+                id: 'UUID7'
             },
             {
                 data: { tag: 'Room', key: 'Room3' },
@@ -103,9 +103,9 @@ describe('mapTreeTranslate', () => {
         expect(mapTreeTranslate(testTree)).toEqual([{
             data: {
                 nodes: [
-                    { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
-                    { id: 'DEF', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false },
-                    { id: 'GHI', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: false }
+                    { id: 'BCD', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
+                    { id: 'UUID4', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false },
+                    { id: 'HIJ', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: false }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -127,7 +127,7 @@ describe('mapTreeTranslate', () => {
                 },
                 {
                     data: {
-                        nodes: [{ id: 'ZZZ', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false }, { id: 'JKL', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false }],
+                        nodes: [{ id: 'YYY', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false }, { id: 'XXX', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false }],
                         links: [],
                         visible: true,
                         key: 'If-2'

@@ -79,13 +79,13 @@ describe('descendantsToRender', () => {
         ])([{
             type: 'paragraph',
             children: [
-                { text: 'This is a test ' },
-                {
-                    type: 'ifWrapper',
-                    treeId: 'ABC',
-                    children: [{ text: '' }]
-                }
+                { text: 'This is a test ' }
             ]
+        },
+        {
+            type: 'ifWrapper',
+            treeId: 'ABC',
+            children: [{ text: '' }]
         },
         {
             type: 'paragraph',
@@ -95,9 +95,10 @@ describe('descendantsToRender', () => {
             {
                 data: { tag: 'If' },
                 children: [
-                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [] }] },
-                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [] }] }
-                ]
+                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If' }, children: [], id: '' }], id: '' },
+                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
+                ],
+                id: 'ABC'
             },
             { data: { tag: 'String', value: ' and more text.' }, children: [] }
         ])

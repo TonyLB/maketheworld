@@ -41,11 +41,20 @@ Array [
       Object {
         "text": "This is a test ",
       },
+    ],
+    "type": "paragraph",
+  },
+  Object {
+    "children": Array [
       Object {
-        "children": Array [],
-        "treeId": "ABC",
-        "type": "ifWrapper",
+        "text": "",
       },
+    ],
+    "treeId": "ABC",
+    "type": "ifWrapper",
+  },
+  Object {
+    "children": Array [
       Object {
         "text": " and more text.",
       },
