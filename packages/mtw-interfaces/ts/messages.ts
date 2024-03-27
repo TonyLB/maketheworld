@@ -461,7 +461,7 @@ export type KnowledgeDescription = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: TaggedMessageContentFlat[];
+    name: string;
     x: number;
     y: number;
     exits: {
@@ -472,7 +472,7 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    Name: TaggedMessageContentFlat[];
+    Name: string;
     fileURL?: string;
     rooms: MapDescribeRoom[];
     assets?: Record<EphemeraAssetId, string>;
@@ -502,11 +502,10 @@ const validateMapRoomList = (items: any) => {
 
 export const isMapDescribeData = (message: any): message is MapDescribeData => {
     return checkAll(
-        checkTypes(message, { MapId: 'string' }),
+        checkTypes(message, { MapId: 'string', Name: 'string' }),
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
-        validateMapRoomList(message.rooms),
-        validateTaggedMessageList(message.Name)
+        validateMapRoomList(message.rooms)
     )
 }
 
