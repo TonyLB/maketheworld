@@ -51,14 +51,14 @@ describe('personalAsset slice reducers', () => {
         it('should add children', () => {
             const testSchema = [{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: 'UUID1',
                 children: [
                     {
                         data: { tag: 'Room', key: 'testRoom' },
                         id: 'ABC',
                         children: [
                             { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID2', children: [] }]}
                         ]
                     }
                 ]
@@ -197,23 +197,23 @@ describe('personalAsset slice reducers', () => {
         it('should rename exit targets on rename of room', () => {
             const testSchema = [{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: 'UUID1',
                 children: [
                     {
                         data: { tag: 'Room', key: 'room2' },
                         id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Garden' }, id: '', children: [] }]},
-                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: '', children: [] }
+                            { data: { tag: 'Name' }, id: 'UUID2', children: [{ data: { tag: 'String', value: 'Garden' }, id: 'UUID3', children: [] }]},
+                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: 'UUID4', children: [] }
                         ]
                     },
                     {
                         data: { tag: 'Room', key: 'testRoom' },
                         id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]},
-                            { data: { tag: 'Exit', to: 'room2', text: 'out' }, id: '', children: [] }
+                            { data: { tag: 'Name' }, id: 'UUID5', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID6', children: [] }]},
+                            { data: { tag: 'Exit', to: 'room2', text: 'out' }, id: 'UUID7', children: [] }
                         ]
                     }
                 ]
@@ -227,47 +227,47 @@ describe('personalAsset slice reducers', () => {
                 }
             })).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: expect.any(String),
+                id: 'UUID1',
                 children: [
                     {
                         data: { tag: 'Room', key: 'garden' },
-                        id: expect.any(String),
+                        id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Garden' }, id: expect.any(String), children: [] }]},
-                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: expect.any(String), children: [] }
+                            { data: { tag: 'Name' }, id: 'UUID2', children: [{ data: { tag: 'String', value: 'Garden' }, id: 'UUID3', children: [] }]},
+                            { data: { tag: 'Exit', to: 'testRoom', text: 'lobby' }, id: 'UUID4', children: [] }
                         ]
                     },
                     {
                         data: { tag: 'Room', key: 'testRoom' },
-                        id: expect.any(String),
+                        id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
-                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]},
-                            { data: { tag: 'Exit', to: 'garden', text: 'out' }, id: expect.any(String), children: [] }
+                            { data: { tag: 'Name' }, id: 'UUID5', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID6', children: [] }]},
+                            { data: { tag: 'Exit', to: 'garden', text: 'out' }, id: 'UUID7', children: [] }
                         ]
                     }
-                ]    
+                ]
             }])
         })
 
         it('should rename link targets on rename of feature', () => {
             const testSchema = [{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: '',
+                id: 'UUID1',
                 children: [
                     {
                         data: { tag: 'Feature', key: 'feature1' },
                         id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: '', children: [{ data: { tag: 'String', value: 'Test Feature' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Name' }, id: 'UUID2', children: [{ data: { tag: 'String', value: 'Test Feature' }, id: 'GHI', children: [] }]},
                             {
                                 data: { tag: 'Description' },
                                 id: 'JKL',
                                 children: [{
                                     data: { tag: 'Link', to: 'feature1' },
-                                    id: '',
+                                    id: 'UUID3',
                                     children: [
-                                        { data: { tag: 'String', value: 'Link' }, id: '', children: [] }
+                                        { data: { tag: 'String', value: 'Link' }, id: 'UUID4', children: [] }
                                     ]
                                 }]
                             },
@@ -275,30 +275,31 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            const testOutput = produce({ schema: testSchema, baseSchema: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'rename',
                     fromKey: 'feature1',
                     toKey: 'clockTower'
                 }
-            })).schema).toEqual([{
+            }))
+            expect(testOutput.schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
-                id: expect.any(String),
+                id: 'UUID1',
                 children: [
                     {
                         data: { tag: 'Feature', key: 'clockTower' },
-                        id: expect.any(String),
+                        id: 'ABC',
                         children: [
-                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Feature' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Name' }, id: 'UUID2', children: [{ data: { tag: 'String', value: 'Test Feature' }, id: 'GHI', children: [] }]},
                             {
                                 data: { tag: 'Description' },
-                                id: expect.any(String),
+                                id: 'JKL',
                                 children: [{
                                     data: { tag: 'Link', to: 'clockTower' },
-                                    id: expect.any(String),
+                                    id: 'UUID3',
                                     children: [
-                                        { data: { tag: 'String', value: 'Link' }, id: expect.any(String), children: [] }
+                                        { data: { tag: 'String', value: 'Link' }, id: 'UUID4', children: [] }
                                     ]
                                 }]
                             },

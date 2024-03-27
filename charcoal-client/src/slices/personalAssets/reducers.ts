@@ -205,9 +205,9 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             break
     }
     const normalizer = new Normalizer()
-    const standarizer = deriveWorkingStandardizer(state)
-    state.standard = standarizer._byId
-    state.schema = standarizer.schema
+    const standardizer = deriveWorkingStandardizer(state)
+    state.standard = standardizer._byId
+    state.schema = standardizer.schema
     normalizer.loadSchema(state.schema)
     state.normal = normalizer.normal
 }

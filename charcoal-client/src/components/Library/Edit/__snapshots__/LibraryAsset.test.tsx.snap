@@ -199,9 +199,18 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                                         \\"data\\": {
                                             \\"tag\\": \\"Exit\\",
                                             \\"key\\": \\"ABC#DEF\\",
-                                            \\"index\\": 0
+                                            \\"from\\": \\"ABC\\",
+                                            \\"to\\": \\"DEF\\"
                                         },
-                                        \\"children\\": []
+                                        \\"children\\": [
+                                            {
+                                                \\"data\\": {
+                                                    \\"tag\\": \\"String\\",
+                                                    \\"value\\": \\"welcome\\"
+                                                },
+                                                \\"children\\": []
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -212,50 +221,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         ],
         \\"key\\": \\"ABC\\",
         \\"tag\\": \\"Room\\"
-    },
-    \\"ABC#DEF\\": {
-        \\"appearances\\": [
-            {
-                \\"contextStack\\": [
-                    {
-                        \\"tag\\": \\"Asset\\",
-                        \\"key\\": \\"Test\\",
-                        \\"index\\": 0
-                    },
-                    {
-                        \\"tag\\": \\"Room\\",
-                        \\"key\\": \\"ABC\\",
-                        \\"index\\": 0
-                    },
-                    {
-                        \\"tag\\": \\"If\\"
-                    },
-                    {
-                        \\"tag\\": \\"Statement\\",
-                        \\"if\\": \\"open\\"
-                    }
-                ],
-                \\"data\\": {
-                    \\"tag\\": \\"Exit\\",
-                    \\"key\\": \\"ABC#DEF\\",
-                    \\"from\\": \\"ABC\\",
-                    \\"to\\": \\"DEF\\"
-                },
-                \\"children\\": [
-                    {
-                        \\"data\\": {
-                            \\"tag\\": \\"String\\",
-                            \\"value\\": \\"welcome\\"
-                        },
-                        \\"children\\": []
-                    }
-                ]
-            }
-        ],
-        \\"key\\": \\"ABC#DEF\\",
-        \\"tag\\": \\"Exit\\",
-        \\"to\\": \\"DEF\\",
-        \\"from\\": \\"ABC\\"
     },
     \\"DEF\\": {
         \\"appearances\\": [
@@ -311,9 +276,18 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"data\\": {
                             \\"tag\\": \\"Exit\\",
                             \\"key\\": \\"DEF#ABC\\",
-                            \\"index\\": 0
+                            \\"from\\": \\"DEF\\",
+                            \\"to\\": \\"ABC\\"
                         },
-                        \\"children\\": []
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"String\\",
+                                    \\"value\\": \\"vortex\\"
+                                },
+                                \\"children\\": []
+                            }
+                        ]
                     }
                 ]
             },
@@ -339,43 +313,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         ],
         \\"key\\": \\"DEF\\",
         \\"tag\\": \\"Room\\"
-    },
-    \\"DEF#ABC\\": {
-        \\"appearances\\": [
-            {
-                \\"contextStack\\": [
-                    {
-                        \\"tag\\": \\"Asset\\",
-                        \\"key\\": \\"Test\\",
-                        \\"index\\": 0
-                    },
-                    {
-                        \\"tag\\": \\"Room\\",
-                        \\"key\\": \\"DEF\\",
-                        \\"index\\": 0
-                    }
-                ],
-                \\"data\\": {
-                    \\"tag\\": \\"Exit\\",
-                    \\"key\\": \\"DEF#ABC\\",
-                    \\"from\\": \\"DEF\\",
-                    \\"to\\": \\"ABC\\"
-                },
-                \\"children\\": [
-                    {
-                        \\"data\\": {
-                            \\"tag\\": \\"String\\",
-                            \\"value\\": \\"vortex\\"
-                        },
-                        \\"children\\": []
-                    }
-                ]
-            }
-        ],
-        \\"key\\": \\"DEF#ABC\\",
-        \\"tag\\": \\"Exit\\",
-        \\"to\\": \\"ABC\\",
-        \\"from\\": \\"DEF\\"
     },
     \\"clockTower\\": {
         \\"appearances\\": [
