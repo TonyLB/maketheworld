@@ -445,7 +445,7 @@ describe('ComponentRender cache handler', () => {
                             assetId: 'Base',
                             name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
                             images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
-                            rooms: [{ data: { tag: 'Room', key: 'room1', x: 0, y:0 }, children: [] }],
+                            rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                             key: 'testMap',
                             stateMapping: {},
                             keyMapping: { room1: 'ROOM#TestRoomOne' }
@@ -455,7 +455,7 @@ describe('ComponentRender cache handler', () => {
                             assetId: 'Personal',
                             name: [],
                             images: [],
-                            rooms: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [] }],
+                            rooms: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }],
                             key: 'testMap',
                             stateMapping: {},
                             keyMapping: { room2: 'ROOM#TestRoomTwo' }
@@ -511,7 +511,7 @@ describe('ComponentRender cache handler', () => {
             rooms: [
                 {
                     roomId: 'ROOM#TestRoomOne',
-                    name: [{ tag: 'String', value: 'Test Room One' }],
+                    name: 'Test Room One',
                     x: 0,
                     y: 0,
                     exits: [{
@@ -521,7 +521,7 @@ describe('ComponentRender cache handler', () => {
                 },
                 {
                     roomId: 'ROOM#TestRoomTwo',
-                    name: [{ tag: 'String', value: 'Test Room Two' }],
+                    name: 'Test Room Two',
                     x: 100,
                     y: 0,
                     exits: [{
