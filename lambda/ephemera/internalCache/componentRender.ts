@@ -33,12 +33,11 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
-import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map';
-import dfsWalk from '@tonylb/mtw-wml/ts/tree/dfsWalk';
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString';
+import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -532,22 +531,20 @@ export class ComponentRenderData {
                         return {}
                     }
                     const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(localAssetData.rooms as GenericTree<SchemaTag>, localAssetData.stateMapping)
-                    const extractRoomsByIdWalk = (previous: { output: Record<EphemeraRoomId, { x: number, y: number }>; state: {} }, item: SchemaTag): { output: Record<EphemeraRoomId, { x: number, y: number }>; state: {} } => {
-                        if (isSchemaRoom(item) && !(typeof item.x === 'undefined' || typeof item.y === 'undefined')) {
-                            const roomId = localAssetData.keyMapping[item.key]
-                            if (roomId) {
-                                return {
-                                    ...previous,
-                                    output: {
-                                        ...previous.output,
-                                        [roomId]: { x: item.x, y: item.y }
-                                    }
-                                }    
+                    return Object.assign(
+                        {},
+                        ...evaluatedSchema.map(({ data, children }) => {
+                            const position = children.map(({ data }) => (data)).find(isSchemaPosition)
+                            if (!(isSchemaRoom(data) && position)) {
+                                return {}
                             }
-                        }
-                        return previous
-                    }
-                    return dfsWalk({ callback: extractRoomsByIdWalk, default: { output: {}, state: {} } })(evaluatedSchema)
+                            const universalKey = localAssetData.keyMapping[data.key]
+                            if (!universalKey) {
+                                return {}
+                            }
+                            return { [universalKey]: { x: position.x, y: position.y } }
+                        })
+                    )
                 })
             ))) as Record<EphemeraRoomId, { x: number, y: number }>
             //
@@ -566,7 +563,7 @@ export class ComponentRenderData {
                 ])
                 return {
                     roomId: ephemeraId,
-                    name: flattenSchemaOutputTags(name),
+                    name: schemaOutputToString(name),
                     exits: exits
                         .filter(treeNodeTypeguard(isSchemaExit))
                         .filter(({ data: { to } }) => (isEphemeraRoomId(to) && allRooms.includes(to)))
@@ -598,55 +595,6 @@ export class ComponentRenderData {
                     ...rest
                 }
             }
-            // const roomMetas = await Promise.all(allRooms.map(async (ephemeraId) => {
-            //     const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
-            //     const possibleRoomAppearances = allAssets
-            //         .map((assetId) => (((metaByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[])
-            //             .filter(({ name, exits }) => (name.length || exits.find(({ to }) => (isEphemeraRoomId(to) &&  allRooms.includes(to)))))
-            //         ))
-            //         .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
-            //     const renderRoomMapAppearances = await filterAppearances(this._evaluateCode)(possibleRoomAppearances)
-            //     const flattenedNames = await Promise.all(
-            //         renderRoomMapAppearances.map(({ name }) => (
-            //             flattenTaggedMessageContent(name)
-            //         ))
-            //     )
-        
-            //     const aggregateRoomDescription = {
-            //         roomId: ephemeraId,
-            //         name: flattenedNames.reduce<TaggedMessageContentFlat[]>((previous, name) => ([ ...previous, ...name ]), []),
-            //         x: roomPositions[ephemeraId].x,
-            //         y: roomPositions[ephemeraId].y,
-            //         exits: Object.values(renderRoomMapAppearances
-            //             .map(({ exits }) => (exits.filter(({ to }) => (isEphemeraRoomId(to) && allRooms.includes(to)))))
-            //             .reduce<Record<string, EphemeraExit>>((previous, exits) => (
-            //                 exits.reduce<Record<string, EphemeraExit>>((accumulator, exit) => ({
-            //                     ...accumulator,
-            //                     [exit.to]: exit
-            //                 }), previous)
-            //             ), {}))
-            //     }
-            //     return aggregateRoomDescription
-            // }))
-
-            // const flattenedNames = await Promise.all(
-            //     renderMapAppearances.map(({ name }) => (
-            //         flattenTaggedMessageContent(name)
-            //     ))
-            // )
-            // return {
-            //     dependencies: aggregateDependencies,
-            //     description: {
-            //         MapId: EphemeraId,
-            //         Name: flattenedNames.reduce<TaggedMessageContentFlat[]>((previous, name) => ([ ...previous, ...name ]), []),
-            //         fileURL: renderMapAppearances
-            //             .map(({ fileURL }) => (fileURL))
-            //             .filter((value) => (value))
-            //             .reduce((previous, value) => (value || previous), ''),
-            //         rooms: roomMetas,
-            //         assets
-            //     }
-            // }
 
         }
         throw new Error('Illegal tag in ComponentDescription internalCache')

@@ -461,7 +461,7 @@ export type KnowledgeDescription = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: TaggedMessageContentFlat[];
+    name: string;
     x: number;
     y: number;
     exits: {
@@ -506,7 +506,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
         validateMapRoomList(message.rooms),
-        validateTaggedMessageList(message.Name)
+        validateTaggedMessageList(message.name)
     )
 }
 
