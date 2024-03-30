@@ -51,6 +51,7 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -303,36 +304,40 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { schema, updateSchema, normalForm } = useLibraryAsset()
-    const assetsImported = useMemo(() => (Object.values(normalForm)
-        .filter(isNormalImport)
+    const { updateSchema, standardForm } = useLibraryAsset()
+    const assetsImported = useMemo(() => (standardForm.metaData
+        .filter(treeNodeTypeguard(isSchemaImport))
+        .map(({ data }) => (data))
         .map(({ from }) => (from))
         //
-        // TODO: Find each asset in the Library and determine its zone
+        // Find each asset in the Library and determine its zone
         //
         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
         .filter((value) => (value))
-    ), [normalForm])
+    ), [standardForm])
     const dispatch = useDispatch()
     const onChange = useCallback((_, newAssets) => {
-        const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
-        const baseSchema = schema[0]
-        const updateChildren = [
-            ...baseSchema.children.filter(({ data }) => (!isSchemaImport(data))),
-            ...saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key }, children: [] }))
-        ]
-        updateSchema({
-            type: 'replace',
-            id: baseSchema.id,
-            item: {
-                data: baseSchema.data,
-                children: updateChildren
+        const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
+        const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
+        const deleteAssets = standardForm.metaData
+            .filter(treeNodeTypeguard(isSchemaImport))
+            .filter(({ data }) => (!saveableAssets.find(({ key }) => (key === data.from))))
+            .map(({ id }) => (id))
+        const character = standardForm.byId[standardForm.key]
+        if (character && character.tag === 'Character') {
+            deleteAssets.forEach((id) => { updateSchema({ type: 'delete', id }) })
+            addAssets.forEach(({ key }) => {
+                updateSchema({
+                    type: 'addChild',
+                    id: character.id,
+                    item: { data: { tag: 'Import', from: key, mapping: {} }, children: [] }
+                })
+            })
+            if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
+                dispatch(addOnboardingComplete(['editCharacterAssets']))
             }
-        })
-        if (saveableAssets.filter((item) => (typeof item === 'object' && 'zone' in item && item.zone === 'Personal')).length) {
-            dispatch(addOnboardingComplete(['editCharacterAssets']))
         }
-    }, [schema, updateSchema, dispatch])
+    }, [standardForm, updateSchema, dispatch])
     return <Autocomplete
         multiple
         id="asset-list"
