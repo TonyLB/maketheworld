@@ -422,6 +422,7 @@ describe('standardizeSchema', () => {
                 <Outfit>
                     A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
                 </Outfit>
+                <Image key=(TessIcon) />
             </Character>
         `)
         const test = schemaTestStandarized(testSource)

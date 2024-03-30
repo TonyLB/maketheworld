@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -122,7 +122,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Character', key: item.key, Pronouns: pronouns },
                 id: item.id,
                 children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit].map(standardFieldToOutputNode).flat(1),
+                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit, item.image].map(standardFieldToOutputNode).flat(1),
                 ]
             }
         case 'Room':
@@ -303,6 +303,7 @@ export class Standardizer {
             const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaFirstImpression)) ?? { children: [], data: { tag: 'FirstImpression', value: '' }, id: '' }
             const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing)) ?? { children: [], data: { tag: 'OneCoolThing', value: '' }, id: '' }
             const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOutfit)) ?? { children: [], data: { tag: 'Outfit', value: '' }, id: '' }
+            const image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaImage)) ?? { children: [], data: { tag: 'Image', key: '' }, id: '' }
             this._byId[characterKey] = {
                 tag: 'Character',
                 key: characterKey,
@@ -311,7 +312,8 @@ export class Standardizer {
                 name,
                 firstImpression,
                 oneCoolThing,
-                outfit
+                outfit,
+                image
             }
             this.metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
             return character
@@ -666,7 +668,8 @@ export class Standardizer {
                     firstImpression: deserializeValue(value, 'firstImpression'),
                     oneCoolThing: deserializeValue(value, 'oneCoolThing'),
                     outfit: deserializeValue(value, 'outfit'),
-                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) }
+                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) },
+                    image: { ...value.image, id: value.image.data.key ? uuidv4() : '', children: maybeGenericIDFromTree(value.image.children) }
                 }
             }
             return { ...value, id: uuidv4() }
