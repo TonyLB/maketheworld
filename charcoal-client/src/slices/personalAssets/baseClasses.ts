@@ -4,7 +4,7 @@ import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { StandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import { StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -46,7 +46,7 @@ export interface PersonalAssetsPublic {
     // data it inherits from imports
     //
     schema: GenericTree<SchemaTag, TreeId>;
-    standard: Record<string, StandardComponent>;
+    standard: StandardForm;
     normal: NormalForm;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;

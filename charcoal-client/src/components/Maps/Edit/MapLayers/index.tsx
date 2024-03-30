@@ -48,7 +48,7 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
     const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
-        const roomComponent = standardForm[roomId]
+        const roomComponent = standardForm.byId[roomId]
         if (!(roomComponent && isStandardRoom(roomComponent))) {
             return
         }
@@ -229,7 +229,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     const { data, children } = item
     switch(data.tag) {
         case 'Room':
-            const roomComponent = standardForm[data.key]
+            const roomComponent = standardForm.byId[data.key]
             return <RoomLayer roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) || data.key : data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>

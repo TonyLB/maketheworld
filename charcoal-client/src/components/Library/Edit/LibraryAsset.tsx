@@ -43,7 +43,7 @@ import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaOutputTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { StandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -52,7 +52,7 @@ type LibraryAssetContextType = {
     draftWML: string;
     normalForm: NormalForm;
     schema: GenericTree<SchemaTag, TreeId>;
-    standardForm: Record<string, StandardComponent>;
+    standardForm: StandardForm;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -74,7 +74,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     normalForm: {},
     schema: [],
-    standardForm: {},
+    standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     updateSchema: () => {},
     properties: {},
     loadedImages: {},

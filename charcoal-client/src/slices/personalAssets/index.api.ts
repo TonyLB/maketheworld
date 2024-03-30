@@ -65,7 +65,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             currentWML: assetWML,
             normal,
             baseSchema,
-            standard: standardizer._byId,
+            standard: standardizer.standardForm,
             schema,
             serialized: true
         }
@@ -248,7 +248,7 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
         return {
             publicData: {
                 normal: normalizer.normal,
-                standard: standardizer._byId,
+                standard: standardizer.standardForm,
                 schema: schema.schema,
                 currentWML: draftWML,
                 draftWML: undefined
@@ -346,10 +346,12 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
         throw new Error()
     }
     const newWML = schemaToWML(schema.schema)
+    const standardizer = new Standardizer(schema.schema)
     const normalizer = new Normalizer()
-    normalizer.loadSchema(schema.schema)
+    normalizer.loadSchema(standardizer.schema)
     return {
         publicData: {
+            standard: standardizer.standardForm,
             normal: normalizer.normal,
             schema: schema.schema,
             currentWML: newWML,

@@ -27,7 +27,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     const { standardForm, updateSchema } = useLibraryAsset()
     const component: StandardFeature | StandardKnowledge | StandardRoom = useMemo(() => {
         if (ComponentId) {
-            const component = standardForm[ComponentId]
+            const component = standardForm.byId[ComponentId]
             if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
                 return component
             }
@@ -140,12 +140,12 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, normalForm, updateSchema, select, standardForm } = useLibraryAsset()
+    const { assetKey, normalForm, updateSchema, standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
     const componentName = useMemo(() => {
-        const component = standardForm[ComponentId]
+        const component = standardForm.byId[ComponentId]
         if (component) {
             if (isStandardRoom(component)) {
                 return schemaOutputToString(component.shortName.children)

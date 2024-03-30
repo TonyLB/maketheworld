@@ -23,7 +23,7 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
     const { standardForm } = useLibraryAsset()
     const primary = useCallback(({ item }) => {
         if (isNormalComponent(item)) {
-            const component = standardForm[item.key]
+            const component = standardForm.byId[item.key]
             if (!component) {
                 return 'Untitled'
             }
