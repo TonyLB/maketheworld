@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
+import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
@@ -18,6 +18,7 @@ export type StandardCharacter = {
     oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId>;
     outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId>;
     pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId>;
+    image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardRoom = {
@@ -126,6 +127,7 @@ export type SerializableStandardCharacter = {
     oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag>;
     outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag>;
     pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag>;
+    image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag>;
 } & SerializableStandardBase
 
 export type SerializableStandardRoom = {
