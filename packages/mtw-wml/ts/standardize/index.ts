@@ -490,10 +490,13 @@ export class Standardizer {
         }
         if (this._assetTag === 'Character') {
             const character = standardItemToSchemaItem(this._byId[this._assetKey])
-            //
-            // TODO: Add imports out of Metadata
-            //
-            return [character]
+            return [{
+                ...character,
+                children: [
+                    ...character.children,
+                    ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
+                ]
+            }]
         }
         throw new Error('Invalid internal tags on Standardizer schema')
     }
