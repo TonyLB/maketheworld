@@ -61,77 +61,6 @@ import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import DescriptionEditor from './DescriptionEditor'
 import { EditSchema } from './EditContext'
 
-type ReplaceLiteralTagProps = {
-    id: string;
-    updateSchema: (action: UpdateSchemaPayload) => void;
-    tag: LiteralTagFieldProps["tag"];
-    value: string;
-}
-
-//
-// Refactor characterFromSchema to denormalize all literal children values into a top-level record
-//
-type EasyCharacterRecord = {
-    key: string;
-    Name?: string;
-    FirstImpression?: string;
-    OneCoolThing?: string;
-    Outfit?: string;
-    Pronouns?: SchemaCharacterTag["Pronouns"];
-}
-const characterFromSchema = (schema: GenericTree<SchemaTag, TreeId>, select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output): EasyCharacterRecord => {
-    if (schema.length === 0) {
-        throw new Error('No character asset in EditCharacter')
-    }
-    const baseSchema = schema[0].data
-    if (!isSchemaCharacter(baseSchema)) {
-        throw new Error('Non-character asset in EditCharacter')
-    }
-    return {
-        key: baseSchema.key,
-        Pronouns: baseSchema.Pronouns,
-        Name: schemaOutputToString(select({ selector: selectName })),
-        FirstImpression: select({ selector: selectLiteral('FirstImpression') }),
-        Outfit: select({ selector: selectLiteral('FirstImpression') }),
-        OneCoolThing: select({ selector: selectLiteral('FirstImpression') })
-    }
-}
-
-const specificChildFromSchema = (schema: GenericTree<SchemaTag, TreeId>, tag: SchemaTag["tag"]): GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> | undefined => {
-    if (schema.length === 0) {
-        throw new Error('No character asset in EditCharacter')
-    }
-    const children = schema[0].children
-    const validTags = children.filter((node): node is GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> => (
-        node.data.tag === tag
-    ))
-    return validTags.length ? validTags[0] : undefined
-}
-
-const schemaFromEasyCharacter = (baseSchema: EasyCharacterRecord, id: string): GenericTreeNode<SchemaTag, TreeId> => ({
-    data: { tag: 'Character', key: baseSchema.key, Pronouns: baseSchema.Pronouns },
-    children: [
-        ...(baseSchema.Name ? [{ data: { tag: 'Name' as const }, children: [{ data: { tag: 'String' as const, value: baseSchema.Name }, children: [], id: uuidv4() }], id: uuidv4() }] : []),
-        ...(baseSchema.FirstImpression ? [{ data: { tag: 'FirstImpression' as const, value: baseSchema.FirstImpression }, children: [], id: uuidv4() }] : []),
-        ...(baseSchema.Outfit ? [{ data: { tag: 'Outfit' as const, value: baseSchema.Outfit }, children: [], id: uuidv4() }] : []),
-        ...(baseSchema.OneCoolThing ? [{ data: { tag: 'OneCoolThing' as const, value: baseSchema.OneCoolThing }, children: [], id: uuidv4() }] : []),
-    ],
-    id
-})
-
-// const replaceLiteralTag = ({
-//     id,
-//     updateSchema,
-//     tag,
-//     value
-// }: ReplaceLiteralTagProps) => {
-//     updateSchema({
-//         type: 'updateNode',
-//         id,
-//         item: { tag, value }
-//     })    
-// }
-
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
     onSelectChange: (selectValue: string) => void;
@@ -316,16 +245,16 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
         return character[tag].data.value || ''
     })
 
-    const id = useMemo(() => (character.id), [character])
+    const id = useMemo(() => (character[tag].id), [character])
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
     useEffect(() => {
-        // replaceLiteralTag({
-        //     id,
-        //     updateSchema,
-        //     tag,
-        //     value: debouncedTagValue
-        // })
+        const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
+        updateSchema({
+            type: 'updateNode',
+            id,
+            item: { tag: schemaTag, value: debouncedTagValue }
+        }) 
     }, [id, tag, updateSchema, debouncedTagValue])
 
     return <TextField
