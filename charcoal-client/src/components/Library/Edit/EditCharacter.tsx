@@ -57,102 +57,9 @@ import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-
-type ReplaceLiteralTagProps = {
-    schema: GenericTree<SchemaTag, TreeId>;
-    updateSchema: (action: UpdateSchemaPayload) => void;
-    tag: LiteralTagFieldProps["tag"];
-    replace: string;
-    select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output;
-}
-
-//
-// Refactor characterFromSchema to denormalize all literal children values into a top-level record
-//
-type EasyCharacterRecord = {
-    key: string;
-    Name?: string;
-    FirstImpression?: string;
-    OneCoolThing?: string;
-    Outfit?: string;
-    Pronouns?: SchemaCharacterTag["Pronouns"];
-}
-const characterFromSchema = (schema: GenericTree<SchemaTag, TreeId>, select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output): EasyCharacterRecord => {
-    if (schema.length === 0) {
-        throw new Error('No character asset in EditCharacter')
-    }
-    const baseSchema = schema[0].data
-    if (!isSchemaCharacter(baseSchema)) {
-        throw new Error('Non-character asset in EditCharacter')
-    }
-    return {
-        key: baseSchema.key,
-        Pronouns: baseSchema.Pronouns,
-        Name: schemaOutputToString(select({ selector: selectName })),
-        FirstImpression: select({ selector: selectLiteral('FirstImpression') }),
-        Outfit: select({ selector: selectLiteral('FirstImpression') }),
-        OneCoolThing: select({ selector: selectLiteral('FirstImpression') })
-    }
-}
-
-const specificChildFromSchema = (schema: GenericTree<SchemaTag, TreeId>, tag: SchemaTag["tag"]): GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> | undefined => {
-    if (schema.length === 0) {
-        throw new Error('No character asset in EditCharacter')
-    }
-    const children = schema[0].children
-    const validTags = children.filter((node): node is GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> => (
-        node.data.tag === tag
-    ))
-    return validTags.length ? validTags[0] : undefined
-}
-
-const schemaFromEasyCharacter = (baseSchema: EasyCharacterRecord, id: string): GenericTreeNode<SchemaTag, TreeId> => ({
-    data: { tag: 'Character', key: baseSchema.key, Pronouns: baseSchema.Pronouns },
-    children: [
-        ...(baseSchema.Name ? [{ data: { tag: 'Name' as const }, children: [{ data: { tag: 'String' as const, value: baseSchema.Name }, children: [], id: uuidv4() }], id: uuidv4() }] : []),
-        ...(baseSchema.FirstImpression ? [{ data: { tag: 'FirstImpression' as const, value: baseSchema.FirstImpression }, children: [], id: uuidv4() }] : []),
-        ...(baseSchema.Outfit ? [{ data: { tag: 'Outfit' as const, value: baseSchema.Outfit }, children: [], id: uuidv4() }] : []),
-        ...(baseSchema.OneCoolThing ? [{ data: { tag: 'OneCoolThing' as const, value: baseSchema.OneCoolThing }, children: [], id: uuidv4() }] : []),
-    ],
-    id
-})
-
-const replaceLiteralTag = ({
-    schema,
-    select,
-    updateSchema,
-    tag,
-    replace
-}: ReplaceLiteralTagProps) => {
-    const mergeProperty = (merge: Partial<EasyCharacterRecord>) => {
-        const baseSchema = characterFromSchema(schema, select)
-        const updatedSchema = { ...baseSchema, ...merge } as EasyCharacterRecord
-        if (!deepEqual(baseSchema, updatedSchema)) {
-            updateSchema({
-                type: 'replace',
-                id: schema[0].id,
-                //
-                // Map back from EasyCharacterRecord to SchemaTag
-                //
-                item: schemaFromEasyCharacter(baseSchema, schema[0].id),
-            })    
-        }
-    }
-    switch(tag) {
-        case 'FirstImpression':
-            mergeProperty({ FirstImpression: replace || undefined })
-            break
-        case 'Name':
-            mergeProperty({ Name: replace || undefined })
-            break
-        case 'OneCoolThing':
-            mergeProperty({ OneCoolThing: replace || undefined })
-            break
-        case 'Outfit':
-            mergeProperty({ Outfit: replace || undefined })
-            break
-    }
-}
+import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import DescriptionEditor from './DescriptionEditor'
+import { EditSchema } from './EditContext'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -326,29 +233,29 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing' | 'Name';
+    character: StandardCharacter;
+    tag: 'firstImpression' | 'outfit' | 'oneCoolThing';
     label: string;
 }
 
-const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, tag, label }) => {
-    const { schema, select, updateSchema } = useLibraryAsset()
+const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, required, tag, label }) => {
+    const { updateSchema } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        const character = schema[0].data
-        return character?.[tag] || ''
+        return character[tag].data.value || ''
     })
 
+    const id = useMemo(() => (character[tag].id), [character])
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
     useEffect(() => {
-        replaceLiteralTag({
-            schema,
-            select,
-            updateSchema,
-            tag,
-            replace: debouncedTagValue
-        })
-    }, [schema, updateSchema, tag, debouncedTagValue])
+        const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
+        updateSchema({
+            type: 'updateNode',
+            id,
+            item: { tag: schemaTag, value: debouncedTagValue }
+        }) 
+    }, [id, tag, updateSchema, debouncedTagValue])
 
     return <TextField
         required={required}
@@ -356,6 +263,34 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
         label={label}
         value={currentTagValue}
         onChange={(event) => { setCurrentTagValue(event.target.value) }}
+    />
+
+}
+
+const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
+    const { updateSchema } = useLibraryAsset()
+
+    const [currentNameValue, setCurrentNameValue] = useState(() => {
+        return schemaOutputToString(character.name.children) || ''
+    })
+
+    const id = useMemo(() => (character.name.id), [character])
+    const debouncedTagValue = useDebounce(currentNameValue, 500)
+
+    useEffect(() => {
+        updateSchema({
+            type: 'replaceChildren',
+            id,
+            children: [{ data: { tag: 'String', value: debouncedTagValue }, children: [] }]
+        }) 
+    }, [id, updateSchema, debouncedTagValue])
+
+    return <TextField
+        required
+        id="name-field"
+        label="Name"
+        value={currentNameValue}
+        onChange={(event) => { setCurrentNameValue(event.target.value) }}
     />
 
 }
@@ -377,8 +312,8 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { schema, select, updateSchema, normalForm } = useLibraryAsset()
-    const [assetsImported, setAssetsImported] = useState(Object.values(normalForm)
+    const { schema, updateSchema, normalForm } = useLibraryAsset()
+    const assetsImported = useMemo(() => (Object.values(normalForm)
         .filter(isNormalImport)
         .map(({ from }) => (from))
         //
@@ -386,11 +321,10 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         //
         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
         .filter((value) => (value))
-    )
+    ), [normalForm])
     const dispatch = useDispatch()
     const onChange = useCallback((_, newAssets) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
-        setAssetsImported(saveableAssets)
         const baseSchema = schema[0]
         const updateChildren = [
             ...baseSchema.children.filter(({ data }) => (!isSchemaImport(data))),
@@ -407,7 +341,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         if (saveableAssets.filter((item) => (typeof item === 'object' && 'zone' in item && item.zone === 'Personal')).length) {
             dispatch(addOnboardingComplete(['editCharacterAssets']))
         }
-    }, [setAssetsImported, schema, updateSchema, dispatch])
+    }, [schema, updateSchema, dispatch])
     return <Autocomplete
         multiple
         id="asset-list"
@@ -476,50 +410,43 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { schema, updateSchema, select, normalForm, save, AssetId, status } = useLibraryAsset()
+    const { schema, updateSchema, standardForm, normalForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
-    const character = useMemo(() => (characterFromSchema(schema, select)), [schema, select])
-
-    const [currentPronouns, setCurrentPronouns] = useState<Omit<SchemaPronounsTag, 'tag'>>(
-        character?.Pronouns || {
-            subject: '',
-            object: '',
-            reflexive: '',
-            possessive: '',
-            adjective: ''
+    const character = useMemo(() => {
+        const character = standardForm.byId[standardForm.key]
+        if (character && character.tag === 'Character') {
+            return character
         }
-    )
-    const [selectValue, setSelectValue] = useState(() => {
+        return undefined
+    }, [standardForm])
+
+    const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
+        const { tag, ...rest } = character.pronouns.data
+        return rest
+    }, [character])
+    const selectValue = useMemo(() => {
         const stringified = JSON.stringify(currentPronouns, Object.keys(currentPronouns).sort())
         return (Object.entries(standardPronouns)
             .find(([_, standard]) => {
                 return Boolean(JSON.stringify(standard, Object.keys(currentPronouns).sort()) === stringified)
             })
             ?.[0]) || 'custom'
-    })
+    }, [currentPronouns])
     const onSelectChangeHandler = useCallback((value) => {
         if ((value !== 'custom') && standardPronouns[value]) {
-            setCurrentPronouns(standardPronouns[value])
-        }
-        setSelectValue(value)
-    }, [setCurrentPronouns, setSelectValue])
-
-    const debouncedPronouns = useDebounce(currentPronouns, 500)
-
-    useEffect(() => {
-        const baseSchema = characterFromSchema(schema, select)
-        if (!deepEqual(baseSchema.Pronouns, debouncedPronouns)) {
-            const pronounTag = specificChildFromSchema(schema, 'Pronouns')
-            if (pronounTag) {
+            if (character.pronouns.id) {
                 updateSchema({
-                    type: 'replace',
-                    id: pronounTag.id,
-                    item: { data: { tag: 'Pronouns' as const, ...debouncedPronouns }, children: [] }
+                    type: 'updateNode',
+                    id: character.pronouns.id,
+                    item: {
+                        tag: 'Pronouns',
+                        ...standardPronouns[value]
+                    }
                 })
             }
         }
-    }, [schema, updateSchema, debouncedPronouns])
+    }, [character, updateSchema])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -558,9 +485,12 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         save()
     }, [save])
 
+    if (!character) {
+        return <Box sx={{ width: "100%" }} />
+    }
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
-            primary={character?.Name || 'Unnamed'}
+            primary={schemaOutputToString(character?.name?.children ?? []) || 'Unnamed'}
             secondary={character?.key || ''}
             commands={
                 <React.Fragment>
@@ -575,7 +505,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: character?.Name || 'Unnamed'
+                    label: schemaOutputToString(character?.name?.children ?? []) || 'Unnamed'
                 }
             ]}
         />
@@ -585,17 +515,14 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={character?.Name ?? ''} characterKey={character?.key ?? ''} />
+                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} characterKey={character?.key ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
+                    <LiteralNameField character={character} />
                     <LiteralTagField
+                        character={character}
                         required
-                        tag='Name'
-                        label="Name"
-                    />
-                    <LiteralTagField
-                        required
-                        tag="FirstImpression"
+                        tag="firstImpression"
                         label="First Impression"
                     />
                 </Stack>
@@ -603,15 +530,18 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             <CharacterEditPronouns
                 selectValue={selectValue}
                 onSelectChange={onSelectChangeHandler}
-                onChange={setCurrentPronouns}
+                // onChange={setCurrentPronouns}
+                onChange={() => {}}
                 {...currentPronouns}
             />
             <LiteralTagField
-                tag="OneCoolThing"
+                character={character}
+                tag="oneCoolThing"
                 label="One Cool Thing"
             />
             <LiteralTagField
-                tag="Outfit"
+                character={character}
+                tag="outfit"
                 label="Outfit"
             />
             <EditCharacterAssetList />

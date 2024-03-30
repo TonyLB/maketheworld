@@ -33,14 +33,14 @@ type RoomExitEditorProps = {
 
 const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
     const { readonly, standardForm } = useLibraryAsset()
-    const roomKeys = Object.values(standardForm).filter(isStandardRoom).map(({ key }) => (key))
+    const roomKeys = Object.values(standardForm.byId).filter(isStandardRoom).map(({ key }) => (key))
     const roomNamesInScope: Record<string, string> = Object.assign({},
         ...roomKeys
             .map((key) => {
                 if (key === RoomId) {
                     return []
                 }
-                const component = standardForm[key]
+                const component = standardForm.byId[key]
                 if (!(component && isStandardRoom(component))) {
                     return []
                 }
@@ -96,7 +96,7 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
         if (!data.to) {
             return ''
         }
-        const targetComponent = standardForm[data.to]
+        const targetComponent = standardForm.byId[data.to]
         if (!(targetComponent && isStandardRoom(targetComponent))) {
             return ''
         }

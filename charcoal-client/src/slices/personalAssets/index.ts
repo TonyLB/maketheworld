@@ -45,7 +45,7 @@ export const {
             properties: {},
             loadedImages: {},
             normal: {},
-            standard: {},
+            standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             baseSchema: [],
             schema: []
         }
@@ -71,7 +71,7 @@ export const {
                 properties: {},
                 loadedImages: {},
                 normal: {},
-                standard: {},
+                standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 baseSchema: [],
                 schema: []
             }

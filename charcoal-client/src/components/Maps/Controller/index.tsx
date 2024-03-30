@@ -209,7 +209,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .tree
         const combinedTree = new SchemaTagTree([...positions, ...roomNames, ...exits]).tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
-    }, [schema, standardForm, mapId])
+    }, [schema, mapId])
 
     //
     // Make local data and setters for exit decorator source and drag location.
@@ -227,7 +227,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const roomComponent = standardForm[data.key]
+            const roomComponent = standardForm.byId[data.key]
             const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) : data.key
             return children.reduce(extractRoomsHelper(data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
