@@ -421,15 +421,10 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         return undefined
     }, [standardForm])
 
-    const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => (
-        character?.pronouns.data || {
-            subject: '',
-            object: '',
-            reflexive: '',
-            possessive: '',
-            adjective: ''
-        }
-    ), [character])
+    const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
+        const { tag, ...rest } = character.pronouns.data
+        return rest
+    }, [character])
     const selectValue = useMemo(() => {
         const stringified = JSON.stringify(currentPronouns, Object.keys(currentPronouns).sort())
         return (Object.entries(standardPronouns)
@@ -440,10 +435,10 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [currentPronouns])
     const onSelectChangeHandler = useCallback((value) => {
         if ((value !== 'custom') && standardPronouns[value]) {
-            if (character.id) {
+            if (character.pronouns.id) {
                 updateSchema({
                     type: 'updateNode',
-                    id: character.id,
+                    id: character.pronouns.id,
                     item: {
                         tag: 'Pronouns',
                         ...standardPronouns[value]
