@@ -57,13 +57,15 @@ import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import DescriptionEditor from './DescriptionEditor'
+import { EditSchema } from './EditContext'
 
 type ReplaceLiteralTagProps = {
-    schema: GenericTree<SchemaTag, TreeId>;
+    id: string;
     updateSchema: (action: UpdateSchemaPayload) => void;
     tag: LiteralTagFieldProps["tag"];
-    replace: string;
-    select: <Output>(args: { key?: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output;
+    value: string;
 }
 
 //
@@ -117,42 +119,18 @@ const schemaFromEasyCharacter = (baseSchema: EasyCharacterRecord, id: string): G
     id
 })
 
-const replaceLiteralTag = ({
-    schema,
-    select,
-    updateSchema,
-    tag,
-    replace
-}: ReplaceLiteralTagProps) => {
-    const mergeProperty = (merge: Partial<EasyCharacterRecord>) => {
-        const baseSchema = characterFromSchema(schema, select)
-        const updatedSchema = { ...baseSchema, ...merge } as EasyCharacterRecord
-        if (!deepEqual(baseSchema, updatedSchema)) {
-            updateSchema({
-                type: 'replace',
-                id: schema[0].id,
-                //
-                // Map back from EasyCharacterRecord to SchemaTag
-                //
-                item: schemaFromEasyCharacter(baseSchema, schema[0].id),
-            })    
-        }
-    }
-    switch(tag) {
-        case 'FirstImpression':
-            mergeProperty({ FirstImpression: replace || undefined })
-            break
-        case 'Name':
-            mergeProperty({ Name: replace || undefined })
-            break
-        case 'OneCoolThing':
-            mergeProperty({ OneCoolThing: replace || undefined })
-            break
-        case 'Outfit':
-            mergeProperty({ Outfit: replace || undefined })
-            break
-    }
-}
+// const replaceLiteralTag = ({
+//     id,
+//     updateSchema,
+//     tag,
+//     value
+// }: ReplaceLiteralTagProps) => {
+//     updateSchema({
+//         type: 'updateNode',
+//         id,
+//         item: { tag, value }
+//     })    
+// }
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -326,29 +304,29 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing' | 'Name';
+    character: StandardCharacter;
+    tag: 'firstImpression' | 'outfit' | 'oneCoolThing';
     label: string;
 }
 
-const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, tag, label }) => {
-    const { schema, select, updateSchema } = useLibraryAsset()
+const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, required, tag, label }) => {
+    const { updateSchema } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        const character = schema[0].data
-        return character?.[tag] || ''
+        return character[tag].data.value || ''
     })
 
+    const id = useMemo(() => (character.id), [character])
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
     useEffect(() => {
-        replaceLiteralTag({
-            schema,
-            select,
-            updateSchema,
-            tag,
-            replace: debouncedTagValue
-        })
-    }, [schema, updateSchema, tag, debouncedTagValue])
+        // replaceLiteralTag({
+        //     id,
+        //     updateSchema,
+        //     tag,
+        //     value: debouncedTagValue
+        // })
+    }, [id, tag, updateSchema, debouncedTagValue])
 
     return <TextField
         required={required}
@@ -555,6 +533,9 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         save()
     }, [save])
 
+    if (!character) {
+        return <Box sx={{ width: "100%" }} />
+    }
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
             primary={schemaOutputToString(character?.name?.children ?? []) || 'Unnamed'}
@@ -585,14 +566,17 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} characterKey={character?.key ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
+                    <EditSchema tag="ShortName" field={character.name} parentId={character?.id ?? ''}>
+                        <DescriptionEditor
+                            validLinkTags={[]}
+                            placeholder="Name"
+                            toolbar={false}
+                        />
+                    </EditSchema>
                     <LiteralTagField
+                        character={character}
                         required
-                        tag='Name'
-                        label="Name"
-                    />
-                    <LiteralTagField
-                        required
-                        tag="FirstImpression"
+                        tag="firstImpression"
                         label="First Impression"
                     />
                 </Stack>
@@ -605,11 +589,13 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 {...currentPronouns}
             />
             <LiteralTagField
-                tag="OneCoolThing"
+                character={character}
+                tag="oneCoolThing"
                 label="One Cool Thing"
             />
             <LiteralTagField
-                tag="Outfit"
+                character={character}
+                tag="outfit"
                 label="Outfit"
             />
             <EditCharacterAssetList />
