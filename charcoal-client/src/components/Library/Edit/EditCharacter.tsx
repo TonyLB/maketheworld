@@ -317,7 +317,6 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
     ), [standardForm])
     const dispatch = useDispatch()
     const onChange = useCallback((_, newAssets) => {
-        console.log(`newAssets: ${JSON.stringify(newAssets, null, 4)}`)
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
         const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
         const deleteAssets = standardForm.metaData
@@ -325,11 +324,8 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .filter(({ data }) => (!saveableAssets.find(({ key }) => (key === data.from))))
             .map(({ id }) => (id))
         const character = standardForm.byId[standardForm.key]
-        console.log(`character: ${JSON.stringify(character, null, 4)}`)
         if (character && character.tag === 'Character') {
-            console.log(`delete: ${JSON.stringify(deleteAssets, null, 4)}`)
             deleteAssets.forEach((id) => { updateSchema({ type: 'delete', id }) })
-            console.log(`add (${character.id}): ${JSON.stringify(addAssets, null, 4)}`)
             addAssets.forEach(({ key }) => {
                 updateSchema({
                     type: 'addChild',
