@@ -489,13 +489,11 @@ export class Standardizer {
             }]
         }
         if (this._assetTag === 'Character') {
-            return [standardItemToSchemaItem(this._byId[this._assetKey])]
-            const { tag, ...pronouns }: SchemaPronounsTag = (this.metaData.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } }).data
-            return [{
-                data: { tag: 'Character', key: this._assetKey, Pronouns: pronouns },
-                children: this.metaData,
-                id: this._assetId
-            }]
+            const character = standardItemToSchemaItem(this._byId[this._assetKey])
+            //
+            // TODO: Add imports out of Metadata
+            //
+            return [character]
         }
         throw new Error('Invalid internal tags on Standardizer schema')
     }
