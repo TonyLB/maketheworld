@@ -11,7 +11,6 @@ import {
     FormControl,
     InputLabel,
     Select,
-    SelectChangeEvent,
     MenuItem
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -26,7 +25,6 @@ import {
     useParams,
     useNavigate
 } from "react-router-dom"
-import { v4 as uuidv4 } from 'uuid'
 
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
@@ -37,8 +35,7 @@ import {
     setLoadedImage,
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { isNormalImage, isNormalImport, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { selectLiteral } from '@tonylb/mtw-wml/dist/normalize/selectors/literal'
+import { isNormalImport, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -46,20 +43,14 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
-import { SchemaCharacterTag, SchemaPronounsTag, SchemaTag, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { deepEqual } from '../../../lib/objects'
+import { SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import DescriptionEditor from './DescriptionEditor'
-import { EditSchema } from './EditContext'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -410,7 +401,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { schema, updateSchema, standardForm, normalForm, save, AssetId, status } = useLibraryAsset()
+    const { updateSchema, standardForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = useMemo(() => {
@@ -452,34 +443,29 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const onDrop = useCallback((file: File) => {
         if (character?.key) {
             const characterIconKey = `${character.key}Icon`
-            const unconditionedImages = Object.values(normalForm)
-                .filter(isNormalImage)
-                .filter(({ appearances }) => (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))))
             //
-            // If Images exist, but not by the characterIcon default key, choose the first at random
+            // If an Image exist, but not by the characterIcon default key, use it
             //
             let SCHEMADIRTY = false
-            if (unconditionedImages.length && !unconditionedImages.find(({ key }) => (key === characterIconKey))) {
-                dispatch(setLoadedImage(AssetId)({ itemId: unconditionedImages[0].key, file }))
+            if (character.image.data.key) {
+                dispatch(setLoadedImage(AssetId)({ itemId: character.image.data.key, file }))
             }
             //
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary
             //
             else {
-                if (!unconditionedImages.length) {
-                    updateSchema({
-                        type: 'addChild',
-                        id: schema[0].id,
-                        item: { data: { tag: 'Image', key: characterIconKey }, children: [] }
-                    })
-                    SCHEMADIRTY = true
-                }
+                updateSchema({
+                    type: 'addChild',
+                    id: character.id,
+                    item: { data: { tag: 'Image', key: characterIconKey }, children: [] }
+                })
+                SCHEMADIRTY = true
                 dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))
             }
             dispatch(setIntent({ key: AssetId, intent: SCHEMADIRTY ? ['SCHEMADIRTY'] : ['WMLDIRTY', 'SCHEMADIRTY']}))
             dispatch(heartbeat)
         }
-    }, [dispatch, character?.key, schema, updateSchema, normalForm])
+    }, [dispatch, character, updateSchema])
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
         save()
