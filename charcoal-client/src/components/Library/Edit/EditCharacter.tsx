@@ -267,6 +267,34 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
 
 }
 
+const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
+    const { updateSchema } = useLibraryAsset()
+
+    const [currentNameValue, setCurrentNameValue] = useState(() => {
+        return schemaOutputToString(character.name.children) || ''
+    })
+
+    const id = useMemo(() => (character.name.id), [character])
+    const debouncedTagValue = useDebounce(currentNameValue, 500)
+
+    useEffect(() => {
+        updateSchema({
+            type: 'replaceChildren',
+            id,
+            children: [{ data: { tag: 'String', value: debouncedTagValue }, children: [] }]
+        }) 
+    }, [id, updateSchema, debouncedTagValue])
+
+    return <TextField
+        required
+        id="name-field"
+        label="Name"
+        value={currentNameValue}
+        onChange={(event) => { setCurrentNameValue(event.target.value) }}
+    />
+
+}
+
 type EditCharacterAssetListProps = {}
 
 type ZonedAssets = {
@@ -495,13 +523,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} characterKey={character?.key ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
-                    <EditSchema tag="ShortName" field={character.name} parentId={character?.id ?? ''}>
-                        <DescriptionEditor
-                            validLinkTags={[]}
-                            placeholder="Name"
-                            toolbar={false}
-                        />
-                    </EditSchema>
+                    <LiteralNameField character={character} />
                     <LiteralTagField
                         character={character}
                         required
