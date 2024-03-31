@@ -801,11 +801,17 @@ Resources:
           Variables:
             WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
             TABLE_PREFIX: !Ref TablePrefix
+            EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
         Policies:
           - Statement:
             - Effect: Allow
               Action: execute-api:ManageConnections
               Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+          - Statement:
+            - Effect: Allow
+              Resource: '*'
+              Action:
+                - events:PutEvents
           - DynamoDBReadPolicy:
               TableName: !Sub '${TablePrefix}_connections'
         Events:
