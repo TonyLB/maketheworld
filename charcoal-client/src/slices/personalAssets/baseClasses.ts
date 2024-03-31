@@ -86,7 +86,6 @@ export interface PersonalAssetsNodes {
     GETSAVEURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     PARSE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    SAVEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    SAVEERROR: ISSMChoiceNode;
+    SAVEERROR: ISSMRedirectNode;
     CLEAR: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
 }

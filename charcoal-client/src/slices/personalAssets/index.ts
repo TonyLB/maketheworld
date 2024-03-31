@@ -177,29 +177,24 @@ export const {
                 stateType: 'ATTEMPT',
                 action: getSaveURL,
                 resolve: 'SAVE',
-                reject: 'SAVEBACKOFF'
+                reject: 'SAVEERROR'
             },
             SAVE: {
                 stateType: 'ATTEMPT',
                 action: saveWML,
                 resolve: 'PARSE',
-                reject: 'SAVEBACKOFF'
+                reject: 'SAVEERROR'
             },
             PARSE: {
                 stateType: 'ATTEMPT',
                 action: parseWML,
                 resolve: 'FRESH',
-                reject: 'SAVEBACKOFF'
-            },
-            SAVEBACKOFF: {
-                stateType: 'ATTEMPT',
-                action: backoffAction,
-                resolve: 'GETSAVEURL',
                 reject: 'SAVEERROR'
             },
             SAVEERROR: {
-                stateType: 'CHOICE',
-                choices: []
+                stateType: 'REDIRECT',
+                newIntent: ['WMLDIRTY', 'FRESH'],
+                choices: ['WMLDIRTY']
             },
             CLEAR: {
                 stateType: 'ATTEMPT',

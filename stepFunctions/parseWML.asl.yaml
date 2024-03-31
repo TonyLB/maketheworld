@@ -115,7 +115,7 @@ States:
                     "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
                 Error:
                     DataType: String
-                    StringValue: "Error while caching assets"
+                    StringValue: "Error while parsing WML"
     Failure:
         Type: Fail
     Done:
