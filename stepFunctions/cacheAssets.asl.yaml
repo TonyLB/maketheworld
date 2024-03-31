@@ -1,7 +1,20 @@
 ---
 Comment: Command step-function to execute cache of assets into Ephemera storage
-StartAt: Check Options
+StartAt: Define Defaults
 States:
+    "Define Defaults":
+        Type: Pass
+        Next: Apply Defaults
+        ResultPath: "$.inputDefaults"
+        Parameters:
+            connectionId: ""
+            requestId: ""
+    "Apply Defaults":
+        Type: Pass
+        Next: Check Options
+        ResultPath: "$"
+        Parameters:
+            "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
     "Check Options":
         Type: Choice
         Choices:
@@ -39,6 +52,11 @@ States:
                 IntervalSeconds: 2
                 MaxAttempts: 3
                 BackoffRate: 1
+        Catch:
+            -
+                ErrorEquals:
+                    - States.All
+                Next: Notify of Failure
     "Cache Ephemera":
         Type: Task
         Next: Done
@@ -56,11 +74,31 @@ States:
         ResultPath: null
     Decache:
         Type: Task
-        Next: Failure
+        Next: Notify of Failure
         Resource: "${EphemeraFunctionArn}"
         Parameters:
             "message": "decacheAssets"
             "assetIds.$": "$.assetIds"
+    "Notify of Failure":
+        Type: Task
+        Next: Failure
+        Resource: "arn:aws:states:::sns:publish"
+        Parameters:
+            TopicArn: "${TopicArn}"
+            Message: "{}"
+            MessageAttributes:
+                Type:
+                    DataType: String
+                    StringValue: Error
+                RequestId:
+                    DataType: String
+                    "StringValue.$": "$.requestId"
+                ConnectionIds:
+                    DataType: String.Array
+                    "StringValue.$": "States.JsonToString(States.Array($.connectionId))"
+                Error:
+                    DataType: String
+                    StringValue: "Error while caching assets"
     Failure:
         Type: Fail
     Done:

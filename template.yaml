@@ -1186,12 +1186,15 @@ Resources:
       DefinitionSubstitutions:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref AddressLookupFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
         - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MTWFeedbackTopic.TopicName
   DecacheAssetsStateMachineLogs:
     Type: AWS::Logs::LogGroup
   DecacheAssetsStateMachine:
