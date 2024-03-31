@@ -26,6 +26,18 @@ export const handler = async (event) => {
                     Data
                 }))))
                 break
+            case 'Error':
+                if (Sns.MessageAttributes.Error?.Type !== 'String') {
+                    throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
+                }
+                await Promise.all(connectionIds.map((ConnectionId) => (apiClient.send({
+                    ConnectionId,
+                    Data: JSON.stringify({
+                        error: Sns.MessageAttributes.Error?.Value || '',
+                        RequestId
+                    })
+                }))))
+                break
         }
     }))
 }
