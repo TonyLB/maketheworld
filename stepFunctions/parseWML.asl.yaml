@@ -15,6 +15,7 @@ States:
             connectionId: ""
             requestId: ""
             player: ""
+            tag: "Asset"
     "Apply Defaults":
         Type: Pass
         Next: Check Arguments
@@ -35,6 +36,8 @@ States:
         Resource: "${AddressLookupFunctionArn}"
         Parameters:
             "assetIds.$": "States.Array($.args.assetId)"
+            "player.$": "$.args.player"
+            "tag.$": "$.args.tag"
         ResultPath: "$.addressList"
         Retry:
             -
@@ -43,6 +46,11 @@ States:
                 IntervalSeconds: 2
                 MaxAttempts: 3
                 BackoffRate: 1
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
     "Check Address":
         Type: Choice
         Choices:

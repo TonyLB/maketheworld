@@ -8,7 +8,7 @@ type MetaCache = {
 
 export const handler = async (event) => {
 
-    const { assetIds } = event
+    const { assetIds, player, tag } = event
 
     const addressfetches = (await assetDB.getItems<MetaCache>({
         Keys: assetIds.map((AssetId) => ({
@@ -17,6 +17,24 @@ export const handler = async (event) => {
         })),
         ProjectionFields: ['AssetId', 'address']
     })) || []
-    return addressfetches.filter((value): value is Omit<MetaCache, 'address'> & { address: AssetWorkspaceAddress } => (isAssetWorkspaceAddress(value.address)))
+    const returnValue = addressfetches.filter((value): value is Omit<MetaCache, 'address'> & { address: AssetWorkspaceAddress } => (isAssetWorkspaceAddress(value.address)))
+
+    if (returnValue.length) {
+        return returnValue
+    }
+    else {
+        if (!(player && tag)) {
+            throw new Error('Player or tag unspecified when asset needs to be created')
+        }
+        return assetIds.map((assetId): Omit<MetaCache, 'address'> & { address: AssetWorkspaceAddress } => ({
+            AssetId: assetId,
+            address: {
+                zone: 'Personal',
+                player,
+                fileName: assetId.split('#').slice(1)[0],
+                subFolder: `${tag}s`
+            }
+        }))
+    }
 
 }
