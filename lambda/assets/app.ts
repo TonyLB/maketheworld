@@ -224,7 +224,7 @@ export const handler = async (event, context) => {
             }))
             return {
                 statusCode: 200,
-                body: JSON.stringify({ messageType: 'Success' })
+                body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
             }
         }
         if (isAssetCheckinAPIMessage(request)) {

@@ -1,5 +1,12 @@
 import { checkTypes } from "./utils";
 
+export type CoordinationClientProgressMessage = {
+    messageType: 'Progress';
+    RequestId?: string;
+    progress: number;
+    of: number;
+}
+
 export type CoordinationClientSuccessMessage = {
     messageType: 'Success';
     RequestId?: string;
@@ -12,13 +19,25 @@ export type CoordinationClientErrorMessage = {
 }
 
 export type CoordinationClientMessage = CoordinationClientSuccessMessage |
-    CoordinationClientErrorMessage
+    CoordinationClientErrorMessage |
+    CoordinationClientProgressMessage
 
     export const isCoordinationClientMessage = (message: any): message is CoordinationClientMessage => {
         if (!('messageType' in message && typeof message.messageType === 'string')) {
             return false
         }
         switch(message.messageType) {
+            case 'Progress':
+                return checkTypes(
+                    message,
+                    {
+                        progress: 'number',
+                        of: 'number'
+                    },
+                    {
+                        RequestId: 'string'
+                    }
+                )
             case 'Success':
                 return checkTypes(
                     message,
