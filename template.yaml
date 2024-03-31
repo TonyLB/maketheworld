@@ -822,6 +822,7 @@ Resources:
               FilterPolicy:
                   Type:
                       - Success
+                      - Error
               FilterPolicyScope: MessageAttributes
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function
@@ -922,6 +923,7 @@ Resources:
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
                   COGNITO_POOL_ID: !Ref UserPool
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                  PARSE_WML_SFN: !Ref ParseWMLStateMachine
                   CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
                   FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine

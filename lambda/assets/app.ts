@@ -212,7 +212,7 @@ export const handler = async (event, context) => {
         if (isParseWMLAPIMessage(request)) {
             const player = await internalCache.Connection.get('player')
             await sfnClient.send(new StartExecutionCommand({
-                stateMachineArn: process.env.CACHE_ASSETS_SFN,
+                stateMachineArn: process.env.PARSE_WML_SFN,
                 input: JSON.stringify({
                     player,
                     requestId: request.RequestId,

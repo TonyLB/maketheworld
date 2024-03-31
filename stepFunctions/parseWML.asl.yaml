@@ -31,7 +31,7 @@ States:
         Default: Parse WML
     "Assign Address":
         Type: Task
-        Next: Extract First Address
+        Next: Check Address
         Resource: "${AddressLookupFunctionArn}"
         Parameters:
             "assetIds.$": "States.Array($.args.assetId)"
@@ -43,6 +43,14 @@ States:
                 IntervalSeconds: 2
                 MaxAttempts: 3
                 BackoffRate: 1
+    "Check Address":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.addressList[0]"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Extract First Address
     "Extract First Address":
         Type: Pass
         Parameters:
