@@ -33,6 +33,7 @@ export const handler = async (event) => {
                 await Promise.all(connectionIds.map((ConnectionId) => (apiClient.send({
                     ConnectionId,
                     Data: JSON.stringify({
+                        messageType: 'Error',
                         error: Sns.MessageAttributes.Error?.Value || '',
                         RequestId
                     })
