@@ -25,6 +25,7 @@ import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordin
 import { getConfiguration } from '../configuration'
 import { cacheNotifications } from '../notifications'
 import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
+import { push } from '../UI/feedback'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -190,6 +191,7 @@ export function socketDispatchPromise(payload: EphemeraAPIMessage | AssetAPIMess
                     if (compareRequestId === RequestId) {
                         unsubscribe()
                         if (payload.messageType === 'Error') {
+                            dispatch(push(payload.error))
                             reject(rest)
                         }
                         else {
