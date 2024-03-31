@@ -1262,6 +1262,7 @@ Resources:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         ParseWMLFunctionArn: !GetAtt WMLFunction.Arn
         HealStepFunctionArn: !GetAtt HealStateMachine.Arn
+        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref AddressLookupFunction
@@ -1270,6 +1271,8 @@ Resources:
         - StepFunctionsExecutionPolicy:
             StateMachineName: !Sub '${TablePrefix}_heal_step_function'
         - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MTWFeedbackTopic.TopicName
   FetchImportsStateMachineLogs:
     Type: AWS::Logs::LogGroup
   FetchImportsStateMachine:

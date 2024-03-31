@@ -19,7 +19,7 @@ States:
         Type: Choice
         Choices:
             -
-                Variable: "$.options"
+                Variable: "$.args.options"
                 IsPresent: True
                 Next: Check for Addresses
         Default: Default options
@@ -28,13 +28,13 @@ States:
         Parameters:
             updateOnly: false
             check: false
-        ResultPath: "$.options"
+        ResultPath: "$.args.options"
         Next: Check for Addresses
     "Check for Addresses":
         Type: Choice
         Choices:
             -
-                Variable: "$.addresses"
+                Variable: "$.args.addresses"
                 IsPresent: True
                 Next: Cache Ephemera
         Default: Assign Addresses
@@ -43,8 +43,8 @@ States:
         Next: Cache Ephemera
         Resource: "${AddressLookupFunctionArn}"
         Parameters:
-            "assetIds.$": "$.assetIds"
-        ResultPath: "$.addresses"
+            "assetIds.$": "$.args.assetIds"
+        ResultPath: "$.args.addresses"
         Retry:
             -
                 ErrorEquals:
@@ -63,9 +63,9 @@ States:
         Resource: "${EphemeraFunctionArn}"
         Parameters:
             "message": "cacheAssets"
-            "assetIds.$": "$.assetIds"
-            "addresses.$": "$.addresses"
-            "options.$": "$.options"
+            "assetIds.$": "$.args.assetIds"
+            "addresses.$": "$.args.addresses"
+            "options.$": "$.args.options"
         Catch:
             -
                 ErrorEquals:
@@ -78,7 +78,7 @@ States:
         Resource: "${EphemeraFunctionArn}"
         Parameters:
             "message": "decacheAssets"
-            "assetIds.$": "$.assetIds"
+            "assetIds.$": "$.args.assetIds"
     "Notify of Failure":
         Type: Task
         Next: Failure
@@ -92,10 +92,10 @@ States:
                     StringValue: Error
                 RequestId:
                     DataType: String
-                    "StringValue.$": "$.requestId"
+                    "StringValue.$": "$.args.requestId"
                 ConnectionIds:
                     DataType: String.Array
-                    "StringValue.$": "States.JsonToString(States.Array($.connectionId))"
+                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
                 Error:
                     DataType: String
                     StringValue: "Error while caching assets"
