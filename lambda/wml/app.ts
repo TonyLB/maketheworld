@@ -35,85 +35,100 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
     const { address, requestId, connectionId, uploadName } = event
     const images = []
 
-    const assetWorkspace = new AssetWorkspace(address)
-    await assetWorkspace.loadJSON()
+    try {
+        const assetWorkspace = new AssetWorkspace(address)
+        await assetWorkspace.loadJSON()
 
-    assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
-    const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
-    const imageFiles = (await Promise.all([
-        uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
-        ...((images || []).map(async ({ key, fileName }) => {
-            const final = await formatImage(s3Client)({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
-            return { key, fileName: final }
-        }))
-    ])).slice(1) as ParseWMLAPIImage[]
-    if (imageFiles.length) {
-        assetWorkspace.status.json = 'Dirty'
-        imageFiles.forEach(({ key, fileName }) => {
-            (assetWorkspace as AssetWorkspace).properties[key] = { fileName }
-        })
-    }
-    if (assetWorkspace.status.json !== 'Clean') {
-        //
-        // TODO: Reconstruct standardizer from JSON and use instead of normalizer for
-        // assignDependencies
-        //
-        const standardizer = new Standardizer()
-        if (!assetWorkspace.standard) {
-            return
-        }
-        standardizer.deserialize(assetWorkspace.standard)
-        standardizer.assignDependencies(extractDependenciesFromJS)
-        assetWorkspace.standard = standardizer.stripped
-        const normalizer = new Normalizer()
-        normalizer.loadSchema(standardizer.schema)
-        assetWorkspace.normal = normalizer.normal
-        await Promise.all([
-            assetWorkspace.pushJSON(),
-            assetWorkspace.pushWML(),
-            dbRegister(assetWorkspace)
-        ])
-
-        //
-        // TODO: Separate cacheAssets out into parseWML step function rather than calling
-        // another step function from inside the WML lambda
-        //
-        await sfnClient.send(new StartExecutionCommand({
-            stateMachineArn: process.env.CACHE_ASSETS_SFN,
-            input: JSON.stringify({
-                assetIds: [assetWorkspace.assetId],
-                addresses: [{ AssetId: assetWorkspace.assetId, address: assetWorkspace.address }],
-                updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
+        assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
+        const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
+        const imageFiles = (await Promise.all([
+            uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
+            ...((images || []).map(async ({ key, fileName }) => {
+                const final = await formatImage(s3Client)({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
+                return { key, fileName: final }
+            }))
+        ])).slice(1) as ParseWMLAPIImage[]
+        if (imageFiles.length) {
+            assetWorkspace.status.json = 'Dirty'
+            imageFiles.forEach(({ key, fileName }) => {
+                (assetWorkspace as AssetWorkspace).properties[key] = { fileName }
             })
-        }))
-    }
-    else {
-        await assetWorkspace.pushWML()
-    }
-
-    if (uploadName) {
-        try {
-            await s3Client.send(new DeleteObjectCommand({
-                Bucket: UPLOAD_BUCKET,
-                Key: uploadName
-            }))  
         }
-        catch {}
-    }
+        if (assetWorkspace.status.json !== 'Clean') {
+            //
+            // TODO: Reconstruct standardizer from JSON and use instead of normalizer for
+            // assignDependencies
+            //
+            const standardizer = new Standardizer()
+            if (!assetWorkspace.standard) {
+                return
+            }
+            standardizer.deserialize(assetWorkspace.standard)
+            standardizer.assignDependencies(extractDependenciesFromJS)
+            assetWorkspace.standard = standardizer.stripped
+            const normalizer = new Normalizer()
+            normalizer.loadSchema(standardizer.schema)
+            assetWorkspace.normal = normalizer.normal
+            await Promise.all([
+                assetWorkspace.pushJSON(),
+                assetWorkspace.pushWML(),
+                dbRegister(assetWorkspace)
+            ])
 
-    if (connectionId && requestId) {
+            //
+            // TODO: Separate cacheAssets out into parseWML step function rather than calling
+            // another step function from inside the WML lambda
+            //
+            await sfnClient.send(new StartExecutionCommand({
+                stateMachineArn: process.env.CACHE_ASSETS_SFN,
+                input: JSON.stringify({
+                    assetIds: [assetWorkspace.assetId],
+                    addresses: [{ AssetId: assetWorkspace.assetId, address: assetWorkspace.address }],
+                    updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
+                })
+            }))
+        }
+        else {
+            await assetWorkspace.pushWML()
+        }
+
+        if (uploadName) {
+            try {
+                await s3Client.send(new DeleteObjectCommand({
+                    Bucket: UPLOAD_BUCKET,
+                    Key: uploadName
+                }))  
+            }
+            catch {}
+        }
+
+        if (connectionId && requestId) {
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
+                    messageType: 'ParseWML',
+                    images: imageFiles
+                }),
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: requestId },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
+        }
+    }
+    catch (error) {
         await snsClient.send(new PublishCommand({
             TopicArn: FEEDBACK_TOPIC,
-            Message: JSON.stringify({
-                messageType: 'ParseWML',
-                images: imageFiles
-            }),
+            Message: '{}',
             MessageAttributes: {
                 RequestId: { DataType: 'String', StringValue: requestId },
                 ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
-                Type: { DataType: 'String', StringValue: 'Success' }
+                Type: { DataType: 'String', StringValue: 'Error' },
+                Error: { DataType: 'String', StringValue: 'Internal error in ParseWML' }
             }
         }))
+        throw error
     }
 
 }
@@ -127,13 +142,28 @@ type FetchImportsHandlerArguments = {
 }
 
 const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
-    const inheritanceGraph = new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>(Object.assign({}, ...event.inheritanceNodes.map(({ key, address }) => ({ [key]: { key, address } }))), event.inheritanceEdges, { address: {} as any })
-    return await fetchImports({
-        ConnectionId: event.ConnectionId,
-        RequestId: event.RequestId,
-        inheritanceGraph,
-        payloads: event.payloads
-    })
+    try {
+        const inheritanceGraph = new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>(Object.assign({}, ...event.inheritanceNodes.map(({ key, address }) => ({ [key]: { key, address } }))), event.inheritanceEdges, { address: {} as any })
+        return await fetchImports({
+            ConnectionId: event.ConnectionId,
+            RequestId: event.RequestId,
+            inheritanceGraph,
+            payloads: event.payloads
+        })
+    }
+    catch (error) {
+        await snsClient.send(new PublishCommand({
+            TopicArn: FEEDBACK_TOPIC,
+            Message: '{}',
+            MessageAttributes: {
+                RequestId: { DataType: 'String', StringValue: event.RequestId },
+                ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([event.ConnectionId]) },
+                Type: { DataType: 'String', StringValue: 'Error' },
+                Error: { DataType: 'String', StringValue: 'Internal error in FetchImports' }
+            }
+        }))
+        throw error
+    }
 }
 
 export const handler = async (event: any) => {
