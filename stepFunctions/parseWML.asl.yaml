@@ -64,7 +64,7 @@ States:
             -
                 ErrorEquals:
                     - States.ALL
-                Next: Failure
+                Next: Notify of Failure
         ResultPath: "$.parseResults"
     "Maybe Heal Player":
         Type: Choice
@@ -88,6 +88,26 @@ States:
                 type: "Player"
                 player.$: "$.args.player"
         Next: Done
+    "Notify of Failure":
+        Type: Task
+        Next: Failure
+        Resource: "arn:aws:states:::sns:publish"
+        Parameters:
+            TopicArn: "${TopicArn}"
+            Message: "{}"
+            MessageAttributes:
+                Type:
+                    DataType: String
+                    StringValue: Error
+                RequestId:
+                    DataType: String
+                    "StringValue.$": "$.args.requestId"
+                ConnectionIds:
+                    DataType: String.Array
+                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
+                Error:
+                    DataType: String
+                    StringValue: "Error while caching assets"
     Failure:
         Type: Fail
     Done:
