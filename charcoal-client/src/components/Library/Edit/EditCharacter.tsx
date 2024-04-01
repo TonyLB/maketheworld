@@ -52,6 +52,8 @@ import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { deepEqual } from '../../../lib/objects'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -242,11 +244,14 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
 
     useEffect(() => {
         const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
-        updateSchema({
-            type: 'updateNode',
-            id,
-            item: { tag: schemaTag, value: debouncedTagValue }
-        }) 
+        const item = { tag: schemaTag, value: debouncedTagValue }
+        if (!deepEqual(character[tag].data, item)) {
+            updateSchema({
+                type: 'updateNode',
+                id,
+                item
+            })
+        }
     }, [id, tag, updateSchema, debouncedTagValue])
 
     return <TextField
@@ -270,12 +275,15 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        updateSchema({
-            type: 'replaceChildren',
-            id,
-            children: [{ data: { tag: 'String', value: debouncedTagValue }, children: [] }]
-        }) 
-    }, [id, updateSchema, debouncedTagValue])
+        const children = [{ data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }]
+        if (!deepEqual(stripIDFromTree(character.name.children), children)) {
+            updateSchema({
+                type: 'replaceChildren',
+                id,
+                children
+            })
+        }
+    }, [id, character.name, updateSchema, debouncedTagValue])
 
     return <TextField
         required
