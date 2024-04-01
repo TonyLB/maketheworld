@@ -11,90 +11,75 @@ import { convertSelectDataToJson } from "../utilities/stream"
 const { S3_BUCKET } = process.env;
 
 const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId }: { PlayerName: string; fileName?: string; AssetId?: string }) => {
-    let derivedFileName: string = `Personal/${PlayerName}/${fileName}`
+    // let derivedFileName: string = `Personal/${PlayerName}/${fileName}`
     if (AssetId) {
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
-        if (DataCategory === 'Meta::Asset') {
-            const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-                Key: {
-                    AssetId,
-                    DataCategory
-                },
-                ProjectionFields: ['address']
-            })) || {}
-            if (address) {
-                const { fileName: fetchFileName, subFolder } = address || {}
-                if (address.zone === 'Personal' && address.player === PlayerName && fetchFileName) {
-                    derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
-                }
-            }
-        }
-        else {
-            const queryOutput = await assetDB.query({
-                IndexName: 'ScopedIdIndex',
-                Key: {
-                    scopedId: splitType(AssetId)[1]
-                },
-                KeyConditionExpression: 'DataCategory = :dc',
-                ExpressionAttributeValues: {
-                    ':dc': DataCategory
-                },
-                ProjectionFields: ['address']
-            })
-            const { address } = queryOutput[0] || {}
-            if (address) {
-                const assetWorkspace = new ReadOnlyAssetWorkspace(address)
-                return await assetWorkspace.presignedURL()
-            }
-            else {
-                return undefined
-            }
+        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
+            Key: {
+                AssetId,
+                DataCategory
+            },
+            ProjectionFields: ['address']
+        })) || {}
+        if (address) {
+            const assetWorkspace = new ReadOnlyAssetWorkspace(address)
+            return await assetWorkspace.presignedURL()
         }
     }
-    const getCommand = new GetObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: derivedFileName
-    })
-    const presignedOutput = await getSignedUrl(s3Client, getCommand, { expiresIn: 60 })
-    return presignedOutput
+    return undefined
+    //     if (address) {
+    //         const { fileName: fetchFileName, subFolder } = address || {}
+    //         if (address.zone === 'Personal' && address.player === PlayerName && fetchFileName) {
+    //             derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
+    //         }
+    //     }
+    //         //
+    //         // TODO: ISS3674: Refactor Character fetch lookups to operate off of universal AssetId rather
+    //         // than ScopedId
+    //         //
+    //         const queryOutput = await assetDB.query({
+    //             IndexName: 'ScopedIdIndex',
+    //             Key: {
+    //                 scopedId: splitType(AssetId)[1]
+    //             },
+    //             KeyConditionExpression: 'DataCategory = :dc',
+    //             ExpressionAttributeValues: {
+    //                 ':dc': DataCategory
+    //             },
+    //             ProjectionFields: ['address']
+    //         })
+    //         const { address } = queryOutput[0] || {}
+    //         if (address) {
+    //             const assetWorkspace = new ReadOnlyAssetWorkspace(address)
+    //             return await assetWorkspace.presignedURL()
+    //         }
+    //         else {
+    //             return undefined
+    //         }
+    //     }
+    // }
+    // const getCommand = new GetObjectCommand({
+    //     Bucket: S3_BUCKET,
+    //     Key: derivedFileName
+    // })
+    // const presignedOutput = await getSignedUrl(s3Client, getCommand, { expiresIn: 60 })
+    // return presignedOutput
 }
 
 const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ AssetId }: { AssetId: string | undefined }): Promise<Record<string, { fileName: string }>> => {
     let derivedFileName: string | undefined
     if (AssetId) {
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
-        //
-        // TODO: Rewrite fetchAssetProperties to use assetWorkspaceFromAssetId
-        //
-        if (DataCategory === 'Meta::Asset') {
-            const { fileName: fetchFileName, zone, subFolder, player } = (await assetDB.getItem<{ fileName: string; zone: string; subFolder: string; player: string; }>({
-                Key: {
-                    AssetId,
-                    DataCategory
-                },
-                ProjectionFields: ['fileName', 'zone', 'player', 'subFolder']
-            })) || {}
-            if (zone === 'Personal' && fetchFileName) {
-                derivedFileName = `Personal/${player}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.json`
-            }    
-        }
-        else {
-            const queryOutput = await assetDB.query({
-                IndexName: 'ScopedIdIndex',
-                Key: {
-                    scopedId: splitType(AssetId)[1]
-                },
-                KeyConditionExpression: 'DataCategory = :dc',
-                ExpressionAttributeValues: {
-                    ':dc': DataCategory
-                },
-                ProjectionFields: ['address']
-            })
-            const { address } = queryOutput[0] || {}
-            if (address) {
-                const assetWorkspace = new ReadOnlyAssetWorkspace(address)
-                derivedFileName = `${assetWorkspace.fileNameBase}.json`
-            }
+        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress; }>({
+            Key: {
+                AssetId,
+                DataCategory
+            },
+            ProjectionFields: ['address']
+        })) || {}
+        if (address) {
+            const assetWorkspace = new ReadOnlyAssetWorkspace(address)
+            derivedFileName = `${assetWorkspace.fileNameBase}.json`
         }
     }
     if (!derivedFileName) {

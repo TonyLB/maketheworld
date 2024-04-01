@@ -352,7 +352,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const assignHandler = useCallback(() => {
         if (isEphemeraAssetId(AssetId)) {
             //
-            // TODO: Figure out how to get DB-ID from Character, rather than namespace key, for this
+            // TODO: ISS-3674: Figure out how to get DB-ID from Character, rather than namespace key, for this
             // assign
             //
             Characters.forEach(({ scopedId }) => {
