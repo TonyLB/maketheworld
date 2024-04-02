@@ -49,7 +49,7 @@ describe('dbRegister', () => {
                     TESS: {
                         key: 'TESS',
                         tag: 'Character',
-                        name: 'Tess',
+                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
                         pronouns: {
                             subject: 'she',
                             object: 'her',
@@ -57,9 +57,10 @@ describe('dbRegister', () => {
                             adjective: 'hers',
                             reflexive: 'herself'
                         },
-                        firstImpression: 'Frumpy Goth',
-                        oneCoolThing: 'Fuchsia eyes',
-                        outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',    
+                        firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
+                        oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
+                        outfit: { data: { tag: 'Outfit', value: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.' }, children: [] },
+                        image: { data: { tag: 'Image', key: 'TESSIcon' }, children: [] }
                     },
                     TESSIcon: {
                         tag: 'Image',
