@@ -19,7 +19,7 @@ exports[`dbRegister should put a single element for a Character file 1`] = `
     "fileName": "test",
     "zone": "Library",
   },
-  "images": [],
+  "image": "TESSIcon",
   "scopedId": "TESS",
   "zone": "Library",
 }

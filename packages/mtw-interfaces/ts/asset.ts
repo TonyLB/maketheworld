@@ -45,6 +45,7 @@ export type ParseWMLAPIImage = {
 type ParseWMLAPIMessage = {
     message: 'parseWML';
     AssetId: EphemeraCharacterId | EphemeraAssetId;
+    tag: 'Character' | 'Asset';
     uploadName: string;
     images?: ParseWMLAPIImage[];
     create?: boolean;

@@ -8,12 +8,12 @@ type MetaCache = {
 
 export const handler = async (event) => {
 
-    const { assetIds, player, tag } = event
+    const { assetIds, player, tag, create } = event
 
     const addressfetches = (await assetDB.getItems<MetaCache>({
         Keys: assetIds.map((AssetId) => ({
             AssetId,
-            DataCategory: 'Meta::Asset'
+            DataCategory: `Meta::${tag}`
         })),
         ProjectionFields: ['AssetId', 'address']
     })) || []
@@ -22,7 +22,7 @@ export const handler = async (event) => {
     if (returnValue.length) {
         return returnValue
     }
-    else {
+    else if (create) {
         if (!(player && tag)) {
             throw new Error('Player or tag unspecified when asset needs to be created')
         }

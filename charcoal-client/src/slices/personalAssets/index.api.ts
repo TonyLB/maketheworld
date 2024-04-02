@@ -177,6 +177,7 @@ export const parseWML: PersonalAssetsAction = ({
     publicData: {
         loadedImages = {},
         properties = {},
+        standard = { key: '', tag: 'Asset', byId: {}, metaData: [] },
         serialized
     }
 }) => async (dispatch, getState) => {
@@ -187,6 +188,7 @@ export const parseWML: PersonalAssetsAction = ({
     const { images = [] } = await dispatch(socketDispatchPromise({
         message: 'parseWML',
         AssetId: id,
+        tag: standard.tag,
         uploadName: s3Object,
         images: (saveImages || []).reduce<{ key: string; fileName: string }[]>((previous, { key, s3Object }) => {
             const loadKey = Object.keys(loadedImages).find((loadKey) => (loadedImages[loadKey].loadId === key))

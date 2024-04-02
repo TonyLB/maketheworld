@@ -46,12 +46,15 @@ import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
 import { SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
-import { getMyAssets } from '../../../slices/player'
+import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { deepEqual } from '../../../lib/objects'
+import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -242,11 +245,14 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
 
     useEffect(() => {
         const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
-        updateSchema({
-            type: 'updateNode',
-            id,
-            item: { tag: schemaTag, value: debouncedTagValue }
-        }) 
+        const item = { tag: schemaTag, value: debouncedTagValue }
+        if (!deepEqual(character[tag].data, item)) {
+            updateSchema({
+                type: 'updateNode',
+                id,
+                item
+            })
+        }
     }, [id, tag, updateSchema, debouncedTagValue])
 
     return <TextField
@@ -270,12 +276,15 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        updateSchema({
-            type: 'replaceChildren',
-            id,
-            children: [{ data: { tag: 'String', value: debouncedTagValue }, children: [] }]
-        }) 
-    }, [id, updateSchema, debouncedTagValue])
+        const children = [{ data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }]
+        if (!deepEqual(stripIDFromTree(character.name.children), children)) {
+            updateSchema({
+                type: 'replaceChildren',
+                id,
+                children
+            })
+        }
+    }, [id, character.name, updateSchema, debouncedTagValue])
 
     return <TextField
         required
@@ -369,12 +378,12 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
 interface ImageHeaderProps {
     ItemId: `CHARACTER#${string}`;
     Name: string;
-    characterKey: string;
 }
 
-const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, characterKey }) => {
+const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }) => {
+    const { standardForm } = useLibraryAsset()
     const { dragActive, openUpload } = useFileWrapper()
-    const iconURL = useLibraryImageURL(`${characterKey}Icon`)
+    const iconURL = useLibraryImageURL(`${standardForm.key}Icon`)
 
     return <Box sx={dragActive
         ? {
@@ -506,7 +515,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} characterKey={character?.key ?? ''} />
+                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralNameField character={character} />
@@ -545,27 +554,29 @@ type EditCharacterProps = {}
 export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
 
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+
+    const character = useSelector(getMyCharacterByKey(assetKey)) as AssetClientPlayerCharacter
     const AssetId = `CHARACTER#${assetKey}` as const
     useAutoPin({
         href: `/Library/Edit/Character/${assetKey}`,
         label: `${assetKey}`,
         type: 'LibraryEdit',
-        assetId: AssetId
+        assetId: character?.CharacterId
     })
     useOnboardingCheckpoint('editCharacter', { requireSequence: true })
     const dispatch = useDispatch()
     useEffect(() => {
         if (assetKey) {
-            dispatch(addItem({ key: `CHARACTER#${assetKey}` }))
+            dispatch(addItem({ key: character?.CharacterId }))
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])
 
-    const currentStatus = useSelector(getStatus(AssetId))
+    const currentStatus = useSelector(getStatus(character?.CharacterId))
 
     return (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
         ? 
-            <LibraryAsset assetKey={assetKey || ''} character>
+            <LibraryAsset assetKey={character?.CharacterId?.split('#')?.slice(1)?.[0] || ''} character>
                 <Routes>
                     <Route path={'WML'} element={<WMLEdit />} />
                     <Route path={''} element={<CharacterEditForm />} />

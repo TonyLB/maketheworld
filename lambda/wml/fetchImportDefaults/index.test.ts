@@ -153,7 +153,6 @@ describe('fetchImports', () => {
 
     it('should return empty when passed no keys', async () => {
         await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: [] }] })
-        console.log(`clientMock: ${JSON.stringify(snsClientMock.send.mock.calls[0][0], null, 4)}`)
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 

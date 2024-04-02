@@ -1,13 +1,13 @@
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { isNormalAsset, NormalForm, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { graphCache, graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 import { snsClient } from '../clients'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -69,12 +69,12 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
                     DataCategory: `Meta::Character`,
                     address,
                     zone: address.zone,
-                    Name: character.name,
-                    FirstImpression: character.firstImpression,
-                    OneCoolThing: character.oneCoolThing,
+                    Name: schemaOutputToString(character.name.children),
+                    FirstImpression: character.firstImpression.data.value,
+                    OneCoolThing: character.oneCoolThing.data.value,
                     Pronouns: character.pronouns,
-                    Outfit: character.outfit,
-                    images: [],
+                    Outfit: character.outfit.data.value,
+                    image: character.image.data.key,
                     scopedId: character.key,
                     ...(address.zone === 'Personal' ? { player: address.player } : {})
                 })

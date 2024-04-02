@@ -16,6 +16,7 @@ States:
             requestId: ""
             player: ""
             tag: "Asset"
+            create: false
     "Apply Defaults":
         Type: Pass
         Next: Check Arguments
@@ -38,6 +39,7 @@ States:
             "assetIds.$": "States.Array($.args.assetId)"
             "player.$": "$.args.player"
             "tag.$": "$.args.tag"
+            "create.$": "$.args.create"
         ResultPath: "$.addressList"
         Retry:
             -

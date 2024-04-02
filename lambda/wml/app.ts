@@ -55,10 +55,6 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
             })
         }
         if (assetWorkspace.status.json !== 'Clean') {
-            //
-            // TODO: Reconstruct standardizer from JSON and use instead of normalizer for
-            // assignDependencies
-            //
             const standardizer = new Standardizer()
             if (!assetWorkspace.standard) {
                 return

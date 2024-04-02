@@ -219,7 +219,9 @@ export const handler = async (event, context) => {
                     connectionId,
                     assetId: request.AssetId,
                     images: request.images,
-                    uploadName: request.uploadName
+                    uploadName: request.uploadName,
+                    create: request.create,
+                    tag: request.tag
                 })
             }))
             return {
