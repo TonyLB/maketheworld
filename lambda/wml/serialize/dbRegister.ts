@@ -47,12 +47,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
             if (!universalKey) {
                 return
             }
-            //
-            // TODO: Add images to serializableStandardCharacter
-            //
-            // const images = (character.images || [])
-            //     .map((image) => (assetWorkspace.properties[image]?.fileName))
-            //     .filter((image) => (image))
+            const fileURL = (assetWorkspace.properties[character.image.data.key]?.fileName ?? '')
             const graphUpdate = new GraphUpdate({ internalCache: graphCache, dbHandler: graphStorageDB })
             graphUpdate.setEdges([{
                 itemId: CharacterKey(character.key),
@@ -74,7 +69,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
                     OneCoolThing: character.oneCoolThing.data.value,
                     Pronouns: character.pronouns,
                     Outfit: character.outfit.data.value,
-                    image: character.image.data.key,
+                    fileURL,
                     scopedId: character.key,
                     ...(address.zone === 'Personal' ? { player: address.player } : {})
                 })
