@@ -48,11 +48,11 @@ export class CachePlayerLibraryData {
                 ExpressionAttributeValues: {
                     ':dcPrefix': 'Meta::'
                 },
-                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit', 'scopedId']
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit', 'scopedId']
             })
             const Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-                .map(({ AssetId, Name, scopedId, fileName, images, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL: images?.length ? images[0] : undefined, Pronouns, FirstImpression, OneCoolThing, Outfit }))
+                .map(({ AssetId, Name, scopedId, fileName, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL, Pronouns, FirstImpression, OneCoolThing, Outfit }))
                 .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item }), {} as Record<string, LibraryCharacter>)
             const Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
