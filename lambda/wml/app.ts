@@ -28,12 +28,12 @@ type ParseWMLHandlerArguments = {
     requestId: string;
     connectionId: string;
     uploadName?: string;
+    images: { key: string; fileName: string }[];
 }
 
 const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
 
-    const { address, requestId, connectionId, uploadName } = event
-    const images = []
+    const { address, requestId, connectionId, uploadName, images = [] } = event
 
     try {
         const assetWorkspace = new AssetWorkspace(address)
