@@ -6,7 +6,7 @@ import { SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/stand
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
+import Normalizer from "@tonylb/mtw-wml/ts/normalize"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 
 const { S3_BUCKET = 'Test' } = process.env;

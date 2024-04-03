@@ -666,9 +666,9 @@ export class Standardizer {
                     ...value,
                     id: uuidv4(),
                     name: deserializeValue(value, 'name'),
-                    firstImpression: deserializeValue(value, 'firstImpression'),
-                    oneCoolThing: deserializeValue(value, 'oneCoolThing'),
-                    outfit: deserializeValue(value, 'outfit'),
+                    firstImpression: { ...value.firstImpression, id: uuidv4(), children: maybeGenericIDFromTree(value.firstImpression.children) },
+                    oneCoolThing: { ...value.oneCoolThing, id: uuidv4(), children: maybeGenericIDFromTree(value.oneCoolThing.children) },
+                    outfit: { ...value.outfit, id: uuidv4(), children: maybeGenericIDFromTree(value.outfit.children) },
                     pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) },
                     image: { ...value.image, id: value.image.data.key ? uuidv4() : '', children: maybeGenericIDFromTree(value.image.children) }
                 }

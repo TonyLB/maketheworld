@@ -1,9 +1,8 @@
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
-import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphCache, graphStorageDB } from './graphCache'
-import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
+import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/ts/types'
+import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 import { snsClient } from '../clients'
 import { PublishCommand } from '@aws-sdk/client-sns'
 import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
@@ -50,7 +49,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
             const fileURL = (assetWorkspace.properties[character.image.data.key]?.fileName ?? '')
             const graphUpdate = new GraphUpdate({ internalCache: graphCache, dbHandler: graphStorageDB })
             graphUpdate.setEdges([{
-                itemId: CharacterKey(character.key),
+                itemId: universalKey,
                 edges: standard.metaData
                     .map(({ data }) => (data))
                     .filter(isSchemaImport)
