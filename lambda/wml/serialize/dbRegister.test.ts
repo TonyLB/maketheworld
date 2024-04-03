@@ -1,9 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update', () => {
+jest.mock('@tonylb/mtw-utilities/ts/graphStorage/update', () => {
     return jest.fn().mockImplementation(() => {
         return {
             setEdges: mockSetEdges,
@@ -11,7 +11,6 @@ jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update', () => {
         }
     })
 })
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 
 jest.mock('../clients')
 import { snsClient } from '../clients'
@@ -107,7 +106,7 @@ describe('dbRegister', () => {
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mockSetEdges).toHaveBeenCalledTimes(1)
         expect(mockSetEdges).toHaveBeenCalledWith([{
-            itemId: 'CHARACTER#TESS',
+            itemId: 'CHARACTER#12345',
             edges: [{ target: 'ASSET#primitives', context: '' }],
             options: { direction: 'back' }
         }])
