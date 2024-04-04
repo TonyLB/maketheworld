@@ -131,7 +131,7 @@ describe('dependencyUpdate', () => {
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#ABC', []))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'ABC' } }, { target: 'COMPUTED#XYZ', context: 'test', data: { scopedId: 'active' } }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', data: { scopedId: 'room1' }, context: 'test' }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('KNOWLEDGE#GHI', [{ target: 'ASSET#test', context: 'test' }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#QRS', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'powered' } }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#TUV', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'switchedOn' } }]))
@@ -170,8 +170,8 @@ describe('dependencyUpdate', () => {
                     DataCategory: 'ASSET#test',
                     key: 'ABC',
                     exits: [],
-                    name: [{ tag: 'String', value: 'Feature Test' }],
-                    render: [{ tag: 'Link', to: 'Base', text: 'Forward' }],
+                    name: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }],
+                    render: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }],
                     stateMapping: {},
                     keyMapping: { Base: 'FEATURE#Base' }
                 }
@@ -185,18 +185,35 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#DEF',
                     DataCategory: 'ASSET#test',
                     key: 'DEF',
-                    exits: [],
+                    exits: [{ tag: 'Exit', from: 'DEF', to: 'GHI', key: 'DEF#GHI' }],
                     name: [{ tag: 'String', value: 'Vortex' }],
-                    render: [{ tag: 'String', value: 'Description with ' }, { tag: 'Link', to: 'ABC', text: 'link' }],
+                    render: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }],
                     stateMapping: {},
-                    keyMapping: { ABC: 'FEATURE#ABC' }
+                    keyMapping: { ABC: 'FEATURE#ABC', GHI: 'ROOM#GHI' }
                 },
+            },
+            {
+                key: {
+                    EphemeraId: 'ROOM#GHI',
+                    DataCategory: 'ASSET#test'
+                },
+                action: {
+                    EphemeraId: 'ROOM#GHI',
+                    DataCategory: 'ASSET#test',
+                    key: 'GHI',
+                    exits: [{ tag: 'Exit', from: 'GHI', to: 'DEF', key: 'GHI#DEF' }],
+                    name: [],
+                    render: [],
+                    stateMapping: {},
+                    keyMapping: { DEF: 'ROOM#DEF' }
+                }
             }
         ])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(3)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(4)
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('FEATURE#Base', [{ target: 'ASSET#test', context: 'test' }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('FEATURE#ABC', [{ target: 'ASSET#test', context: 'test' }, { target: 'FEATURE#Base', context: 'test' }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'DEF' } }, { target: 'FEATURE#ABC', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('FEATURE#ABC', [{ target: 'ASSET#test', context: 'test' }, { target: 'FEATURE#Base', context: 'test', data: { scopedId: 'Base' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'DEF' } }, { target: 'FEATURE#ABC', context: 'test', data: { scopedId: 'ABC' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#GHI', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI' } }]))
     })
 })

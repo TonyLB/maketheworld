@@ -505,6 +505,7 @@ describe('cacheAsset', () => {
                     firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
                     oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
                     outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
+                    image: { data: { tag: 'Image', key: '' }, children: [] }
                 },
             }
         }
