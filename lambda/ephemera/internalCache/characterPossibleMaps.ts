@@ -36,6 +36,10 @@ export class CacheCharacterPossibleMapsData {
         const cacheKey = generateCacheKey(characterId, RoomId)
         this._Cache.add({
             promiseFactory: async () => {
+                //
+                // TODO: ISS3645: Correct component edgeSet on cacheAsset, so that rooms are showing Maps in their
+                // descendants, rather than just other rooms (by exits?)
+                //
                 const descentGraph = await this._Graph.get([RoomId], 'forward')
                 return {
                     EphemeraId: characterId,
