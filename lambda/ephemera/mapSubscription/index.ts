@@ -82,11 +82,9 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
         })
 
         if (subscriptionSuccess) {
-            console.log(`subscription Success!`)
             const possibleMaps = await Promise.all(
                 payloads.map((payload) => (internalCache.CharacterPossibleMaps.get(payload.characterId)))
             )
-            console.log(`possibleMaps: ${JSON.stringify(possibleMaps, null, 4)}`)
     
             await Promise.all(
                 possibleMaps.map(({ EphemeraId, mapsPossible }) => (

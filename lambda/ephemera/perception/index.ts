@@ -183,7 +183,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                                 type: 'MapUpdate',
                                 active: true,
                                 targets: [characterId],
-                                connectionTargets: (characterConnections || []).map((connectionId) => (`CHARACTER#${connectionId}` as const)),
+                                connectionTargets: (characterConnections || []).map((connectionId) => (`CONNECTION#${connectionId}` as const)),
                                 ...mapDescribe,
                                 MapId: payload.ephemeraId
                             }]
