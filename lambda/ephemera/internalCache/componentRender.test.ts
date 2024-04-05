@@ -506,7 +506,7 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(output).toEqual({
             MapId: 'MAP#TestOne',
-            Name: [{ tag: 'String', value: 'Test Map' }],
+            name: [{ tag: 'String', value: 'Test Map' }],
             fileURL: 'https://test.com/test.png',
             rooms: [
                 {

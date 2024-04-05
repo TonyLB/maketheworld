@@ -43,7 +43,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     connectionTargets: subscribedConnections,
                                     active: true as true,
                                     MapId: mapEntry.MapId,
-                                    Name: mapEntry.Name,
+                                    name: mapEntry.name,
                                     fileURL: mapEntry.fileURL,
                                     rooms: mapEntry.rooms,
                                     assets: mapEntry.assets
@@ -80,7 +80,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     connectionTargets: subscribedConnections,
                                     active: true,
                                     MapId: mapEntry.MapId,
-                                    Name: mapEntry.Name,
+                                    name: mapEntry.name,
                                     fileURL: mapEntry.fileURL,
                                     rooms: mapEntry.rooms,
                                     assets: mapEntry.assets

@@ -472,7 +472,7 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    Name: TaggedMessageContentFlat[];
+    name: TaggedMessageContentFlat[];
     fileURL?: string;
     rooms: MapDescribeRoom[];
     assets?: Record<EphemeraAssetId, string>;
