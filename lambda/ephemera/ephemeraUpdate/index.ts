@@ -107,7 +107,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                             ]                            
                         }
                         if (update.type === 'MapUpdate') {
-                            const { targets, ...rest } = update
+                            const { connectionTargets, targets, ...rest } = update
                             updatesByConnectionId[connectionId] = [
                                 ...(updatesByConnectionId[connectionId] || []),
                                 { ...rest, targets: characters }
