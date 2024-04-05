@@ -3,9 +3,11 @@ import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import internalCache from "../internalCache"
-import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
+import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraKnowledgeItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
+import { SchemaOutputTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaLink } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||
@@ -24,35 +26,53 @@ const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (Ephe
     isEphemeraComputedId(EphemeraId) ||
     isEphemeraRoomId(EphemeraId) ||
     isEphemeraFeatureId(EphemeraId) ||
+    isEphemeraKnowledgeId(EphemeraId) ||
     isEphemeraBookmarkId(EphemeraId) ||
     isEphemeraMapId(EphemeraId)
 )
 
-const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }): { target: EphemeraId; data?: { scopedId?: string } }[] => (
-    dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, data: { scopedId: key } }]: [])).flat()
-)
+type EphemeraDependency = {
+    target: EphemeraId;
+    data?: { scopedId?: string };
+}
 
-const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): { target: EphemeraId; data?: { scopedId?: string } }[] => {
-    const returnValue = values.reduce<{ target: EphemeraId; data?: { scopedId?: string } }[]>((previous, item) => {
-        if (item.tag === 'Condition') {
+const keysToDependencies = (keyMapping: Record<string, EphemeraId>) => (keys: string[]): EphemeraDependency[] => {
+    return keys.map((key) => {
+        const ephemeraId = keyMapping[key]
+        if (ephemeraId) {
+            return [{ target: ephemeraId, data: { scopedId: key } }]
+        }
+        return []
+    }).flat(1)
+}
+
+const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaOutputTag>, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
+    const returnValue = values.reduce<EphemeraDependency[]>((previous, item) => {
+        if (treeNodeTypeguard(isSchemaCondition)(item)) {
+            return [
+                ...previous,
+                ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+            ]
+        }
+        if (treeNodeTypeguard(isSchemaConditionStatement)(item)) {
             return [
                 ...previous,
                 ...[
-                    ...item.conditions.map(dependencyExtractor).flat(),
-                    ...extractDependenciesFromTaggedContent(item.contents)
-                ].filter(({ target }) => (!previous.map(({ target }) => (target)).includes(target)))
+                    ...keysToDependencies(keyMapping)(item.data.dependencies ?? []),
+                    ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+                ].filter((target) => (!previous.includes(target)))
             ]
         }
-        if (item.tag === 'Bookmark') {
+        if (treeNodeTypeguard(isSchemaBookmark)(item)) {
             return [
-                ...previous.filter(({ target }) => (target !== item.to)),
-                { target: item.to }
+                ...previous.filter(({ target }) => (target !== item.data.key)),
+                ...keysToDependencies(keyMapping)([item.data.key])
             ]
         }
-        if (item.tag === 'Link' && (isEphemeraFeatureId(item.to) || isEphemeraActionId(item.to))) {
+        if (treeNodeTypeguard(isSchemaLink)(item)) {
             return [
-                ...previous.filter(({ target }) => (target !== item.to)),
-                { target: item.to }
+                ...previous.filter(({ target }) => (target !== item.data.to)),
+                ...keysToDependencies(keyMapping)([item.data.to])
             ]
         }
         return previous
@@ -60,10 +80,33 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): {
     return returnValue
 }
 
-const extractDependenciesFromEphemeraItem = (item: EphemeraItem): { target: EphemeraId; data?: { scopedId?: string } }[] => {
+const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraDependency[] => {
+    let dependencies: EphemeraDependency[] = []
+    if (isEphemeraInternallyBacklinked(item.EphemeraId)) {
+        if (isEphemeraRoomItem(item)) {
+            dependencies = [
+                ...dependencies,
+                ...extractDependenciesFromTaggedContent(item.render ?? [], item.keyMapping),
+                ...extractDependenciesFromTaggedContent(item.summary ?? [], item.keyMapping)
+            ]
+        }
+        if (isEphemeraFeatureItem(item) || isEphemeraKnowledgeItem(item)) {
+            dependencies = [
+                ...dependencies,
+                ...extractDependenciesFromTaggedContent(item.render ?? [], item.keyMapping)
+            ]
+        }
+        if (isEphemeraMapItem(item)) {
+            dependencies = [
+                ...dependencies,
+                ...Object.entries(item.keyMapping).map(([scopedId, EphemeraId]) => ({ target: EphemeraId, data: { scopedId } }))
+            ]
+        }
+    }
+    const deduplicate = Object.values(Object.assign({}, ...dependencies.map((dependency) => ({ [dependency.target]: dependency })))) as EphemeraDependency[]
     return [
         ...('stateMapping' in item ? Object.entries(item.stateMapping).map(([scopedId, ephemeraId]) => ({ target: ephemeraId, data: { scopedId } })) : []),
-        ...('keyMapping' in item ? Object.entries(item.keyMapping).map(([scopedId, ephemeraId]) => ({ target: ephemeraId })) : [])
+        ...deduplicate
     ]
 }
 

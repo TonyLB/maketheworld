@@ -293,7 +293,7 @@ describe('cacheAsset', () => {
                 name: [],
                 rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
-                keyMapping: {},
+                keyMapping: { room1: 'ROOM#ABC' },
                 stateMapping: {}
             }],
             expect.any(Object)
@@ -505,6 +505,7 @@ describe('cacheAsset', () => {
                     firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
                     oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
                     outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
+                    image: { data: { tag: 'Image', key: '' }, children: [] }
                 },
             }
         }

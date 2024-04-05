@@ -583,7 +583,7 @@ export class ComponentRenderData {
                         .map((promise) => (promise.then((tagList) => (tagList.map(({ data }) => (isSchemaImage(data) && data.fileURL ? [data.fileURL] : [])).flat(1)))))
                     ).then((tagLists) => (tagLists.flat(1))
                 ),
-                mapEvaluatedSchemaOutputPromise<EphemeraMap, MapDescribeData>({ name: 'Name' }),
+                mapEvaluatedSchemaOutputPromise<EphemeraMap, MapDescribeData>({ name: 'name' }),
             ])
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
