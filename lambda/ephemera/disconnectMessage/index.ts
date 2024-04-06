@@ -70,7 +70,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                     },
                     updateKeys: ['connections'],
                     updateReducer: (draft) => {
-                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                        draft.connections = draft.connections.filter((value) => (value.connectionId !== connectionId))
                     }
                 }
             }
