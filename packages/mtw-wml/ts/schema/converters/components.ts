@@ -365,6 +365,24 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         })
 
     },
+    Area: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        //
+        // Reassemble the contents out of name and description fields
+        //
+        if (!isSchemaArea(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Area',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                { key: 'as', type: 'key', value: tag.as ?? '' }
+            ],
+            node: { data: tag, children }
+        })
+    },
     Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
