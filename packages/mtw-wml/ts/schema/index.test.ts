@@ -600,6 +600,16 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip area items', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(ABC)><ShortName>Test</ShortName></Room>
+                <Area key=(test)><Room key=(ABC) /></Area>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
     it('should correctly round-trip a character', () => {
         const testWML = deIndentWML(`
             <Character key=(TESS)>
