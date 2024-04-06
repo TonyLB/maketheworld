@@ -1,4 +1,5 @@
 import {
+    SchemaAreaTag,
     SchemaBookmarkTag,
     SchemaDescriptionTag,
     SchemaExitTag,
@@ -11,6 +12,7 @@ import {
     SchemaShortNameTag,
     SchemaSummaryTag,
     SchemaTag,
+    isSchemaArea,
     isSchemaBookmark,
     isSchemaDescription,
     isSchemaExit,
@@ -75,6 +77,11 @@ const componentTemplates = {
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
     },
+    Area: {
+        key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
+    }
 } as const
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
@@ -235,6 +242,21 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Position', x: parseInt(x), y: parseInt(y)
+            }
+        }
+    },
+    Area: {
+        initialize: ({ parseOpen }): SchemaAreaTag => ({
+            tag: 'Area',
+            ...validateProperties(componentTemplates.Area)(parseOpen)
+        }),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAreaTag, SchemaTag> => {
+            if (!isSchemaArea(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children
             }
         }
     },
