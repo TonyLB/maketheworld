@@ -1,4 +1,4 @@
-import { SchemaTag } from "../baseClasses"
+import { SchemaTag, SchemaToWMLTopLevelOptions } from "../baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses";
 
@@ -56,7 +56,7 @@ export type SchemaToWMLOptions = {
     context: SchemaTag[];
     siblings?: GenericTree<SchemaTag>;
     multipleInCategory?: boolean;
-}
+} & SchemaToWMLTopLevelOptions
 
 export enum PrintMapOptionsChange {
     Sibling,

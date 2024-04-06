@@ -1592,9 +1592,10 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "index": 0,
+              "from": "a123",
               "key": "a123#b456",
               "tag": "Exit",
+              "to": "b456",
             },
           },
           Object {
@@ -1679,35 +1680,6 @@ Object {
     ],
     "key": "a123",
     "tag": "Room",
-  },
-  "a123#b456": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "a123",
-          "key": "a123#b456",
-          "tag": "Exit",
-          "to": "b456",
-        },
-      },
-    ],
-    "from": "a123",
-    "key": "a123#b456",
-    "tag": "Exit",
-    "to": "b456",
   },
   "activate": Object {
     "appearances": Array [

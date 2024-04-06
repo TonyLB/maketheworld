@@ -1634,11 +1634,20 @@ Object {
       Object {
         "children": Array [
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "cave",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "VORTEX",
               "key": "VORTEX#cave",
               "tag": "Exit",
+              "to": "cave",
             },
           },
           Object {
@@ -1730,43 +1739,6 @@ Object {
     ],
     "key": "VORTEX",
     "tag": "Room",
-  },
-  "VORTEX#cave": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "cave",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "VORTEX",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "VORTEX",
-          "key": "VORTEX#cave",
-          "tag": "Exit",
-          "to": "cave",
-        },
-      },
-    ],
-    "from": "VORTEX",
-    "key": "VORTEX#cave",
-    "tag": "Exit",
-    "to": "cave",
   },
   "bellows": Object {
     "appearances": Array [
@@ -2318,19 +2290,37 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "passage",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "cave",
               "key": "cave#curvingPassage",
               "tag": "Exit",
+              "to": "curvingPassage",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "out",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "cave",
               "key": "cave#VORTEX",
               "tag": "Exit",
+              "to": "VORTEX",
             },
           },
         ],
@@ -2401,90 +2391,6 @@ Object {
     ],
     "key": "cave",
     "tag": "Room",
-  },
-  "cave#VORTEX": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "out",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "cave",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "cave",
-          "key": "cave#VORTEX",
-          "tag": "Exit",
-          "to": "VORTEX",
-        },
-      },
-    ],
-    "from": "cave",
-    "key": "cave#VORTEX",
-    "tag": "Exit",
-    "to": "VORTEX",
-  },
-  "cave#curvingPassage": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "passage",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "cave",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "cave",
-          "key": "cave#curvingPassage",
-          "tag": "Exit",
-          "to": "curvingPassage",
-        },
-      },
-    ],
-    "from": "cave",
-    "key": "cave#curvingPassage",
-    "tag": "Exit",
-    "to": "curvingPassage",
   },
   "childStatue": Object {
     "appearances": Array [
@@ -2858,19 +2764,37 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "cave",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "curvingPassage",
               "key": "curvingPassage#cave",
               "tag": "Exit",
+              "to": "cave",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "intersection",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "curvingPassage",
               "key": "curvingPassage#intersection",
               "tag": "Exit",
+              "to": "intersection",
             },
           },
         ],
@@ -2983,90 +2907,6 @@ trapDoorOpen = false
     ],
     "key": "curvingPassage",
     "tag": "Room",
-  },
-  "curvingPassage#cave": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "cave",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "curvingPassage",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#cave",
-          "tag": "Exit",
-          "to": "cave",
-        },
-      },
-    ],
-    "from": "curvingPassage",
-    "key": "curvingPassage#cave",
-    "tag": "Exit",
-    "to": "cave",
-  },
-  "curvingPassage#intersection": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "intersection",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "curvingPassage",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#intersection",
-          "tag": "Exit",
-          "to": "intersection",
-        },
-      },
-    ],
-    "from": "curvingPassage",
-    "key": "curvingPassage#intersection",
-    "tag": "Exit",
-    "to": "intersection",
   },
   "determinedNeck": Object {
     "appearances": Array [
@@ -3881,11 +3721,20 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "well room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "fireCatGrotto",
               "key": "fireCatGrotto#well",
               "tag": "Exit",
+              "to": "well",
             },
           },
         ],
@@ -3962,11 +3811,20 @@ trapDoorOpen = false
       Object {
         "children": Array [
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "orchard",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "fireCatGrotto",
               "key": "fireCatGrotto#orchard",
               "tag": "Exit",
+              "to": "orchard",
             },
           },
         ],
@@ -4512,92 +4370,6 @@ trapDoorOpen = false
     "key": "fireCatGrotto",
     "tag": "Room",
   },
-  "fireCatGrotto#orchard": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "orchard",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "tag": "If",
-          },
-          Object {
-            "if": "waterLevel < 4",
-            "tag": "Statement",
-          },
-          Object {
-            "index": 2,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "fireCatGrotto",
-          "key": "fireCatGrotto#orchard",
-          "tag": "Exit",
-          "to": "orchard",
-        },
-      },
-    ],
-    "from": "fireCatGrotto",
-    "key": "fireCatGrotto#orchard",
-    "tag": "Exit",
-    "to": "orchard",
-  },
-  "fireCatGrotto#well": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "well room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "fireCatGrotto",
-          "key": "fireCatGrotto#well",
-          "tag": "Exit",
-          "to": "well",
-        },
-      },
-    ],
-    "from": "fireCatGrotto",
-    "key": "fireCatGrotto#well",
-    "tag": "Exit",
-    "to": "well",
-  },
   "forest": Object {
     "appearances": Array [
       Object {
@@ -4611,11 +4383,20 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "orchard",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "forest",
               "key": "forest#orchard",
               "tag": "Exit",
+              "to": "orchard",
             },
           },
         ],
@@ -4821,11 +4602,20 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "foundry",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "forest",
               "key": "forest#foundry",
               "tag": "Exit",
+              "to": "foundry",
             },
           },
         ],
@@ -5074,92 +4864,6 @@ trapDoorOpen = false
     "key": "forest",
     "tag": "Room",
   },
-  "forest#foundry": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "foundry",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "tag": "If",
-          },
-          Object {
-            "if": "!hearthActive",
-            "tag": "Statement",
-          },
-          Object {
-            "index": 5,
-            "key": "forest",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "forest",
-          "key": "forest#foundry",
-          "tag": "Exit",
-          "to": "foundry",
-        },
-      },
-    ],
-    "from": "forest",
-    "key": "forest#foundry",
-    "tag": "Exit",
-    "to": "foundry",
-  },
-  "forest#orchard": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "orchard",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "forest",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "forest",
-          "key": "forest#orchard",
-          "tag": "Exit",
-          "to": "orchard",
-        },
-      },
-    ],
-    "from": "forest",
-    "key": "forest#orchard",
-    "tag": "Exit",
-    "to": "orchard",
-  },
   "foundry": Object {
     "appearances": Array [
       Object {
@@ -5173,11 +4877,20 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "intersection",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "foundry",
               "key": "foundry#intersection",
               "tag": "Exit",
+              "to": "intersection",
             },
           },
         ],
@@ -5408,11 +5121,20 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "forest",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "foundry",
               "key": "foundry#forest",
               "tag": "Exit",
+              "to": "forest",
             },
           },
         ],
@@ -5660,92 +5382,6 @@ trapDoorOpen = false
     ],
     "key": "foundry",
     "tag": "Room",
-  },
-  "foundry#forest": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "forest",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "tag": "If",
-          },
-          Object {
-            "if": "!hearthActive",
-            "tag": "Statement",
-          },
-          Object {
-            "index": 4,
-            "key": "foundry",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "foundry",
-          "key": "foundry#forest",
-          "tag": "Exit",
-          "to": "forest",
-        },
-      },
-    ],
-    "from": "foundry",
-    "key": "foundry#forest",
-    "tag": "Exit",
-    "to": "forest",
-  },
-  "foundry#intersection": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "intersection",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "foundry",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "foundry",
-          "key": "foundry#intersection",
-          "tag": "Exit",
-          "to": "intersection",
-        },
-      },
-    ],
-    "from": "foundry",
-    "key": "foundry#intersection",
-    "tag": "Exit",
-    "to": "intersection",
   },
   "fruitTrees": Object {
     "appearances": Array [
@@ -6412,27 +6048,54 @@ trapDoorOpen = false
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "curving passage",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "intersection",
               "key": "intersection#curvingPassage",
               "tag": "Exit",
+              "to": "curvingPassage",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "chamber",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "intersection",
               "key": "intersection#statueChamber",
               "tag": "Exit",
+              "to": "statueChamber",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "workspace",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "intersection",
               "key": "intersection#foundry",
               "tag": "Exit",
+              "to": "foundry",
             },
           },
         ],
@@ -6766,132 +6429,6 @@ trapDoorOpen = false
     "key": "intersection",
     "tag": "Room",
   },
-  "intersection#curvingPassage": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "curving passage",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "intersection",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "intersection",
-          "key": "intersection#curvingPassage",
-          "tag": "Exit",
-          "to": "curvingPassage",
-        },
-      },
-    ],
-    "from": "intersection",
-    "key": "intersection#curvingPassage",
-    "tag": "Exit",
-    "to": "curvingPassage",
-  },
-  "intersection#foundry": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "workspace",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "intersection",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "intersection",
-          "key": "intersection#foundry",
-          "tag": "Exit",
-          "to": "foundry",
-        },
-      },
-    ],
-    "from": "intersection",
-    "key": "intersection#foundry",
-    "tag": "Exit",
-    "to": "foundry",
-  },
-  "intersection#statueChamber": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "chamber",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "intersection",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "intersection",
-          "key": "intersection#statueChamber",
-          "tag": "Exit",
-          "to": "statueChamber",
-        },
-      },
-    ],
-    "from": "intersection",
-    "key": "intersection#statueChamber",
-    "tag": "Exit",
-    "to": "statueChamber",
-  },
   "ironworkingTools": Object {
     "appearances": Array [
       Object {
@@ -7119,19 +6656,37 @@ if (robedStatueActive) {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "grotto",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "orchard",
               "key": "orchard#fireCatGrotto",
               "tag": "Exit",
+              "to": "fireCatGrotto",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "forest",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "orchard",
               "key": "orchard#forest",
               "tag": "Exit",
+              "to": "forest",
             },
           },
         ],
@@ -7745,90 +7300,6 @@ if (robedStatueActive) {
     ],
     "key": "orchard",
     "tag": "Room",
-  },
-  "orchard#fireCatGrotto": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "grotto",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "orchard",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "orchard",
-          "key": "orchard#fireCatGrotto",
-          "tag": "Exit",
-          "to": "fireCatGrotto",
-        },
-      },
-    ],
-    "from": "orchard",
-    "key": "orchard#fireCatGrotto",
-    "tag": "Exit",
-    "to": "fireCatGrotto",
-  },
-  "orchard#forest": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "forest",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "orchard",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "orchard",
-          "key": "orchard#forest",
-          "tag": "Exit",
-          "to": "forest",
-        },
-      },
-    ],
-    "from": "orchard",
-    "key": "orchard#forest",
-    "tag": "Exit",
-    "to": "forest",
   },
   "purrFades": Object {
     "appearances": Array [
@@ -8619,19 +8090,37 @@ switch(glowingColumns) {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "intersection",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "statueChamber",
               "key": "statueChamber#intersection",
               "tag": "Exit",
+              "to": "intersection",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "well room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "statueChamber",
               "key": "statueChamber#well",
               "tag": "Exit",
+              "to": "well",
             },
           },
         ],
@@ -9010,90 +8499,6 @@ switch(glowingColumns) {
     ],
     "key": "statueChamber",
     "tag": "Room",
-  },
-  "statueChamber#intersection": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "intersection",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "statueChamber",
-          "key": "statueChamber#intersection",
-          "tag": "Exit",
-          "to": "intersection",
-        },
-      },
-    ],
-    "from": "statueChamber",
-    "key": "statueChamber#intersection",
-    "tag": "Exit",
-    "to": "intersection",
-  },
-  "statueChamber#well": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "well room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "statueChamber",
-          "key": "statueChamber#well",
-          "tag": "Exit",
-          "to": "well",
-        },
-      },
-    ],
-    "from": "statueChamber",
-    "key": "statueChamber#well",
-    "tag": "Exit",
-    "to": "well",
   },
   "stoopedStatue": Object {
     "appearances": Array [
@@ -9817,19 +9222,37 @@ determinedStatueHead = !determinedStatueHead
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "chamber",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "well",
               "key": "well#statueChamber",
               "tag": "Exit",
+              "to": "statueChamber",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "grotto",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
+              "from": "well",
               "key": "well#fireCatGrotto",
               "tag": "Exit",
+              "to": "fireCatGrotto",
             },
           },
         ],
@@ -10199,90 +9622,6 @@ determinedStatueHead = !determinedStatueHead
     ],
     "key": "well",
     "tag": "Room",
-  },
-  "well#fireCatGrotto": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "grotto",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "well",
-          "key": "well#fireCatGrotto",
-          "tag": "Exit",
-          "to": "fireCatGrotto",
-        },
-      },
-    ],
-    "from": "well",
-    "key": "well#fireCatGrotto",
-    "tag": "Exit",
-    "to": "fireCatGrotto",
-  },
-  "well#statueChamber": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "chamber",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "dungeonMap",
-            "tag": "Map",
-          },
-          Object {
-            "index": 0,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "from": "well",
-          "key": "well#statueChamber",
-          "tag": "Exit",
-          "to": "statueChamber",
-        },
-      },
-    ],
-    "from": "well",
-    "key": "well#statueChamber",
-    "tag": "Exit",
-    "to": "statueChamber",
   },
   "wellStatues": Object {
     "appearances": Array [

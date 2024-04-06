@@ -439,7 +439,7 @@ describe('WML normalize', () => {
                     <Variable key=(testVar) default={false} />
                 </Asset>
             `)
-            expect(testOne.select({ key: 'room1', selector: schemaToWML })).toEqual(deIndentWML(`
+            expect(testOne.select({ key: 'room1', selector: (tags) => (schemaToWML(tags)) })).toEqual(deIndentWML(`
                 <Asset key=(testOne)>
                     <Room key=(room1)>
                         <Name>Test room</Name>
