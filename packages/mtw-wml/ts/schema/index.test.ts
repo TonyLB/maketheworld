@@ -39,6 +39,7 @@ describe('schemaFromParse', () => {
                         <Exit to=(DEF)>welcome</Exit>
                     </Room>
                 </If>
+                <Area key=(Area1)><Room key=(ABC) /></Area>
                 <Room key=(DEF)>
                     <Name>Welcome</Name>
                     <Exit to=(DEF)>vortex</Exit>
@@ -154,6 +155,13 @@ describe('schemaFromParse', () => {
                             }],
                         }],
                     }]
+                },
+                {
+                    data: {
+                        tag: "Area",
+                        key: "Area1"
+                    },
+                    children: [{ data: { tag: 'Room', key: 'ABC' }, children: [] }]
                 },
                 {
                     data: {
