@@ -379,16 +379,19 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     // Transform incoming tree of MapTreeItems back into a tree of SchemaTags
     //
     const mappedTree = useMemo(
-        () => (genericIDFromTree(map(tree, ({ data: { name, ...data }, children }): GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag> => ([
-            {
-                data,
-                children: [
-                    { data: { tag: 'ShortName'  }, children: name },
-                    ...(data.tag === 'Room' ? [{ data: { tag: 'Position', x: data.x, y: data.y }, children: [] }] : []),
-                    ...children
-                ]
-            }
-        ])))),
+        () => {
+            const returnValue = map(tree, ({ data: { name, ...data }, children }): GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag> => ([
+                {
+                    data,
+                    children: [
+                        ...(data.tag === 'Room' ? [{ data: { tag: 'ShortName'  }, children: name }, { data: { tag: 'Position', x: data.x, y: data.y }, children: [] }] : []),
+                        ...(data.tag === 'Exit' ? [{ data: { tag: 'Name'  }, children: [{ data: { tag: 'String', value: name }, children: [] }] }] : []),
+                        ...children
+                    ]
+                }
+            ]))
+            return genericIDFromTree(returnValue)
+        },
         [tree]
     )
     //
@@ -398,11 +401,11 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
         tree
             .map(({ data }) => (data))
             .filter(isMapTreeRoomWithPosition)
-            .map(({ key, x, y, name  }) => ({ id: '', roomId: key, name: taggedMessageToString(name as any), x, y }))
+            .map(({ key, x, y, name  }) => ({ id: '', roomId: key, name: schemaOutputToString(name), x, y }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
-        return setLocalPositions(tree
+        setLocalPositions(tree
             .map(({ data }) => (data))
             .filter(isMapTreeRoomWithPosition)
             .map((room) => ({
@@ -411,8 +414,8 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
                 x: 0,
                 y: 0,
                 key: room.key,
-                name: taggedMessageToString(room.name as any),
-                ...(xyByRoomId[room.key] || {})
+                ...(xyByRoomId[room.key] || {}),
+                name: schemaOutputToString(room.name)
             }))
         )
     }, [tree])

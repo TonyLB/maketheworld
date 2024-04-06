@@ -15,7 +15,7 @@ export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<Map
                     // TODO: ISS-3402: Refactor how name data in MapDescribe is formatted
                     //
                     // name: name.map((item) => ({ data: item, children: [] })),
-                    name: [],
+                    name: [{ data: { tag: 'String', value: name }, children: [] }],
                     x,
                     y
                 },
