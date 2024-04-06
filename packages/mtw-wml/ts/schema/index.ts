@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaString } from "./baseClasses"
+import { SchemaTag, SchemaToWMLTopLevelOptions, isSchemaString } from "./baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
@@ -229,9 +229,9 @@ export const printSchemaTag: PrintMapEntry = (args) => {
     }
 }
 
-export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
+export const schemaToWML = (tags: GenericTree<SchemaTag>, options: SchemaToWMLTopLevelOptions = {}): string => {
     const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
-        const printOptions = printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
+        const printOptions = printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [], ...options }, schemaToWML: printSchemaTag, optionsFactory })
         const { optimalIndex } = printOptions.reduce<{ optimalIndex: number; currentLength: number }>(
             (previous, output, index) => {
                 if (previous.currentLength <= lineLengthAfterIndent(0)) {

@@ -445,3 +445,7 @@ export type SchemaContextItem = {
     tag: SchemaTag;
     children: GenericTree<SchemaTag>;
 }
+
+export type SchemaToWMLTopLevelOptions = {
+    persistentOnly?: boolean
+}
