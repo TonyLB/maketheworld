@@ -39,10 +39,10 @@ describe('schemaFromParse', () => {
                         <Exit to=(DEF)>welcome</Exit>
                     </Room>
                 </If>
-                <Area key=(Area1)>
+                <Theme key=(Theme1)>
                     <Prompt>Spooky</Prompt>
                     <Room key=(ABC) />
-                </Area>
+                </Theme>
                 <Room key=(DEF)>
                     <Name>Welcome</Name>
                     <Exit to=(DEF)>vortex</Exit>
@@ -161,8 +161,8 @@ describe('schemaFromParse', () => {
                 },
                 {
                     data: {
-                        tag: "Area",
-                        key: "Area1"
+                        tag: "Theme",
+                        key: "Theme1"
                     },
                     children: [
                         { data: { tag: 'Prompt', value: 'Spooky' }, children: [] },
@@ -606,14 +606,14 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip area items', () => {
+    it('should correctly round-trip theme items', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(ABC)><ShortName>Test</ShortName></Room>
-                <Area key=(test)>
+                <Theme key=(test)>
                     <Prompt>Spooky</Prompt>
                     <Room key=(ABC) />
-                </Area>
+                </Theme>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)

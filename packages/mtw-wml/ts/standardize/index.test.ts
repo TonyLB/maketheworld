@@ -248,24 +248,24 @@ describe('standardizeSchema', () => {
         `))
     })
 
-    it('should render areas correctly', () => {
+    it('should render themes correctly', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Room key=(testRoomOne)>
                     <Position x="0" y="0" />
                 </Room>
             </Map>
-            <Area key=(testArea)>
+            <Theme key=(testTheme)>
                 <Room key=(testRoomOne) />
                 <Map key=(testMap) />
-            </Area>
+            </Theme>
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Area key=(testArea)>
+                <Theme key=(testTheme)>
                     <Room key=(testRoomOne) />
                     <Map key=(testMap) />
-                </Area>
+                </Theme>
                 <Room key=(testRoomOne) />
                 <Map key=(testMap)>
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>

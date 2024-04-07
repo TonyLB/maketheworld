@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaArea, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -10,7 +10,7 @@ import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNode
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardArea, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
@@ -91,11 +91,11 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             positions: maybeGenericIDFromTree(positionsTagTree.tree)
         }
     }
-    if (isSchemaArea(data)) {
+    if (isSchemaTheme(data)) {
         const roomTagTree = new SchemaTagTree(children).filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
         const mapsTagTree = new SchemaTagTree(children).filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
         return {
-            tag: 'Area',
+            tag: 'Theme',
             key: data.key,
             id,
             name: { data: { tag: 'Name' }, children: [], id: '' },
@@ -184,9 +184,9 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                     ...item.positions
                 ]
             }
-        case 'Area':
+        case 'Theme':
             return {
-                data: { tag: 'Area', key: item.key },
+                data: { tag: 'Theme', key: item.key },
                 id: item.id,
                 children: [
                     ...standardFieldToOutputNode(item.name),
@@ -266,9 +266,9 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
                     ...item.positions
                 ]
             }
-        case 'Area':
+        case 'Theme':
             return {
-                data: { tag: 'Area', key: item.key },
+                data: { tag: 'Theme', key: item.key },
                 children: [
                     item.name,
                     ...item.rooms,
@@ -308,7 +308,7 @@ export class Standardizer {
             this._assetTag = 'Asset'
             return
         }
-        const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Area', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+        const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Theme', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
         const allCharacterKeys = unique(...schemata.map((tree) => (selectKeysByTag('Character')(tree))))
@@ -501,7 +501,7 @@ export class Standardizer {
 
     get schema(): GenericTree<SchemaTag, TreeId> {
         if (this._assetTag === 'Asset') {
-            const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Area', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+            const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Theme', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = [
                 ...this.metaData.filter(treeNodeTypeguard(isSchemaImport)),
                 ...componentKeys
@@ -603,7 +603,7 @@ export class Standardizer {
                     images: stripIDFromTree(value.images)
                 }
             }
-            if (isStandardArea(value)) {
+            if (isStandardTheme(value)) {
                 return {
                     ...rest,
                     name: stripValue(value, 'name'),
@@ -674,7 +674,7 @@ export class Standardizer {
                     images: maybeGenericIDFromTree(value.images)
                 }
             }
-            if (value.tag === 'Area') {
+            if (value.tag === 'Theme') {
                 return {
                     ...value,
                     id: uuidv4(),

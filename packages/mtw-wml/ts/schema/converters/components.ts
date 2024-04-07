@@ -1,5 +1,5 @@
 import {
-    SchemaAreaTag,
+    SchemaThemeTag,
     SchemaBookmarkTag,
     SchemaDescriptionTag,
     SchemaExitTag,
@@ -13,7 +13,7 @@ import {
     SchemaShortNameTag,
     SchemaSummaryTag,
     SchemaTag,
-    isSchemaArea,
+    isSchemaTheme,
     isSchemaBookmark,
     isSchemaDescription,
     isSchemaExit,
@@ -79,7 +79,7 @@ const componentTemplates = {
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
     },
-    Area: {
+    Theme: {
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
@@ -248,13 +248,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    Area: {
-        initialize: ({ parseOpen }): SchemaAreaTag => ({
-            tag: 'Area',
-            ...validateProperties(componentTemplates.Area)(parseOpen)
+    Theme: {
+        initialize: ({ parseOpen }): SchemaThemeTag => ({
+            tag: 'Theme',
+            ...validateProperties(componentTemplates.Theme)(parseOpen)
         }),
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAreaTag, SchemaTag> => {
-            if (!isSchemaArea(initialTag)) {
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaThemeTag, SchemaTag> => {
+            if (!isSchemaTheme(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
@@ -388,16 +388,16 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         })
 
     },
-    Area: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+    Theme: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
         //
-        if (!isSchemaArea(tag)) {
+        if (!isSchemaTheme(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
-            tag: 'Area',
+            tag: 'Theme',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
