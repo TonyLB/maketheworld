@@ -23,7 +23,8 @@ import {
     isSchemaExport,
     isImportable,
     isSchemaComputed,
-    isSchemaConditionStatement
+    isSchemaConditionStatement,
+    SchemaAreaTag
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -62,7 +63,7 @@ import mergeSchemaTrees from '../schema/treeManipulation/merge';
 import SchemaTagTree from '../tagTree/schema';
 import { map } from '../tree/map';
 
-export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag
+export type SchemaTagWithNormalEquivalent = Exclude<SchemaWithKey, SchemaAreaTag> | SchemaImportTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
     isSchemaWithKey(node) || (['Import'].includes(node.tag))
