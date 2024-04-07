@@ -1,5 +1,5 @@
-import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag } from "../schema/baseClasses";
-import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
+import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
     key: string;
@@ -28,6 +28,7 @@ export type StandardRoom = {
     summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag, TreeId>;
     description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     exits: GenericTree<SchemaTag, TreeId>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardFeature = {
@@ -146,6 +147,7 @@ export type SerializableStandardRoom = {
     summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag>;
     description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & SerializableStandardBase
 
 export type SerializableStandardFeature = {
