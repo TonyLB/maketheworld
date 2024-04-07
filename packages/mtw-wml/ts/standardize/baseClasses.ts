@@ -54,8 +54,8 @@ export type StandardMap = {
     positions: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
-export type StandardArea = {
-    tag: 'Area';
+export type StandardTheme = {
+    tag: 'Theme';
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
     maps: GenericTree<SchemaTag, TreeId>;
@@ -99,7 +99,7 @@ export type StandardComponent =
     StandardKnowledge |
     StandardBookmark |
     StandardMap |
-    StandardArea |
+    StandardTheme |
     StandardMessage |
     StandardMoment |
     StandardVariable |
@@ -113,7 +113,7 @@ export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
 export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
 export const isStandardBookmark = isStandardFactory<StandardBookmark>("Bookmark")
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
-export const isStandardArea = isStandardFactory<StandardArea>("Area")
+export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 export const isStandardAction = isStandardFactory<StandardAction>("Action")
@@ -172,8 +172,8 @@ export type SerializableStandardMap = {
     positions: GenericTree<SchemaTag>;
 } & SerializableStandardBase
 
-export type SerializableStandardArea = {
-    tag: 'Area';
+export type SerializableStandardTheme = {
+    tag: 'Theme';
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
     rooms: GenericTree<SchemaTag>;
     maps: GenericTree<SchemaTag>;
@@ -217,7 +217,7 @@ export type SerializableStandardComponent =
     SerializableStandardKnowledge |
     SerializableStandardBookmark |
     SerializableStandardMap |
-    SerializableStandardArea |
+    SerializableStandardTheme |
     SerializableStandardMessage |
     SerializableStandardMoment |
     SerializableStandardVariable |
