@@ -673,7 +673,8 @@ describe('standardizeSchema', () => {
                 positions: [
                     { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
                     { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
-                ]
+                ],
+                themes: []
             }
         })
 
@@ -692,7 +693,10 @@ describe('standardizeSchema', () => {
                 <Room key=(test)><Position x="0" y="0" /></Room>
                 <Room key=(testTwo)><Position x="100" y="0" /></Room>
             </Map>
-            <Theme key=(theme1)><Room key=(test) /></Theme>
+            <Theme key=(theme1)>
+                <Room key=(test) />
+                <Map key=(testMap) />
+            </Theme>
         </Asset>`)
         expect(test.stripped.byId).toEqual({
             test: {
@@ -729,14 +733,15 @@ describe('standardizeSchema', () => {
                 positions: [
                     { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
                     { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
-                ]
+                ],
+                themes: [{ data: { tag: 'Theme', key: 'theme1' }, children: [{ data: { tag: 'Map', key: 'testMap' }, children: [] }] }]
             },
             theme1: {
                 key: 'theme1',
                 tag: 'Theme',
                 name: { data: { tag: 'Name' }, children: [] },
                 rooms: [{ data: { tag: 'Room', key: 'test' }, children: [] }],
-                maps: []
+                maps: [{ data: { tag: 'Map', key: 'testMap' }, children: [] }]
             }
         })
 
