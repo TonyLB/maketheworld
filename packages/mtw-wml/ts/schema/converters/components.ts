@@ -406,6 +406,18 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
+    Prompt: (args: PrintMapEntryArguments) => {
+        const tag = args.tag.data
+        if (isSchemaPrompt(tag)) {
+            return tagRender({
+                ...args,
+                tag: tag.tag,
+                properties: [],
+                node: { data: tag, children: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }] }
+            })
+        }
+        return [{ printMode: PrintMode.naive, output: '' }]
+    },
     Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
