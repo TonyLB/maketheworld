@@ -248,6 +248,32 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should render areas correctly', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Room key=(testRoomOne)>
+                    <Position x="0" y="0" />
+                </Room>
+            </Map>
+            <Area key=(testArea)>
+                <Room key=(testRoomOne) />
+                <Map key=(testMap) />
+            </Area>
+        </Asset>`)
+        expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Area key=(testArea)>
+                    <Room key=(testRoomOne) />
+                    <Map key=(testMap) />
+                </Area>
+                <Room key=(testRoomOne) />
+                <Map key=(testMap)>
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                </Map>
+            </Asset>
+        `))
+    })
+
     it('should render messages correctly', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Message key=(testMessage)>
