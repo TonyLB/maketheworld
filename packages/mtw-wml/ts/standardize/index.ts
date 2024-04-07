@@ -84,13 +84,15 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const positionsTagTree = new SchemaTagTree(children).filter({ match: 'Position' })
         const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
+        const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaMap(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Map' }, { match: 'Theme' }] } })
         return {
             tag: 'Map',
             key: data.key,
             id,
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             images: maybeGenericIDFromTree(imagesTagTree.tree),
-            positions: maybeGenericIDFromTree(positionsTagTree.tree)
+            positions: maybeGenericIDFromTree(positionsTagTree.tree),
+            themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
         }
     }
     if (isSchemaTheme(data)) {
@@ -602,7 +604,8 @@ export class Standardizer {
                     ...rest,
                     name: stripValue(value, 'name'),
                     positions: stripIDFromTree(value.positions),
-                    images: stripIDFromTree(value.images)
+                    images: stripIDFromTree(value.images),
+                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (isStandardTheme(value)) {
@@ -674,7 +677,8 @@ export class Standardizer {
                     id: uuidv4(),
                     name: deserializeValue(value, 'name'),
                     positions: maybeGenericIDFromTree(value.positions),
-                    images: maybeGenericIDFromTree(value.images)
+                    images: maybeGenericIDFromTree(value.images),
+                    themes: maybeGenericIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (value.tag === 'Theme') {

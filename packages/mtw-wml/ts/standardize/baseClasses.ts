@@ -53,6 +53,7 @@ export type StandardMap = {
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
     images: GenericTree<SchemaTag, TreeId>;
     positions: GenericTree<SchemaTag, TreeId>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardTheme = {
@@ -172,6 +173,7 @@ export type SerializableStandardMap = {
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
     images: GenericTree<SchemaTag>;
     positions: GenericTree<SchemaTag>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & SerializableStandardBase
 
 export type SerializableStandardTheme = {
