@@ -619,7 +619,8 @@ describe('standardizeSchema', () => {
             },
             summary: { data: { tag: 'Summary' }, id: '', children: [] },
             description: { data: { tag: 'Description' }, id: '', children: [] },
-            exits: []
+            exits: [],
+            themes: []
         })
     })
 
@@ -651,7 +652,8 @@ describe('standardizeSchema', () => {
                         { data: { tag: 'br' }, children: [] }
                     ]
                 },
-                exits: []
+                exits: [],
+                themes: []
             },
             testTwo: {
                 key: 'testTwo',
@@ -660,7 +662,8 @@ describe('standardizeSchema', () => {
                 name: { data: { tag: 'Name' }, children: [] },
                 summary: { data: { tag: 'Summary' }, children: [] },
                 description: { data: { tag: 'Description' }, children: [] },
-                exits: []
+                exits: [],
+                themes: []
             },
             testMap: {
                 key: 'testMap',
@@ -675,4 +678,68 @@ describe('standardizeSchema', () => {
         })
 
     })
+
+    it('should correctly denormalize Theme references', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    One
+                    <br />
+                </Description>
+            </Room>
+            <Room key=(testTwo) />
+            <Map key=(testMap)>
+                <Room key=(test)><Position x="0" y="0" /></Room>
+                <Room key=(testTwo)><Position x="100" y="0" /></Room>
+            </Map>
+            <Theme key=(theme1)><Room key=(test) /></Theme>
+        </Asset>`)
+        expect(test.stripped.byId).toEqual({
+            test: {
+                key: 'test',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: {
+                    data: { tag: 'Description' },
+                    children: [
+                        { data: { tag: 'String', value: 'One' }, children: [] },
+                        { data: { tag: 'br' }, children: [] }
+                    ]
+                },
+                exits: [],
+                themes: [{ data: { tag: 'Theme', key: 'theme1' }, children: [{ data: { tag: 'Room', key: 'test' }, children: [] }] }]
+            },
+            testTwo: {
+                key: 'testTwo',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: [],
+                themes: []
+            },
+            testMap: {
+                key: 'testMap',
+                tag: 'Map',
+                name: { data: { tag: 'Name' }, children: [] },
+                images: [],
+                positions: [
+                    { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
+                    { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
+                ]
+            },
+            theme1: {
+                key: 'theme1',
+                tag: 'Theme',
+                name: { data: { tag: 'Name' }, children: [] },
+                rooms: [{ data: { tag: 'Room', key: 'test' }, children: [] }],
+                maps: []
+            }
+        })
+
+    })
+
 })

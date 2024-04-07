@@ -22,13 +22,14 @@ const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaT
         : { data: defaultValue, id: '', children: [] }
 }
 
-const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>): StandardComponent | undefined => {
+const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>): StandardComponent | undefined => {
     if (isSchemaRoom(data)) {
         const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         const summaryItem = children.find(treeNodeTypeguard(isSchemaSummary))
         const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
         const exitTagTree = new SchemaTagTree(children).filter({ match: 'Exit' })
+        const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaRoom(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Room' }, { match: 'Theme' }] } })
         return {
             tag: 'Room',
             key: data.key,
@@ -37,7 +38,8 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaOutputTag, { tag: 'Summary' }),
             description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
-            exits: maybeGenericIDFromTree(exitTagTree.tree)
+            exits: maybeGenericIDFromTree(exitTagTree.tree),
+            themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
         }
     }
     if (isSchemaFeature(data) || isSchemaKnowledge(data)) {
@@ -441,7 +443,7 @@ export class Standardizer {
                     // TODO: Replace topLevelItems.push with a write of a StandardItem into this._byId
                     //
                     items.forEach((item) => {
-                        const standardItem = schemaItemToStandardItem(item)
+                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
                         if (standardItem && (item.children.length || !importedKeys.includes(key))) {
                             this._byId[key] = standardItem
                         }
@@ -618,7 +620,8 @@ export class Standardizer {
                     name: stripValue(value, 'name'),
                     summary: stripValue(value, 'summary'),
                     description: stripValue(value, 'description'),
-                    exits: stripIDFromTree(value.exits)
+                    exits: stripIDFromTree(value.exits),
+                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (isStandardMessage(value)) {
@@ -691,7 +694,8 @@ export class Standardizer {
                     name: deserializeValue(value, 'name'),
                     summary: deserializeValue(value, 'summary'),
                     description: deserializeValue(value, 'description'),
-                    exits: maybeGenericIDFromTree(value.exits)
+                    exits: maybeGenericIDFromTree(value.exits),
+                    themes: maybeGenericIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (value.tag === 'Message') {
