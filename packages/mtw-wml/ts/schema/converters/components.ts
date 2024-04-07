@@ -8,6 +8,7 @@ import {
     SchemaMapTag,
     SchemaNameTag,
     SchemaPositionTag,
+    SchemaPromptTag,
     SchemaRoomTag,
     SchemaShortNameTag,
     SchemaSummaryTag,
@@ -22,6 +23,7 @@ import {
     isSchemaMapContents,
     isSchemaName,
     isSchemaPosition,
+    isSchemaPrompt,
     isSchemaRoom,
     isSchemaShortName,
     isSchemaString,
@@ -81,7 +83,8 @@ const componentTemplates = {
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
-    }
+    },
+    Prompt: {}
 } as const
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
@@ -257,6 +260,26 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 data: initialTag,
                 children
+            }
+        }
+    },
+    Prompt: {
+        initialize: ({ parseOpen }): SchemaPromptTag => ({
+            tag: 'Prompt',
+            value: '',
+            ...validateProperties(componentTemplates.Prompt)(parseOpen)
+        }),
+        typeCheckContents: isSchemaString,
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag> => {
+            if (!isSchemaPrompt(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children: []
             }
         }
     },
