@@ -610,7 +610,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(ABC)><ShortName>Test</ShortName></Room>
-                <Area key=(test)><Room key=(ABC) /></Area>
+                <Area key=(test)>
+                    <Prompt>Spooky</Prompt>
+                    <Room key=(ABC) />
+                </Area>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
