@@ -49,6 +49,7 @@ import {
     NormalMoment,
     NormalReference,
     NormalRoom,
+    NormalTheme,
     NormalVariable
 } from './baseClasses'
 import { keyForValue } from './keyUtil';
@@ -63,13 +64,13 @@ import mergeSchemaTrees from '../schema/treeManipulation/merge';
 import SchemaTagTree from '../tagTree/schema';
 import { map } from '../tree/map';
 
-export type SchemaTagWithNormalEquivalent = Exclude<SchemaWithKey, SchemaThemeTag> | SchemaImportTag
+export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
     isSchemaWithKey(node) || (['Import'].includes(node.tag))
 )
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Theme" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
 
 export type NormalizerInsertPosition = {
     contextStack: NormalReference[];
@@ -100,6 +101,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaActionTag): NormalAction
     _translate(appearance: BaseAppearance, node: SchemaImportTag): NormalImport
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
+    _translate(appearance: BaseAppearance, node: SchemaThemeTag): NormalTheme
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
     _translate(appearance: BaseAppearance, node: SchemaKnowledgeTag): NormalKnowledge
     _translate(appearance: BaseAppearance, node: SchemaBookmarkTag): NormalBookmark
@@ -213,7 +215,13 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [defaultedAppearance]
                 }
-            // case 'Exit':
+            case 'Theme':
+                return {
+                    key: node.key || defaultKey,
+                    tag: node.tag,
+                    appearances: [defaultedAppearance]
+                }
+                // case 'Exit':
             //     const { exitRoomIndex, exitRoomKey } = appearance.contextStack.reduceRight((previous, context, index) => (((context.tag === 'Room') && (previous.exitRoomIndex === -1)) ? { exitRoomIndex: index, exitRoomKey: context.key } : previous), { exitRoomIndex: -1, exitRoomKey: '' })
             //     if (exitRoomIndex === -1) {
             //         throw new Error('Exit tag cannot be created outside of room')

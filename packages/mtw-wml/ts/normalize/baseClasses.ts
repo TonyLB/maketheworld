@@ -13,6 +13,7 @@ type TagType = 'Asset' |
     'Bookmark' |
     'Image' |
     'Map' |
+    'Theme' |
     'Exit' |
     'Variable' |
     'Computed' |
@@ -148,6 +149,10 @@ export type NormalMap<Extra extends {} = {}> = {
     tag: 'Map';
 } & NormalBase<Extra>
 
+export type NormalTheme<Extra extends {} = {}> = {
+    tag: 'Theme';
+} & NormalBase<Extra>
+
 export type NormalExit<Extra extends {} = {}> = {
     tag: 'Exit';
     to: string;
@@ -184,6 +189,7 @@ export type NormalItem<Extra extends {} = {}> = NormalAsset<Extra> |
     NormalImport<Extra> |
     NormalImage<Extra> |
     NormalMap<Extra> |
+    NormalTheme<Extra> |
     NormalExit<Extra> |
     NormalVariable<Extra> |
     NormalComputed<Extra> |

@@ -1443,6 +1443,14 @@ Object {
             "children": Array [],
             "data": Object {
               "index": 0,
+              "key": "testTheme",
+              "tag": "Theme",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "index": 0,
               "key": "a123",
               "tag": "Room",
             },
@@ -1985,6 +1993,26 @@ Object {
     "default": "",
     "key": "power",
     "tag": "Variable",
+  },
+  "testTheme": Object {
+    "appearances": Array [
+      Object {
+        "children": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "data": Object {
+          "key": "testTheme",
+          "tag": "Theme",
+        },
+      },
+    ],
+    "key": "testTheme",
+    "tag": "Theme",
   },
   "toggleActive": Object {
     "appearances": Array [
