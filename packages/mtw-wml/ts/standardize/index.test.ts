@@ -256,6 +256,7 @@ describe('standardizeSchema', () => {
                 </Room>
             </Map>
             <Theme key=(testTheme)>
+                <Prompt>Spooky</Prompt>
                 <Room key=(testRoomOne) />
                 <Map key=(testMap) />
             </Theme>
@@ -263,6 +264,7 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Theme key=(testTheme)>
+                    <Prompt>Spooky</Prompt>
                     <Room key=(testRoomOne) />
                     <Map key=(testMap) />
                 </Theme>

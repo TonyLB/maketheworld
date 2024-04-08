@@ -196,6 +196,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 id: item.id,
                 children: [
                     ...standardFieldToOutputNode(item.name),
+                    ...item.prompts,
                     ...item.rooms,
                     ...item.maps
                 ]
