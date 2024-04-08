@@ -12,6 +12,9 @@ import { StandardTheme, isStandardTheme } from "@tonylb/mtw-wml/dist/standardize
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { rename as renameNavigationTab } from '../../../../slices/UI/navigationTabs'
 import LibraryBanner from "../LibraryBanner"
+import { EditSchema } from "../EditContext"
+import TitledBox from "../../../TitledBox"
+import DescriptionEditor from "../DescriptionEditor"
 
 type ThemeEditorProps = {}
 
@@ -87,6 +90,15 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
+                <EditSchema tag="Name" field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                    <TitledBox title="Name">
+                        <DescriptionEditor
+                            validLinkTags={[]}
+                            placeholder="Name"
+                            toolbar={false}
+                        />
+                    </TitledBox>
+                </EditSchema>
                 <span>Prompt: {component.prompts[0]?.data?.value ?? 'NONE'}</span>
             </Box>
             <DraftLockout />
