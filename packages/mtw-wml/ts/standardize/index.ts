@@ -96,6 +96,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         }
     }
     if (isSchemaTheme(data)) {
+        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         const promptTagTree = new SchemaTagTree(children).filter({ match: 'Prompt' }).prune({ not: { match: 'Prompt' } })
         const roomTagTree = new SchemaTagTree(children).filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
         const mapsTagTree = new SchemaTagTree(children).filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
@@ -103,7 +104,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: 'Theme',
             key: data.key,
             id,
-            name: { data: { tag: 'Name' }, children: [], id: '' },
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             prompts: maybeGenericIDFromTree(promptTagTree.tree).filter(treeNodeTypeguard(isSchemaPrompt)),
             rooms: maybeGenericIDFromTree(roomTagTree.tree),
             maps: maybeGenericIDFromTree(mapsTagTree.tree)
