@@ -40,7 +40,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             name: { data: { tag: 'Name' }, id: '', children: [] },
             summary: { data: { tag: 'Summary' }, id: '', children: [] },
             description: { data: { tag: 'Description' }, id: '', children: [] },
-            exits: []
+            exits: [],
+            themes: []
         }
     }, [ComponentId, standardForm])
     const { tag } = component
