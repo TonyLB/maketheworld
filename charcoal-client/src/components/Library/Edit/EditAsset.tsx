@@ -20,6 +20,7 @@ import {
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
 import AddIcon from '@mui/icons-material/Add'
+import ThemeIcon from '@mui/icons-material/TheaterComedy'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import SaveIcon from '@mui/icons-material/Save'
@@ -60,6 +61,9 @@ import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
+import { StandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
@@ -142,9 +146,10 @@ const AddWMLComponent: FunctionComponent<{ type: 'Map' | 'Room' | 'Feature' | 'K
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, updateSchema, normalForm, save, status, serialized } = useLibraryAsset()
+    const { schema, updateSchema, normalForm, save, status, serialized, standardForm } = useLibraryAsset()
     const navigate = useNavigate()
 
+    const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardTheme)), [standardForm])
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const knowledges = useMemo<NormalKnowledge[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Knowledge')) as NormalKnowledge[]), [normalForm])
@@ -214,6 +219,20 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <List>
+                    <ListSubheader>Themes</ListSubheader>
+                    { themes.length
+                        ? <React.Fragment>
+                            { themes.map((themeItem) => (
+                                <ListItemButton onClick={() => { navigate(`Theme/${themeItem.key}`)}}>
+                                    <ListItemIcon>
+                                        <ThemeIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary={schemaOutputToString(themeItem.name.children) || 'Untitled'} secondary={themeItem.key} />
+                                </ListItemButton>
+                            ))}
+                        </React.Fragment>
+                        : null
+                    }
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
