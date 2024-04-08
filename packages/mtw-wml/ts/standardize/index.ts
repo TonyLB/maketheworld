@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -96,6 +96,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         }
     }
     if (isSchemaTheme(data)) {
+        const promptTagTree = new SchemaTagTree(children).filter({ match: 'Prompt' }).prune({ not: { match: 'Prompt' } })
         const roomTagTree = new SchemaTagTree(children).filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
         const mapsTagTree = new SchemaTagTree(children).filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
         return {
@@ -103,6 +104,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             key: data.key,
             id,
             name: { data: { tag: 'Name' }, children: [], id: '' },
+            prompts: maybeGenericIDFromTree(promptTagTree.tree).filter(treeNodeTypeguard(isSchemaPrompt)),
             rooms: maybeGenericIDFromTree(roomTagTree.tree),
             maps: maybeGenericIDFromTree(mapsTagTree.tree)
         }
@@ -612,6 +614,7 @@ export class Standardizer {
                 return {
                     ...rest,
                     name: stripValue(value, 'name'),
+                    prompts: stripIDFromTree(value.prompts).filter(treeNodeTypeguard(isSchemaPrompt)),
                     rooms: stripIDFromTree(value.rooms),
                     maps: stripIDFromTree(value.maps)
                 }
@@ -686,6 +689,7 @@ export class Standardizer {
                     ...value,
                     id: uuidv4(),
                     name: deserializeValue(value, 'name'),
+                    prompts: maybeGenericIDFromTree(value.prompts).filter(treeNodeTypeguard(isSchemaPrompt)),
                     rooms: maybeGenericIDFromTree(value.rooms),
                     maps: maybeGenericIDFromTree(value.maps)
                 }

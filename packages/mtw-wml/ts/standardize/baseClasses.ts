@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
+import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
 import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
@@ -59,6 +59,7 @@ export type StandardMap = {
 export type StandardTheme = {
     tag: 'Theme';
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
     maps: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
@@ -179,6 +180,7 @@ export type SerializableStandardMap = {
 export type SerializableStandardTheme = {
     tag: 'Theme';
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
     rooms: GenericTree<SchemaTag>;
     maps: GenericTree<SchemaTag>;
 } & SerializableStandardBase

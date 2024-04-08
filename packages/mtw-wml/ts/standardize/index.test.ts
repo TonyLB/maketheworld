@@ -694,6 +694,7 @@ describe('standardizeSchema', () => {
                 <Room key=(testTwo)><Position x="100" y="0" /></Room>
             </Map>
             <Theme key=(theme1)>
+                <Prompt>Spooky</Prompt>
                 <Room key=(test) />
                 <Map key=(testMap) />
             </Theme>
@@ -740,6 +741,7 @@ describe('standardizeSchema', () => {
                 key: 'theme1',
                 tag: 'Theme',
                 name: { data: { tag: 'Name' }, children: [] },
+                prompts: [{ data: { tag: 'Prompt', value: 'Spooky' }, children: [] }],
                 rooms: [{ data: { tag: 'Room', key: 'test' }, children: [] }],
                 maps: [{ data: { tag: 'Map', key: 'testMap' }, children: [] }]
             }

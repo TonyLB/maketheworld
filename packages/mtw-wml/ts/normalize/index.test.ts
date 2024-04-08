@@ -42,6 +42,7 @@ describe('WML normalize', () => {
                 <Room key=(overview) />
                 <Knowledge key=(baseInfo) />
             </Import>
+            <Theme key=(testTheme) />
             <Room key=(a123)>
                 <Exit to=(b456) />
                 <Feature key=(clockTower) />

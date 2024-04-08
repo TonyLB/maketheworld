@@ -59,6 +59,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysBy
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
+import ThemeEditor from './ThemeEditor'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
@@ -370,6 +371,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                         <Routes>
                             <Route path={'WML'} element={<WMLEdit />} />
                             <Route path={'Map/:MapId'} element={<MapEdit />} />
+                            <Route path={'Theme/:ComponentId'} element={<ThemeEditor />} />
                             <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
