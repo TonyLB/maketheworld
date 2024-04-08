@@ -55,10 +55,7 @@ import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
-import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
-import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
+import { TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
 import { StandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
@@ -69,7 +66,7 @@ type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
 }
 
-const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
         case 'Feature':
@@ -106,6 +103,11 @@ const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Ima
                 tag: 'Map' as const,
                 key
             }
+        case 'Theme':
+            return {
+                tag: 'Theme' as const,
+                key
+            }
     }
 }
 
@@ -136,7 +138,7 @@ const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, on
         </Dialog>
 }
 
-const AddWMLComponent: FunctionComponent<{ type: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
+const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
     <ListItemButton onClick={onAdd}>
         <ListItemIcon>
             <AddIcon />
@@ -167,7 +169,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const actions = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaActionTag, TreeId>({ tree: jsItems, typeGuard: isSchemaAction })), [jsItems])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
+    const addAsset = useCallback((tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))
@@ -223,7 +225,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                     { themes.length
                         ? <React.Fragment>
                             { themes.map((themeItem) => (
-                                <ListItemButton onClick={() => { navigate(`Theme/${themeItem.key}`)}}>
+                                <ListItemButton key={themeItem.key} onClick={() => { navigate(`Theme/${themeItem.key}`)}}>
                                     <ListItemIcon>
                                         <ThemeIcon />
                                     </ListItemIcon>
@@ -233,6 +235,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                         </React.Fragment>
                         : null
                     }
+                    <AddWMLComponent type="Theme" onAdd={addAsset('Theme')} />
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
