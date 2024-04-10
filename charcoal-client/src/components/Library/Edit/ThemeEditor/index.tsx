@@ -18,11 +18,14 @@ import DescriptionEditor from "../DescriptionEditor"
 import treeListFactory from "../treeListFactory"
 import { GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import SidebarTitle from "../SidebarTitle"
+
+const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
+    return <React.Fragment>Prompt: {node.data.value}</React.Fragment>
+}
 
 const Prompts = treeListFactory<SchemaPromptTag>({
-    render: ({ node }: { node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}) => (
-        <React.Fragment>Prompt: {node.data.value}</React.Fragment>
-    ),
+    render: PromptItem,
     defaultNode: { tag: 'Prompt', value: '' },
     label: 'Prompt'
 })
@@ -110,7 +113,9 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         />
                     </TitledBox>
                 </EditSchema>
-                <Prompts tree={component.prompts} parentId={component.id} />
+                <SidebarTitle title="Prompts" minHeight="8em">
+                    <Prompts tree={component.prompts} parentId={component.id} />
+                </SidebarTitle>
             </Box>
             <DraftLockout />
         </Box>
