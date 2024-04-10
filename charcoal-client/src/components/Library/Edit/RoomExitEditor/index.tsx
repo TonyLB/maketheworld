@@ -13,18 +13,14 @@ import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import IfElseTree from "../IfElseTree"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaOutputTag, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaOutputTag, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
-import { selectName, selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { select } from "slate"
-import { updateSchema } from "../../../../slices/personalAssets"
-import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { selectItemsByKey } from "@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey"
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import SidebarTitle from "../SidebarTitle"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -269,60 +265,29 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             .tree    
     }})), [select, RoomId])
 
-    return <Box sx={{
-        display: 'flex',
-        flexDirection: 'row',
-        marginTop: '0.5em',
-        marginLeft: '0.5em'
-    }}>
-        <Box sx={{
-            display: 'flex',
-            width: '2em',
-            minHeight: '5em',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: blue[50],
-            borderTopColor: blue[500],
-            borderTopStyle: 'solid',
-            borderBottomColor: blue[500],
-            borderBottomStyle: 'solid',
-            marginRight: '0.5em'
-        }}>
-            <Typography
-                sx={{ transform: 'rotate(-90deg)' }}
-                variant="h5"
-            >
-                Exits
-            </Typography>
-        </Box>
-        <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            flexGrow: 1,
-        }}>
-            { exitTree.map((node) => (
-                <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: roomTreeId, item: node })}} />
-            ))}
-            {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
-            {/* <IfElseTree
-                tree={outgoingExits}
-                parentId={schema[0]?.id ?? ''}
-                render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
-                addItemIcon={<ExitIcon />}
-                defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }}
-            /> */}
-            {/* { outgoingExits.map((node) => {
-                if (isSchemaCondition(node.data)) {
-                    return <IfElseTree
-                        tree={treeTypeGuard({ tree: node.children, typeGuard: (subNode): subNode is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (['Statement', 'Fallthrough'].includes(subNode.data.tag)) }) }
-                        render={(props) => (<RoomExitComponent tree={props.} RoomId={RoomId} />)}
-                }
-                else {
+    return <SidebarTitle title="Exit" minHeight="5em">
+        { exitTree.map((node) => (
+            <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { updateSchema({ type: 'addChild', id: roomTreeId, item: node })}} />
+        ))}
+        {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
+        {/* <IfElseTree
+            tree={outgoingExits}
+            parentId={schema[0]?.id ?? ''}
+            render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
+            addItemIcon={<ExitIcon />}
+            defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }}
+        /> */}
+        {/* { outgoingExits.map((node) => {
+            if (isSchemaCondition(node.data)) {
+                return <IfElseTree
+                    tree={treeTypeGuard({ tree: node.children, typeGuard: (subNode): subNode is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (['Statement', 'Fallthrough'].includes(subNode.data.tag)) }) }
+                    render={(props) => (<RoomExitComponent tree={props.} RoomId={RoomId} />)}
+            }
+            else {
 
-                }
-            })} */}
-        </Box>
-    </Box>
+            }
+        })} */}
+    </SidebarTitle>
 }
 
 export default RoomExitEditor
