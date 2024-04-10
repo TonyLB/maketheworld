@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate, useParams } from "react-router-dom"
 
@@ -15,6 +15,17 @@ import LibraryBanner from "../LibraryBanner"
 import { EditSchema } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
+import treeListFactory from "../treeListFactory"
+import { GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+
+const Prompts = treeListFactory<SchemaPromptTag>({
+    render: ({ node }: { node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}) => (
+        <React.Fragment>Prompt: {node.data.value}</React.Fragment>
+    ),
+    defaultNode: { tag: 'Prompt', value: '' },
+    label: 'Prompt'
+})
 
 type ThemeEditorProps = {}
 
@@ -99,7 +110,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         />
                     </TitledBox>
                 </EditSchema>
-                <span>Prompt: {component.prompts[0]?.data?.value ?? 'NONE'}</span>
+                <Prompts tree={component.prompts} parentId={component.id} />
             </Box>
             <DraftLockout />
         </Box>
