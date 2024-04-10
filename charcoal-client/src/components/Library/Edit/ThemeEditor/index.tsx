@@ -1,8 +1,6 @@
-import { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate, useParams } from "react-router-dom"
-
-import ListItem from '@mui/material/ListItem'
 
 import Box from '@mui/material/Box'
 import HomeIcon from '@mui/icons-material/Home'
@@ -23,7 +21,7 @@ import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClas
 
 const Prompts = treeListFactory<SchemaPromptTag>({
     render: ({ node }: { node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}) => (
-        <ListItem key={node.id}>Prompt: {node.data.value}</ListItem>
+        <React.Fragment>Prompt: {node.data.value}</React.Fragment>
     ),
     defaultNode: { tag: 'Prompt', value: '' }
 })
