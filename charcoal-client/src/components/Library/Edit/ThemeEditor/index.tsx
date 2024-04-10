@@ -23,7 +23,8 @@ const Prompts = treeListFactory<SchemaPromptTag>({
     render: ({ node }: { node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}) => (
         <React.Fragment>Prompt: {node.data.value}</React.Fragment>
     ),
-    defaultNode: { tag: 'Prompt', value: '' }
+    defaultNode: { tag: 'Prompt', value: '' },
+    label: 'Prompt'
 })
 
 type ThemeEditorProps = {}
