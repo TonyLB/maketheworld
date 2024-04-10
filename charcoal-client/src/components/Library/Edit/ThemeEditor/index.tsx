@@ -1,9 +1,10 @@
-import React, { FunctionComponent, useCallback, useMemo } from "react"
+import { FunctionComponent, useCallback, useMemo } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate, useParams } from "react-router-dom"
 
 import Box from '@mui/material/Box'
 import HomeIcon from '@mui/icons-material/Home'
+import TextField from "@mui/material/TextField"
 
 import { useLibraryAsset } from "../LibraryAsset"
 import useAutoPin from "../../../../slices/UI/navigationTabs/useAutoPin"
@@ -21,11 +22,16 @@ import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClas
 import SidebarTitle from "../SidebarTitle"
 
 const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
-    return <React.Fragment>Prompt: {node.data.value}</React.Fragment>
+    const { updateSchema } = useLibraryAsset()
+    const value = useMemo(() => (node.data.value), [node])
+    const onChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        updateSchema({ type: 'updateNode', id: node.id, item: { tag: 'Prompt', value: event.target.value }})
+    }, [updateSchema, node.id])
+    return <TextField label="Prompt" variant="standard" value={value} onChange={onChange} />
 }
 
 const Prompts = treeListFactory<SchemaPromptTag>({
-    render: PromptItem,
+    render: ({ node }) => (<PromptItem node={node} />),
     defaultNode: { tag: 'Prompt', value: '' },
     label: 'Prompt'
 })
