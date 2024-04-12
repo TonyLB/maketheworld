@@ -126,9 +126,9 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <ConnectionTable
                     label="Rooms"
                     minHeight="5em"
-                    possibleConnections={[{ id: 'test', key: 'test', name: 'Test' }]}
-                    select={() => {}}
-                    unselect={() => {}}
+                    target={ComponentId}
+                    tag="Room"
+                    orientation="children"
                 />
             </Box>
             <DraftLockout />
