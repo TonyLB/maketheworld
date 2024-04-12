@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react"
-import SidebarTitle from "./SidebarTitle";
-import { Checkbox, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material"
+import SidebarTitle from "./SidebarTitle"
+import { DataGrid, GridColDef } from '@mui/x-data-grid'
 
 type ConnectionTablePossibleConnection = {
     id: string;
@@ -17,35 +17,25 @@ type ConnectionTableProps = {
 }
 
 export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label, minHeight, possibleConnections }) => {
+    const columns: GridColDef[] = [
+        { field: 'key', headerName: 'Key', width: 130 },
+        { field: 'name', headerName: 'Name', width: 130 }
+    ];
+
     return <SidebarTitle title={label} minHeight={minHeight}>
-        <Table>
-            <TableHead>
-                <TableRow>
-                    <TableCell />
-                    <TableCell>Key</TableCell>
-                    <TableCell>Name</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {
-                    possibleConnections.map(({ id, key, name }) => (
-                        <TableRow key={id} hover>
-                            <TableCell padding="checkbox">
-                                <Checkbox
-                                    color="primary"
-                                    checked={false}
-                                    inputProps={{
-                                        'aria-label': 'select',
-                                    }}
-                                />
-                            </TableCell>
-                            <TableCell>{key}</TableCell>
-                            <TableCell>{name}</TableCell>
-                        </TableRow>
-                    ))
-                }
-            </TableBody>
-        </Table>
+        <DataGrid
+            rows={[
+                { id: 1, key: 'test', name: 'Test' }
+            ]}
+            columns={columns}
+            initialState={{
+                pagination: {
+                  paginationModel: { page: 0, pageSize: 5 },
+                },
+            }}
+            pageSizeOptions={[5, 10, 25]}
+            checkboxSelection
+        />
     </SidebarTitle>
 }
 
