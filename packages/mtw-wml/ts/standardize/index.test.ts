@@ -47,11 +47,11 @@ describe('standardizeSchema', () => {
             <Asset key=(Test)>
                 <Room key=(test)>
                     <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Summary>One<br /><If {false} selected>Two</If></Summary>
                     <Description>Three</Description>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false}>Four</If></Description>
+                    <Description><If {false} selected>Four</If></Description>
                 </Feature>
             </Asset>
         `))
@@ -79,7 +79,7 @@ describe('standardizeSchema', () => {
             <Asset key=(Test)>
                 <Room key=(test)>
                     <Description>One<br /></Description>
-                    <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
+                    <If {false} selected><Exit to=(testTwo)>Test Exit</Exit></If>
                 </Room>
                 <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
             </Asset>
@@ -233,15 +233,15 @@ describe('standardizeSchema', () => {
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room key=(testRoomTwo)>
-                    <Description><If {false}>Test Room Two</If></Description>
-                    <If {false}><Exit to=(testRoomOne)>one</Exit></If>
+                    <Description><If {false} selected>Test Room Two</If></Description>
+                    <If {false} selected><Exit to=(testRoomOne)>one</Exit></If>
                 </Room>
                 <Map key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
                     <Room key=(testRoomTwo)>
-                        <If {false}><Position x="-100" y="0" /></If>
+                        <If {false} selected><Position x="-100" y="0" /></If>
                     </Room>
                 </Map>
             </Asset>
@@ -614,7 +614,7 @@ describe('standardizeSchema', () => {
                         data: { tag: 'If' },
                         id: expect.any(String),
                         children: [{
-                            data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'] },
+                            data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'], selected: true },
                             id: expect.any(String),
                             children: [{ data: { tag: 'String', value: 'Conditioned' }, id: expect.any(String), children: [] }]
                         }]
