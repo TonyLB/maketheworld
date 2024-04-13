@@ -11,6 +11,7 @@ import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
+import { defaultSelected } from '../schema/utils'
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
@@ -523,7 +524,7 @@ export class Standardizer {
             ]
             return [{
                 data: { tag: this._assetTag, key: this._assetKey, Story: undefined },
-                children,
+                children: defaultSelected(children),
                 id: this._assetId
             }]
         }
@@ -531,10 +532,10 @@ export class Standardizer {
             const character = standardItemToSchemaItem(this._byId[this._assetKey])
             return [{
                 ...character,
-                children: [
+                children: defaultSelected([
                     ...character.children,
                     ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
-                ]
+                ])
             }]
         }
         throw new Error('Invalid internal tags on Standardizer schema')
