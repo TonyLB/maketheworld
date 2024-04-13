@@ -20,6 +20,7 @@ import treeListFactory from "../treeListFactory"
 import { GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
+import ConnectionTable from "../ConnectionTable"
 
 const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
     const { updateSchema } = useLibraryAsset()
@@ -122,6 +123,13 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <SidebarTitle title="Prompts" minHeight="8em">
                     <Prompts tree={component.prompts} parentId={component.id} />
                 </SidebarTitle>
+                <ConnectionTable
+                    label="Rooms"
+                    minHeight="5em"
+                    target={ComponentId}
+                    tag="Room"
+                    orientation="children"
+                />
             </Box>
             <DraftLockout />
         </Box>
