@@ -40,10 +40,9 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
     ]
     const { updateSchema, standardForm } = useLibraryAsset()
 
-    const targetTag = useMemo(() => (standardForm.byId[target]?.tag ?? 'None'), [standardForm, target])
     const currentConnections = useMemo((): ConnectionTablePossibleConnection[] => {
+        const component = standardForm.byId[target]
         if (orientation === 'children') {
-            const component = standardForm.byId[target]
             if (component && isStandardTheme(component)) {
                 if (tag === 'Room') {
                     return component.rooms
@@ -66,9 +65,30 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
             }
             return []
         }
-        //
-        // TODO: Add calculation of currentConnections for parents orientation
-        //
+        else {
+            const rawConnections = Object.values(standardForm.byId).filter(({ tag: compareTag }) => (compareTag === tag))
+            return rawConnections
+                .filter((connection): connection is StandardTheme => (isStandardTheme(connection)))
+                .map((connection) => {
+                    if (isStandardRoom(component)) {
+                        const lookup = connection.rooms
+                            .filter(treeNodeTypeguard(isSchemaRoom))
+                            .find(({ data }) => (data.key === component.key))
+                        if (lookup) {
+                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(connection.name.children) || 'Untitled', key: connection.key, selected: true }]
+                        }
+                    }
+                    if (isStandardMap(component)) {
+                        const lookup = connection.maps
+                            .filter(treeNodeTypeguard(isSchemaMap))
+                            .find(({ data }) => (data.key === component.key))
+                        if (lookup) {
+                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(connection.name.children) || 'Untitled', key: connection.key, selected: true }]
+                        }
+                    }
+                    return []
+                }).flat(1)
+        }
         return []
     }, [standardForm, tag, target, orientation])
     const possibleConnections = useMemo((): ConnectionTablePossibleConnection[] => {
