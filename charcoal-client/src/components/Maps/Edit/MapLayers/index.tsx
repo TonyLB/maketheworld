@@ -26,6 +26,7 @@ import { selectItemsByKey } from '@tonylb/mtw-wml/dist/normalize/selectors/items
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import ConnectionTable from '../../../Library/Edit/ConnectionTable'
 
 type MapLayersProps = {
     mapId: string;
@@ -257,6 +258,13 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     //
     const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
+        <ConnectionTable
+            label="Themes"
+            minHeight="10em"
+            target={mapId}
+            tag="Theme"
+            orientation="parents"
+        />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
