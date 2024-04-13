@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo } from "react"
+import { FunctionComponent, useCallback, useMemo } from "react"
 import SidebarTitle from "./SidebarTitle"
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses";
@@ -89,6 +89,34 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
     const rowSelectionModel: GridRowSelectionModel = useMemo(() => {
         return allConnections.filter(({ selected }) => (selected)).map(({ id }) => (id))
     }, [allConnections])
+    const setRowSelectionModel = useCallback((values: GridRowSelectionModel): void => {
+        const addItems = allConnections.filter(({ id, selected }) => (!selected && values.includes(id)))
+        const deleteItems = allConnections.filter(({ id, selected }) => (selected && !values.includes(id)))
+        if (addItems.length + deleteItems.length === 0) {
+            return
+        }
+        deleteItems.forEach(({ deleteId }) => {
+            if (deleteId) {
+                updateSchema({ type: 'delete', id: deleteId })
+            }
+        })
+        const component = standardForm.byId[target]
+        if (component && (isStandardRoom(component) || isStandardTheme(component) || isStandardMap(component))) {
+            if (orientation === 'children') {
+                addItems.forEach(({ key }) => {
+                    updateSchema({ type: 'addChild', id: component.id, item: { data: { tag, key }, children: [] }})
+                })
+            }
+            else {
+                addItems.forEach(({ key }) => {
+                    const parent = standardForm.byId[key]
+                    if (parent) {
+                        updateSchema({ type: 'addChild', id: parent.id, item: { data: { tag: component.tag, key: target }, children: [] }})
+                    }
+                })
+            }
+        }
+    }, [allConnections, updateSchema, standardForm, tag, target, orientation])
     //
     // TODO: Create setRowSelectionModel callback that (a) deletes records as needed when unselected, (b) adds records as needed when selected
     //
@@ -103,7 +131,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
                 },
             }}
             rowSelectionModel={rowSelectionModel}
-            onRowSelectionModelChange={() => {}}
+            onRowSelectionModelChange={setRowSelectionModel}
             pageSizeOptions={[5, 10, 25]}
             checkboxSelection
         />
