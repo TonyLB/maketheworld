@@ -134,11 +134,13 @@ export type SchemaConditionTag = {
 export type SchemaConditionStatementTag = {
     tag: 'Statement';
     if: string;
+    selected?: boolean;
     dependencies?: string[]
 } & SchemaBase
 
 export type SchemaConditionFallthroughTag = {
     tag: 'Fallthrough';
+    selected?: boolean;
 } & SchemaBase
 
 export type SchemaExitTag = {
