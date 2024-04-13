@@ -16,11 +16,15 @@ import { wrapperCombine } from "./quantumRender/combine"
 const conditionalTemplates = {
     If: {
         DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
+        selected: { required: false, type: ParsePropertyTypes.Boolean }
     },
     ElseIf: {
         DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
+        selected: { required: false, type: ParsePropertyTypes.Boolean }
     },
-    Else: {}
+    Else: {
+        selected: { required: false, type: ParsePropertyTypes.Boolean }
+    }
 } as const
 
 export const conditionalConverters: Record<string, ConverterMapEntry> = {
@@ -29,7 +33,8 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.If)(parseOpen)
             return {
                 tag: 'Statement',
-                if: validatedProperties.DEFAULT
+                if: validatedProperties.DEFAULT,
+                ...(validatedProperties.selected ? { selected: true } : {} )
             }
         },
         wrapper: 'If'
@@ -40,6 +45,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             return {
                 tag: 'Statement',
                 if: validatedProperties.DEFAULT,
+                ...(validatedProperties.selected ? { selected: true } : {} )
             }
         },
         wrapper: 'If',
@@ -60,6 +66,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             return {
                 tag: 'Statement',
                 if: validatedProperties.DEFAULT,
+                ...(validatedProperties.selected ? { selected: true } : {} )
             }
         },
         wrapper: 'If',
@@ -75,8 +82,12 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Else: {
-        initialize: (): SchemaConditionFallthroughTag => {
-            return { tag: 'Fallthrough' }
+        initialize: ({ parseOpen }): SchemaConditionFallthroughTag => {
+            const validatedProperties = validateProperties(conditionalTemplates.Else)(parseOpen)
+            return {
+                tag: 'Fallthrough',
+                ...(validatedProperties.selected ? { selected: true } : {} )
+            }
         },
         wrapper: 'If',
         aggregate: (previous, node) => {
@@ -94,8 +105,12 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Fallthrough: {
-        initialize: (): SchemaConditionFallthroughTag => {
-            return { tag: 'Fallthrough' }
+        initialize: ({ parseOpen }): SchemaConditionFallthroughTag => {
+            const validatedProperties = validateProperties(conditionalTemplates.Else)(parseOpen)
+            return {
+                tag: 'Fallthrough',
+                ...(validatedProperties.selected ? { selected: true } : {} )
+            }
         },
         wrapper: 'If',
         aggregate: (previous, node) => {
@@ -116,6 +131,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
     Statement: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        const { persistentOnly } = args.options
         if (!isSchemaConditionStatement(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
@@ -124,7 +140,10 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return tagRender({
                 ...args,
                 tag: 'If',
-                properties: [{ type: 'expression', value: tag.if }],
+                properties: [
+                    { type: 'expression', value: tag.if },
+                    ...( persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }])
+                ],
                 node: { data: tag, children }
             })    
         }
@@ -132,19 +151,23 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return tagRender({
                 ...args,
                 tag: 'ElseIf',
-                properties: [{ type: 'expression', value: tag.if }],
+                properties: [
+                    { type: 'expression', value: tag.if },
+                    ...( persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }])
+                ],
                 node: { data: tag, children }
             })    
         }
     },
     Fallthrough: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        const { persistentOnly } = args.options
         if (!isSchemaConditionFallthrough(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
             tag: 'Else',
-            properties: [],
+            properties: persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }],
             node: { data: tag, children }
         })    
     },

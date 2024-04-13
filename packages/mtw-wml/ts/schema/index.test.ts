@@ -699,6 +699,56 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly not persist ui select properties', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Feature key=(doors)>
+                    <Description>
+                        Doors drifting in space,
+                        <If {lights} selected>lit from a distant star</If>
+                        <Else>dark and cold</Else>
+                    </Description>
+                </Feature>
+                <Variable key=(lights) default={true} />
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Feature key=(doors)>
+                    <Description>
+                        Doors drifting in space,
+                        <If {lights}>lit from a distant star</If><Else>dark and cold</Else>
+                    </Description>
+                </Feature>
+                <Variable key=(lights) default={true} />
+            </Asset>
+        `))
+        const testTwoWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Feature key=(doors)>
+                    <Description>
+                        Doors drifting in space, <If {lights}>lit from a distant star</If>
+                        <Else selected>dark and cold</Else>
+                    </Description>
+                </Feature>
+                <Variable key=(lights) default={true} />
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testTwoWML)))))).toEqual(testTwoWML)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testTwoWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Feature key=(doors)>
+                    <Description>
+                        Doors drifting in space,
+                        <If {lights}>lit from a distant star</If><Else>dark and cold</Else>
+                    </Description>
+                </Feature>
+                <Variable key=(lights) default={true} />
+            </Asset>
+        `))
+    })
+
     it('should correctly round-trip nested line-wrapped text', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
