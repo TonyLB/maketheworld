@@ -580,6 +580,18 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly not persist exits without targets', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(VORTEX)><Exit>Exit to nowhere</Exit></Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
+            <Asset key=(Test)><Room key=(VORTEX) /></Asset>
+        `))
+    })
+
     it('should correctly round-trip variables and actions', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>

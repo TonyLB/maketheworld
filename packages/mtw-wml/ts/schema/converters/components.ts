@@ -39,7 +39,6 @@ import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
-        from: { type: ParsePropertyTypes.Key },
         to: { type: ParsePropertyTypes.Key }
     },
     Description: {},
@@ -92,18 +91,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
             const roomContextList = contextStack.map(({ data }) => (data)).filter(isSchemaRoom)
             const roomContext = roomContextList.length > 0 ? roomContextList.slice(-1)[0] : undefined
-            const { from, to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
-            if (!roomContext && (!from || !to)) {
-                throw new Error(`Exit must specify both 'from' and 'to' properties if not in a room item`)
-            }
-            if (!(from || to)) {
-                throw new Error(`Exit must specify at least one of 'from' and 'to' properties`)
-            }
+            const { to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             return {
                 tag: 'Exit',
-                key: `${from || roomContext?.key}#${to || roomContext?.key}`,
-                from: from ?? roomContext?.key ?? '',
-                to: to ?? roomContext?.key ?? '',
+                key: `${roomContext?.key}#${to}`,
+                from: roomContext?.key ?? '',
+                to: to ?? '',
                 ...rest
             }
         },
@@ -309,8 +302,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
 export const componentPrintMap: Record<string, PrintMapEntry> = {
     Exit: ({ tag: { data: tag, children }, ...args }) => {
 
-        const { context } = args.options
-        if (!isSchemaExit(tag)) {
+        const { context, persistentOnly } = args.options
+        if (!isSchemaExit(tag) || (persistentOnly && !tag.to)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
         const roomsContextList = context.filter(isSchemaRoom)
