@@ -130,6 +130,13 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     tag="Room"
                     orientation="children"
                 />
+                <ConnectionTable
+                    label="Maps"
+                    tag="Map"
+                    orientation="children"
+                    minHeight="5em"
+                    target={ComponentId}
+                />
             </Box>
             <DraftLockout />
         </Box>
