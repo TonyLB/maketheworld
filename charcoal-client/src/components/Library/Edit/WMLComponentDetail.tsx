@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import {
     useLocation,
     useNavigate,
@@ -22,6 +22,7 @@ import { EditSchema } from './EditContext'
 import { isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import ConnectionTable from './ConnectionTable'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, updateSchema } = useLibraryAsset()
@@ -130,7 +131,16 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </TitledBox>
         </EditSchema>
         {
-            (tag === 'Room') && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
+            isStandardRoom(component) && <React.Fragment>
+                <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
+                <ConnectionTable
+                    label="Themes"
+                    minHeight="10em"
+                    target={ComponentId}
+                    tag="Theme"
+                    orientation="parents"
+                />
+            </React.Fragment>
         }
     </Box>
 }
