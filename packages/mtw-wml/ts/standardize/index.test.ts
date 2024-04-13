@@ -264,16 +264,16 @@ describe('standardizeSchema', () => {
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Map key=(testMap)>
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                </Map>
                 <Theme key=(testTheme)>
                     <Name>Spooky shenanigans</Name>
                     <Prompt>Spooky</Prompt>
                     <Room key=(testRoomOne) />
                     <Map key=(testMap) />
                 </Theme>
-                <Room key=(testRoomOne) />
-                <Map key=(testMap)>
-                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                </Map>
             </Asset>
         `))
     })
