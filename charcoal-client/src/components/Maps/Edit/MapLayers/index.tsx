@@ -21,9 +21,6 @@ import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
-import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
-import { selectItemsByKey } from '@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey'
-import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import ConnectionTable from '../../../Library/Edit/ConnectionTable'
@@ -227,7 +224,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
     const { standardForm } = useLibraryAsset()
-    const { data, children } = item
+    const { data } = item
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
@@ -239,9 +236,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
-            //
-            // TODO: Get correct parentId
-            //
             return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
                     render={() => (<MapStubRender />)}
@@ -253,9 +247,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    //
-    // TODO: Refactor MapLayers to work with Schema rather than the mapView structure
-    //
     const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
         <ConnectionTable

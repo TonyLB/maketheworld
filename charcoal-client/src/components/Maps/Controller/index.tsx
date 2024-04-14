@@ -5,150 +5,19 @@ import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatch
 import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
-import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch, useSelector } from "react-redux"
 import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
-import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
 import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
-
-// //
-// // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
-// // representing the information needed to render the map in edit mode.
-// //
-// const extractMapTreeHelper = (references: NormalReference[], options: { normalizer: Normalizer; baseRoomTags: Record<string, SchemaRoomTag> }): GenericTree<MapTreeItem> => {
-//     const { baseRoomTags = {}, normalizer } = options
-//     return references.map((reference) => {        
-//         if (reference.tag === 'Room') {
-//             const node = normalizer.normal[reference.key].appearances[reference.index] as ComponentAppearance
-//             return [{
-//                 data: {
-//                     ...baseRoomTags[reference.key],
-//                     x: node.x,
-//                     y: node.y,
-//                     reference,
-//                     contents: []
-//                 },
-//                 children: []
-//             }]
-//         }
-//         if (reference.tag === 'If') {
-//             const baseNode = normalizer.normal[reference.key] as NormalCondition
-//             const node = baseNode.appearances[reference.index] as BaseAppearance            
-//             return [{
-//                 data: {
-//                     tag: 'If' as const,
-//                     key: baseNode.key,
-//                     conditions: baseNode.conditions,
-//                     contents: []
-//                 },
-//                 children: extractMapTreeHelper(node.contents, { normalizer, baseRoomTags })
-//             }]
-//         }
-//         return []
-//     }).flat(1)
-// }
-
-// const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: string }): GenericTree<MapTreeItem> => {
-//     const mapItem = normalizer.normal[mapId]
-//     if (!mapItem || !isNormalMap(mapItem)) {
-//         return []
-//     }
-//     const wrapConditionals = (conditions: SchemaConditionTag[], item: GenericTreeNode<MapTreeItem>): GenericTreeNode<MapTreeItem> => {
-//         return conditions.reduceRight<GenericTreeNode<MapTreeItem>>((previous, condition) => ({
-//             data: condition,
-//             children: [previous]
-//         }), item)
-//     }
-//     const baseRoomTags: Record<string, SchemaRoomTag> = mapItem.appearances.reduce<string[]>(
-//         (previous, { rooms }) => (
-//             unique(
-//                 previous,
-//                 rooms.map(({ key }) => (key))
-//             )
-//         ), [])
-//         .reduce<Record<string, SchemaRoomTag>>((previous, key) => {
-//             const roomTag = normalizer.referenceToSchema({ key, tag: 'Room', index: 0 })
-//             if (!(roomTag && isSchemaRoom(roomTag))) {
-//                 throw new Error('Room lookup failure')
-//             }
-//             return {
-//                 ...previous,
-//                 [key]: roomTag
-//             }
-//         }, {})
-//     //
-//     // TODO: ISS-3272: Refactor this section here to use the contents of each appearance,
-//     // rather than the rooms denormalization
-//     //
-//     const allRooms = mapItem.appearances.map<GenericTree<MapTreeItem>>(
-//         ({ contents }) => (extractMapTreeHelper(contents, { normalizer, baseRoomTags }))
-//     ).flat(1)
-//     const allExits: GenericTree<MapTreeItem>[] = Object.values(normalizer.normal)
-//         .filter(isNormalExit)
-//         .filter(({ to, from }) => (to in baseRoomTags && from in baseRoomTags))
-//         .map<GenericTree<MapTreeItem>>((exitTag) => {
-//             return exitTag.appearances.map<GenericTreeNode<MapTreeItem>>(({ contextStack, name }) => {
-//                 const conditions = contextStack
-//                     .filter(({ tag } ) => (tag === 'If'))
-//                     .map((reference) => {
-//                         const condition = normalizer.referenceToSchema(reference)
-//                         if (!(condition && isSchemaCondition(condition))) {
-//                             throw new Error('Condition lookup failure')
-//                         }
-//                         return condition
-//                     })
-//                 return wrapConditionals(conditions, {
-//                     data: {
-//                         ...baseRoomTags[exitTag.from],
-//                         reference: { key: exitTag.from, tag: 'Room', index: 0 }
-//                     },
-//                     children: [{
-//                         data: { tag: 'Exit', key: exitTag.key, to: exitTag.to, from: exitTag.from, name, contents: [] },
-//                         children: []
-//                     }]
-//                 })
-//             })
-//         })
-    
-//     const mergeTreeOptions = {
-//         compare: (a: MapTreeItem, b: MapTreeItem) => {
-//             if (a.tag === 'Room' && b.tag === 'Room') {
-//                 return deepEqual(
-//                     { ...a, x: 0, y: 0, reference: undefined, contents: [], render: [], name: [] },
-//                     { ...b, x: 0, y: 0, reference: undefined, contents: [], render: [], name: [] }
-//                 )
-//             }
-//             return deepEqual(a, b)
-//         },
-//         extractProperties: (item: MapTreeItem): MapTreeItem | undefined => {
-//             return item
-//         },
-//         rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (
-//             baseItem.tag === 'Room'
-//                 ? properties.filter((value): value is MapTreeRoom => (value.tag === 'Room')).reduce((previous, { x, y, reference }) => (
-//                     (typeof x !== 'undefined' && typeof y !== 'undefined')
-//                         ? { ...previous, x, y, reference }
-//                         : previous
-//                 ), baseItem)
-//                 : baseItem
-//         )
-//     }
-//     return mergeTrees(mergeTreeOptions)(
-//         allRooms.filter(({ data }) => (data.tag === 'Room')),
-//         ...allExits,
-//         allRooms.filter(({ data }) => (data.tag === 'If'))
-//     )
-
-// }
+import { StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { assertTypeguard } from "../../../lib/types"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -177,37 +46,17 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     // Create a GenericTree representation of the items relevant to the map
     //
     const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>>(() => {
-        const tagTree = new SchemaTagTree(schema)
         const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
             isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
         )
-        const positions = tagTree
-            .filter({ and: [
-                { match: ({ data }) => (isSchemaMap(data) && data.key === mapId) },
-                { match: 'Room' },
-                { match: 'Position' }
-            ] })
-            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' } ]}})
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Position' }])
-            .tree
+        const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
+        const positions = mapComponent?.positions ?? []
         const roomKeys = selectKeysByTag('Room')(positions)
-        const roomNames = tagTree
-            .filter({ and: [
-                { match: ({ data }) => (isSchemaRoom(data) && roomKeys.includes(data.key)) },
-                { match: 'Name' }
-            ] })
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Name' }])
-            .prune({ not: { or: [{ match: 'Room' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Name' }, { after: { match: 'Name' } } ]}})
-            .tree
-        const exits = tagTree
-            .filter({ and: [
-                { match: ({ data }) => (isSchemaRoom(data) && (roomKeys.includes(data.key))) },
-                { match: ({ data }) => (isSchemaExit(data) && (roomKeys.includes(data.to))) }
-            ] })
-            .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Position' }] } })
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Exit' }, { match: 'Position'}] }])
-            .tree
-        const combinedTree = new SchemaTagTree([...positions, ...roomNames, ...exits]).tree
+        const roomAndExits = roomKeys
+            .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
+            .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
+            .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
+        const combinedTree = new SchemaTagTree([...positions, ...roomAndExits]).tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
     }, [schema, mapId])
 
@@ -297,12 +146,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                //
-                // TODO: ISS3228: Refactor mapD3 update to accept GenericTree<MapTreeItem>
-                //
                 mapD3.update(action.tree, action.hiddenConditions)
                 return
-                // return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
                 return

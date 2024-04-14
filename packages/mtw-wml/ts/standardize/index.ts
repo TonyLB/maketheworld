@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -11,7 +11,39 @@ import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
-import { defaultSelected } from '../schema/utils'
+
+export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, Extra>): GenericTree<SchemaTag, Extra> => (
+    tree.map((node) => {
+        if (treeNodeTypeguard(isSchemaCondition)(node)) {
+            const indexOfFirstSelected = node.children.findIndex(({ data }) => ((isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) && (data.selected ?? false) ))
+            if (indexOfFirstSelected !== -1) {
+                return {
+                    ...node,
+                    children: defaultSelected(node.children.map((child, index) => (
+                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
+                            ? { ...child, data: { ...child.data, selected: index === indexOfFirstSelected ? true : undefined } }
+                            : child
+                    )))
+                }
+            }
+            else {
+                const fallThroughIndex = node.children.findIndex(treeNodeTypeguard(isSchemaConditionFallthrough))
+                return {
+                    ...node,
+                    children: defaultSelected(node.children.map((child, index) => (
+                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
+                            ? { ...child, data: { ...child.data, selected: index === (fallThroughIndex > -1 ? fallThroughIndex : 0) } }
+                            : child
+                    )))
+                }
+            }
+        }
+        return {
+            ...node,
+            children: defaultSelected(node.children)
+        }
+    })
+)
 
 const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
