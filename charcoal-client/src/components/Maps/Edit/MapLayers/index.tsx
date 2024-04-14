@@ -227,7 +227,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
     const { standardForm } = useLibraryAsset()
-    const { data, children } = item
+    const { data } = item
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
@@ -239,9 +239,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Exit':
             return <ExitLayer name={data.to} />
         case 'If':
-            //
-            // TODO: Get correct parentId
-            //
             return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
                     render={() => (<MapStubRender />)}
