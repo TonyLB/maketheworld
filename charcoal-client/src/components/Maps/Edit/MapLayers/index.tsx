@@ -247,9 +247,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    //
-    // TODO: Refactor MapLayers to work with Schema rather than the mapView structure
-    //
     const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
         <ConnectionTable
