@@ -11,6 +11,7 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import { useLibraryAsset } from "./LibraryAsset"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext"
+import { Radio } from "@mui/material"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -63,16 +64,30 @@ type IfElseWrapBoxProps = {
     source: string;
     actions: ReactChild[] | ReactChildren;
     onDelete: () => void;
+    showSelected?: boolean;
+    selected?: boolean;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, children }) => {
     const { updateSchema } = useLibraryAsset()
     return <LabelledIndentBox
         color={blue}
         label={
             type === 'else'
-                ? 'Else'
+                ? <React.Fragment>
+                    { showSelected && <Radio
+                        value={id}
+                        checked={selected}
+                        inputProps={{ 'aria-label': 'Else selected' }}
+                    /> }
+                    Else
+                </React.Fragment>
                 : <React.Fragment>
+                    { showSelected && <Radio
+                        value={id}
+                        checked={selected}
+                        inputProps={{ 'aria-label': 'If selected' }}
+                    /> }
                     { type === 'if' ? 'If' : 'Else If' }
                     <Box
                         sx={{
@@ -107,13 +122,14 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
 
 type IfElseTreeProps = {
     render: FunctionComponent<{}>;
+    showSelected?: boolean;
 }
 
 //
 // IfElseTree assumes that the EditContext passed will have a single conditional top-level element,
 // and renders the statements and fallthrough of its children
 //
-export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement => {
+export const IfElseTree = ({ render: Render, showSelected = false }: IfElseTreeProps): ReactElement => {
     const { field } = useEditContext()
     const { updateSchema } = useLibraryAsset()
     const firstStatement = useMemo(() => (field.children[0]), [field])
@@ -153,6 +169,8 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                 addElseIf(firstStatement.id),
                 ...(otherStatements.length === 0 ? [addElse] : [])
             ]}
+            showSelected={showSelected}
+            selected={firstStatement.data.selected}
         >
             <EditSchema tag="Statement" field={firstStatement} parentId={field.id}>
                 <Render />
@@ -171,23 +189,29 @@ export const IfElseTree = ({ render: Render }: IfElseTreeProps): ReactElement =>
                             addElseIf(id),
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
                         ]}
+                        showSelected={showSelected}
+                        selected={data.selected}
                     >
                         <EditSchema tag="Statement" field={{ data, children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
-                    : <IfElseWrapBox
-                        key={id}
-                        id={id}
-                        type={'else'}
-                        source=''
-                        onDelete={() => { updateSchema({ type: 'delete', id })}}
-                        actions={[]}
-                    >
-                        <EditSchema tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
-                            <Render />
-                        </EditSchema>
-                    </IfElseWrapBox>
+                    : isSchemaConditionFallthrough(data)
+                        ? <IfElseWrapBox
+                            key={id}
+                            id={id}
+                            type={'else'}
+                            source=''
+                            onDelete={() => { updateSchema({ type: 'delete', id })}}
+                            actions={[]}
+                            showSelected={showSelected}
+                            selected={data.selected}
+                        >
+                            <EditSchema tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
+                                <Render />
+                            </EditSchema>
+                        </IfElseWrapBox>
+                        : null
             })
         }
     </React.Fragment>
