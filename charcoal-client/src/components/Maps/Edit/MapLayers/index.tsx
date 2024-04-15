@@ -217,11 +217,6 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
-
-//
-// TODO: Create lens function on tagTree that returns synthetic schema and updateSchema functions,
-// and use that where IfElseTree is used in Map component
-//
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
     const { standardForm } = useLibraryAsset()
     const { data } = item
@@ -239,6 +234,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
                     render={() => (<MapStubRender />)}
+                    showSelected={true}
                 />
             </EditSchema>
         default:
