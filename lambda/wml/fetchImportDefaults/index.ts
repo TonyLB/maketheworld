@@ -6,8 +6,9 @@ import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import standardizeSchema from "@tonylb/mtw-wml/ts/schema/standardize"
 import { PublishCommand } from "@aws-sdk/client-sns"
+import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { stripIDFromTree } from "@tonylb/mtw-wml/ts/tree/genericIDTree"
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -30,8 +31,8 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
                 Story: undefined,
                 key: splitType(assetId)[1]
             }
-            const standardized = standardizeSchema([{ data: assetSchema, children: schemaTags }])
-            const wrappedWithInheritedTag = standardized.map(({ data, children }) => ({
+            const standardizer = new Standardizer([{ data: assetSchema, children: schemaTags }])
+            const wrappedWithInheritedTag = stripIDFromTree(standardizer.schema).map(({ data, children }) => ({
                 data,
                 children: [{
                     data: { tag: 'Inherited' as const },
