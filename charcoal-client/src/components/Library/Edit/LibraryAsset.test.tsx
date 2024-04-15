@@ -7,10 +7,10 @@ import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
 jest.mock('../../../cacheDB')
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import standardizeSchema from '@tonylb/mtw-wml/dist/schema/standardize'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { stripIdFromNormal } from '@tonylb/mtw-wml/dist/normalize/genericId'
+import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 const mockStore = configureStore()
 const currentWML = `
@@ -57,7 +57,8 @@ inheritedSchema.loadWML(`<Asset key=(Test)>
     </Inherited>
 </Asset>`)
 
-const schema = standardizeSchema(inheritedSchema.schema, baseSchema)
+const standardizer = new Standardizer(inheritedSchema.schema, baseSchema)
+const schema = standardizer.schema
 const normalizer = new Normalizer()
 normalizer.loadSchema(schema)
 
