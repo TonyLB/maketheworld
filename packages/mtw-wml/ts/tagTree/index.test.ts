@@ -278,6 +278,23 @@ describe('TagTree', () => {
                 </If>
             </Asset>
         `))
+        const reorderedTreeTwo = reorderedTree.reordered([{ match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }])
+        expect(schemaToWML(reorderedTreeTwo.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby<If {true}><Space />at night</If></Name>
+                    <Description>
+                        <If {true}>
+                            [Test]<Space />
+                        </If>An institutional lobby.<If {true}>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </If>
+                    </Description>
+                </Room>
+            </Asset>
+        `))
+
     })
 
     describe('filter', () => {

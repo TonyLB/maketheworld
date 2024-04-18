@@ -66,15 +66,18 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
 } & Extra
 
 type TagTreeActionReorder<NodeData extends {}, Extra extends {} = {}> = { reorder: TagTreePruneArgs<NodeData, Extra>[] }
+type TagTreeActionReorderSiblings = { reorderSiblings: string[][] }
 type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
 type TagTreeActionPrune<NodeData extends {}, Extra extends {} = {}> = { prune: TagTreePruneArgs<NodeData, Extra> }
 
 export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
     TagTreeActionReorder<NodeData, Extra> |
+    TagTreeActionReorderSiblings |
     TagTreeActionFilter<NodeData, Extra> |
     TagTreeActionPrune<NodeData, Extra>
 
 const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder<NodeData, Extra> => ('reorder' in action)
+const isTagTreeActionReorderSiblings = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderSiblings => ('reorderSiblings' in action)
 const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
 const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
 
@@ -455,6 +458,10 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                 const reorderedTags = previous.map((tagList) => (this._reorderTags(action.reorder)(tagList)))
                 return reorderedTags
             }
+            if (isTagTreeActionReorderSiblings(action)) {
+                const reorderedSiblingTree = previous.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, orderSort: action.reorderSiblings, merge: this._merge }), [])
+                return tagListFromTree(reorderedSiblingTree, { isWrapper: this._isWrapper })
+            }
             if (isTagTreeActionFilter(action)) {
                 const filteredTags = filterTagsWithWrapperHandling({ filter: this._filterTags(action.filter), compare: this._compare.bind(this) })(previous)
                 return filteredTags
@@ -560,7 +567,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
 
     reorderedSiblings(orderSort: string[][]): TagTree<NodeData, Extra> {
         const returnValue = this.clone()
-        returnValue._orderSort = orderSort
+        returnValue._actions = [...this._actions, { reorderSiblings: orderSort }]
         return returnValue
     }
 
