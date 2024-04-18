@@ -56,11 +56,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
             .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
             .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
-        //
-        // TODO: Figure out why reorderedSiblings is changing nesting behavior in SchemaTagTree
-        //
         const combinedTree = new SchemaTagTree([...positions, ...roomAndExits])
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }])
             .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
             .tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
