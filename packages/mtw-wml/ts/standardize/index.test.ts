@@ -299,9 +299,9 @@ describe('standardizeSchema', () => {
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                    <Room key=(testRoomTwo)>
-                        <If {false} selected><Position x="-100" y="0" /></If>
-                    </Room>
+                    <If {false} selected>
+                        <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
+                    </If>
                 </Map>
             </Asset>
         `))

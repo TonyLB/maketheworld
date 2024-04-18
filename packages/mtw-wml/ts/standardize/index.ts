@@ -114,7 +114,9 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         }
     }
     if (isSchemaMap(data)) {
-        const positionsTagTree = new SchemaTagTree(children).filter({ match: 'Position' })
+        const positionsTagTree = new SchemaTagTree(children)
+            .filter({ match: 'Position' })
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
         const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaMap(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Map' }, { match: 'Theme' }] } })
