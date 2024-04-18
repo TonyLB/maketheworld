@@ -127,6 +127,41 @@ describe('TagTree', () => {
 
         })
 
+        it('should reorder order-sort tags', () => {
+            const testTree = [{
+                data: 'testA',
+                children: [
+                    { data: 'FIRST', children: [{ data: 'testB', children: [] }]},
+                    { data: 'THIRD', children: [{ data: 'testD', children: [] }] },
+                    { data: 'FOURTH', children: [{ data: 'testE', children: [] }] }
+                ]
+            }]
+            expect(iterativeMerge({ classify: mergeClassify, merge, orderSort: [['FIRST', 'SECOND'], ['THIRD', 'FOURTH']] })(testTree, [{ data: 'testA' }, { data: 'FIRST' }, { data: 'testF' }])).toEqual([{
+                data: 'testA',
+                children: [
+                    {
+                        data: 'FIRST',
+                        children: [
+                            { data: 'testB', children: [] },
+                            { data: 'testF', children: [] }
+                        ]
+                    },
+                    { data: 'THIRD', children: [{ data: 'testD', children: [] }] },
+                    { data: 'FOURTH', children: [{ data: 'testE', children: [] }] }
+                ]
+            }])
+            expect(iterativeMerge({ classify: mergeClassify, merge, orderSort: [['FIRST', 'SECOND'], ['THIRD', 'FOURTH']] })(testTree, [{ data: 'testA' }, { data: 'SECOND' }, { data: 'testF' }])).toEqual([{
+                data: 'testA',
+                children: [
+                    { data: 'FIRST', children: [{ data: 'testB', children: [] }] },
+                    { data: 'SECOND', children: [{ data: 'testF', children: [] }]},
+                    { data: 'THIRD', children: [{ data: 'testD', children: [] }] },
+                    { data: 'FOURTH', children: [{ data: 'testE', children: [] }] }
+                ]
+            }])
+
+        })
+
     }) 
 
     it('should return tree unchanged on empty arguments', () => {
@@ -200,6 +235,66 @@ describe('TagTree', () => {
                 </Room>
             </Asset>
         `))
+    })
+
+    it('should reorder siblings correctly', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <If {true}>
+                    <Room key=(room1)>
+                        <Name><Space />at night</Name>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </If>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>
+                        <If {true}>[Test]<Space /></If>An institutional lobby.
+                    </Description>
+                </Room>
+            </Asset>
+        `))))
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+        const reorderedTree = tagTree.reorderedSiblings([['Room', 'Feature', 'Knowledge'], ['If']])
+        expect(schemaToWML(reorderedTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>
+                        <If {true}>[Test]<Space /></If>An institutional lobby.
+                    </Description>
+                </Room>
+                <If {true}>
+                    <Room key=(room1)>
+                        <Name><Space />at night</Name>
+                        <Description>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </Description>
+                    </Room>
+                </If>
+            </Asset>
+        `))
+        const reorderedTreeTwo = reorderedTree.reordered([{ match: 'Room' }, { or: [{ match: 'Description' }, { match: 'Name' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }])
+        expect(schemaToWML(reorderedTreeTwo.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby<If {true}><Space />at night</If></Name>
+                    <Description>
+                        <If {true}>
+                            [Test]<Space />
+                        </If>An institutional lobby.<If {true}>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </If>
+                    </Description>
+                </Room>
+            </Asset>
+        `))
+
     })
 
     describe('filter', () => {

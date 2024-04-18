@@ -10,6 +10,7 @@ type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
     compare?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
     merge?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => ({ data: NodeData } & Extra);
     orderIndependence?: string[][];
+    orderSort?: string[][];
 }
 
 type TagTreeMatchOperand<NodeData extends {}, Extra extends {} = {}> = 
@@ -65,15 +66,18 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
 } & Extra
 
 type TagTreeActionReorder<NodeData extends {}, Extra extends {} = {}> = { reorder: TagTreePruneArgs<NodeData, Extra>[] }
+type TagTreeActionReorderSiblings = { reorderSiblings: string[][] }
 type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
 type TagTreeActionPrune<NodeData extends {}, Extra extends {} = {}> = { prune: TagTreePruneArgs<NodeData, Extra> }
 
 export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
     TagTreeActionReorder<NodeData, Extra> |
+    TagTreeActionReorderSiblings |
     TagTreeActionFilter<NodeData, Extra> |
     TagTreeActionPrune<NodeData, Extra>
 
 const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder<NodeData, Extra> => ('reorder' in action)
+const isTagTreeActionReorderSiblings = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderSiblings => ('reorderSiblings' in action)
 const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
 const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
 
@@ -113,6 +117,16 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
     const merge: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra> = options.merge ?? ((A, B) => ({ ...A, data: { ...A.data, ...B.data } }))
     if (previous.length) {
         const classOne = options.classify(tagItem[0].data)
+        //
+        // TODO: Create mergePast list from orderIndependence
+        //
+        const sortPosition = (options.orderSort ?? []).findIndex((classificationList) => (classificationList.includes(classOne)))
+        const sortPast = sortPosition === -1 ? [] : (options.orderSort ?? []).slice(sortPosition + 1).flat(1)
+        const mergePast = [
+            ...((options.orderIndependence ?? []).filter((classificationList) => (classificationList.includes(classOne))).flat(1)),
+            ...sortPast
+        ]
+
         const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, { data, children, ...rest }, index) => {
             //
             // If a result has already been found then continue to the exit of the loop
@@ -131,9 +145,7 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
             // Otherwise, if this element is one that can be merged past because of
             // order independence then continue the search
             //
-            if ((options.orderIndependence ?? []).find((independenceGroup) => (
-                independenceGroup.includes(classOne) && independenceGroup.includes(classTwo)
-            ))) {
+            if (mergePast.includes(classTwo)) {
                 return matchReduce
             }
             //
@@ -149,6 +161,25 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
                 ...previous.slice(0, matchIndex),
                 { ...(merge({ data, ...rest } as unknown as TagListItem<NodeData, Extra>, tagItem[0])), children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
                 ...previous.slice(matchIndex + 1)
+            ]
+        }
+        //
+        // If no merge, check whether there are elements at the end of the list that the
+        // newly added element should be sorted before
+        //
+        const positionToInsert = previous.reduceRight((previous, { data }, index) => {
+            const classTwo = options.classify(data)
+            if (sortPast.includes(classTwo)) {
+                return index
+            }
+            return previous
+        }, -1)
+        if (positionToInsert !== -1) {
+            return [
+                ...previous.slice(0, positionToInsert),
+                { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) },
+                ...previous.slice(positionToInsert)
+
             ]
         }
     }
@@ -294,6 +325,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _isWrapper?: (data: NodeData) => boolean;
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
+    _orderSort: string[][] = [];
     _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
     _actions: TagTreeAction<NodeData, Extra>[] = [];
 
@@ -307,7 +339,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     }
 
     get tree() {
-        return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
+        return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, orderSort: this._orderSort, merge: this._merge }), [])
     }
 
     //
@@ -426,6 +458,10 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                 const reorderedTags = previous.map((tagList) => (this._reorderTags(action.reorder)(tagList)))
                 return reorderedTags
             }
+            if (isTagTreeActionReorderSiblings(action)) {
+                const reorderedSiblingTree = previous.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, orderSort: action.reorderSiblings, merge: this._merge }), [])
+                return tagListFromTree(reorderedSiblingTree, { isWrapper: this._isWrapper })
+            }
             if (isTagTreeActionFilter(action)) {
                 const filteredTags = filterTagsWithWrapperHandling({ filter: this._filterTags(action.filter), compare: this._compare.bind(this) })(previous)
                 return filteredTags
@@ -526,6 +562,12 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     prune(args: TagTreePruneArgs<NodeData, Extra>): TagTree<NodeData, Extra> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { prune: args }]
+        return returnValue
+    }
+
+    reorderedSiblings(orderSort: string[][]): TagTree<NodeData, Extra> {
+        const returnValue = this.clone()
+        returnValue._actions = [...this._actions, { reorderSiblings: orderSort }]
         return returnValue
     }
 
