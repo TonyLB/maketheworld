@@ -10,6 +10,10 @@ export type SimNode = SimulationNodeDatum & {
     roomId: string;
     visible: boolean;
 }
+export const isSimNode = (value: SimulationNodeDatum): value is SimNode => (
+    'cascadeNode' in value
+)
+
 export type NodeRecord = Record<string, SimNode>
 export type LinkRecord = {
     id: string,

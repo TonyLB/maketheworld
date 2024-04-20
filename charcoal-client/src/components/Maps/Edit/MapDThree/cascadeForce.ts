@@ -1,6 +1,7 @@
 import {
     SimulationNodeDatum,
 } from 'd3-force'
+import { isSimNode } from './baseClasses'
 
 //
 // CascadeForce links together D3 simulations that are layered over each other in a read-only-from-previous fashion.
@@ -39,8 +40,11 @@ class CascadeForce<N extends SimulationNodeDatum> extends Object {
         this.sourceNodes().forEach((node) => {
             const sourceId = this.id(node)
             if (sourceId && this.targetNodes[sourceId]) {
-                this.targetNodes[sourceId].fx = node.fx ?? node.x
-                this.targetNodes[sourceId].fy = node.fy ?? node.y
+                const targetNode = this.targetNodes[sourceId]
+                if (isSimNode(targetNode) && targetNode.cascadeNode) {
+                    this.targetNodes[sourceId].fx = node.fx ?? node.x
+                    this.targetNodes[sourceId].fy = node.fy ?? node.y
+                }
             }
         })
     }
