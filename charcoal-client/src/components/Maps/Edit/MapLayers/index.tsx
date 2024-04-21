@@ -209,7 +209,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 
 const MapStubRender: FunctionComponent<{}> = () => {
     const { field } = useEditContext()
-    return <React.Fragment>{ field.children.map((node) => (<MapItemLayer item={node} />)) }</React.Fragment>
+    return <React.Fragment>{ field.children.map((node) => (<MapItemLayer item={node} key={node.id} />)) }</React.Fragment>
 }
 
 //
