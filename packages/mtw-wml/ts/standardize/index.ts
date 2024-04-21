@@ -32,7 +32,7 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
                     ...node,
                     children: defaultSelected(node.children.map((child, index) => (
                         treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
-                            ? { ...child, data: { ...child.data, selected: index === (fallThroughIndex > -1 ? fallThroughIndex : 0) } }
+                            ? { ...child, data: { ...child.data, selected: index === fallThroughIndex } }
                             : child
                     )))
                 }

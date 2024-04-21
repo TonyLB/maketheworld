@@ -30,7 +30,7 @@ describe('defaultSelected', () => {
         expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(testWML)
     })
 
-    it('should add default select on first statement when no fallthrough', () => {
+    it('should not add default select when no fallthrough', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(ABC)>
@@ -39,14 +39,7 @@ describe('defaultSelected', () => {
                 </Room>
             </Asset>
         `)
-        expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <If {true} selected><Exit to=(DEF)>Test Exit</Exit></If>
-                    <ElseIf {false}><Exit to=(GHI)>Test Exit</Exit></ElseIf>
-                </Room>
-            </Asset>
-        `))
+        expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(testWML)
     })
 
     it('should add default select on fallthrough when available', () => {
@@ -106,11 +99,11 @@ describe('standardizeSchema', () => {
             <Asset key=(Test)>
                 <Room key=(test)>
                     <Name>Test Room</Name>
-                    <Summary>One<br /><If {false} selected>Two</If></Summary>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false} selected>Four</If></Description>
+                    <Description><If {false}>Four</If></Description>
                 </Feature>
             </Asset>
         `))
@@ -138,7 +131,7 @@ describe('standardizeSchema', () => {
             <Asset key=(Test)>
                 <Room key=(test)>
                     <Description>One<br /></Description>
-                    <If {false} selected><Exit to=(testTwo)>Test Exit</Exit></If>
+                    <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
                 </Room>
                 <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
             </Asset>
@@ -292,14 +285,14 @@ describe('standardizeSchema', () => {
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room key=(testRoomTwo)>
-                    <Description><If {false} selected>Test Room Two</If></Description>
-                    <If {false} selected><Exit to=(testRoomOne)>one</Exit></If>
+                    <Description><If {false}>Test Room Two</If></Description>
+                    <If {false}><Exit to=(testRoomOne)>one</Exit></If>
                 </Room>
                 <Map key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                    <If {false} selected>
+                    <If {false}>
                         <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
                     </If>
                 </Map>
@@ -673,7 +666,7 @@ describe('standardizeSchema', () => {
                         data: { tag: 'If' },
                         id: expect.any(String),
                         children: [{
-                            data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'], selected: true },
+                            data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'], selected: false },
                             id: expect.any(String),
                             children: [{ data: { tag: 'String', value: 'Conditioned' }, id: expect.any(String), children: [] }]
                         }]
