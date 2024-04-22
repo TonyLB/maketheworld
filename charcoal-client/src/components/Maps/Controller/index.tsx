@@ -27,7 +27,7 @@ const MapContext = React.createContext<MapContextType>({
         exitDrag: { sourceRoomId: '', x: 0, y: 0 },
         hiddenBranches: []
     },
-    mapD3: new MapDThree({ tree: [], hiddenConditions: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -138,7 +138,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            hiddenConditions: hiddenBranches,
             onExitDrag: setExitDrag,
         })
     })
@@ -148,7 +147,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                mapD3.update(action.tree, action.hiddenConditions)
+                mapD3.update(action.tree)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -195,8 +194,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         })
     }, [mapD3, mapId, onTick, schema, updateSchema])
     useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', tree, hiddenConditions: hiddenBranches })
-    }, [mapDispatch, tree, hiddenBranches])
+        mapDispatch({ type: 'UpdateTree', tree })
+    }, [mapDispatch, tree])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
@@ -270,13 +269,12 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree: mappedTree,
-            hiddenConditions: [],
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(mappedTree, [])
+        mapD3.update(mappedTree)
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()

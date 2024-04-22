@@ -51,7 +51,6 @@ type MapDispatchSetNode = {
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
     tree: GenericTree<SchemaTag, TreeId>;
-    hiddenConditions: string[];
 }
 
 type MapContextItemSelectedLayer = {

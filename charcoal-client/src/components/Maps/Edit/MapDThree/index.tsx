@@ -12,7 +12,7 @@ import { produce } from 'immer'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { SchemaTag, isSchemaCondition, isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 
 //
@@ -47,11 +47,16 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
 const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
     const { data: nodeData, children, id } = node
     if (isSchemaCondition(nodeData)) {
+        const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
         return {
             ...previous,
             children: [
                 ...previous.children,
-                ...children.map(({ children, id }) => (mapTreeTranslate(children).map(({ data, ...rest }) => ({ data: { ...data, key: id }, ...rest })))).flat(1)
+                ...children.map(({ data, children, id }) => (
+                    (isSchemaConditionalContent(data))
+                        ? mapTreeTranslate(children).map(({ data: internalData, ...rest }) => ({ data: { ...internalData, key: id, visible: Boolean(data.selected) }, ...rest }))
+                        : []
+                )).flat(1)
             ]
         }
     }
@@ -112,9 +117,8 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    constructor({ tree, hiddenConditions, onStability, onTick, onExitDrag, onAddExit }: {
+    constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
         tree: GenericTree<SchemaTag, TreeId>;
-        hiddenConditions: string[];
         onStability?: SimCallback,
         onTick?: SimCallback,
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
@@ -160,7 +164,7 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): void {
+    update(tree: GenericTree<SchemaTag, TreeId>): void {
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         
         this.tree.update(simulatorTree)
