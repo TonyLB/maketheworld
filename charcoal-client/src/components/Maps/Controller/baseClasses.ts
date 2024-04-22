@@ -132,7 +132,6 @@ export type MapContextType = {
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
         cursorPosition?: { x: number; y: number };
-        hiddenBranches: string[];
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;

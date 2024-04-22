@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree, GenericTreeNode, TreeId  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { stabilizeFactory } from "./stabilize"
@@ -24,8 +24,7 @@ const MapContext = React.createContext<MapContextType>({
     tree: [],
     UI: {
         toolSelected: 'Select',
-        exitDrag: { sourceRoomId: '', x: 0, y: 0 },
-        hiddenBranches: []
+        exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
     mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
@@ -38,8 +37,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
-    const mapConditionsSelector = useMemo(() => (mapEditConditionsByMapId(mapId)), [mapId])
-    const hiddenBranches = useSelector(mapConditionsSelector)
     const dispatch = useDispatch()
 
     //
@@ -103,6 +100,13 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 ]
             }
         }
+        if (isSchemaCondition(data)) {
+            const findSelectedSubItem = children.filter(treeNodeTypeguard((data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
+                .find(({ data }) => (data.selected))
+            if (findSelectedSubItem) {
+                return findSelectedSubItem.children.reduce(extractRoomsHelper(contextRoomId), previous)
+            }
+        }
         return previous
     }
     const extractRoomsById = (incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
@@ -122,7 +126,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes
-            .reduce<Record<string, { x: number; y: number}>>((previous, { roomId, x, y }) => (
+            .reduceRight<Record<string, { x: number; y: number}>>((previous, { roomId, x, y }) => (
                 (typeof x !== 'undefined' && typeof y !== 'undefined')
                     ? { ...previous, [roomId]: { x: x ?? previous[roomId]?.x, y: y ?? previous[roomId]?.y }}
                     : previous
@@ -208,8 +212,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
-                cursorPosition,
-                hiddenBranches
+                cursorPosition
             },
             mapDispatch,
             mapD3,
@@ -286,8 +289,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             tree: mappedTree,
             UI: {
                 toolSelected: 'Select',
-                exitDrag: { sourceRoomId: '', x: 0, y: 0 },
-                hiddenBranches: []
+                exitDrag: { sourceRoomId: '', x: 0, y: 0 }
             },
             mapDispatch: () => {},
             mapD3,
