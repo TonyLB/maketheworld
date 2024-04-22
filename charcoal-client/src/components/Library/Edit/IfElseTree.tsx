@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
+import Checkbox from "@mui/material/Checkbox"
 import { blue } from "@mui/material/colors"
 import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement, useMemo } from "react"
 import CodeEditor from "./CodeEditor"
@@ -11,7 +12,6 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import { useLibraryAsset } from "./LibraryAsset"
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext"
-import { Radio } from "@mui/material"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
@@ -68,21 +68,25 @@ type IfElseWrapBoxProps = {
     showSelected?: boolean;
     selected?: boolean;
     onSelect?: (id: string) => void;
+    onUnselect?: (id: string) => void;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, onSelect = () => {}, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, onSelect = () => {}, onUnselect = () => {}, children }) => {
     const { updateSchema } = useLibraryAsset()
     const onChange = useCallback((event) => {
-        if (event.target.value) {
+        if (event.target.checked) {
             onSelect(id)
         }
-    }, [id, onSelect])
+        else {
+            onUnselect(id)
+        }
+    }, [id, onSelect, onUnselect])
     return <LabelledIndentBox
         color={blue}
         label={
             type === 'else'
                 ? <React.Fragment>
-                    { showSelected && <Radio
+                    { showSelected && <Checkbox
                         value={id}
                         checked={selected}
                         onChange={onChange}
@@ -91,7 +95,7 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                     Else
                 </React.Fragment>
                 : <React.Fragment>
-                    { showSelected && <Radio
+                    { showSelected && <Checkbox
                         value={id}
                         checked={selected}
                         onChange={onChange}
@@ -160,6 +164,22 @@ export const IfElseTree = ({ render: Render, showSelected = false }: IfElseTreeP
             updateSchema({ type: 'updateNode', id: toSelect.id, item: { ...toSelect.data, selected: true } })
         }
     }, [field])
+    const onUnselect = useCallback((id: string) => {
+        const fallthrough = field.children
+            .find(treeNodeTypeguard(isSchemaConditionFallthrough))
+        const toUnselect = field.children
+            .filter(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
+            .find((node) => (node.id === id))
+        if (fallthrough?.id === toUnselect?.id) {
+            return
+        }
+        if (toUnselect) {
+            updateSchema({ type: 'updateNode', id: toUnselect.id, item: { ...toUnselect.data, selected: false } })
+            if (fallthrough) {
+                updateSchema({ type: 'updateNode', id: fallthrough.id, item: { ...fallthrough.data, selected: true } })
+            }
+        }
+    }, [field])
     const addElseIf = useCallback((afterId: string) => (
         <AddItemButton
             key="elseIf"
@@ -198,6 +218,7 @@ export const IfElseTree = ({ render: Render, showSelected = false }: IfElseTreeP
             showSelected={showSelected}
             selected={firstStatement.data.selected}
             onSelect={onSelect}
+            onUnselect={onUnselect}
         >
             <EditSchema tag="Statement" field={firstStatement} parentId={field.id}>
                 <Render />
