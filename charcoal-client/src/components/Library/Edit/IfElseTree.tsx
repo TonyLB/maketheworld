@@ -8,6 +8,8 @@ import { LabelledIndentBox } from "./LabelledIndentBox"
 
 import AddIcon from '@mui/icons-material/Add'
 import ExitIcon from '@mui/icons-material/CallMade'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 
 import { useLibraryAsset } from "./LibraryAsset"
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
@@ -91,6 +93,8 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                         checked={selected}
                         onChange={onChange}
                         inputProps={{ 'aria-label': 'Else selected' }}
+                        icon={<VisibilityOffOutlinedIcon />}
+                        checkedIcon={<VisibilityIcon />}
                     /> }
                     Else
                 </React.Fragment>
@@ -100,6 +104,8 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                         checked={selected}
                         onChange={onChange}
                         inputProps={{ 'aria-label': 'If selected' }}
+                        icon={<VisibilityOffOutlinedIcon />}
+                        checkedIcon={<VisibilityIcon />}
                     /> }
                     { type === 'if' ? 'If' : 'Else If' }
                     <Box
