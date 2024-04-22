@@ -174,35 +174,20 @@ const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boole
 }
 
 const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
-    const { inheritedInvisible, mapId } = useMapLayersContext()
-    const { UI: { hiddenBranches }, mapDispatch } = useMapContext()
     const [open, setOpen] = useState<boolean>(false)
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
-    const visible = useMemo(() => (!hiddenBranches.includes(conditionId)), [hiddenBranches])
-    const visibilityOnClick = inheritedInvisible ? () => {} : () => { mapDispatch({ type: 'ToggleVisibility', key: conditionId }) }
 
     return <React.Fragment>
         <ListItem dense>
-            <ListItemIcon>
-                {
-                    (visible && !inheritedInvisible)
-                        ? <VisibilityIcon fontSize="small" sx={{ color: inheritedInvisible ? grey[500] : 'black' }} onClick={visibilityOnClick} />
-                        : <VisibilityOffIcon fontSize="small" onClick={visibilityOnClick} />
-                }
-            </ListItemIcon>
             <ListItemText primary={`If: ${src}`} />
             {
                 childrenPresent && (open ? <ExpandLess onClick={() => { setOpen(false) }} /> : <ExpandMore onClick={() => { setOpen(true) }} />)
             }
         </ListItem>
         { childrenPresent && 
-            <Collapse in={open} timeout="auto" unmountOnExit><List>
-                {
-                    !visible
-                        ? <MapLayersContext.Provider value={{ mapId, inheritedInvisible: true }}><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{ children }</List></MapLayersContext.Provider>
-                        : <List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{ children }</List>
-                }
-            </List></Collapse>
+            <Collapse in={open} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{ children }</List>
+            </Collapse>
         }
     </React.Fragment>
 }

@@ -50,7 +50,7 @@ describe('mapTreeTranslate', () => {
     })
 
     it('should nest conditionals as children of nodes and links', () => {
-        const testTree: GenericTree<SchemaTag, TreeId> = [
+        const testTree = (selected: boolean): GenericTree<SchemaTag, TreeId> => ([
             {
                 data: { tag: 'Room', key: 'Room1' },
                 children: [
@@ -76,7 +76,7 @@ describe('mapTreeTranslate', () => {
             {
                 data: { tag: 'If' },
                 children: [{
-                    data: { tag: 'Statement', if: 'true' },
+                    data: { tag: 'Statement', if: 'true', selected },
                     children: [
                         {
                             data: { tag: 'Room', key: 'Room3' },
@@ -98,9 +98,9 @@ describe('mapTreeTranslate', () => {
                 children: [{ data: { tag: 'Position', x: -100, y: 100 }, children: [], id: 'HIJ' }],
                 id: 'GHI'
             }
-        ]
+        ])
 
-        expect(mapTreeTranslate(testTree)).toEqual([{
+        const expectedResult = (selected: boolean) => ([{
             data: {
                 nodes: [
                     { id: 'BCD', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
@@ -120,7 +120,7 @@ describe('mapTreeTranslate', () => {
                         links: [
                             { id: 'Room1#Room2', source: 'Room1', target: 'Room2' }
                         ],
-                        visible: true,
+                        visible: false,
                         key: 'If-1'
                     },
                     children: []
@@ -129,13 +129,15 @@ describe('mapTreeTranslate', () => {
                     data: {
                         nodes: [{ id: 'YYY', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false }, { id: 'XXX', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false }],
                         links: [],
-                        visible: true,
+                        visible: selected,
                         key: 'If-2'
                     },
                     children: []
                 }
             ]
         }])
+        expect(mapTreeTranslate(testTree(false))).toEqual(expectedResult(false))
+        expect(mapTreeTranslate(testTree(true))).toEqual(expectedResult(true))
     })
 
 })
@@ -159,7 +161,7 @@ describe('MapDThree', () => {
             {
                 data: { tag: 'If' },
                 children: [{
-                    data: { tag: 'Statement', if: 'true' },
+                    data: { tag: 'Statement', if: 'true', selected: true },
                     children: [{
                         data: { tag: 'Room', key: 'DEF' },
                         children: [{ data: { tag: 'Position', x: 300, y: 200 }, children: [], id: '' }],
@@ -173,8 +175,7 @@ describe('MapDThree', () => {
                     id: 'If-1'
                 }],
                 id: ''
-            }],
-            hiddenConditions: []
+            }]
         })
         expect(MapDThreeTree).toHaveBeenCalledTimes(1)
         expect(MapDThreeTree.mock.calls[0]).toMatchSnapshot()
