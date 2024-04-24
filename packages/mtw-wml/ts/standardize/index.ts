@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
-import { objectMap } from "../lib/objects"
+import { deepEqual, objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
-import { TagTreeMatchOperation } from "../tagTree"
+import TagTree, { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
-import { treeTypeGuard } from "../tree/filter"
+import { filter, treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
@@ -114,8 +114,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         }
     }
     if (isSchemaMap(data)) {
-        const positionsTagTree = new SchemaTagTree(children)
-            .filter({ match: 'Position' })
+        const positionsTagTree = new SchemaTagTree(children).filter({ match: 'Position' })
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
         const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
@@ -475,7 +474,7 @@ export class Standardizer {
                             filteredTagTree = tagTree
                                 .filter(nodeMatch)
                                 .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
-                                .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                                .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { or: [{ match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] } ]}, { match: 'Inherited' }])
                                 .prune({ before: nodeMatch })
                             break
                     }
