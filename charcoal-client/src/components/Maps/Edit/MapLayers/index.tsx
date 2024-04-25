@@ -37,7 +37,7 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
+const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean }> = ({ id, roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const { inheritedInvisible } = useMapLayersContext()
     const { standardForm, updateSchema } = useLibraryAsset()
@@ -73,8 +73,8 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
     return <React.Fragment>
         <ListItemButton
             dense
-            selected={itemSelected && itemSelected.type === 'Layer' && itemSelected.key === roomId}
-            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'Layer', key: roomId }})}}
+            selected={itemSelected && itemSelected.type === 'Layer' && itemSelected.key === id}
+            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'Layer', key: id }})}}
         >
             <ListItemIcon>
                 {
@@ -208,7 +208,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
-            return <RoomLayer roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) || data.key : data.key}>
+            return <RoomLayer id={item.id} roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) || data.key : data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':

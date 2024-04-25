@@ -549,6 +549,106 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should assign tree IDs correctly in map positions', () => {
+        const testSchema: GenericTree<SchemaTag, { id: string }> = [{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'ABC',
+            children: [
+                {
+                    data: { tag: 'Room', key: 'testRoomOne' },
+                    id: 'DEF',
+                    children: [{
+                        data: { tag: 'ShortName' },
+                        id: 'GHI',
+                        children: [{
+                            data: { tag: 'String', value: 'Lobby' },
+                            id: 'JKL',
+                            children: []
+                        }]
+                    }]
+                },
+                {
+                    data: { tag: 'Map', key: 'testMap' },
+                    id: 'MNO',
+                    children: [{
+                        data: { tag: 'Room', key: 'testRoomOne' },
+                        id: 'NOP',
+                        children: [{
+                            data: { tag: 'Position', x: 0, y: 0 },
+                            id: 'QRS',
+                            children: []
+                        }]
+                    },
+                    {
+                        data: { tag: 'If' },
+                        id: 'RST',
+                        children: [{
+                            data: { tag: 'Statement', if: 'true' },
+                            id: 'TUV',
+                            children: [{
+                                data: { tag: 'Room', key: 'testRoomOne' },
+                                id: 'WXY',
+                                children: [{
+                                    data: { tag: 'Position', x: 0, y: 100 },
+                                    id: 'XYZ',
+                                    children: []
+                                }]
+                            }]
+                        }]
+                    }]
+                }
+            ]
+        }]
+        const standardizer = new Standardizer(testSchema)
+        expect(standardizer.schema).toEqual([{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'ABC',
+            children: [{
+                data: { tag: 'Room', key: 'testRoomOne' },
+                id: 'DEF',
+                children: [{
+                    data: { tag: 'ShortName' },
+                    id: 'GHI',
+                    children: [{
+                        data: { tag: 'String', value: 'Lobby' },
+                        id: 'JKL',
+                        children: []
+                    }]
+                }]
+            },
+            {
+                data: { tag: 'Map', key: 'testMap' },
+                id: 'MNO',
+                children: [{
+                    data: { tag: 'Room', key: 'testRoomOne' },
+                    id: 'NOP',
+                    children: [{
+                        data: { tag: 'Position', x: 0, y: 0 },
+                        id: 'QRS',
+                        children: []
+                    }]
+                },
+                {
+                    data: { tag: 'If' },
+                    id: 'RST',
+                    children: [{
+                        data: { tag: 'Statement', if: 'true', selected: false },
+                        id: 'TUV',
+                        children: [{
+                            data: { tag: 'Room', key: 'testRoomOne' },
+                            id: 'WXY',
+                            children: [{
+                                data: { tag: 'Position', x: 0, y: 100 },
+                                id: 'XYZ',
+                                children: []
+                            }]
+                        }]
+                    }]
+                }]
+            }]
+        }])
+    })
+
     it('should preserve tree IDs on combination', () => {
         const inheritedSchema: GenericTree<SchemaTag, { inherited: boolean; id: string }> = [{
             data: { tag: 'Asset', key: 'Test', Story: undefined },
