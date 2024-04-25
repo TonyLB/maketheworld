@@ -203,6 +203,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // children values
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
+    const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm } = useLibraryAsset()
     const { data } = item
     switch(data.tag) {
@@ -218,7 +219,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'If':
             return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
-                    render={() => (<MapStubRender />)}
+                    render={render}
                     showSelected={true}
                 />
             </EditSchema>
