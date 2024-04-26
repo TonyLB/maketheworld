@@ -269,12 +269,14 @@ describe('standardizeSchema', () => {
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <If {false}>
+                    <Room key=(testRoomOne) />
                     <Room key=(testRoomTwo)>
                         <Position x="-100" y="0" />
                         <Description>Test Room Two</Description>
                         <Exit to=(testRoomOne)>one</Exit>
                     </Room>
                 </If>
+                <If {true} />
                 <Image key=(mapBackground) />
             </Map>
         </Asset>`)
@@ -293,8 +295,10 @@ describe('standardizeSchema', () => {
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
                     <If {false}>
+                        <Room key=(testRoomOne) />
                         <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
                     </If>
+                    <If {true} />
                 </Map>
             </Asset>
         `))
