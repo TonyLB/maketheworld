@@ -202,7 +202,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
-const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId> }> = ({ item }) => {
+const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm } = useLibraryAsset()
     const { data } = item
@@ -221,6 +221,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 <IfElseTree
                     render={render}
                     showSelected={true}
+                    highlightID={highlightID}
                 />
             </EditSchema>
         default:
@@ -229,7 +230,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    const { tree } = useMapContext()
+    const { tree, UI: { parentID } } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
         <ConnectionTable
             label="Themes"
@@ -242,7 +243,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
+            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} highlightID={parentID} />))}
         </Box>
     </MapLayersContext.Provider>
 

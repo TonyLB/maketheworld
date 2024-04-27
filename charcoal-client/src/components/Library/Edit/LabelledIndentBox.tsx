@@ -10,6 +10,7 @@ type LabelledIndentBoxProps = {
     label: ReactNode;
     actions?: ReactNode;
     slate?: boolean;
+    highlighted?: boolean;
     onDelete?: () => void;
 }
 
@@ -17,7 +18,7 @@ type LabelledIndentBoxProps = {
 // Refactor LabelledIndentBox withForwardRef, so that it doesn't need to be wrapped in a span in order to
 // be used with Slate
 //
-export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, actions, slate, onDelete, ...attributes }: T, ref: ForwardedRef<any>) => {
+export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, actions, slate, highlighted = false, onDelete, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
         <Box
             {...(slate ? { contentEditable: false } : {})}
@@ -25,7 +26,7 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
                 borderRadius: "0em 1em 1em 0em",
                 borderStyle: 'solid',
                 borderColor: color[500],
-                background: color[100],
+                background: highlighted ? color[300] : color[100],
                 display: 'inline',
                 paddingRight: '0.25em',
                 position: 'absolute',
@@ -38,9 +39,10 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
         <Box
             sx={{
                 borderRadius: '0em 1em 1em 0em',
-                borderStyle: 'solid',
+                borderStyle: highlighted ? 'double' : 'solid',
                 borderColor: color[500],
-                background: color[50],
+                borderWidth: highlighted ? '0.3em' : '0.1em',
+                background: highlighted ? color[200] : color[50],
                 paddingRight: '0.5em',
                 paddingLeft: '0.25em',
                 paddingTop: "1.25em",

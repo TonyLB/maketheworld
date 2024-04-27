@@ -186,7 +186,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SelectItem':
                 if (action.item && action.item.type === 'Layer') {
                     const ancestry = ancestryFromId(action.item.key)(schema) ?? []
-                    const conditionParent = ancestry.find(treeNodeTypeguard(isSchemaCondition))
+                    const conditionParent = ancestry.find(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
                     if (conditionParent) {
                         setParentID(conditionParent.id)
                     }
