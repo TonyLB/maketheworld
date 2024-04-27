@@ -217,7 +217,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
     }, [mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
     useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ schema, updateSchema })
+        const addExitFactoryOutput = addExitFactory({ schema, updateSchema, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
@@ -231,7 +231,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             },
             onAddExit
         })
-    }, [mapD3, mapId, onTick, schema, updateSchema])
+    }, [mapD3, mapId, onTick, schema, updateSchema, dispatchParentId])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
