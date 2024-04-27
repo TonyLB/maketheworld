@@ -32,10 +32,31 @@ const MapContext = React.createContext<MapContextType>({
 })
 export const useMapContext = () => (useContext(MapContext))
 
+//
+// ancestryFromId returns the nodes in the ancestry of a given tree node (identified by searchID), starting from the direct parent and
+// proceeding up the tree.
+//
+const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeId>): GenericTreeNode<SchemaTag, TreeId>[] | undefined => {
+    return tree.reduce<GenericTreeNode<SchemaTag, TreeId>[] | undefined>((previous, { data, id, children }) => {
+        if (previous) {
+            return previous
+        }
+        if (id === searchID) {
+            return []
+        }
+        const recurse = ancestryFromId(searchID)(children)
+        if (typeof recurse !== 'undefined') {
+            return [...recurse, { data, id, children: [] }]
+        }
+        return previous
+    }, undefined)
+}
+
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
     const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
+    const [parentID, setParentID] = useState<string | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const dispatch = useDispatch()
 
@@ -163,7 +184,20 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double })
                 return
             case 'SelectItem':
+                if (action.item && action.item.type === 'Layer') {
+                    const ancestry = ancestryFromId(action.item.key)(schema) ?? []
+                    const conditionParent = ancestry.find(treeNodeTypeguard(isSchemaCondition))
+                    if (conditionParent) {
+                        setParentID(conditionParent.id)
+                    }
+                    else {
+                        setParentID(undefined)
+                    }
+                }
                 setItemSelected(action.item)
+                return
+            case 'SelectParent':
+                setParentID(action.item)
                 return
             case 'AddRoom':
                 addRoomFactory({ mapId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
@@ -212,6 +246,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
+                parentID,
                 cursorPosition
             },
             mapDispatch,
