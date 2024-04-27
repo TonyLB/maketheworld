@@ -113,6 +113,7 @@ export type MapDispatchAction = MapDispatchSetTool |
 
 export type MapContextPosition = {
     id: string;
+    parentId: string;
     roomId: string;
     name: string;
     x: number;
