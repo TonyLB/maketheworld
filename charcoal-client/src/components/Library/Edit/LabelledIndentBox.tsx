@@ -12,13 +12,14 @@ type LabelledIndentBoxProps = {
     slate?: boolean;
     highlighted?: boolean;
     onDelete?: () => void;
+    onClick?: () => void;
 }
 
 //
 // Refactor LabelledIndentBox withForwardRef, so that it doesn't need to be wrapped in a span in order to
 // be used with Slate
 //
-export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, actions, slate, highlighted = false, onDelete, ...attributes }: T, ref: ForwardedRef<any>) => {
+export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, actions, slate, highlighted = false, onDelete, onClick = () => {}, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
         <Box
             {...(slate ? { contentEditable: false } : {})}
@@ -53,6 +54,7 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
                     marginBottom: '0.35em'
                 } : {},
             }}
+            onClick={onClick}
         >
             <span {...attributes} ref={ref}>
                 { slate && <InlineChromiumBugfix /> }
