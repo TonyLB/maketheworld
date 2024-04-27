@@ -166,6 +166,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             onExitDrag: setExitDrag,
         })
     })
+    const dispatchParentId = useMemo(() => (parentID ?? standardForm.byId[mapId]?.id), [parentID, mapId, standardForm.byId])
     const mapDispatch = useCallback((action: MapDispatchAction) => {
         switch(action.type) {
             case 'SetToolSelected':
@@ -200,7 +201,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setParentID(action.item)
                 return
             case 'AddRoom':
-                addRoomFactory({ mapId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
+                addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
             case 'SetCursor':
                 if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
@@ -214,7 +215,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, mapId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
+    }, [mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ schema, updateSchema })
         const onAddExit = (fromRoomId, toRoomId, double) => {
