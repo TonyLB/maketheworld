@@ -246,6 +246,7 @@ export const IfElseTree = ({ render: Render, showSelected = false }: IfElseTreeP
                         showSelected={showSelected}
                         selected={data.selected}
                         onSelect={onSelect}
+                        onUnselect={onUnselect}
                     >
                         <EditSchema tag="Statement" field={{ data, children, id }} parentId={field.id}>
                             <Render />
