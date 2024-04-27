@@ -206,6 +206,11 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm } = useLibraryAsset()
     const { data } = item
+    const { mapDispatch } = useMapContext()
+    const onClick = useCallback((id: string) => {
+        mapDispatch({ type: 'SelectItem', item: undefined })
+        mapDispatch({ type: 'SelectParent', item: id })
+    }, [mapDispatch])
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
@@ -222,6 +227,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                     render={render}
                     showSelected={true}
                     highlightID={highlightID}
+                    onClick={onClick}
                 />
             </EditSchema>
         default:
