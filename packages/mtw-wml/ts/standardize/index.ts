@@ -51,7 +51,7 @@ const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaT
     defaultValue: T
 ): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
     return node
-        ? { ...node, children: treeTypeGuard({ tree: node.children, typeGuard }) }
+        ? { ...node, children: treeTypeGuard({ tree: defaultSelected(node.children), typeGuard }) }
         : { data: defaultValue, id: '', children: [] }
 }
 
@@ -71,7 +71,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaOutputTag, { tag: 'Summary' }),
             description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
-            exits: maybeGenericIDFromTree(exitTagTree.tree),
+            exits: defaultSelected(maybeGenericIDFromTree(exitTagTree.tree)),
             themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
         }
     }
@@ -127,8 +127,8 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             key: data.key,
             id,
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
-            images: maybeGenericIDFromTree(imagesTagTree.tree),
-            positions: maybeGenericIDFromTree(positionsTagTree.tree),
+            images: defaultSelected(maybeGenericIDFromTree(imagesTagTree.tree)),
+            positions: defaultSelected(maybeGenericIDFromTree(positionsTagTree.tree)),
             themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
         }
     }
@@ -273,21 +273,21 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Room':
             return {
                 data: { tag: 'Room', key: item.key },
-                children: [
+                children: defaultSelected([
                     ...[item.shortName, item.name, item.summary, item.description],
                     ...item.exits
-                ]
+                ])
             }
         case 'Feature':
         case 'Knowledge':
             return {
                 data: { tag: item.tag, key: item.key },
-                children: [item.name, item.description]
+                children: defaultSelected([item.name, item.description])
             }
         case 'Bookmark':
             return {
                 data: { tag: 'Bookmark', key: item.key },
-                children: item.description.children
+                children: defaultSelected(item.description.children)
             }
         case 'Message':
             return {
@@ -305,11 +305,11 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Map':
             return {
                 data: { tag: 'Map', key: item.key },
-                children: [
+                children: defaultSelected([
                     item.name,
                     ...item.images,
                     ...item.positions
-                ]
+                ])
             }
         case 'Theme':
             return {
