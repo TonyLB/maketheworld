@@ -1,7 +1,7 @@
 import TagTree from "."
 import { deepEqual } from "../lib/objects"
 import { GenericTree, TreeId } from "../tree/baseClasses"
-import { SchemaTag, isSchemaConditionStatement, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaWithKey } from "../schema/baseClasses"
 
 export class SchemaTagTree extends TagTree<SchemaTag, Partial<TreeId & { inherited: boolean }>> {
     constructor(tree: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>) {
@@ -13,6 +13,9 @@ export class SchemaTagTree extends TagTree<SchemaTag, Partial<TreeId & { inherit
                 }
                 if (isSchemaConditionStatement(A) && isSchemaConditionStatement(B)) {
                     return A.if === B.if && idA === idB
+                }
+                if (isSchemaCondition(A) && isSchemaCondition(B)) {
+                    return deepEqual({ data: A, id: idA }, { data: B, id: idB })
                 }
                 return deepEqual(A, B)
             },

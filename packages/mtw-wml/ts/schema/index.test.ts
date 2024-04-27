@@ -354,6 +354,36 @@ describe('schemaFromParse', () => {
         ])
     })
 
+    it('should correctly parse adjacent empty conditionals', () => {
+        const testWML = `
+            <Asset key=(test)>
+                <Room key=(room1) />
+                <If {true}><Room key=(room1)><Name>Lobby</Name></Room></If>
+                <If {false} />
+            </Asset>
+        `
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "test"
+            },
+            children: [
+                { data: { tag: 'Room', key: 'room1' }, children: [] },
+                {
+                    data: { tag: 'If' },
+                    children: [{
+                        data: { tag: 'Statement', if: 'true' },
+                        children: [
+                            { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }] }
+                        ]
+                    }]
+                },
+                { data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: 'false' }, children: [] }] }
+            ]
+        }])
+    })
+
     it('should make a schema for a character correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
