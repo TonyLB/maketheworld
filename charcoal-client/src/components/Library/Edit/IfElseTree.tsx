@@ -82,14 +82,17 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
             onSelect(id)
         }
         else {
-            onUnselect(id)
+            if (!highlighted) {
+                onUnselect(id)
+            }
         }
-    }, [id, onSelect, onUnselect])
+    }, [id, onSelect, onUnselect, highlighted])
     const onClickHandler = useCallback(() => {
         if (onClick) {
             onClick(id)
+            onSelect(id)
         }
-    }, [id, onClick])
+    }, [id, onClick, onSelect])
     return <LabelledIndentBox
         color={blue}
         highlighted={highlighted}
