@@ -72,9 +72,10 @@ type IfElseWrapBoxProps = {
     highlighted?: boolean;
     onSelect?: (id: string) => void;
     onUnselect?: (id: string) => void;
+    onClick?: (id: string) => void;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, highlighted = false, onSelect = () => {}, onUnselect = () => {}, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, highlighted = false, onSelect = () => {}, onUnselect = () => {}, onClick, children }) => {
     const { updateSchema } = useLibraryAsset()
     const onChange = useCallback((event) => {
         if (event.target.checked) {
@@ -84,9 +85,15 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
             onUnselect(id)
         }
     }, [id, onSelect, onUnselect])
+    const onClickHandler = useCallback(() => {
+        if (onClick) {
+            onClick(id)
+        }
+    }, [id, onClick])
     return <LabelledIndentBox
         color={blue}
         highlighted={highlighted}
+        onClick={onClickHandler}
         label={
             type === 'else'
                 ? <React.Fragment>
@@ -145,13 +152,14 @@ type IfElseTreeProps = {
     render: FunctionComponent<{}>;
     showSelected?: boolean;
     highlightID?: string;
+    onClick?: (id: string) => void;
 }
 
 //
 // IfElseTree assumes that the EditContext passed will have a single conditional top-level element,
 // and renders the statements and fallthrough of its children
 //
-export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '' }: IfElseTreeProps): ReactElement => {
+export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '', onClick }: IfElseTreeProps): ReactElement => {
     const { field } = useEditContext()
     const { updateSchema } = useLibraryAsset()
     const firstStatement = useMemo(() => (field.children[0]), [field])
@@ -214,6 +222,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             key={firstStatement.id}
             id={firstStatement.id}
             highlighted={firstStatement.id === highlightID}
+            onClick={onClick}
             type={'if'}
             source={firstStatement.data.if}
             onDelete={() => {
@@ -241,6 +250,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         key={id}
                         id={id}
                         highlighted={id === highlightID}
+                        onClick={onClick}
                         type={'elseIf'}
                         source={data.if}
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
@@ -262,6 +272,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             key={id}
                             id={id}
                             highlighted={id === highlightID}
+                            onClick={onClick}
                             type={'else'}
                             source=''
                             onDelete={() => { updateSchema({ type: 'delete', id })}}
