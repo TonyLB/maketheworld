@@ -76,6 +76,11 @@ type MapDispatchSelectItem = {
     item?: MapContextItemSelected;
 }
 
+type MapDispatchSelectParent = {
+    type: 'SelectParent';
+    item?: string;
+}
+
 type MapDispatchAddRoom = {
     type: 'AddRoom';
     roomId?: string;
@@ -101,6 +106,7 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetNode |
     MapDispatchUpdateTree |
     MapDispatchSelectItem |
+    MapDispatchSelectParent |
     MapDispatchAddRoom |
     MapDispatchSetCursorPosition |
     MapDispatchToggleBranchVisibility
@@ -131,6 +137,7 @@ export type MapContextType = {
         toolSelected: ToolSelected;
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
+        parentID?: string;
         cursorPosition?: { x: number; y: number };
     },
     mapD3: MapDThree,

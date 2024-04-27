@@ -36,6 +36,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
+    const [parentID, setParentID] = useState<string | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const dispatch = useDispatch()
 
@@ -165,6 +166,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SelectItem':
                 setItemSelected(action.item)
                 return
+            case 'SelectParent':
+                setParentID(action.item)
+                return
             case 'AddRoom':
                 addRoomFactory({ mapId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
@@ -212,6 +216,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
+                parentID,
                 cursorPosition
             },
             mapDispatch,
