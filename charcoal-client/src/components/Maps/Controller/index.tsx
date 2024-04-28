@@ -26,7 +26,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], parentId: '', onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -165,6 +165,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
+            parentId: mapComponent.id,
             onExitDrag: setExitDrag,
         })
     })
@@ -175,7 +176,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                mapD3.update(action.tree)
+                mapD3.update(action.tree, mapComponent.id)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -217,7 +218,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
+    }, [mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ schema, updateSchema, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -311,12 +312,13 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree: mappedTree,
+            parentId: 'Root',
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(mappedTree)
+        mapD3.update(mappedTree, 'Root')
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()
