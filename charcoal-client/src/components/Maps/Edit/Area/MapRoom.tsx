@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import LockIcon from '@mui/icons-material/Lock'
 
 type MapRoomProps = {
     PermanentId: string;
@@ -83,6 +84,23 @@ export const MapRoom = ({
             }
         </text>
         { icon && <g transform="translate(15, 15), scale(0.05, 0.05)">{ icon }</g>}
+        { Locked &&
+            <React.Fragment>
+                <circle
+                    data-permanentid={PermanentId}
+                    style={{
+                        fill: 'lightblue',
+                        stroke: 'darkblue',
+                        strokeWidth: '0.1 em'
+                    }}
+                    cx={20}
+                    cy={-20}
+                    r={10}
+                    {...rest}
+                />
+                <g transform="translate(10.5, -28), scale(0.025, 0.025)"><LockIcon /></g>
+            </React.Fragment>
+        }
     </g>
 }
 

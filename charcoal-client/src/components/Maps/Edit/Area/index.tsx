@@ -75,6 +75,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
             onClick={onClick}
             decoratorCircles={decoratorCircles}
             decoratorExits={decoratorExits}
+            editMode
         />
     </React.Fragment>
 

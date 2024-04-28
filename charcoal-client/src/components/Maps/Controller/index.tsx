@@ -56,7 +56,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
-    const [parentID, setParentID] = useState<string | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const dispatch = useDispatch()
 
@@ -64,6 +63,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     // Create a GenericTree representation of the items relevant to the map
     //
     const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
+    const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
     const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>>(() => {
         const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
             isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
@@ -194,7 +194,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                         setParentID(conditionParent.id)
                     }
                     else {
-                        setParentID(undefined)
+                        setParentID(mapComponent.id)
                     }
                 }
                 setItemSelected(action.item)
