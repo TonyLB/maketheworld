@@ -206,6 +206,24 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'AddRoom':
                 addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
+            case 'UnlockRoom':
+                //
+                // If roomId references a cascadeNode in that iterator, add it (at that location), otherwise no-op
+                //
+                const relevantMapDThreeIterator = mapD3.tree.layers.find(({ key }) => (key === dispatchParentId))
+                if (relevantMapDThreeIterator) {
+                    const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
+                    if (relevantNode && relevantNode.cascadeNode) {
+                        addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
+                    }
+                }
+                else {
+                    const relevantContext = localPositions.find(({ id }) => (id === action.roomId))
+                    if (relevantContext) {
+                        addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
+                    }
+                }
+                return
             case 'SetCursor':
                 if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
                     setCursorPosition({ x: action.x, y: action.y })

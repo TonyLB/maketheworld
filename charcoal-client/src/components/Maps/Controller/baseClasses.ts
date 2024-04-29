@@ -88,6 +88,11 @@ type MapDispatchAddRoom = {
     y: number;
 }
 
+type MapDispatchUnlockRoom = {
+    type: 'UnlockRoom';
+    roomId?: string;
+}
+
 type MapDispatchSetCursorPosition = {
     type: 'SetCursor';
     x?: number;
@@ -108,6 +113,7 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSelectItem |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
+    MapDispatchUnlockRoom |
     MapDispatchSetCursorPosition |
     MapDispatchToggleBranchVisibility
 

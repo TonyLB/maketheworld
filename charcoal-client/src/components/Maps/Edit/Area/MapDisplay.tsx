@@ -268,6 +268,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                     scale={scale}
                                 >
                                     <MapRoomComponent
+                                        id={room.id}
                                         PermanentId={room.roomId}
                                         Name={room.name || room.roomId}
                                         Locked={editMode && room.parentId !== (parentID)}
