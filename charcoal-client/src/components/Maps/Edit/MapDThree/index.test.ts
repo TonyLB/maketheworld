@@ -33,7 +33,7 @@ describe('mapTreeTranslate', () => {
             }
         ]
 
-        expect(mapTreeTranslate(testTree)).toEqual([{
+        expect(mapTreeTranslate(testTree, 'XYZ')).toEqual([{
             data: {
                 nodes: [
                     { id: 'DEF', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
@@ -43,7 +43,7 @@ describe('mapTreeTranslate', () => {
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
                 ],
                 visible: true,
-                key: 'Root'
+                key: 'XYZ'
             },
             children: []
         }])
@@ -111,7 +111,7 @@ describe('mapTreeTranslate', () => {
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
                 ],
                 visible: true,
-                key: 'Root'
+                key: 'XYZ'
             },
             children: [
                 {
@@ -136,8 +136,8 @@ describe('mapTreeTranslate', () => {
                 }
             ]
         }])
-        expect(mapTreeTranslate(testTree(false))).toEqual(expectedResult(false))
-        expect(mapTreeTranslate(testTree(true))).toEqual(expectedResult(true))
+        expect(mapTreeTranslate(testTree(false), 'XYZ')).toEqual(expectedResult(false))
+        expect(mapTreeTranslate(testTree(true), 'XYZ')).toEqual(expectedResult(true))
     })
 
 })
@@ -175,7 +175,8 @@ describe('MapDThree', () => {
                     id: 'If-1'
                 }],
                 id: ''
-            }]
+            }],
+            parentId: 'XYZ'
         })
         expect(MapDThreeTree).toHaveBeenCalledTimes(1)
         expect(MapDThreeTree.mock.calls[0]).toMatchSnapshot()

@@ -25,7 +25,8 @@ interface MapDisplayProps  {
         toX: number,
         toY: number,
         double: boolean
-    }[]
+    }[];
+    editMode?: boolean;
 }
 
 type ExitDeduplicationState = {
@@ -38,7 +39,8 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         onClick = () => {},
         decoratorCircles = [],
         decoratorExits = [],
-        fileURL = ''
+        fileURL = '',
+        editMode = false
     }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const localClasses = useMapStyles()
@@ -76,7 +78,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             })
         }
     }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
-    const { UI: { toolSelected }, localPositions: rooms, mapDispatch } = useMapContext()
+    const { UI: { toolSelected, parentID }, localPositions: rooms, mapDispatch } = useMapContext()
     const bind = (useGesture as any)({
         onWheel: ({ movement: [, y] }: any) => {
             const oldScale = scale
@@ -266,8 +268,10 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                     scale={scale}
                                 >
                                     <MapRoomComponent
+                                        id={room.id}
                                         PermanentId={room.roomId}
                                         Name={room.name || room.roomId}
+                                        Locked={editMode && room.parentId !== (parentID)}
                                         className={localClasses.roomNode}
                                         contrastClassName={localClasses.svgLightBlueContrast}
                                         x={room.x + (MAP_WIDTH / 2)}

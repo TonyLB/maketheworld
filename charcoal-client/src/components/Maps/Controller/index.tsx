@@ -26,7 +26,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], parentId: '', onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -56,18 +56,18 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
-    const [parentID, setParentID] = useState<string | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const dispatch = useDispatch()
 
     //
     // Create a GenericTree representation of the items relevant to the map
     //
+    const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
+    const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
     const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>>(() => {
         const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
             isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
         )
-        const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
         const positions = mapComponent?.positions ?? []
         const roomKeys = selectKeysByTag('Room')(positions)
         const roomAndExits = roomKeys
@@ -78,7 +78,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
             .tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
-    }, [schema, mapId])
+    }, [schema, standardForm.byId, mapComponent])
 
     //
     // Make local data and setters for exit decorator source and drag location.
@@ -92,13 +92,13 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsHelper = (contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
+    const extractRoomsHelper = (parentId: string, contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = standardForm.byId[data.key]
             const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) : data.key
-            return children.reduce(extractRoomsHelper(data.key), [
+            return children.reduce(extractRoomsHelper(parentId, data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
                     ...previousItem,
@@ -115,6 +115,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     {
                         ...contextItem,
                         id,
+                        parentId,
                         x: data.x,
                         y: data.y
                     }
@@ -125,16 +126,17 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             const findSelectedSubItem = children.filter(treeNodeTypeguard((data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
                 .find(({ data }) => (data.selected))
             if (findSelectedSubItem) {
-                return findSelectedSubItem.children.reduce(extractRoomsHelper(contextRoomId), previous)
+                return findSelectedSubItem.children.reduce(extractRoomsHelper(findSelectedSubItem.id, contextRoomId), previous)
             }
         }
         return previous
     }
     const extractRoomsById = (incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
-        const basePositions = tree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(), [])
+        const basePositions = tree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id), [])
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
             (typeof item.id !== 'undefined') &&
+            (typeof item.parentId !== 'undefined') &&
             (typeof item.name !== 'undefined') &&
             (typeof item.roomId !== 'undefined') &&
             (typeof item.x !== 'undefined') &&
@@ -163,6 +165,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
+            parentId: mapComponent.id,
             onExitDrag: setExitDrag,
         })
     })
@@ -173,7 +176,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                mapD3.update(action.tree)
+                mapD3.update(action.tree, mapComponent.id)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -192,7 +195,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                         setParentID(conditionParent.id)
                     }
                     else {
-                        setParentID(undefined)
+                        setParentID(mapComponent.id)
                     }
                 }
                 setItemSelected(action.item)
@@ -202,6 +205,24 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 return
             case 'AddRoom':
                 addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
+                return
+            case 'UnlockRoom':
+                //
+                // If roomId references a cascadeNode in that iterator, add it (at that location), otherwise no-op
+                //
+                const relevantMapDThreeIterator = mapD3.tree.layers.find(({ key }) => (key === dispatchParentId))
+                if (relevantMapDThreeIterator) {
+                    const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
+                    if (relevantNode && relevantNode.cascadeNode) {
+                        addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
+                    }
+                }
+                else {
+                    const relevantContext = localPositions.find(({ id }) => (id === action.roomId))
+                    if (relevantContext) {
+                        addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
+                    }
+                }
                 return
             case 'SetCursor':
                 if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
@@ -215,7 +236,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
+    }, [mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ schema, updateSchema, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -286,7 +307,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
         tree
             .map(({ data }) => (data))
             .filter(isMapTreeRoomWithPosition)
-            .map(({ key, x, y, name  }) => ({ id: '', roomId: key, name: schemaOutputToString(name), x, y }))
+            .map(({ key, x, y, name  }) => ({ id: '', parentId: '', roomId: key, name: schemaOutputToString(name), x, y }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
@@ -295,6 +316,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             .filter(isMapTreeRoomWithPosition)
             .map((room) => ({
                 id: '',
+                parentId: '',
                 roomId: room.key,
                 x: 0,
                 y: 0,
@@ -308,12 +330,13 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree: mappedTree,
+            parentId: 'Root',
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(mappedTree)
+        mapD3.update(mappedTree, 'Root')
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()
