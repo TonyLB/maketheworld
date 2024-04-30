@@ -73,6 +73,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const roomAndExits = roomKeys
             .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
             .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
+            .filter(({ exits }) => (exits.length > 0))
             .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
         const combinedTree = new SchemaTagTree([...positions, ...roomAndExits])
             .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
