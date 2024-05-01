@@ -128,6 +128,7 @@ export type MapContextPosition = {
 
 export type MapContextType = {
     mapId: string;
+    nodeId: string;
     tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>;
     UI: {
         //
