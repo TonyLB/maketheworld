@@ -76,6 +76,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .filter(({ exits }) => (exits.length > 0))
             .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
         const combinedTree = new SchemaTagTree([...positions, ...roomAndExits])
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
             .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
             .tree
         return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
