@@ -21,6 +21,7 @@ import { assertTypeguard } from "../../../lib/types"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
+    nodeId: '',
     tree: [],
     UI: {
         toolSelected: 'Select',
@@ -265,6 +266,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     return <MapContext.Provider
         value={{
             mapId,
+            nodeId: mapComponent.id,
             tree,
             UI: {
                 toolSelected,
@@ -347,6 +349,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     return <MapContext.Provider
         value={{
             mapId: '',
+            nodeId: '',
             tree: mappedTree,
             UI: {
                 toolSelected: 'Select',
