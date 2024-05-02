@@ -93,12 +93,6 @@ type MapDispatchUnlockRoom = {
     roomId?: string;
 }
 
-type MapDispatchSetCursorPosition = {
-    type: 'SetCursor';
-    x?: number;
-    y?: number;
-}
-
 type MapDispatchToggleBranchVisibility = {
     type: 'ToggleVisibility';
     key: string;
@@ -114,7 +108,6 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
     MapDispatchUnlockRoom |
-    MapDispatchSetCursorPosition |
     MapDispatchToggleBranchVisibility
 
 export type MapContextPosition = {
@@ -146,7 +139,6 @@ export type MapContextType = {
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
         parentID?: string;
-        cursorPosition?: { x: number; y: number };
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;

@@ -31,22 +31,20 @@ export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
 
-    const { UI: { toolSelected, exitDrag, itemSelected, cursorPosition }, localPositions: rooms, tree, mapDispatch } = useMapContext()
+    const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
     const exits = useMemo(() => (treeToExits(tree)), [tree])
 
-    const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
-    const decoratorCircles = [
-        ...(exitDragSourceRoom
+    const exitDragSourceRoom = useMemo(() => (exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))), [exitDrag, rooms])
+    const decoratorCircles = useMemo(() => {
+        return exitDragSourceRoom
             ? [
                 { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
                 { x: exitDrag.x, y: exitDrag.y }
             ]: []
-        ),
-        ...( toolSelected === 'AddRoom' && itemSelected && ['UnshownRoomNew', 'UnshownRoom'].includes(itemSelected.type) && cursorPosition
-            ? [{ x: cursorPosition.x, y: cursorPosition.y }]
-            : []
-        )
-    ]
+    }, [exitDragSourceRoom, exitDrag])
+    const highlightCursor = useMemo(() => (
+        toolSelected === 'AddRoom' && itemSelected?.type === 'UnshownRoomNew'
+    ), [toolSelected, itemSelected?.type])
     //
     // TODO: Derive double from the current toolSelect setting somewhere along the line
     //
@@ -76,6 +74,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
             decoratorCircles={decoratorCircles}
             decoratorExits={decoratorExits}
             editMode
+            highlightCursor={highlightCursor}
         />
     </React.Fragment>
 

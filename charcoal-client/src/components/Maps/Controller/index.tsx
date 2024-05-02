@@ -57,7 +57,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const { schema, standardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
-    const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const dispatch = useDispatch()
 
     //
@@ -104,7 +103,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsHelper = (parentId: string, contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
+    const extractRoomsHelper = useCallback((parentId: string, contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
@@ -142,8 +141,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             }
         }
         return previous
-    }
-    const extractRoomsById = (incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
+    }, [standardForm.byId])
+    const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
         const basePositions = tree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id), [])
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
@@ -155,7 +154,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             (typeof item.y !== 'undefined')
         )
         return overwrittenPositions.filter(valuesPresentTypeguard)
-    }
+    }, [extractRoomsHelper, mapComponent.id])
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
         extractRoomsById({})(tree)
     )
@@ -236,19 +235,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     }
                 }
                 return
-            case 'SetCursor':
-                if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
-                    setCursorPosition({ x: action.x, y: action.y })
-                }
-                else {
-                    setCursorPosition(undefined)
-                }
-                return
             case 'ToggleVisibility':
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, setCursorPosition, schema, updateSchema, dispatch])
+    }, [mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ schema, updateSchema, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -281,8 +272,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
-                parentID,
-                cursorPosition
+                parentID
             },
             mapDispatch,
             mapD3,
