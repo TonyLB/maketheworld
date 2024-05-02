@@ -27,6 +27,7 @@ interface MapDisplayProps  {
         double: boolean
     }[];
     editMode?: boolean;
+    highlightCursor?: boolean;
 }
 
 type ExitDeduplicationState = {
@@ -40,10 +41,12 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         decoratorCircles = [],
         decoratorExits = [],
         fileURL = '',
-        editMode = false
+        editMode = false,
+        highlightCursor = false
     }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const localClasses = useMapStyles()
+    const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
     const [scale, setScale] = useState(0)
     const [windowDetails, setWindowDetails] = useState({
         width: 0,
@@ -106,18 +109,18 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             const newX = (event.pageX - rect.left) / scale - (MAP_WIDTH / 2)
             const newY = (event.pageY - rect.top) / scale - (MAP_HEIGHT / 2)
             if (Math.abs(newX) <= MAP_WIDTH / 2 && Math.abs(newY) <= MAP_HEIGHT / 2) {
-                mapDispatch({ type: 'SetCursor', x: newX, y: newY })
+                setCursorPosition({ x: newX, y: newY })
             }
             else {
-                mapDispatch({ type: 'SetCursor' })
+                setCursorPosition(undefined)
             }
             
         }
     })
     const internalBindArgs = useMemo(() => (internalBind()), [internalBind])
     const onMouseOut = useCallback(() => {
-        mapDispatch({ type: 'SetCursor' })
-    }, [mapDispatch])
+        setCursorPosition(undefined)
+    }, [setCursorPosition])
     const roomsByRoomId = rooms.reduce<Record<string, MapContextPosition>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
@@ -281,7 +284,13 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                             ))
                         }
                         {
-                            decoratorCircles.map(({ x, y }, index) => (
+                            [
+                                ...decoratorCircles,
+                                ...( highlightCursor && cursorPosition
+                                    ? [{ x: cursorPosition.x, y: cursorPosition.y }]
+                                    : []
+                                )
+                            ].map(({ x, y }, index) => (
                                 <HighlightCircle key={`highlightCircle${index}`} x={x + (MAP_WIDTH / 2)} y={y + (MAP_HEIGHT / 2)} />
                             ))
                         }
