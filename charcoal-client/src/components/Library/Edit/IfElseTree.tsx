@@ -232,6 +232,9 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                 if (otherStatements.length && isSchemaConditionStatement(otherStatements[0].data)) {
                     updateSchema({ type: 'delete', id: firstStatement.id })
                 }
+                if (!otherStatements.length) {
+                    updateSchema({ type: 'delete', id: field.id })
+                }
             }}
             actions={[
                 addElseIf(firstStatement.id),
