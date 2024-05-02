@@ -2,7 +2,7 @@ import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, 
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { stabilizeFactory } from "./stabilize"
@@ -69,18 +69,27 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
             isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
         )
+        const filterRoomsWithChildren = (tree: GenericTree<SchemaTag, Partial<TreeId> & { inherited?: boolean }>): GenericTree<SchemaTag, Partial<TreeId> & { inherited?: boolean }> => {
+            return tree.map(({ data, children, ...rest }) => (
+                isSchemaRoom(data)
+                    ? (children.filter(({ data }) => (!isSchemaShortName(data))).length > 0
+                        ? [{ data, ...rest, children: filterRoomsWithChildren(children) }]
+                        : []
+                    )
+                    : [{ data, ...rest, children: filterRoomsWithChildren(children) }]
+            )).flat(1)
+        }
         const positions = mapComponent?.positions ?? []
         const roomKeys = selectKeysByTag('Room')(positions)
         const roomAndExits = roomKeys
             .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
             .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
-            .filter(({ exits }) => (exits.length > 0))
             .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
         const combinedTree = new SchemaTagTree([...positions, ...roomAndExits])
             .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
             .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
             .tree
-        return maybeGenericIDFromTree(treeTypeGuard({ tree: combinedTree, typeGuard: isMapContents }))
+        return maybeGenericIDFromTree(treeTypeGuard({ tree: filterRoomsWithChildren(combinedTree), typeGuard: isMapContents }))
     }, [schema, standardForm.byId, mapComponent])
 
     //
