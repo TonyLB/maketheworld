@@ -61,7 +61,9 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         const summaryItem = children.find(treeNodeTypeguard(isSchemaSummary))
         const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
-        const exitTagTree = new SchemaTagTree(children).filter({ match: 'Exit' })
+        const exitTagTree = new SchemaTagTree(children)
+            .filter({ match: 'Exit' })
+            .reorderedSiblings([['Room', 'Exit'], ['If']])
         const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaRoom(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Room' }, { match: 'Theme' }] } })
         return {
             tag: 'Room',
@@ -115,10 +117,12 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     }
     if (isSchemaMap(data)) {
         const positionsTagTree = new SchemaTagTree(children)
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
+            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
             .prune({ not: { or: [
                 { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }, { match: 'Exit' }
             ]}})
+            .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
+        
         const imagesTagTree = new SchemaTagTree(children).filter({ match: 'Image' })
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
         const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaMap(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Map' }, { match: 'Theme' }] } })
