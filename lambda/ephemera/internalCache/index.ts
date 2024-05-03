@@ -19,7 +19,7 @@ import CacheGraph from './graph';
 import OrchestrateMessages from './orchestrateMessages';
 import CacheAssetAddress from './assetAddress';
 
-type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
+type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
 export type MapSubscriptionConnection = {
     connectionId: string;
@@ -30,17 +30,19 @@ export class CacheGlobalData {
     ConnectionId?: string;
     RequestId?: string;
     player?: string;
+    SessionId?: string;
     assets?: string[];
     connections?: string[];
     mapSubscriptions?: MapSubscriptionConnection[];
-    get(key: 'ConnectionId' | 'RequestId' | 'player'): Promise<string | undefined>
+    get(key: 'ConnectionId' | 'RequestId' | 'player' | 'SessionId'): Promise<string | undefined>
     get(key: 'assets' | 'connections'): Promise<string[] | undefined>
     get(key: 'mapSubscriptions'): Promise<MapSubscriptionConnection[] | undefined>
     get(key: CacheGlobalKeys): Promise<string | string[] | MapSubscriptionConnection[] | undefined>
     async get(key: CacheGlobalKeys) {
         switch(key) {
             case 'player':
-                if (!this.player && this.ConnectionId) {
+            case 'SessionId':
+                if (this.ConnectionId && !(this.player && this.SessionId)) {
                     //
                     // TODO: Replace repeated attempts with exponential backoff by
                     // refactoring connectionDB.getItem to allow a consistent argument
@@ -49,24 +51,25 @@ export class CacheGlobalData {
                     let attempts = 0
                     let exponentialBackoff = 50
                     while(attempts < 5) {
-                        const { player = '' } = await connectionDB.getItem<{ player: string }>({
+                        const { player = '', SessionId = '' } = await connectionDB.getItem<{ player: string; SessionId: string; }>({
                             Key: {
                                 ConnectionId: `CONNECTION#${this.ConnectionId}`,
                                 DataCategory: 'Meta::Connection'
                             },
-                            ProjectionFields: ['player']
+                            ProjectionFields: ['player', 'SessionId']
                         }) || {}
-                        if (player) {
+                        if (player && SessionId) {
                             this.player = player
-                            return player
+                            this.SessionId = SessionId
+                            return key === 'player' ? player : SessionId
                         }
                         attempts += 1
                         await delayPromise(exponentialBackoff)
                         exponentialBackoff = exponentialBackoff * 2
                     }
-                    console.log(`Exponential backoff on player caching failed after five attempts (${this.ConnectionId})`)
+                    console.log(`Exponential backoff on player/session caching failed after five attempts (${this.ConnectionId})`)
                 }
-                return this.player
+                return key === 'player' ? this.player : this.SessionId
             case 'assets':
                 if (typeof this.assets === 'undefined') {
                     const { assets = [] } = (await ephemeraDB.getItem<{ assets: string[] }>({
