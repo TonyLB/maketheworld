@@ -130,7 +130,8 @@ describe('cacheAsset', () => {
                     ] },
                     summary: { data: { tag: 'Summary' }, children: [] },
                     description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
-                    exits: []
+                    exits: [],
+                    themes: []
                 },
                 testKnowledge: {
                     key: 'testKnowledge',
@@ -256,7 +257,8 @@ describe('cacheAsset', () => {
                     name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                     summary: { data: { tag: 'Summary' }, children: [] },
                     description: { data: { tag: 'Description' }, children: [] },
-                    exits: []
+                    exits: [],
+                    themes: []
                 },
                 map1: {
                     key: 'map1',
@@ -265,7 +267,8 @@ describe('cacheAsset', () => {
                     positions: [
                         { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }
                     ],
-                    images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }]
+                    images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }],
+                    themes: []
                 }
             }
         }
@@ -339,7 +342,8 @@ describe('cacheAsset', () => {
                     name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                     summary: { data: { tag: 'Summary' }, children: [] },
                     description: { data: { tag: 'Description' }, children: [] },
-                    exits: []
+                    exits: [],
+                    themes: []
                 },
                 DEF: {
                     key: 'DEF',
@@ -353,7 +357,8 @@ describe('cacheAsset', () => {
                             data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
                             children: [{ data: { tag: 'Exit', to: 'ABC', key: 'DEF#ABC', from: 'DEF' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]}]
                         }] }
-                    ]
+                    ],
+                    themes: []
                 },
                 open: {
                     key: 'open',
@@ -443,7 +448,8 @@ describe('cacheAsset', () => {
                     name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                     summary: { data: { tag: 'Summary' }, children: [] },
                     description: { data: { tag: 'Description' }, children: [] },
-                    exits: []
+                    exits: [],
+                    themes: []
                 }
             }
         }
