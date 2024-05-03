@@ -1,4 +1,5 @@
 
+import { v4 as uuidv4 } from 'uuid'
 import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 const confirmGuestCharacter = async ({ characterId, name }: { characterId?: string; name?: string }): Promise<void> => {
@@ -29,27 +30,33 @@ const confirmGuestCharacter = async ({ characterId, name }: { characterId?: stri
     // })
 }
 
-export const connect = async (connectionId: string, userName: string): Promise<{ statusCode: number; message?: string }> => {
+export const connect = async (connectionId: string, userName: string, SessionId: string): Promise<{ statusCode: number; message?: string }> => {
 
+    const defaultedSessionId = SessionId || uuidv4()
     if (connectionId) {
         await Promise.all([
             connectionDB.putItem({
                 ConnectionId: `CONNECTION#${connectionId}`,
                 DataCategory: 'Meta::Connection',
-                player: userName
+                player: userName,
+                SessionId: defaultedSessionId
             }),
             connectionDB.optimisticUpdate({
                 Key: {
                     ConnectionId: 'Global',
                     DataCategory: 'Connections'    
                 },
-                updateKeys: ['connections'],
-                updateReducer: (draft: { connections?: Record<string, string> }) => {
+                updateKeys: ['connections', 'sessions'],
+                updateReducer: (draft: { connections?: Record<string, string>; sessions?: Record<string, string> }) => {
                     if (draft.connections === undefined) {
                         draft.connections = {}
                     }
+                    if (draft.sessions === undefined) {
+                        draft.sessions = {}
+                    }
                     if (userName) {
                         draft.connections[connectionId] = userName
+                        draft.sessions[defaultedSessionId] = userName
                     }
                 },
             })
