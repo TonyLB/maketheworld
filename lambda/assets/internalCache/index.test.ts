@@ -40,11 +40,13 @@ describe('Internal Cache', () => {
     it('should handle mixins', async () => {
         const MixedCache = CacheConnection(CacheBase)
         connectionDBMock.getItem.mockResolvedValue({
-            player: 'TestPlayer'
+            player: 'TestPlayer',
+            SessionId: 'XYZ'
         })
         const cache = new MixedCache()
         cache.Connection.set({ key: 'connectionId', value: 'Test' })
         expect(await cache.Connection.get('connectionId')).toEqual('Test')
         expect(await cache.Connection.get('player')).toEqual('TestPlayer')
+        expect(await cache.Connection.get('sessionId')).toEqual('XYZ')
     })
 })
