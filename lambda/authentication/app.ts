@@ -9,10 +9,10 @@ export const handler = async (event: any) => {
     const { connectionId, routeKey } = event.requestContext || {}
 
     if (routeKey === '$connect') {
-        const { Authorization = '' } = event.queryStringParameters || {}
+        const { Authorization = '', SessionId = '' } = event.queryStringParameters || {}
         const { userName } = (await validateJWT(Authorization)) || {}
         if (userName) {
-            return await connect(connectionId, userName)
+            return await connect(connectionId, userName, SessionId)
         }
         else {
             return { statusCode: 403 }

@@ -9,21 +9,23 @@ import Meta from './meta'
 import CachePlayerSettings from './playerSettings'
 import CacheGraph from './graph'
 
-type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
+type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
 class CacheConnectionData {
     connectionId?: string;
+    sessionId?: string;
     RequestId?: string;
     s3Client?: S3Client;
     player?: string;
     librarySubscriptions?: string[];
-    get(key: 'connectionId' | 'RequestId' | 'player'): Promise<string | undefined>
+    get(key: 'connectionId' | 'sessionId' | 'RequestId' | 'player'): Promise<string | undefined>
     get(key: 's3Client'): Promise<S3Client | undefined>
     get(key: 'librarySubscriptions'): Promise<string[] | undefined>
     get(key: CacheConnectionKeys): Promise<S3Client | string | string[] | undefined>
     async get(key: CacheConnectionKeys) {
         switch(key) {
             case 'player':
-                if (!this.player && this.connectionId) {
+            case 'sessionId':
+                if (this.connectionId && !(this.player && this.sessionId)) {
                     //
                     // First get player with eventually consistent read (almost always going to work),
                     // then fall back, if the player's Connection write has not yet been registered
@@ -35,23 +37,25 @@ class CacheConnectionData {
                             ConnectionId: `CONNECTION#${this.connectionId}`,
                             DataCategory: 'Meta::Connection'
                         },
-                        ProjectionFields: ['player'],
+                        ProjectionFields: ['player', 'SessionId'],
                     }
-                    const { player = '' } = await connectionDB.getItem<{ player: string }>(getArguments) || {}
-                    if (player) {
+                    const { player = '', SessionId: sessionId = '' } = await connectionDB.getItem<{ player: string; SessionId: string; }>(getArguments) || {}
+                    if (player && sessionId) {
                         this.player = player
+                        this.sessionId = sessionId
                     }
                     else {
-                        const { player = '' } = await connectionDB.getItem<{ player: string }>({
+                        const { player = '', SessionId: sessionId = '' } = await connectionDB.getItem<{ player: string; SessionId: string; }>({
                             ...getArguments,
                             ConsistentRead: true
                         }) || {}
-                        if (player) {
+                        if (player && sessionId) {
                             this.player = player
+                            this.sessionId = sessionId
                         }
                     }
                 }
-                return this.player
+                return key === 'player' ? this.player : this.sessionId
             case 'librarySubscriptions':
                 if (typeof this.librarySubscriptions === 'undefined') {
                     const { ConnectionIds = [] } = (await connectionDB.getItem<{ ConnectionIds: string[] }>({

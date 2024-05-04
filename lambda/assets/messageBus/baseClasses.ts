@@ -62,6 +62,7 @@ export type LibraryUnsubscribeMessage = {
 export type PlayerInfoMessage = {
     type: 'PlayerInfo';
     player?: string;
+    sessionId?: string;
     RequestId?: string;
 }
 

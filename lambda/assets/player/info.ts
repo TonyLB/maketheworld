@@ -8,9 +8,10 @@ const { FEEDBACK_TOPIC } = process.env
 
 export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: PlayerInfoMessage[], messageBus: MessageBus }): Promise<void> => {
     internalCache.ConnectionsByPlayer.clear()
-    await Promise.all(payloads.map(async ({ player, RequestId }) => {
+    await Promise.all(payloads.map(async ({ player, sessionId, RequestId }) => {
         const derivedPlayer = player || await internalCache.Connection.get("player")
-        if (derivedPlayer) {
+        const derivedSessionId = sessionId || await internalCache.Connection.get("sessionId")
+        if (derivedPlayer && derivedSessionId) {
             const [connections, settings, { Characters, Assets }] = await Promise.all([
                 internalCache.ConnectionsByPlayer.get(derivedPlayer),
                 internalCache.PlayerSettings.get(derivedPlayer),
@@ -25,7 +26,8 @@ export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: Pl
                             Characters: Object.values(Characters),
                             Assets: Object.values(Assets),
                             Settings: settings,
-                            PlayerName: derivedPlayer
+                            PlayerName: derivedPlayer,
+                            SessionId: derivedSessionId
                         }),
                         MessageAttributes: {
                             RequestId: { DataType: 'String', StringValue: RequestId },

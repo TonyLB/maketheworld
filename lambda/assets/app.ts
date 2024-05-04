@@ -259,10 +259,12 @@ export const handler = async (event, context) => {
         }
         if (isAssetWhoAmIAPIMessage(request)) {
             const player = await internalCache.Connection.get('player')
+            const sessionId = await internalCache.Connection.get('sessionId')
             if (player) {
                 messageBus.send({
                     type: 'PlayerInfo',
                     player,
+                    sessionId,
                     RequestId: request.RequestId
                 })
             }
