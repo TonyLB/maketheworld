@@ -286,7 +286,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ...(conditionExpressions.length ? {
                                 ConditionExpression: conditionExpressions.join(' AND ')
                             } : {}),
-                            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                            ...((ExpressionAttributeValues && (Object.values(marshall(ExpressionAttributeValues, { removeUndefinedValues: true })).length > 0)) ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                             ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                         },
                         ...cascadeDeletes.map((key) => ({ Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }) }))
@@ -311,7 +311,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                         ...(conditionExpressions.length ? {
                             ConditionExpression: conditionExpressions.join(' AND ')
                         } : {}),
-                        ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                        ...((ExpressionAttributeValues && (Object.values(marshall(ExpressionAttributeValues, { removeUndefinedValues: true })).length > 0)) ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                         ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                     },
                     newState: updateOutput.newState

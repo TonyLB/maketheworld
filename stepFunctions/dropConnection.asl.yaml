@@ -1,0 +1,36 @@
+---
+Comment: Command step-function to drop a connection
+StartAt: Drop Connection
+States:
+    "Drop Connection":
+        Type: Task
+        Next: Check DropAfter
+        Resource: "${ConnectionFunctionArn}"
+        Parameters:
+            message: "dropConnection"
+            connectionId.$: "$$.Execution.Input.connectionId"
+            sessionId.$: "$$.Execution.Input.sessionId"
+        ResultPath: "$"
+    "Check DropAfter":
+        Type: Choice
+        Choices:
+          -
+            Variable: "$.dropAfter"
+            IsPresent: True
+            Next: Delay
+        Default: Done
+    Delay:
+      Type: Wait
+      Seconds: 5
+      Next: Check Session
+    "Check Session":
+        Type: Task
+        Next: Done
+        Resource: "${ConnectionFunctionArn}"
+        Parameters:
+            message: "checkSession"
+            sessionId.$: "$$.Execution.Input.sessionId"
+            dropAfter.$: "$.dropAfter"
+        ResultPath: "$"
+    Done:
+        Type: Succeed
