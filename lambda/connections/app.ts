@@ -35,21 +35,38 @@ export const handler = async (event: any) => {
     if (event.message === 'checkSession') {
         const epochTime = Date.now()
         const { sessionId } = event
-        const { shouldDrop } = (await connectionDB.optimisticUpdate<{ connections: string[]; dropAfter?: number; shouldDrop?: string }>({
+        let shouldDrop = false
+        await connectionDB.optimisticUpdate<{ connections: string[]; dropAfter?: number; shouldDrop?: string }>({
             Key: {
                 ConnectionId: `SESSION#${sessionId}`,
                 DataCategory: 'Meta::Session'
             },
             updateKeys: ['connections', 'dropAfter', 'shouldDrop'],
             updateReducer: (draft) => {
-                console.log(`epochTime: ${epochTime}`)
-                console.log(`draft: ${JSON.stringify(draft, null, 4)}`)
                 if (typeof draft.dropAfter === 'number' && draft.dropAfter < epochTime) {
                     draft.shouldDrop = 'Yes'
+                    shouldDrop = true
                 }
             },
             deleteCondition: ({ shouldDrop }) => (Boolean(shouldDrop))
-        }) || { shouldDrop: 'Yes' })
+        })
+        if (shouldDrop) {
+            await connectionDB.optimisticUpdate({
+                Key: {
+                    ConnectionId: 'Global',
+                    DataCategory: 'Connections'
+                },
+                updateKeys: ['sessions'],
+                updateReducer: (draft) => {
+                    if (typeof draft.sessions === 'undefined') {
+                        draft.sessions = {}
+                    }
+                    else {
+                        draft.sessions[sessionId] = undefined
+                    }
+                }
+            })
+        }
         return
     }
     throw new Error('Invalid parameters')
