@@ -2,8 +2,6 @@ import { apiClient } from "./clients"
 
 export const handler = async (event) => {
 
-    console.log(`event: ${JSON.stringify(event, null, 4)}`)
-
     await Promise.all(event.Records.map(async ({ Sns }) => {
         if (
             Sns.MessageAttributes.ConnectionIds?.Type !== 'String' ||

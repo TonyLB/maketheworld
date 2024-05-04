@@ -276,6 +276,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 return { action: 'ignore' }
             }
             else if (updateOutput.action === 'delete') {
+                console.log(`Delete: ${JSON.stringify(updateOutput, null, 4)}`)
                 const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = updateOutput
                 const cascadeDeletes = deleteCascade ? deleteCascade({ ...Key, ...updateOutput.newState }) : []
                 return {
@@ -286,7 +287,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ...(conditionExpressions.length ? {
                                 ConditionExpression: conditionExpressions.join(' AND ')
                             } : {}),
-                            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                            ...((ExpressionAttributeValues && (Object.values(marshall(ExpressionAttributeValues, { removeUndefinedValues: true })).length > 0)) ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                             ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                         },
                         ...cascadeDeletes.map((key) => ({ Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }) }))
@@ -295,6 +296,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 }
             }
             else {
+                console.log(`Update: ${JSON.stringify(updateOutput, null, 4)}`)
                 const { ExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
                 const UpdateExpression = [
                     setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
@@ -311,7 +313,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                         ...(conditionExpressions.length ? {
                             ConditionExpression: conditionExpressions.join(' AND ')
                         } : {}),
-                        ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                        ...((ExpressionAttributeValues && (Object.values(marshall(ExpressionAttributeValues, { removeUndefinedValues: true })).length > 0)) ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                         ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                     },
                     newState: updateOutput.newState
@@ -370,6 +372,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                     break
                 }
                 else if (updateOutput.action === 'delete') {
+                    console.log(`deletes: ${JSON.stringify(updateOutput.deletes, null, 4)}`)
                     try {
                         await Promise.all(updateOutput.deletes.map((deleteItem) => (this._client.send(new DeleteItemCommand({
                             TableName: this._tableName,

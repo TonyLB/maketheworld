@@ -43,6 +43,25 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             }),
             connectionDB.optimisticUpdate({
                 Key: {
+                    ConnectionId: `SESSION#${defaultedSessionId}`,
+                    DataCategory: 'Meta::Session'
+                },
+                updateKeys: ['connections', 'player'],
+                updateReducer: (draft: { connections?: string[]; player?: string }) => {
+                    if (typeof draft.connections === 'undefined') {
+                        draft.connections = [connectionId]
+                    }
+                    else {
+                        draft.connections = [
+                            ...draft.connections.filter((id) => (id !== connectionId)),
+                            connectionId
+                        ]
+                    }
+                    draft.player = userName
+                }
+            }),
+            connectionDB.optimisticUpdate({
+                Key: {
                     ConnectionId: 'Global',
                     DataCategory: 'Connections'    
                 },
