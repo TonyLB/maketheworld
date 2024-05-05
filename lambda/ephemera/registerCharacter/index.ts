@@ -8,7 +8,7 @@ import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.Global.get('ConnectionId')
+    const [connectionId, sessionId] = await Promise.all([internalCache.Global.get('ConnectionId'), internalCache.Global.get('SessionId')])
 
     if (connectionId) {
         const RequestId = await internalCache.Global.get('RequestId')
@@ -36,13 +36,14 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             ConnectionId: CharacterId,
                             DataCategory: 'Meta::Character'
                         },
-                        updateKeys: ['connections'],
+                        updateKeys: ['connections', 'sessions'],
                         updateReducer: (draft) => {
+                            draft.sessions = unique(draft.sessions || [], [sessionId])
                             draft.connections = unique(draft.connections || [], [connectionId])
                         },
-                        successCallback: ({ connections }) => {
+                        successCallback: ({ connections, sessions }) => {
                             internalCache.CharacterConnections.set(CharacterId, connections)
-                            if (connections.length <= 1) {
+                            if (sessions.length <= 1) {
                                 messageBus.send({
                                     type: 'CheckLocation',
                                     characterId: CharacterId,

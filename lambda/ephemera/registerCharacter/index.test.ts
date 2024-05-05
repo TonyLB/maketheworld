@@ -29,7 +29,7 @@ describe("registerCharacter", () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.Global.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('Request123')
+        internalCacheMock.Global.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('TestSession').mockResolvedValueOnce('Request123')
     })
 
     it("should update correctly on first connection", async () => {
@@ -43,7 +43,7 @@ describe("registerCharacter", () => {
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
-        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection']}))
+        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection'], sessions: ['TestSession'] }))
         await registerCharacter({
             payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }],
             messageBus
@@ -56,7 +56,7 @@ describe("registerCharacter", () => {
                         ConnectionId: 'CHARACTER#ABC',
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['connections'],
+                    updateKeys: ['connections', 'sessions'],
                     updateReducer: expect.any(Function),
                     successCallback: expect.any(Function)
                 }
@@ -103,7 +103,7 @@ describe("registerCharacter", () => {
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
-        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['previous', 'TestConnection']}))
+        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection'], sessions: ['previous', 'TestSession'] }))
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
         expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -114,7 +114,7 @@ describe("registerCharacter", () => {
                 RequestId: 'Request123'
             }
         })
-        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['previous', 'TestConnection'])
+        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestConnection'])
     })
 
 })
