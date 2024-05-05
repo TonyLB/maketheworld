@@ -14,6 +14,7 @@ import publishMessage from './index'
 const messageDeltaDBMock = messageDeltaDB as jest.Mocked<typeof messageDeltaDB>
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
 const uuidMock = uuidv4 as jest.Mock
+// @ts-ignore
 const cacheMock = jest.mocked(internalCache, true)
 
 describe('PublishMessage', () => {

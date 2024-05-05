@@ -7,6 +7,7 @@ import internalCache from "../internalCache"
 import returnValueMessage from './index'
 
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('ReturnValueMessage', () => {

@@ -13,6 +13,7 @@ import { canonUpdateMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
