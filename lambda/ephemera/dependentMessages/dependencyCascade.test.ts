@@ -16,6 +16,7 @@ import { extractConstrainedTag } from '@tonylb/mtw-utilities/dist/types'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
 const cascadeTest = (ephemeraId: EphemeraComputedId, value: number, conditions: { key: string; value: any }[]) => ([

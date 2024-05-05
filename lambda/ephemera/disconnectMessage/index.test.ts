@@ -13,6 +13,7 @@ import internalCache from '../internalCache'
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
 import disconnectMessage from '.'

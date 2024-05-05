@@ -7,6 +7,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import perceptionMessage from '.'
 
+// @ts-ignore
 const cacheMock = jest.mocked(internalCache, true)
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>

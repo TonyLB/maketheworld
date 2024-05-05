@@ -16,6 +16,7 @@ import { CharacterMetaItem } from '../internalCache/characterMeta'
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const dependencyCascadeMock = dependencyCascade as jest.Mocked<typeof dependencyCascade>
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const exponentialBackoffMock = exponentialBackoffWrapper as jest.Mock
 

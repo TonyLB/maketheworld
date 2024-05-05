@@ -14,6 +14,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 

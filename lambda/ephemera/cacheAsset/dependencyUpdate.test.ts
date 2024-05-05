@@ -6,6 +6,7 @@ import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
 
 import { updateDependenciesFromMergeActions } from './dependencyUpdate'
 
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCacheMock._graphCache, string>>
 

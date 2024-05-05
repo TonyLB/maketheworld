@@ -9,6 +9,7 @@ import messageBus from '../messageBus'
 import { fetchPlayerEphemera } from '.'
 
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('fetchPlayerEphemera', () => {
