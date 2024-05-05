@@ -75,7 +75,7 @@ class PublishMessageTargetMapper {
     
         this.sessionsByCharacterId = {}
         Object.values(this.activeCharactersByRoomId).forEach((characterList) => {
-            characterList.forEach(({ EphemeraId, SessionIds }) => {
+            characterList.forEach(({ EphemeraId, SessionIds = [] }) => {
                 const characterId = EphemeraId
                 if (characterId) {
                     if (characterId in this.sessionsByCharacterId) {
@@ -92,18 +92,21 @@ class PublishMessageTargetMapper {
         await Promise.all(
             unmappedCharacters.map((characterId) => (
                 internalCache.CharacterSessions.get(characterId)
-                    .then((connections) => {
-                        this.sessionsByCharacterId[characterId] = connections || []
+                    .then((sessions) => {
+                        this.sessionsByCharacterId[characterId] = sessions || []
                     })
                 ))
         )
 
         const allSessionTargets = unique(explicitSessionTargets, ...Object.values(this.sessionsByCharacterId))
-        //
-        // TODO: Create SessionConnections internalCache
-        //
-        // TODO: Use SessionConnections internalCache to populate connectionsBySessionId property
-        //
+        await Promise.all(
+            allSessionTargets.map((sessionId) => (
+                internalCache.SessionConnections.get(sessionId)
+                    .then((connections) => {
+                        this.connectionsBySessionId[sessionId] = connections || []
+                    })
+            ))
+        )
     }
 
     remap(targets: PublishTarget[]): EphemeraCharacterId[] {
@@ -117,7 +120,7 @@ class PublishMessageTargetMapper {
     }
 
     characterConnections(characterId: EphemeraCharacterId): string[] {
-        return this.sessionsByCharacterId[characterId] || []
+        return (this.sessionsByCharacterId[characterId] || []).map((sessionId) => (this.connectionsBySessionId[sessionId] || [])).flat(1)
     }
 }
 
