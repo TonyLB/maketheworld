@@ -4,6 +4,8 @@ import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { sfnClient } from "../clients"
+import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
@@ -134,16 +136,32 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
 
     await Promise.all(payloads.map(async (payload) => {
         const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
-            Key: { ConnectionId },
-            ExpressionAttributeValues: {
-                ':dcPrefix': 'CHARACTER#'
-            },
-            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-            ProjectionFields: ['DataCategory']
-        })
+        const [{ SessionId: sessionId } = { SessionId: '' }, characterQuery] = await Promise.all([
+            connectionDB.getItem<{ SessionId: string }>({ 
+                Key: { ConnectionId, DataCategory: 'Meta::Connection' },
+                ProjectionFields: ['SessionId']
+            }),
+            connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
+                Key: { ConnectionId },
+                ExpressionAttributeValues: {
+                    ':dcPrefix': 'CHARACTER#'
+                },
+                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+                ProjectionFields: ['DataCategory']
+            })
+        ])
         await Promise.all([
             ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, DataCategory))),
+            ...(sessionId
+                ? [sfnClient.send(new StartExecutionCommand({
+                    stateMachineArn: process.env.DROP_CONNECTION_SFN,
+                    input: JSON.stringify({
+                        sessionId,
+                        connectionId: payload.connectionId
+                    })
+                }))]
+                : []
+            ),
             connectionDB.deleteItem({
                 ConnectionId,
                 DataCategory: 'Meta::Connection'
