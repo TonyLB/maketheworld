@@ -48,6 +48,7 @@ export type RoomCharacterListItem = {
     EphemeraId: EphemeraCharacterId;
     Color?: LegalCharacterColor;
     ConnectionIds: string[];
+    SessionIds: string[];
     fileURL?: string;
     Name: string;
 }

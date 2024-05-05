@@ -18,16 +18,21 @@ export type PublishTargetRoom = `ROOM#${string}`
 export type PublishTargetCharacter = `CHARACTER#${string}`
 export type PublishTargetExcludeCharacter = `!CHARACTER#${string}`
 
+export type PublishTargetSession = `SESSION#${string}`
+export type PublishTargetExcludeSession = `!SESSION#${string}`
+
 export type PublishTargetConnection = `CONNECTION#${string}`
 export type PublishTargetExcludeConnection = `!CONNECTION#${string}`
 
 export type PublishTargetGlobal = `GLOBAL`
 
-export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
+export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter | PublishTargetSession | PublishTargetExcludeSession | PublishTargetConnection | PublishTargetExcludeConnection | PublishTargetGlobal
 
 export const isPublishTargetRoom = isEphemeraTaggedId<'ROOM'>('ROOM')
 export const isPublishTargetCharacter = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 export const isPublishTargetExcludeCharacter = isEphemeraTaggedId<'!CHARACTER'>('!CHARACTER')
+export const isPublishTargetSession = isEphemeraTaggedId<'SESSION'>('SESSION')
+export const isPublishTargetExcludeSession = isEphemeraTaggedId<'!SESSION'>('!SESSION')
 export const isPublishTargetConnection = isEphemeraTaggedId<'CONNECTION'>('CONNECTION')
 export const isPublishTargetExcludeConnection = isEphemeraTaggedId<'!CONNECTION'>('!CONNECTION')
 export const isPublishTargetGlobal = (key: string): key is PublishTargetGlobal => (key === 'GLOBAL')
