@@ -193,6 +193,7 @@ Resources:
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
+          DROP_CONNECTION_SFN: !Ref DropConnectionStateMachine
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -207,6 +208,8 @@ Resources:
               - events:PutEvents
         - StepFunctionsExecutionPolicy:
             StateMachineName: !Sub '${TablePrefix}_message_sync_step_function'
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !Sub '${TablePrefix}_drop_connection_step_function'
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections
