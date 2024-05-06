@@ -6,15 +6,15 @@ import { MessageBus, MapUpdateMessage } from "../messageBus/baseClasses"
 export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: MapUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads
         .map(async (payload) => {
-            const { characterId, connectionId, previousRoomId, mapId } = payload
+            const { characterId, sessionId, previousRoomId, mapId } = payload
             const mapSubscriptions = (await internalCache.Global.get("mapSubscriptions")) || []
             if (characterId) {
                 const subscribedConnections = unique(
                     mapSubscriptions
                         .filter(({ characterIds }) => (characterIds.includes(characterId)))
-                        .map(({ connectionId }) => (connectionId)),
-                    connectionId ? [connectionId] : []
-                ) as EphemeraCharacterId[]
+                        .map(({ sessionId }) => (sessionId)),
+                    sessionId ? [`SESSION#${sessionId}`] : []
+                ) as `SESSION#${string}`[]
                 if (!subscribedConnections.length) {
                     return
                 }
@@ -100,7 +100,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
             }
             if (mapId) {
                 const allSubscribedCharacterIds = unique(mapSubscriptions.reduce<EphemeraCharacterId[]>((previous, { characterIds }) => ([ ...previous, ...characterIds]), [])) as EphemeraCharacterId[]
-                const subscribedConnections = mapSubscriptions.map(({ connectionId }) => (`CONNECTION#${connectionId}` as const))
+                const subscribedConnections = mapSubscriptions.map(({ sessionId }) => (`SESSION#${sessionId}` as const))
                 await Promise.all(
                     allSubscribedCharacterIds
                         .map(async (characterId) => {

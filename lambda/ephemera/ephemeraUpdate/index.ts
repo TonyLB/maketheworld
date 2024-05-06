@@ -23,12 +23,12 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     // refer to publishing the targeted subscription of map renders.
     //
     const mapSubscriptionsByCharacterId = (mapSubscriptions || []).reduce<Record<EphemeraCharacterId, PublishTargetConnection[]>>(
-        (previous, { connectionId, characterIds }) => (characterIds.reduce<Record<EphemeraCharacterId, PublishTargetConnection[]>>(
+        (previous, { sessionId, characterIds }) => (characterIds.reduce<Record<EphemeraCharacterId, PublishTargetConnection[]>>(
             (accumulator, characterId) => ({
                 ...accumulator,
                 [characterId]: [
                     ...(accumulator[characterId] || []),
-                    `CONNECTION#${connectionId}`
+                    `SESSION#${sessionId}`
                 ]
             }), previous
         )), {}
@@ -49,8 +49,14 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                 returnValue[connectionId] = []
             }
         })
+        //
+        // Asynchronously create connectionIdsForCharacter from mapSubscriptionsByCharacterId (which contains sessionIds)
+        //
+        const connectionIdsPerSession = Object.assign({}, ...(await Promise.all(
+            unique(...Object.values(mapSubscriptionsByCharacterId)).map(async (sessionId) => ({ [sessionId]: (await internalCache.SessionConnections.get(sessionId)) || [] }))
+        ))) as Record<string, string[]>
         targets.filter(isPublishTargetCharacter).forEach((characterId) => {
-            const connectionIdsForCharacter = mapSubscriptionsByCharacterId[characterId] || []
+            const connectionIdsForCharacter = (mapSubscriptionsByCharacterId[characterId] || []).map((sessionId) => (connectionIdsPerSession[sessionId] ?? [])).flat(1)
             connectionIdsForCharacter.forEach((connectionId) => {
                 returnValue[connectionId] = unique(returnValue[connectionId] || [], [characterId]) as EphemeraCharacterId[]
             })
