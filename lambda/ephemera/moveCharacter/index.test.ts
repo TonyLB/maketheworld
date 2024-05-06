@@ -25,13 +25,13 @@ const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRo
             return {
                 EphemeraId: toRoomId,
                 DataCategory: 'Meta::Room',
-                activeCharacters: [{ EphemeraId: 'CHARACTER#TestTwo', Name: 'TestTwo', Connections: ['zyxwvut'] }]
+                activeCharacters: [{ EphemeraId: 'CHARACTER#TestTwo', Name: 'TestTwo', Sessions: ['zyxwvut'] }]
             }
         case fromRoomId:
             return {
                 EphemeraId: fromRoomId,
                 DataCategory: 'Meta::Room',
-                activeCharacters: fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', Connections: ['abcdef'] }]
+                activeCharacters: fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', Sessions: ['abcdef'] }]
             }
         case 'CHARACTER#Test':
             return {
@@ -75,7 +75,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
             reflexive: 'themself'
         }
     })
-    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: ['CONNECTION#abcdef'] }])
+    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', Sessions: ['abcdef'] }])
 }
 
 describe('moveCharacter', () => {
@@ -84,7 +84,7 @@ describe('moveCharacter', () => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
-        internalCacheMock.CharacterConnections.get.mockResolvedValue(['abcdef'])
+        internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
         internalCacheMock.OrchestrateMessages.newMessageGroup.mockReturnValue('UUID#MessageGroup')
         internalCacheMock.OrchestrateMessages.before.mockReturnValue('UUID#Before')
         internalCacheMock.OrchestrateMessages.after.mockReturnValue('UUID#After')
@@ -161,7 +161,7 @@ describe('moveCharacter', () => {
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
                 RoomId: 'ROOM#TestTwo',
-                connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
+                connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -254,7 +254,7 @@ describe('moveCharacter', () => {
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
                 RoomId: 'ROOM#VORTEX',
-                connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
+                connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

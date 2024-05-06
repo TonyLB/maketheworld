@@ -10,7 +10,7 @@ export type RoomStackItem = {
 }
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
-    const connectionId = await internalCache.Global.get('ConnectionId')
+    const sessionId = await internalCache.Global.get('SessionId')
     await Promise.all(payloads.map(async (payload) => {
         //
         // TODO: Validate the RoomId as one that is valid for the character to move to, before
@@ -77,7 +77,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     CharacterId: characterMeta.EphemeraId,
                                     Connected: true,
                                     RoomId: RoomKey(RoomId) || characterMeta.HomeId,
-                                    connectionTargets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                    connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
                                 }]        
                             })
                         }
