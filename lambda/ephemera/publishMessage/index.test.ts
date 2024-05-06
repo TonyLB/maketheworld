@@ -35,6 +35,8 @@ describe('PublishMessage', () => {
     it('should correctly dispatch direct messages', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.CharacterConnections.get.mockResolvedValue(['Y123', 'Y456'])
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123', 'Y456'])
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
@@ -84,13 +86,16 @@ describe('PublishMessage', () => {
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             Name: '',
-            ConnectionIds: ['Y123']
+            ConnectionIds: ['Y123'],
+            SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
             Name: '',
-            ConnectionIds: ['Y456']
+            ConnectionIds: ['Y456'],
+            SessionIds: ['Z456']
         }])
+        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? 'Y123' : 'Y456' ))
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
@@ -148,13 +153,16 @@ describe('PublishMessage', () => {
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             Name: '',
-            ConnectionIds: ['Y123']
+            ConnectionIds: ['Y123'],
+            SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
             Name: '',
-            ConnectionIds: ['Y456']
+            ConnectionIds: ['Y456'],
+            SessionIds: ['Z456']
         }])
+        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? 'Y123' : 'Y456' ))
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
@@ -214,6 +222,8 @@ describe('PublishMessage', () => {
             'UUID#3': -1
         })
         cacheMock.CharacterConnections.get.mockResolvedValue(['Y123'])
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',

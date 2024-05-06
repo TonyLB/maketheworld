@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage, isPublishTargetSession } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
 import { messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
@@ -49,7 +49,8 @@ const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime
 
 class PublishMessageTargetMapper {
     activeCharactersByRoomId: Record<EphemeraRoomId, RoomCharacterListItem[]> = {}
-    connectionsByCharacterId: Record<EphemeraCharacterId, string[]> = {}
+    connectionsBySessionId: Record<string, string[]> = {}
+    sessionsByCharacterId: Record<EphemeraCharacterId, string[]> = {}
 
     async initialize(payloads: PublishMessage[]) {
         const allRoomTargets = payloads.reduce<EphemeraRoomId[]>((previous, { targets }) => (
@@ -62,34 +63,49 @@ class PublishMessageTargetMapper {
                 .filter(isPublishTargetCharacter)
                 .reduce<EphemeraCharacterId[]>((accumulator, target) => (unique(accumulator, [target]) as EphemeraCharacterId[]), previous)
         ), [] as EphemeraCharacterId[])
+        const explicitSessionTargets = payloads.reduce<string[]>((previous, { targets }) => (
+            targets
+                .filter(isPublishTargetSession)
+                .reduce((accumulator, target) => (unique(accumulator, [target.split('#')[1]]) as string[]), previous)
+        ), [])
     
         this.activeCharactersByRoomId = Object.assign({} as Record<string, RoomCharacterListItem[]>,
             ...(await Promise.all(allRoomTargets.map((roomId) => (internalCache.RoomCharacterList.get(roomId).then((activeCharacters) => ({ [roomId]: activeCharacters }))))))
         )
     
-        this.connectionsByCharacterId = {}
+        this.sessionsByCharacterId = {}
         Object.values(this.activeCharactersByRoomId).forEach((characterList) => {
-            characterList.forEach(({ EphemeraId, ConnectionIds }) => {
+            characterList.forEach(({ EphemeraId, SessionIds = [] }) => {
                 const characterId = EphemeraId
                 if (characterId) {
-                    if (characterId in this.connectionsByCharacterId) {
-                        this.connectionsByCharacterId[characterId] = unique(this.connectionsByCharacterId[characterId], ConnectionIds) as string[]
+                    if (characterId in this.sessionsByCharacterId) {
+                        this.sessionsByCharacterId[characterId] = unique(this.sessionsByCharacterId[characterId], SessionIds) as string[]
                     }
                     else {
-                        this.connectionsByCharacterId[characterId] = ConnectionIds
+                        this.sessionsByCharacterId[characterId] = SessionIds
                     }
                 }
             })
         })
     
-        const unmappedCharacters = allCharacterTargets.filter((characterId) => (!(characterId in this.connectionsByCharacterId)))
+        const unmappedCharacters = allCharacterTargets.filter((characterId) => (!(characterId in this.sessionsByCharacterId)))
         await Promise.all(
             unmappedCharacters.map((characterId) => (
-                internalCache.CharacterConnections.get(characterId)
-                    .then((connections) => {
-                        this.connectionsByCharacterId[characterId] = connections || []
+                internalCache.CharacterSessions.get(characterId)
+                    .then((sessions) => {
+                        this.sessionsByCharacterId[characterId] = sessions || []
                     })
                 ))
+        )
+
+        const allSessionTargets = unique(explicitSessionTargets, ...Object.values(this.sessionsByCharacterId))
+        await Promise.all(
+            allSessionTargets.map((sessionId) => (
+                internalCache.SessionConnections.get(sessionId)
+                    .then((connections) => {
+                        this.connectionsBySessionId[sessionId] = connections || []
+                    })
+            ))
         )
     }
 
@@ -104,7 +120,7 @@ class PublishMessageTargetMapper {
     }
 
     characterConnections(characterId: EphemeraCharacterId): string[] {
-        return this.connectionsByCharacterId[characterId] || []
+        return (this.sessionsByCharacterId[characterId] || []).map((sessionId) => (this.connectionsBySessionId[sessionId] || [])).flat(1)
     }
 }
 
