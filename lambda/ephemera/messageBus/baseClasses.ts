@@ -277,7 +277,7 @@ export type ExecuteActionMessage = {
 export type MapUpdateMessage = {
     type: 'MapUpdate';
     characterId?: EphemeraCharacterId;
-    connectionId?: string;
+    sessionId?: string;
     roomId?: EphemeraRoomId;
     previousRoomId?: EphemeraRoomId;
     mapId?: EphemeraMapId;

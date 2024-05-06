@@ -24,7 +24,7 @@ import CacheSessionConnections from './sessionConnections';
 type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
 export type MapSubscriptionConnection = {
-    connectionId: string;
+    sessionId: string;
     characterIds: EphemeraCharacterId[]
 }
 
@@ -98,14 +98,14 @@ export class CacheGlobalData {
                 return this.connections
             case 'mapSubscriptions':
                 if (typeof this.mapSubscriptions === 'undefined') {
-                    const { connections = [] } = (await connectionDB.getItem<{ connections: MapSubscriptionConnection[] }>({
+                    const { sessions = [] } = (await connectionDB.getItem<{ sessions: MapSubscriptionConnection[] }>({
                         Key: {
                             ConnectionId: 'Map',
                             DataCategory: 'Subscriptions'
                         },
-                        ProjectionFields: ['connections']
+                        ProjectionFields: ['sessions']
                     })) || {}
-                    this.mapSubscriptions = connections
+                    this.mapSubscriptions = sessions
                 }
             default:
                 return this[key]
