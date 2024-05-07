@@ -7,17 +7,19 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.Global.get('ConnectionId')
-    const RequestId = await internalCache.Global.get('RequestId')
+    const [RequestId, sessionId] = await Promise.all([
+        internalCache.Global.get('RequestId'),
+        internalCache.Global.get('SessionId')
+    ])
 
-    if (connectionId) {
+    if (sessionId) {
 
         let subscriptionSuccess = false
         await exponentialBackoffWrapper(async () => {
 
             const checkCharactersFetch = await connectionDB.getItems({
                 Keys: payloads.map(({ characterId }) => ({
-                    ConnectionId: `CONNECTION#${connectionId}`,
+                    ConnectionId: `SESSION#${sessionId}`,
                     DataCategory: characterId
                 })),
                 ProjectionFields: ['DataCategory']
@@ -35,21 +37,21 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                             ConnectionId: 'Map',
                             DataCategory: 'Subscriptions'
                         },
-                        updateKeys: ['connections'],
+                        updateKeys: ['sessions'],
                         updateReducer: (draft) => {
-                            const connectionSubscriptionIndex = (draft.connections as { connectionId: string; characterIds: EphemeraCharacterId[] }[]).findIndex(({ connectionId: checkConnectionId }) => (checkConnectionId === connectionId))
-                            if (connectionSubscriptionIndex === -1) {
-                                draft.connections = [...draft.connections, { connectionId, characterIds: validCharacters }]
+                            const sessionSubscriptionIndex = (draft.sessions as { sessionId: string; characterIds: EphemeraCharacterId[] }[]).findIndex(({ sessionId: checkSessionId }) => (checkSessionId === sessionId))
+                            if (sessionSubscriptionIndex === -1) {
+                                draft.sessions = [...draft.sessions, { sessionId, characterIds: validCharacters }]
                             }
                             else {
-                                draft.connections[connectionSubscriptionIndex].characterIds = unique(
-                                    draft.connections[connectionSubscriptionIndex].characterIds,
+                                draft.sessions[sessionSubscriptionIndex].characterIds = unique(
+                                    draft.sessions[sessionSubscriptionIndex].characterIds,
                                     validCharacters
                                 )
                             }
                         },
-                        successCallback: ({ connections }) => {
-                            internalCache.Global.set({ key: 'mapSubscriptions', value: connections })
+                        successCallback: ({ sessions }) => {
+                            internalCache.Global.set({ key: 'mapSubscriptions', value: sessions })
                             subscriptionSuccess = true                
                         }
                     }
@@ -57,8 +59,8 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 {
                     ConditionCheck: {
                         Key: {
-                            ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: 'Meta::Connection'
+                            ConnectionId: `SESSION#${sessionId}`,
+                            DataCategory: 'Meta::Session'
                         },
                         ProjectionFields: ['DataCategory'],
                         ConditionExpression: 'attribute_exists(DataCategory)'
@@ -68,7 +70,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                     validCharacters.map((characterId) => ({
                         ConditionCheck: {
                             Key: {
-                                ConnectionId: `CONNECTION#${connectionId}`,
+                                ConnectionId: `SESSION#${sessionId}`,
                                 DataCategory: characterId
                             },
                             ProjectionFields: ['DataCategory'],
@@ -136,7 +138,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 
 export const mapUnsubscribeMessage = async ({ payloads, messageBus }: { payloads: MapUnsubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.Global.get('ConnectionId')
+    const sessionId = await internalCache.Global.get('SessionId')
     const RequestId = await internalCache.Global.get('RequestId')
 
     await connectionDB.optimisticUpdate({
@@ -144,13 +146,13 @@ export const mapUnsubscribeMessage = async ({ payloads, messageBus }: { payloads
             ConnectionId: 'Map',
             DataCategory: 'Subscriptions'
         },
-        updateKeys: ['connections'],
+        updateKeys: ['sessions'],
         updateReducer: (draft) => {
-            const connectionMatch = draft.connections.find(({ connectionId: checkConnection }) => (checkConnection === connectionId))
-            if (connectionMatch) {
-                connectionMatch.characterIds = (connectionMatch.characterIds || []).filter((CharacterId) => (!payloads.find(({ characterId }) => (CharacterId === characterId))))
+            const sessionMatch = draft.sessions.find(({ sessionId: checkSession }) => (checkSession === sessionId))
+            if (sessionMatch) {
+                sessionMatch.characterIds = (sessionMatch.characterIds || []).filter((CharacterId) => (!payloads.find(({ characterId }) => (CharacterId === characterId))))
             }
-            draft.connections = draft.connections.filter(({ characterIds = [] }) => (characterIds.length))
+            draft.sessions = draft.sessions.filter(({ characterIds = [] }) => (characterIds.length))
         },
     })
     messageBus.send({
