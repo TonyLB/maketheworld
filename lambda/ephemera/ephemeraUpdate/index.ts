@@ -1,4 +1,4 @@
-import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetConnection, isPublishTargetExcludeCharacter, isPublishTargetExcludeConnection, MessageBus, PublishTargetConnection } from "../messageBus/baseClasses"
+import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetConnection, isPublishTargetExcludeCharacter, isPublishTargetExcludeConnection, isPublishTargetSession, MessageBus, PublishTargetConnection, PublishTargetSession } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 
@@ -18,7 +18,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     ])
 
     //
-    // For reference later, calculate for each CharacterId that appears in the mapSubscriptions table, which connections
+    // For reference later, calculate for each CharacterId that appears in the mapSubscriptions table, which sessions
     // are subscribed to maps on behalf of that CharacterId.  As yet, CharacterId targets in ephemeraUpdate only
     // refer to publishing the targeted subscription of map renders.
     //
@@ -28,7 +28,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                 ...accumulator,
                 [characterId]: [
                     ...(accumulator[characterId] || []),
-                    `SESSION#${sessionId}`
+                    sessionId
                 ]
             }), previous
         )), {}
@@ -37,13 +37,22 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     const sortTargetsIntoConnections = async (targets: EphemeraPublishTarget[]): Promise<{ connectionId: PublishTargetConnection, characters: EphemeraCharacterId[] }[]> => {
         let returnValue: Record<PublishTargetConnection, EphemeraCharacterId[]> = {}
         if (targets.includes('GLOBAL')) {
-            const connections = ((await internalCache.Global.get("connections")) || []).map((connectionId): PublishTargetConnection => (`CONNECTION#${connectionId}`))
+            const sessions = (await internalCache.Global.get("sessions")) || []
+            const connections = (await internalCache.SessionConnections.get(sessions)) ?? []
             connections.forEach((connectionId) => {
                 if (!(connectionId in returnValue)) {
-                    returnValue[connectionId] = []
+                    returnValue[`CHARACTER#${connectionId}`] = []
                 }
             })
         }
+        await Promise.all(targets.filter(isPublishTargetSession).map(async (sessionId) => {
+            const connections = (await internalCache.SessionConnections.get(sessionId)) ?? []
+            connections.forEach((connectionId) => {
+                if (!(connectionId in returnValue)) {
+                    returnValue[`CHARACTER#${connectionId}`] = []
+                }
+            })
+        }))
         targets.filter(isPublishTargetConnection).forEach((connectionId) => {
             if (!(connectionId in returnValue)) {
                 returnValue[connectionId] = []
