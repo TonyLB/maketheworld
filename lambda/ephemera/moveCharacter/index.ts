@@ -20,13 +20,13 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
         await exponentialBackoffWrapper(async () => {
 
             const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
-            const [characterMeta, connections, sessions, roomAssets = [], canonAssets = []] = await Promise.all([
+            const [characterMeta, sessions, roomAssets = [], canonAssets = []] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.CharacterConnections.get(payload.characterId),
                 internalCache.CharacterSessions.get(payload.characterId),
                 internalCache.RoomAssets.get(payload.roomId),
                 internalCache.Global.get('assets')
             ])
+            const connections = await internalCache.SessionConnections.get(sessions ?? [])
             if (payload.roomId === characterMeta.RoomId) {
                 const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
                 if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {

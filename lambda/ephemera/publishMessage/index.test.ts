@@ -34,7 +34,6 @@ describe('PublishMessage', () => {
 
     it('should correctly dispatch direct messages', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
-        cacheMock.CharacterConnections.get.mockResolvedValue(['Y123', 'Y456'])
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
         cacheMock.SessionConnections.get.mockResolvedValue(['Y123', 'Y456'])
         await publishMessage({
@@ -221,7 +220,6 @@ describe('PublishMessage', () => {
             'UUID#2': 1,
             'UUID#3': -1
         })
-        cacheMock.CharacterConnections.get.mockResolvedValue(['Y123'])
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
         cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
         await publishMessage({

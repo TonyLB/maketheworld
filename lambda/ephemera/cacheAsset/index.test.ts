@@ -76,7 +76,7 @@ describe('cacheAsset', () => {
         mockNamespaceMap = [
             { internalKey: 'Test', universalKey: 'ASSET#Test' }
         ]
-        internalCacheMock.CharacterConnections.get.mockResolvedValue([])
+        internalCacheMock.CharacterSessions.get.mockResolvedValue([])
         internalCacheMock.Graph.get.mockResolvedValue(new Graph(
             { 'ASSET#BASE': { key: 'ASSET#BASE'}, 'ASSET#Test': { key: 'ASSET#Test' } },
             [{ to: 'ASSET#BASE', from: 'ASSET#Test', context: '' }],

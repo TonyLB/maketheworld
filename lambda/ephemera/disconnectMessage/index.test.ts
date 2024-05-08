@@ -47,7 +47,8 @@ describe("disconnectMessage", () => {
                     ConnectionIds: ['XYZ']
                 }
             ])
-        internalCacheMock.CharacterConnections.get.mockResolvedValue(['XYZ'])
+        internalCacheMock.CharacterSessions.get.mockResolvedValue(['Session1'])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['XYZ'])
         connectionDBMock.query.mockResolvedValueOnce([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
         connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {
@@ -147,7 +148,8 @@ describe("disconnectMessage", () => {
                     ConnectionIds: ['QRS', 'XYZ']
                 }
             ])
-        internalCacheMock.CharacterConnections.get.mockResolvedValue(['QRS', 'XYZ'])
+        internalCacheMock.CharacterSessions.get.mockResolvedValue(['Session1'])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['QRS', 'XYZ'])
         connectionDBMock.query.mockResolvedValue([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
         connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {

@@ -14,7 +14,7 @@ describe('dependencyUpdate', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.CharacterConnections.get.mockResolvedValue([])
+        internalCacheMock.CharacterSessions.get.mockResolvedValue([])
         GraphUpdateMock.mockClear()
     })
 
