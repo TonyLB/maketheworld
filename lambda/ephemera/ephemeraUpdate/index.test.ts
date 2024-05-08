@@ -45,14 +45,15 @@ describe('EphemeraUpdateMessage', () => {
             switch(key) {
                 case 'ConnectionId':
                     return 'TestConnection'
-                case 'connections':
-                    return ['Connection1', 'Connection2']
+                case 'sessions':
+                    return ['Session1']
                 case 'mapSubscriptions':
                     return []
                 default:
                     return 'Request123'
             }
         })
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['Connection1', 'Connection2'])
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',

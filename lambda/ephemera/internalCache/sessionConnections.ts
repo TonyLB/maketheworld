@@ -6,7 +6,13 @@ export class CacheSessionConnectionsData {
     clear() {
         this.ConnectionsBySessionId = {}
     }
-    async get(sessionId: string): Promise<string[] | undefined> {
+    async get(sessionId: string[]): Promise<string[] | undefined>
+    async get(sessionId: string): Promise<string[] | undefined>
+    async get(sessionId: string | string[]): Promise<string[] | undefined> {
+        if (Array.isArray(sessionId)) {
+            const sessionReturns = await Promise.all(sessionId.map((internalSession) => (this.get(internalSession))))
+            return sessionReturns.map((connectionIds) => (connectionIds ?? [])).flat(1)
+        }
         if (!(this.ConnectionsBySessionId[sessionId])) {
             this.ConnectionsBySessionId[sessionId] = connectionDB.getItem<{ connections: string[] }>({
                     Key: {

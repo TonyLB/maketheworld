@@ -21,7 +21,7 @@ import CacheAssetAddress from './assetAddress';
 import CacheCharacterSessions from './characterSessions';
 import CacheSessionConnections from './sessionConnections';
 
-type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
+type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
 
 export type MapSubscriptionConnection = {
     sessionId: string;
@@ -34,10 +34,10 @@ export class CacheGlobalData {
     player?: string;
     SessionId?: string;
     assets?: string[];
-    connections?: string[];
+    sessions?: string[];
     mapSubscriptions?: MapSubscriptionConnection[];
     get(key: 'ConnectionId' | 'RequestId' | 'player' | 'SessionId'): Promise<string | undefined>
-    get(key: 'assets' | 'connections'): Promise<string[] | undefined>
+    get(key: 'assets' | 'sessions'): Promise<string[] | undefined>
     get(key: 'mapSubscriptions'): Promise<MapSubscriptionConnection[] | undefined>
     get(key: CacheGlobalKeys): Promise<string | string[] | MapSubscriptionConnection[] | undefined>
     async get(key: CacheGlobalKeys) {
@@ -84,18 +84,18 @@ export class CacheGlobalData {
                     this.assets = assets
                 }
                 return this.assets
-            case 'connections':
-                if (typeof this.connections === 'undefined') {
+            case 'sessions':
+                if (typeof this.sessions === 'undefined') {
                     const { connections = {} } = (await connectionDB.getItem<{ connections: Record<string, string> }>({
                         Key: {
                             ConnectionId: 'Global',
                             DataCategory: 'Connections'    
                         },
-                        ProjectionFields: ['connections']
+                        ProjectionFields: ['sessions']
                     })) || {}
-                    this.connections = Object.keys(connections)
+                    this.sessions = Object.keys(connections)
                 }
-                return this.connections
+                return this.sessions
             case 'mapSubscriptions':
                 if (typeof this.mapSubscriptions === 'undefined') {
                     const { sessions = [] } = (await connectionDB.getItem<{ sessions: MapSubscriptionConnection[] }>({
@@ -117,7 +117,7 @@ export class CacheGlobalData {
         this.RequestId = undefined
         this.player = undefined
         this.assets = undefined
-        this.connections = undefined
+        this.sessions = undefined
         this.mapSubscriptions = undefined
     }
 
