@@ -10,7 +10,7 @@ import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch] = await Promise.all([
-            internalCache.CharacterConnections.get(characterId),
+            internalCache.CharacterSessions.get(characterId).then((sessions) => (internalCache.SessionConnections.get(sessions ?? []))),
             internalCache.CharacterMeta.get(characterId),
         ])
         if (!(currentConnections && currentConnections.length)) {

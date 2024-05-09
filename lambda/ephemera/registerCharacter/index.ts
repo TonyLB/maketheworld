@@ -42,7 +42,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             draft.connections = unique(draft.connections || [], [connectionId])
                         },
                         successCallback: ({ connections, sessions }) => {
-                            internalCache.CharacterConnections.set(CharacterId, connections)
+                            internalCache.CharacterSessions.set(CharacterId, sessions)
                             if (sessions.length <= 1) {
                                 messageBus.send({
                                     type: 'CheckLocation',

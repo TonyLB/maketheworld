@@ -404,7 +404,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                 }
             }
             const [characterConnections] = await Promise.all([
-                internalCache.CharacterConnections.get(characterEphemeraId),
+                internalCache.CharacterSessions.get(characterEphemeraId).then((sessions) => (internalCache.SessionConnections.get(sessions ?? []))),
                 pushCharacterEphemera(ephemeraItem as EphemeraCharacter, ephemeraToCache)
             ])
             if (characterConnections && characterConnections.length) {

@@ -31,6 +31,7 @@ describe("registerCharacter", () => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         internalCacheMock.Global.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('TestSession').mockResolvedValueOnce('Request123')
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['TestConnection'])
     })
 
     it("should update correctly on first connection", async () => {
@@ -90,7 +91,7 @@ describe("registerCharacter", () => {
                 connectionTargets: ['GLOBAL', 'CONNECTION#TestConnection']
             }]
         })
-        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestConnection'])
+        expect(internalCacheMock.CharacterSessions.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestSession'])
     })
 
     it("should update correctly on subsequent connections", async () => {
@@ -115,7 +116,7 @@ describe("registerCharacter", () => {
                 RequestId: 'Request123'
             }
         })
-        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestConnection'])
+        expect(internalCacheMock.CharacterSessions.set).toHaveBeenCalledWith('CHARACTER#ABC', ['previous', 'TestSession'])
     })
 
 })

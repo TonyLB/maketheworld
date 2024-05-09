@@ -10,7 +10,7 @@ export class CacheRoomCharacterListsData {
 
     async get(roomId: EphemeraRoomId): Promise<RoomCharacterListItem[]> {
         if (!this.CharacterListByRoom[roomId]) {
-            const { activeCharacters = [] } = await ephemeraDB.getItem<{
+            const { activeCharacters = [] } = (await ephemeraDB.getItem<{
                     activeCharacters: RoomCharacterListItem[]
                 }>({
                     Key: {
@@ -18,7 +18,7 @@ export class CacheRoomCharacterListsData {
                         DataCategory: 'Meta::Room'
                     },
                     ProjectionFields: ['activeCharacters']
-                }) || { activeCharacters: [] }
+                })) || { activeCharacters: [] }
             this.CharacterListByRoom[roomId] = activeCharacters
         }
         return this.CharacterListByRoom[roomId] || []

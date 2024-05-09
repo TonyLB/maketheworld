@@ -85,12 +85,12 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
     let notificationsByConnectionId: Record<string, InformationNotification[]> = {}
 
     const pushToQueues = async (notification: Notification): Promise<void> => {
-        const connections = (await internalCache.PlayerConnections.get(notification.Target)) || []
         dbPromises.push(
             publishNotificationDynamoDB(notification)
                 .then(async (translatedNotification) => {
                     if (translatedNotification) {
-                        const connections = (await internalCache.PlayerConnections.get(translatedNotification.Target)) || []
+                        const sessions = (await internalCache.PlayerSessions.get(translatedNotification.Target)) || []
+                        const connections = (await internalCache.SessionConnections.get(sessions)) ?? []
                         connections.forEach((connectionId) => {
                             if (!(connectionId in notificationsByConnectionId)) {
                                 notificationsByConnectionId[connectionId] = []
@@ -105,12 +105,12 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
     await Promise.all(payloads.map(async (payload, index) => {
         if (isInformationNotification(payload)) {
             await pushToQueues({
+                DisplayProtocol: 'Information',
                 Target: payload.target,
                 Subject: payload.subject,
                 NotificationId: `NOTIFICATION#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
-                Message: payload.message,
-                DisplayProtocol: payload.displayProtocol,
+                Message: payload.message
             })
         }
         if (((value: PublishNotification): value is PublishUpdateMarksNotification => (value.displayProtocol === 'UpdateMarks'))(payload)) {
