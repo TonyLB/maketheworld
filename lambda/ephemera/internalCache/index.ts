@@ -5,13 +5,11 @@ import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
-import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import CachePlayerConnections from './playerConnections';
 import CacheAssetMeta from './assetMeta';
 import CachePlayerMeta from './playerMeta';
 import CacheAssetRooms from './assetRooms';
@@ -20,6 +18,7 @@ import OrchestrateMessages from './orchestrateMessages';
 import CacheAssetAddress from './assetAddress';
 import CacheCharacterSessions from './characterSessions';
 import CacheSessionConnections from './sessionConnections';
+import CachePlayerSessions from './playerSessions';
 
 type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
 
@@ -155,6 +154,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(CachePlayerConnections(CacheCharacterConnections(CacheCharacterSessions(CacheSessionConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(OrchestrateMessages(CacheAssetAddress(CacheGlobal(CacheBase)))))))))))))))))
+const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(CachePlayerSessions(CacheCharacterSessions(CacheSessionConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(OrchestrateMessages(CacheAssetAddress(CacheGlobal(CacheBase))))))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache
