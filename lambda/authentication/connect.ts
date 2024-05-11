@@ -34,6 +34,7 @@ export const connect = async (connectionId: string, userName: string, SessionId:
 
     const defaultedSessionId = SessionId || uuidv4()
     if (connectionId) {
+        let authenticated = false
         await Promise.all([
             connectionDB.putItem({
                 ConnectionId: `CONNECTION#${connectionId}`,
@@ -59,9 +60,13 @@ export const connect = async (connectionId: string, userName: string, SessionId:
                     }
                     if (typeof draft.player === 'undefined') {
                         draft.player = userName
+                        authenticated = true
                     }
                     else if (draft.player !== userName) {
-                        throw new Error('Attempt to hijack an existing session')
+                        console.log(`Attempt to hijack an existing session (${draft.player} => ${userName})`)
+                    }
+                    else {
+                        authenticated = true
                     }
                 }
             }),
@@ -86,8 +91,16 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             })
         ] as Promise<any>[])
     
-        return {
-            statusCode: 200
+        if (authenticated) {
+            return {
+                statusCode: 200
+            }
+        }
+        else {
+            return {
+                statusCode: 403,
+                message: 'Invalid SessionID for this player'
+            }
         }
 
     }

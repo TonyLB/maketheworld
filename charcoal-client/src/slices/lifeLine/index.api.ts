@@ -27,6 +27,7 @@ import { cacheNotifications } from '../notifications'
 import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
 import { push } from '../UI/feedback'
 import { getPlayer } from '../player'
+import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -114,10 +115,11 @@ export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | {
     }
 }
 
-export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, actions: { internalStateChange }}) => async (dispatch, getState) => {
+export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getState) => {
     //
     // Pull a Cognito authentication token in order to connect to the webSocket
     //
+    const { publicData: { webSocket }, internalData, actions: { internalStateChange }} = arg
     const { WebSocketURI } = getConfiguration(getState())
     const { SessionId } = getPlayer(getState())
     return Auth.currentSession()
@@ -128,11 +130,16 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
                 //
                 // Make sure that any previous websocket is disconnected.
                 //
+                // TODO: Provide appropriate internal state data to disconnectWebSocket dispatch
+                //
                 if (webSocket) {
-                    dispatch(disconnectWebSocket)
+                    dispatch(disconnectWebSocket(arg))
                 }
                 const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
-                const refreshTimeout = setTimeout(() => { dispatch(internalStateChange({ newState: 'STALE' })) }, 3600000 )
+                const refreshTimeout = setTimeout(() => {
+                    dispatch(internalStateChange({ newState: 'STALE' }))
+                    dispatch(heartbeat)
+                }, 3600000 )
                 resolve({
                     internalData: {
                         pingInterval,
