@@ -175,16 +175,6 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
                 updateReducer: (draft) => {
                     draft.connections[payload.connectionId] = undefined
                 }
-            }),
-            connectionDB.optimisticUpdate({
-                Key: {
-                    ConnectionId: 'Library',
-                    DataCategory: 'Subscriptions'
-                },
-                updateKeys: ['ConnectionIds'],
-                updateReducer: (draft) => {
-                    draft.ConnectionIds = draft.ConnectionIds.filter((value) => (value !== payload.connectionId))
-                }
             })
         ])
     }))

@@ -3,11 +3,12 @@ import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"
 import CachePlayerLibrary from './playerLibrary'
-import CacheConnectionsByPlayer from './connectionsByPlayer'
 import JSONFile from './jsonFile'
 import Meta from './meta'
 import CachePlayerSettings from './playerSettings'
 import CacheGraph from './graph'
+import CacheSessionConnections from './sessionConnections'
+import CachePlayerSessions from './playerSessions'
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
 class CacheConnectionData {
@@ -58,14 +59,14 @@ class CacheConnectionData {
                 return key === 'player' ? this.player : this.sessionId
             case 'librarySubscriptions':
                 if (typeof this.librarySubscriptions === 'undefined') {
-                    const { ConnectionIds = [] } = (await connectionDB.getItem<{ ConnectionIds: string[] }>({
+                    const { SessionIds = [] } = (await connectionDB.getItem<{ SessionIds: string[] }>({
                         Key: {
                             ConnectionId: 'Library',
                             DataCategory: 'Subscriptions'
                         },
-                        ProjectionFields: ['ConnectionIds']
+                        ProjectionFields: ['SessionIds']
                     })) || {}
-                    this.librarySubscriptions = ConnectionIds
+                    this.librarySubscriptions = SessionIds
                 }
                 return this.librarySubscriptions
             default:
@@ -102,6 +103,6 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = JSONFile(Meta(CacheConnectionsByPlayer(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CacheConnection(CacheGraph(CacheBase))))))))
+const InternalCache = JSONFile(Meta(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CachePlayerSessions(CacheSessionConnections(CacheConnection(CacheGraph(CacheBase)))))))))
 export const internalCache = new InternalCache()
 export default internalCache

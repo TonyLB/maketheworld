@@ -5,7 +5,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 
 export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloads: LibrarySubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
-    const connectionId = await internalCache.Connection.get('connectionId')
+    const sessionId = await internalCache.Connection.get('sessionId')
     let subscriptionSuccess = false
     await asyncSuppressExceptions(async () => {
         await exponentialBackoffWrapper(async () => {
@@ -16,17 +16,17 @@ export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloa
                             ConnectionId: 'Library',
                             DataCategory: 'Subscriptions'
                         },
-                        updateKeys: ['ConnectionIds'],
+                        updateKeys: ['SessionIds'],
                         updateReducer: (draft) => {
-                            draft.ConnectionIds = unique(draft.ConnectionIds || [], [connectionId]) as string[]
+                            draft.SessionIds = unique(draft.SessionIds || [], [sessionId]) as string[]
                         }
                     }
                 },
                 {
                     ConditionCheck: {
                         Key: {
-                            ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: 'Meta::Connection'
+                            ConnectionId: `SESSION#${sessionId}`,
+                            DataCategory: 'Meta::Session'
                         },
                         ConditionExpression: 'attribute_exists(DataCategory)',
                         ProjectionFields: ['DataCategory']
@@ -55,16 +55,16 @@ export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloa
 }
 
 export const libraryUnsubscribeMessage = async ({ payloads, messageBus }: { payloads: LibraryUnsubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
-    const connectionId = await internalCache.Connection.get('connectionId')
+    const sessionId = await internalCache.Connection.get('sessionId')
 
     await connectionDB.optimisticUpdate({
         Key: {
             ConnectionId: 'Library',
             DataCategory: 'Subscriptions'
         },
-        updateKeys: ['ConnectionIds'],
+        updateKeys: ['SessionIds'],
         updateReducer: (draft) => {
-            draft.ConnectionIds = (draft.ConnectionIds || []).filter((value) => (value !== connectionId))
+            draft.SessionIds = (draft.SessionIds || []).filter((value) => (value !== sessionId))
         },
     })
 
