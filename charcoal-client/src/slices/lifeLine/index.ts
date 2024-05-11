@@ -83,7 +83,7 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
-                choices: ['DISCONNECT']
+                choices: ['DISCONNECT', 'STALE']
             },
             DISCONNECT: {
                 stateType: 'ATTEMPT',
@@ -102,6 +102,11 @@ export const {
                 choices: []
             },
             STALE: {
+                stateType: 'REDIRECT',
+                newIntent: ['CONNECTED'],
+                choices: ['RECONNECT']
+            },
+            RECONNECT: {
                 stateType: 'CHOICE',
                 choices: ['CONNECT']
             }

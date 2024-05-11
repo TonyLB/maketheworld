@@ -16,7 +16,7 @@ export const lifelineCondition: PlayerCondition = (_, getState) => {
 }
 
 const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch, getState) => {
-    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
+    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings, SessionId } = payload
     const state = getState()
     const currentAssets = getMyAssets(state?.player?.publicData)
     const assetsToPreserve = currentAssets
@@ -29,7 +29,7 @@ const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { mes
         ...currentAssets.filter(({ AssetId }) => (assetsToPreserve.includes(AssetId))),
         ...Assets.filter(({ AssetId }) => (!assetsToPreserve.includes(AssetId)))
     ]
-    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings }))
+    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId }))
 }
 
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch) => {

@@ -1,4 +1,4 @@
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMRedirectNode } from '../stateSeekingMachine/baseClasses'
 
 type IntervalType = ReturnType<typeof setInterval>
 type TimeoutType = ReturnType<typeof setTimeout>
@@ -33,7 +33,8 @@ export interface LifeLineNodes {
     CONNECTED: ISSMChoiceNode;
     DISCONNECT: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     UNSUBSCRIBE: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
-    STALE: ISSMChoiceNode;
+    STALE: ISSMRedirectNode;
+    RECONNECT: ISSMChoiceNode;
     ERROR: ISSMChoiceNode;
 }
 

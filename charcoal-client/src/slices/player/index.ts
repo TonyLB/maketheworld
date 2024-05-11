@@ -43,7 +43,8 @@ export const {
             CodeOfConductConsent: false,
             Assets: [],
             Characters: [],
-            Settings: { onboardCompleteTags: [] }
+            Settings: { onboardCompleteTags: [] },
+            SessionId: ''
         }
     },
     sliceSelector: ({ player }) => (player),
@@ -69,7 +70,8 @@ export const {
                 CodeOfConductConsent: false,
                 Assets: [],
                 Characters: [],
-                Settings: { onboardCompleteTags: [] }
+                Settings: { onboardCompleteTags: [] },
+                SessionId: ''
             }
         },
         states: {
