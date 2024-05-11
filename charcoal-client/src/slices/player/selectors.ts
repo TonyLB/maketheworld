@@ -1,16 +1,15 @@
 import { PlayerPublic } from './baseClasses'
 import { Selector } from '../../store'
-import { createSelector } from '@reduxjs/toolkit'
-import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const getPlayer = (player: PlayerPublic): PlayerPublic => {
-    const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, currentDraft } = player || {}
+    const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, SessionId = "", currentDraft } = player || {}
     return {
         PlayerName,
         CodeOfConductConsent,
         Assets,
         Characters,
         Settings,
+        SessionId,
         currentDraft
     }
 }

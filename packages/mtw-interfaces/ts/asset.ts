@@ -154,6 +154,7 @@ export type AssetClientPlayerMessage = {
     Assets: AssetClientPlayerAsset[];
     Characters: AssetClientPlayerCharacter[];
     Settings: AssetClientPlayerSettings;
+    SessionId: string;
 }
 
 export type AssetClientLibraryMessage = {

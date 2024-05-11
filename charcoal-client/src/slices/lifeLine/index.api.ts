@@ -26,6 +26,7 @@ import { getConfiguration } from '../configuration'
 import { cacheNotifications } from '../notifications'
 import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
 import { push } from '../UI/feedback'
+import { getPlayer } from '../player'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -118,10 +119,11 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
     // Pull a Cognito authentication token in order to connect to the webSocket
     //
     const { WebSocketURI } = getConfiguration(getState())
+    const { SessionId } = getPlayer(getState())
     return Auth.currentSession()
         .then((session) => (session.getIdToken().getJwtToken()))
         .then((token) => (new Promise<LifeLineReturn>((resolve, reject) => {
-            let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${token}`)
+            let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${token}${ SessionId ? `&SessionId=${SessionId}` : '' }`)
             setupSocket.onopen = () => {
                 //
                 // Make sure that any previous websocket is disconnected.
