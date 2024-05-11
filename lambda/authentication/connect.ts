@@ -57,7 +57,12 @@ export const connect = async (connectionId: string, userName: string, SessionId:
                             connectionId
                         ]
                     }
-                    draft.player = userName
+                    if (typeof draft.player === 'undefined') {
+                        draft.player = userName
+                    }
+                    else if (draft.player !== userName) {
+                        throw new Error('Attempt to hijack an existing session')
+                    }
                 }
             }),
             connectionDB.optimisticUpdate({
