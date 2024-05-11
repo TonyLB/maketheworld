@@ -1,6 +1,9 @@
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
+//
+// TODO: Refactor CacheConnectionsByPlayerData as CacheSessionsByPlayerData
+//
 export class CacheConnectionsByPlayerData {
     ConnectionsByPlayer?: Record<string, string[]>;
     clear() {
