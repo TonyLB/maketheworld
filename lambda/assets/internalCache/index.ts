@@ -59,14 +59,14 @@ class CacheConnectionData {
                 return key === 'player' ? this.player : this.sessionId
             case 'librarySubscriptions':
                 if (typeof this.librarySubscriptions === 'undefined') {
-                    const { ConnectionIds = [] } = (await connectionDB.getItem<{ ConnectionIds: string[] }>({
+                    const { SessionIds = [] } = (await connectionDB.getItem<{ SessionIds: string[] }>({
                         Key: {
                             ConnectionId: 'Library',
                             DataCategory: 'Subscriptions'
                         },
-                        ProjectionFields: ['ConnectionIds']
+                        ProjectionFields: ['SessionIds']
                     })) || {}
-                    this.librarySubscriptions = ConnectionIds
+                    this.librarySubscriptions = SessionIds
                 }
                 return this.librarySubscriptions
             default:

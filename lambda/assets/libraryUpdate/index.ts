@@ -11,7 +11,7 @@ export const libraryUpdateMessage = async ({ payloads, messageBus }: { payloads:
     const [Characters, Assets, ConnectionIds] = await Promise.all([
         internalCache.Library.get('Characters'),
         internalCache.Library.get('Assets'),
-        internalCache.Connection.get('librarySubscriptions')
+        internalCache.Connection.get('librarySubscriptions').then((sessionIds = []) => (internalCache.SessionConnections.get(sessionIds)))
     ])
     await Promise.all((ConnectionIds || []).map((ConnectionId) => (
         snsClient.send(new PublishCommand({

@@ -1,6 +1,6 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { LibraryAsset, LibraryCharacter } from '../mtw-interfaces/ts/library'
+import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/ts/library'
 import { CacheConstructor } from './baseClasses'
 
 type CacheLibraryKeys = 'Assets' | 'Characters'
