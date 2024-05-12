@@ -136,11 +136,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
 
     await Promise.all(payloads.map(async (payload) => {
         const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const [{ SessionId: sessionId } = { SessionId: '' }, characterQuery] = await Promise.all([
-            connectionDB.getItem<{ SessionId: string }>({ 
-                Key: { ConnectionId, DataCategory: 'Meta::Connection' },
-                ProjectionFields: ['SessionId']
-            }),
+        const [characterQuery] = await Promise.all([
             connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
                 Key: { ConnectionId },
                 ExpressionAttributeValues: {
@@ -152,16 +148,6 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
         ])
         await Promise.all([
             ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, DataCategory))),
-            ...(sessionId
-                ? [sfnClient.send(new StartExecutionCommand({
-                    stateMachineArn: process.env.DROP_CONNECTION_SFN,
-                    input: JSON.stringify({
-                        sessionId,
-                        connectionId: payload.connectionId
-                    })
-                }))]
-                : []
-            ),
             connectionDB.deleteItem({
                 ConnectionId,
                 DataCategory: 'Meta::Connection'
