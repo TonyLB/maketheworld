@@ -146,6 +146,22 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
+  DBStreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+        CodeUri: lambda/dbStream/build/
+        Handler: lambda.handler
+        MemorySize: 128
+        Runtime: nodejs18.x
+        Timeout: 5
+        Events:
+          ConnectionsTableEvent:
+            Type: DynamoDB
+            Properties:
+              Stream: !GetAtt ConnectionsTable.StreamArn
+              StartingPosition: TRIM_HORIZON
+              BatchSize: 1
+              Enabled: true
   EphemeraPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -595,6 +611,11 @@ Resources:
             Projection:
               ProjectionType: ALL
         TableName: !Sub '${TablePrefix}_connections'
+        StreamSpecification:
+          StreamViewType: OLD_IMAGE
+        TimeToLiveSpecification:
+          AttributeName: deleteAt
+          Enabled: true
   MessageDeltaTable:
       Type: AWS::DynamoDB::Table
       Properties:
