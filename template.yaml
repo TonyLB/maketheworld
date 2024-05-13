@@ -146,6 +146,29 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
+  DBStreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/dbStream/build/
+      Handler: lambda.handler
+      MemorySize: 128
+      Runtime: nodejs18.x
+      Timeout: 5
+      Environment:
+        Variables:
+          DROP_CONNECTION_SFN: !Ref DropConnectionStateMachine
+      Events:
+        ConnectionsTableEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt ConnectionsTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            Enabled: true
+      Policies:
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !Sub '${TablePrefix}_drop_connection_step_function'
+
   EphemeraPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -193,7 +216,6 @@ Resources:
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
-          DROP_CONNECTION_SFN: !Ref DropConnectionStateMachine
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -208,8 +230,6 @@ Resources:
               - events:PutEvents
         - StepFunctionsExecutionPolicy:
             StateMachineName: !Sub '${TablePrefix}_message_sync_step_function'
-        - StepFunctionsExecutionPolicy:
-            StateMachineName: !Sub '${TablePrefix}_drop_connection_step_function'
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections
@@ -595,6 +615,11 @@ Resources:
             Projection:
               ProjectionType: ALL
         TableName: !Sub '${TablePrefix}_connections'
+        StreamSpecification:
+          StreamViewType: OLD_IMAGE
+        TimeToLiveSpecification:
+          AttributeName: deleteAt
+          Enabled: true
   MessageDeltaTable:
       Type: AWS::DynamoDB::Table
       Properties:
