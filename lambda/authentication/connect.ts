@@ -40,7 +40,8 @@ export const connect = async (connectionId: string, userName: string, SessionId:
                 ConnectionId: `CONNECTION#${connectionId}`,
                 DataCategory: 'Meta::Connection',
                 player: userName,
-                SessionId: defaultedSessionId
+                SessionId: defaultedSessionId,
+                deleteAt: Date.now() + 75 * 60 * 1000
             }),
             connectionDB.optimisticUpdate({
                 Key: {
