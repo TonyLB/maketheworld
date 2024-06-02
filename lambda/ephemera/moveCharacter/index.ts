@@ -26,7 +26,6 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 internalCache.RoomAssets.get(payload.roomId),
                 internalCache.Global.get('assets')
             ])
-            const connections = await internalCache.SessionConnections.get(sessions ?? [])
             if (payload.roomId === characterMeta.RoomId) {
                 const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
                 if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {
@@ -129,7 +128,6 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     Name: characterMeta.Name,
                                     fileURL: characterMeta.fileURL,
                                     Color: characterMeta.Color,
-                                    ConnectionIds: connections || [],
                                     SessionIds: sessions || []
                                 }
                             )

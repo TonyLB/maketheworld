@@ -97,7 +97,7 @@ describe('ComponentRender cache handler', () => {
             return Boolean(['testOne', 'testFour'].includes(source))
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [], SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base', 'Personal'])
@@ -195,7 +195,7 @@ describe('ComponentRender cache handler', () => {
             return Boolean(['testOne', 'testFour'].includes(source))
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [], SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
@@ -289,7 +289,7 @@ describe('ComponentRender cache handler', () => {
             return Boolean(['testOne', 'testFour'].includes(source))
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [], SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
@@ -578,7 +578,7 @@ describe('ComponentRender cache handler', () => {
             throw new Error(`Undefined test EphemeraId: ${ephemeraId}`)
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [], SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         jest.spyOn(internalCache.EvaluateCode, "get")
             .mockResolvedValueOnce(false)

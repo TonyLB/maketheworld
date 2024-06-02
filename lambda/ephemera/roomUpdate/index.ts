@@ -11,7 +11,7 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
                 targets: [roomId],
                 displayProtocol: 'RoomUpdate',
                 RoomId: roomId,
-                Characters: activeCharacters.map(({ EphemeraId, ConnectionIds, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest }))
+                Characters: activeCharacters.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest }))
             })
         })
     )
