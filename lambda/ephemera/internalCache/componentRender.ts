@@ -448,7 +448,7 @@ export class ComponentRenderData {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
                     RoomId: EphemeraId,
-                    Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
+                    Characters: roomCharacterList.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
                     assets,
                     Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
                     ...rest
