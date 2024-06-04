@@ -5,6 +5,11 @@ import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
+//
+// TODO: Replace direct messaging back to active players (below) with the publishing of an EventBridge
+// message that the Ephemera lambda can subscribe to
+//
+
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch] = await Promise.all([
