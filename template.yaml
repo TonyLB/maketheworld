@@ -143,9 +143,15 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
+            - Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - events:PutEvents
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:

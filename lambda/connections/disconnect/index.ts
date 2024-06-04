@@ -4,11 +4,8 @@ import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-
-//
-// TODO: Replace direct messaging back to active players (below) with the publishing of an EventBridge
-// message that the Ephemera lambda can subscribe to
-//
+import { ebClient } from "../clients"
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
@@ -19,7 +16,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
         if (!(currentConnections && currentConnections.length)) {
             return
         }
-        const { RoomId, Name } = characterFetch || {}
+        const { RoomId } = characterFetch || {}
 
         await connectionDB.transactWrite([
             {
@@ -39,30 +36,38 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                         draft.connections = draft.connections.filter((value) => (value !== connectionId))
                     },
                     deleteCondition: ({ connections = [] }) => (connections.length === 0),
-                    successCallback: ({ connections }) => {
+                    successCallback: async ({ connections }) => {
                         if (connections.length === 0) {
-                            messageBus.send({
-                                type: 'EphemeraUpdate',
-                                updates: [{
-                                    type: 'CharacterInPlay',
-                                    CharacterId: characterId,
-                                    Connected: false,
-                                    connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                            await ebClient.send(new PutEventsCommand({
+                                Entries: [{
+                                    EventBusName: process.env.EVENT_BUS_NAME,
+                                    Source: 'mtw.coordination',
+                                    DetailType: 'Disconnect Character',
+                                    Detail: JSON.stringify({ characterId })
                                 }]
-                            })
-                            messageBus.send({
-                                type: 'PublishMessage',
-                                targets: [RoomId, `!${characterId}`],
-                                displayProtocol: 'WorldMessage',
-                                message: [{
-                                    tag: 'String',
-                                    value: `${Name || 'Someone'} has disconnected.`
-                                }]
-                            })
-                            messageBus.send({
-                                type: 'RoomUpdate',
-                                roomId: RoomId
-                            })
+                            }))
+                            // messageBus.send({
+                            //     type: 'EphemeraUpdate',
+                            //     updates: [{
+                            //         type: 'CharacterInPlay',
+                            //         CharacterId: characterId,
+                            //         Connected: false,
+                            //         connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                            //     }]
+                            // })
+                            // messageBus.send({
+                            //     type: 'PublishMessage',
+                            //     targets: [RoomId, `!${characterId}`],
+                            //     displayProtocol: 'WorldMessage',
+                            //     message: [{
+                            //         tag: 'String',
+                            //         value: `${Name || 'Someone'} has disconnected.`
+                            //     }]
+                            // })
+                            // messageBus.send({
+                            //     type: 'RoomUpdate',
+                            //     roomId: RoomId
+                            // })
                         }
                     }
                 }
@@ -99,12 +104,6 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 else {
                     draft.activeCharacters[matchIndex].ConnectionIds = newConnections
                 }
-            },
-            successCallback: ({ activeCharacters }) => {
-                internalCache.RoomCharacterList.set({
-                    key: RoomId,
-                    value: activeCharacters
-                })
             }
         })
 

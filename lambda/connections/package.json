@@ -18,6 +18,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.588.0",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "aws-xray-sdk": "^3.6.0"
   }
