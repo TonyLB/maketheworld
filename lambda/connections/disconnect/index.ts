@@ -1,23 +1,15 @@
-import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
+// import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import messageBus from "../messageBus"
-import internalCache from "../internalCache"
+// import messageBus from "../messageBus"
+// import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
-        const [currentConnections, characterFetch] = await Promise.all([
-            internalCache.CharacterSessions.get(characterId).then((sessions) => (internalCache.SessionConnections.get(sessions ?? []))),
-            internalCache.CharacterMeta.get(characterId),
-        ])
-        if (!(currentConnections && currentConnections.length)) {
-            return
-        }
-        const { RoomId } = characterFetch || {}
-
+        let saveRoomId = ''
         await connectionDB.transactWrite([
             {
                 Delete: {
@@ -31,12 +23,13 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                         ConnectionId: characterId,
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['connections'],
+                    updateKeys: ['connections', 'RoomId'],
                     updateReducer: (draft) => {
                         draft.connections = draft.connections.filter((value) => (value !== connectionId))
                     },
                     deleteCondition: ({ connections = [] }) => (connections.length === 0),
-                    successCallback: async ({ connections }) => {
+                    successCallback: async ({ connections, RoomId }) => {
+                        saveRoomId = RoomId ?? ''
                         if (connections.length === 0) {
                             await ebClient.send(new PutEventsCommand({
                                 Entries: [{
@@ -87,7 +80,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
         ])
         await ephemeraDB.optimisticUpdate({
             Key: {
-                EphemeraId: RoomId,
+                EphemeraId: saveRoomId,
                 DataCategory: 'Meta::Room'
             },
             updateKeys: ['activeCharacters'],
@@ -110,62 +103,59 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
     }, { retryErrors: ['TransactionCanceledException']})
 }
 
-export const unregisterCharacterMessage = async ({ payloads }: { payloads: UnregisterCharacterMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const connectionId = await internalCache.Global.get("ConnectionId")
-    const RequestId = await internalCache.Global.get("RequestId")
+export const unregisterCharacterMessage = async (connectionId: string, characterId: EphemeraCharacterId, RequestId: string): Promise<{ type: 'ReturnValue', body: any }> => {
     if (connectionId) {
-        await Promise.all(
-            payloads.map(async ({ characterId }) => {
-                await atomicallyRemoveCharacterAdjacency(connectionId, characterId)
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'Unregistration',
-                        CharacterId: characterId,
-                        RequestId
-                    }
-                })
-            })
-        )
+        await atomicallyRemoveCharacterAdjacency(connectionId, characterId)
+        return {
+            type: 'ReturnValue',
+            body: {
+                messageType: 'Unregistration',
+                CharacterId: characterId,
+                RequestId
+            }
+        }
     }
-
+    return {
+        type: 'ReturnValue',
+        body: {
+            RequestId
+        }
+    }
 }
 
-export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const disconnectMessage = async (connectionId: string): Promise<void> => {
     //
     // TODO: Figure out whether a forced disconnet invalidates any cached values
     //
 
-    await Promise.all(payloads.map(async (payload) => {
-        const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const [characterQuery] = await Promise.all([
-            connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
-                Key: { ConnectionId },
-                ExpressionAttributeValues: {
-                    ':dcPrefix': 'CHARACTER#'
-                },
-                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                ProjectionFields: ['DataCategory']
-            })
-        ])
-        await Promise.all([
-            ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, DataCategory))),
-            connectionDB.deleteItem({
-                ConnectionId,
-                DataCategory: 'Meta::Connection'
-            }),
-            connectionDB.optimisticUpdate({
-                Key: {
-                    ConnectionId: 'Global',
-                    DataCategory: 'Connections'
-                },
-                updateKeys: ['connections'],
-                updateReducer: (draft) => {
-                    draft.connections[payload.connectionId] = undefined
-                }
-            })
-        ])
-    }))
+    const ConnectionId = `CONNECTION#${connectionId}`
+    const [characterQuery] = await Promise.all([
+        connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
+            Key: { ConnectionId },
+            ExpressionAttributeValues: {
+                ':dcPrefix': 'CHARACTER#'
+            },
+            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+            ProjectionFields: ['DataCategory']
+        })
+    ])
+    await Promise.all([
+        ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(connectionId, DataCategory))),
+        connectionDB.deleteItem({
+            ConnectionId,
+            DataCategory: 'Meta::Connection'
+        }),
+        connectionDB.optimisticUpdate({
+            Key: {
+                ConnectionId: 'Global',
+                DataCategory: 'Connections'
+            },
+            updateKeys: ['connections'],
+            updateReducer: (draft) => {
+                draft.connections[connectionId] = undefined
+            }
+        })
+    ])
 }
 
 export default disconnectMessage
