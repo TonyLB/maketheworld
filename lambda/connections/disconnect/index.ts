@@ -123,7 +123,7 @@ export const unregisterCharacterMessage = async (connectionId: string, character
     }
 }
 
-export const disconnectMessage = async (connectionId: string): Promise<void> => {
+export const disconnect = async (connectionId: string): Promise<void> => {
     //
     // TODO: Figure out whether a forced disconnet invalidates any cached values
     //
@@ -158,4 +158,4 @@ export const disconnectMessage = async (connectionId: string): Promise<void> => 
     ])
 }
 
-export default disconnectMessage
+export default disconnect

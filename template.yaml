@@ -303,7 +303,7 @@ Resources:
               - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
               -
                   Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt EphemeraFunction.Arn
+                  ChannelArn: !GetAtt ConnectionFunction.Arn
       RequestTemplates:
         application/json: >
           {
