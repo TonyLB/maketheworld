@@ -169,9 +169,6 @@ export const handler = async (event: any, context: any) => {
                 }
         }
     }
-    else if (routeKey === '$disconnect') {
-        await disconnect(connectionId)
-    }
     else {
         if (isEphemeraAPIMessage(request)) {
             if (isRegisterCharacterAPIMessage(request) || isUnregisterCharacterAPIMessage(request)) {

@@ -4,8 +4,6 @@ import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { sfnClient } from "../clients"
-import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {

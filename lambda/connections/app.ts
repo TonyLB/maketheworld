@@ -3,11 +3,17 @@
 
 import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
-import { unique } from "@tonylb/mtw-utilities/ts/lists"
+import { disconnect } from './disconnect'
 
 export const handler = async (event: any) => {
 
-    if (event.message === 'dropConnection') {
+    const { connectionId, routeKey } = event.requestContext || {}
+
+    if (routeKey === '$disconnect') {
+        console.log(`Disconnecting ${connectionId}`)
+        await disconnect(connectionId)
+    }
+    else if (event.message === 'dropConnection') {
         const epochTime = Date.now()
         const { sessionId, connectionId } = event
         const { dropAfter } = (await connectionDB.optimisticUpdate<{ dropAfter?: number }>({
@@ -34,7 +40,7 @@ export const handler = async (event: any) => {
         }) || {})
         return { dropAfter }
     }
-    if (event.message === 'checkSession') {
+    else if (event.message === 'checkSession') {
         const epochTime = Date.now()
         const { sessionId } = event
         let shouldDrop = false
