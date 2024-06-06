@@ -132,6 +132,14 @@ Resources:
                 Resource: '*'
                 Action:
                   - events:PutEvents
+  ConnectionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      ConnectionFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ConnectionFunction
+      Principal: apigateway.amazonaws.com
   ConnectionFunction:
       Type: AWS::Serverless::Function
       Properties:
