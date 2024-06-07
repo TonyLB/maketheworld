@@ -11,7 +11,6 @@ export const handler = async (event: any) => {
     const { connectionId, routeKey } = event.requestContext || {}
 
     if (routeKey === '$disconnect') {
-        console.log(`Disconnecting ${connectionId}`)
         await disconnect(connectionId)
     }
     else if (event.message === 'dropConnection') {

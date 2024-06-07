@@ -142,18 +142,7 @@ export const disconnect = async (connectionId: string): Promise<void> => {
     //
 
     const ConnectionId = `CONNECTION#${connectionId}`
-    const [characterQuery] = await Promise.all([
-        connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
-            Key: { ConnectionId },
-            ExpressionAttributeValues: {
-                ':dcPrefix': 'CHARACTER#'
-            },
-            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-            ProjectionFields: ['DataCategory']
-        })
-    ])
     await Promise.all([
-        ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(connectionId, DataCategory))),
         connectionDB.deleteItem({
             ConnectionId,
             DataCategory: 'Meta::Connection'
