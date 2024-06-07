@@ -3,7 +3,8 @@
 
 import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
-import { disconnect } from './disconnect'
+import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const handler = async (event: any) => {
 
@@ -51,7 +52,7 @@ export const handler = async (event: any) => {
             },
             updateKeys: ['connections', 'dropAfter', 'shouldDrop'],
             updateReducer: (draft) => {
-                if (typeof draft.dropAfter === 'number' && draft.dropAfter < epochTime) {
+                if (typeof draft.dropAfter === 'number' && draft.dropAfter < epochTime && !(Array.isArray(draft.connections) && draft.connections.length > 0)) {
                     draft.shouldDrop = 'Yes'
                     shouldDrop = true
                 }
@@ -61,6 +62,17 @@ export const handler = async (event: any) => {
         if (shouldDrop) {
             await asyncSuppressExceptions(async () => {
                 await exponentialBackoffWrapper(async () => {
+                    const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
+                        Key: { ConnectionId: `SESSION#${sessionId}` },
+                        ExpressionAttributeValues: {
+                            ':dcPrefix': 'CHARACTER#'
+                        },
+                        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+                        ProjectionFields: ['DataCategory']
+                    })
+
+                    await Promise.all(characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(sessionId, DataCategory))))
+
                     await connectionDB.transactWrite([
                         {
                             Update: {
@@ -87,7 +99,19 @@ export const handler = async (event: any) => {
                                 },
                                 updateKeys: ['SessionIds'],
                                 updateReducer: (draft) => {
-                                    draft.SessionIds = draft.SessionIds.filter((value) => (value !== sessionId))
+                                    draft.SessionIds = (draft.SessionIds ?? []).filter((value) => (value !== sessionId))
+                                }
+                            }
+                        },
+                        {
+                            Update: {
+                                Key: {
+                                    ConnectionId: 'Map',
+                                    DataCategory: 'Subscriptions'
+                                },
+                                updateKeys: ['SessionIds'],
+                                updateReducer: (draft) => {
+                                    draft.SessionIds = (draft.SessionIds ?? []).filter((value) => (value !== sessionId))
                                 }
                             }
                         }

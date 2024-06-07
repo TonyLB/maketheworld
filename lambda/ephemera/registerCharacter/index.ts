@@ -10,11 +10,11 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
 
     const [connectionId, sessionId] = await Promise.all([internalCache.Global.get('ConnectionId'), internalCache.Global.get('SessionId')])
 
-    if (connectionId) {
+    if (sessionId) {
         const RequestId = await internalCache.Global.get('RequestId')
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
-            if (!(isEphemeraCharacterId(CharacterId) && connectionId)) {
+            if (!(isEphemeraCharacterId(CharacterId) && sessionId)) {
                 return
             }
             await exponentialBackoffWrapper(async () => {
@@ -27,7 +27,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 await connectionDB.transactWrite([
                     {
                         Put: {
-                            ConnectionId: `CONNECTION#${connectionId}`,
+                            ConnectionId: `SESSION#${sessionId}`,
                             DataCategory: CharacterId
                         }
                     },
@@ -41,7 +41,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             draft.sessions = unique(draft.sessions || [], [sessionId])
                             draft.connections = unique(draft.connections || [], [connectionId])
                         },
-                        successCallback: ({ connections, sessions }) => {
+                        successCallback: ({ sessions }) => {
                             internalCache.CharacterSessions.set(CharacterId, sessions)
                             if (sessions.length <= 1) {
                                 messageBus.send({
@@ -65,7 +65,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                                         type: 'CharacterInPlay',
                                         CharacterId,
                                         Connected: true,
-                                        connectionTargets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                        connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
                                     }]
                                 })
                             }        

@@ -7,105 +7,118 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
-export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
+export const atomicallyRemoveCharacterAdjacency = async (sessionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
-        let saveRoomId = ''
-        await connectionDB.transactWrite([
-            {
-                Delete: {
-                    ConnectionId: `CONNECTION#${connectionId}`,
-                    DataCategory: characterId
-                }
-            },
-            {
-                Update: {
-                    Key: {
-                        ConnectionId: characterId,
-                        DataCategory: 'Meta::Character'
-                    },
-                    updateKeys: ['connections', 'RoomId'],
-                    updateReducer: (draft) => {
-                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
-                    },
-                    deleteCondition: ({ connections = [] }) => (connections.length === 0),
-                    successCallback: async ({ connections, RoomId }) => {
-                        saveRoomId = RoomId ?? ''
-                        if (connections.length === 0) {
-                            await ebClient.send(new PutEventsCommand({
-                                Entries: [{
-                                    EventBusName: process.env.EVENT_BUS_NAME,
-                                    Source: 'mtw.coordination',
-                                    DetailType: 'Disconnect Character',
-                                    Detail: JSON.stringify({ characterId })
-                                }]
-                            }))
-                            // messageBus.send({
-                            //     type: 'EphemeraUpdate',
-                            //     updates: [{
-                            //         type: 'CharacterInPlay',
-                            //         CharacterId: characterId,
-                            //         Connected: false,
-                            //         connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
-                            //     }]
-                            // })
-                            // messageBus.send({
-                            //     type: 'PublishMessage',
-                            //     targets: [RoomId, `!${characterId}`],
-                            //     displayProtocol: 'WorldMessage',
-                            //     message: [{
-                            //         tag: 'String',
-                            //         value: `${Name || 'Someone'} has disconnected.`
-                            //     }]
-                            // })
-                            // messageBus.send({
-                            //     type: 'RoomUpdate',
-                            //     roomId: RoomId
-                            // })
+        const [{ RoomId: saveRoomId = '' } = {}] = await Promise.all([
+            ephemeraDB.getItem<{ RoomId: string }>({
+                Key: {
+                    EphemeraId: characterId,
+                    DataCategory: 'Meta::Character'
+                },
+                ProjectionFields: ['RoomId'],
+            }),
+            connectionDB.transactWrite([
+                {
+                    Delete: {
+                        ConnectionId: `SESSION#${sessionId}`,
+                        DataCategory: characterId
+                    }
+                },
+                {
+                    Update: {
+                        Key: {
+                            ConnectionId: characterId,
+                            DataCategory: 'Meta::Character'
+                        },
+                        updateKeys: ['sessions'],
+                        updateReducer: (draft) => {
+                            draft.sessions = draft.sessions.filter((value) => (value !== sessionId))
+                        },
+                        deleteCondition: ({ sessions = [] }) => (sessions.length === 0),
+                        succeedAll: true,
+                        successCallback: async ({ sessions }) => {
+                            if (sessions.length === 0) {
+                                await ebClient.send(new PutEventsCommand({
+                                    Entries: [{
+                                        EventBusName: process.env.EVENT_BUS_NAME,
+                                        Source: 'mtw.coordination',
+                                        DetailType: 'Disconnect Character',
+                                        Detail: JSON.stringify({ characterId })
+                                    }]
+                                }))
+                                // messageBus.send({
+                                //     type: 'EphemeraUpdate',
+                                //     updates: [{
+                                //         type: 'CharacterInPlay',
+                                //         CharacterId: characterId,
+                                //         Connected: false,
+                                //         connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                                //     }]
+                                // })
+                                // messageBus.send({
+                                //     type: 'PublishMessage',
+                                //     targets: [RoomId, `!${characterId}`],
+                                //     displayProtocol: 'WorldMessage',
+                                //     message: [{
+                                //         tag: 'String',
+                                //         value: `${Name || 'Someone'} has disconnected.`
+                                //     }]
+                                // })
+                                // messageBus.send({
+                                //     type: 'RoomUpdate',
+                                //     roomId: RoomId
+                                // })
+                            }
+                        }
+                    }
+                },
+                {
+                    Update: {
+                        Key: {
+                            ConnectionId: 'Map',
+                            DataCategory: 'Subscriptions'
+                        },
+                        updateKeys: ['sessions'],
+                        updateReducer: (draft) => {
+                            draft.sessions = (draft.sessions ?? []).filter((value) => (value.sessionId !== sessionId))
                         }
                     }
                 }
-            },
-            {
-                Update: {
-                    Key: {
-                        ConnectionId: 'Map',
-                        DataCategory: 'Subscriptions'
-                    },
-                    updateKeys: ['connections'],
-                    updateReducer: (draft) => {
-                        draft.connections = draft.connections.filter((value) => (value.connectionId !== connectionId))
+            ])
+        ])
+        if (saveRoomId) {
+            await ephemeraDB.optimisticUpdate({
+                Key: {
+                    EphemeraId: `ROOM#${saveRoomId}`,
+                    DataCategory: 'Meta::Room'
+                },
+                updateKeys: ['activeCharacters'],
+                updateReducer: (draft) => {
+                    const matchIndex = (draft.activeCharacters ?? [] as { EphemeraId: string }[]).findIndex(({ EphemeraId }) => (EphemeraId === characterId))
+                    if (matchIndex === -1) {
+                        return
+                    }
+                    const { SessionIds = [] } = draft.activeCharacters[matchIndex]
+                    const newSessions = SessionIds.filter((checkSessionId) => (sessionId !== checkSessionId))
+                    if (newSessions.length === 0) {
+                        draft.activeCharacters = draft.activeCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterId))
+                    }
+                    else {
+                        draft.activeCharacters[matchIndex].SessionIds = newSessions
                     }
                 }
-            }
-        ])
-        await ephemeraDB.optimisticUpdate({
-            Key: {
-                EphemeraId: saveRoomId,
-                DataCategory: 'Meta::Room'
-            },
-            updateKeys: ['activeCharacters'],
-            updateReducer: (draft) => {
-                const matchIndex = (draft.activeCharacters as { EphemeraId: string }[]).findIndex(({ EphemeraId }) => (EphemeraId === characterId))
-                if (matchIndex === -1) {
-                    return
-                }
-                const { ConnectionIds = [] } = draft.activeCharacters[matchIndex]
-                const newConnections = ConnectionIds.filter((checkConnectionId) => (connectionId !== checkConnectionId))
-                if (newConnections.length === 0) {
-                    draft.activeCharacters = draft.activeCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterId))
-                }
-                else {
-                    draft.activeCharacters[matchIndex].ConnectionIds = newConnections
-                }
-            }
-        })
+            })    
+        }
+        else {
+            throw new Error(`No room identified for character: ${characterId}`)
+        }
 
     }, { retryErrors: ['TransactionCanceledException']})
 }
 
-export const unregisterCharacterMessage = async (connectionId: string, characterId: EphemeraCharacterId, RequestId: string): Promise<{ type: 'ReturnValue', body: any }> => {
-    if (connectionId) {
-        await atomicallyRemoveCharacterAdjacency(connectionId, characterId)
+export const unregisterCharacterMessage = async (sessionId: string, characterId: EphemeraCharacterId, RequestId: string): Promise<{ type: 'ReturnValue', body: any }> => {
+    if (sessionId) {
+        await atomicallyRemoveCharacterAdjacency(sessionId, characterId)
         return {
             type: 'ReturnValue',
             body: {

@@ -196,7 +196,7 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     //
     // successCallback, if provided, is called with the results *only* after the update succeeds
     //
-    successCallback?: (output: T, prior: T) => void;
+    successCallback?: (output: T, prior: T) => void | Promise<void>;
     succeedAll?: boolean;
 }
 
@@ -429,7 +429,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             // entirely
             //
             if (successCallback && (updated || succeedAll)) {
-                successCallback(returnValue as Update, state as Update)
+                await successCallback(returnValue as Update, state as Update)
             }
             return returnValue as Update
         }
