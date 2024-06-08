@@ -19,6 +19,7 @@ describe('EphemeraUpdateMessage', () => {
 
     it('should call apiClient against registered connectionId', async () => {
         internalCacheMock.Global.get.mockResolvedValueOnce('Request123').mockResolvedValueOnce([])
+        internalCacheMock.SessionConnections.get.mockResolvedValueOnce(['TestConnection'])
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',
@@ -30,7 +31,7 @@ describe('EphemeraUpdateMessage', () => {
                     Name: 'Tess',
                     fileURL: 'TestURL',
                     Color: 'purple',
-                    connectionTargets: ['CONNECTION#TestConnection']
+                    connectionTargets: ['SESSION#TestSession']
                 }]
             }]
         })

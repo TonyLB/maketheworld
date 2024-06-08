@@ -92,15 +92,15 @@ describe("disconnectMessage", () => {
                 updateReducer: expect.any(Function)
             }}
         ])
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'EphemeraUpdate',
-            updates: [{
-                type: 'CharacterInPlay',
-                CharacterId: 'CHARACTER#ABC',
-                Connected: false,
-                connectionTargets: ['GLOBAL', '!CONNECTION#XYZ']
-            }]
-        })
+        // expect(messageBusMock.send).toHaveBeenCalledWith({
+        //     type: 'EphemeraUpdate',
+        //     updates: [{
+        //         type: 'CharacterInPlay',
+        //         CharacterId: 'CHARACTER#ABC',
+        //         Connected: false,
+        //         connectionTargets: ['GLOBAL', '!CONNECTION#XYZ']
+        //     }]
+        // })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#TestABC', '!CHARACTER#ABC'],

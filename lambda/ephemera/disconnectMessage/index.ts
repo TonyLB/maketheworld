@@ -36,15 +36,15 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                     deleteCondition: ({ connections = [] }) => (connections.length === 0),
                     successCallback: ({ connections }) => {
                         if (connections.length === 0) {
-                            messageBus.send({
-                                type: 'EphemeraUpdate',
-                                updates: [{
-                                    type: 'CharacterInPlay',
-                                    CharacterId: characterId,
-                                    Connected: false,
-                                    connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
-                                }]
-                            })
+                            // messageBus.send({
+                            //     type: 'EphemeraUpdate',
+                            //     updates: [{
+                            //         type: 'CharacterInPlay',
+                            //         CharacterId: characterId,
+                            //         Connected: false,
+                            //         connectionTargets: ['GLOBAL', `!SESSION#${sessionId}`]
+                            //     }]
+                            // })
                             messageBus.send({
                                 type: 'PublishMessage',
                                 targets: [RoomId, `!${characterId}`],

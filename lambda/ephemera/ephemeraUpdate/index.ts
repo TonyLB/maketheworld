@@ -1,4 +1,4 @@
-import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetConnection, isPublishTargetExcludeCharacter, isPublishTargetExcludeConnection, isPublishTargetSession, MessageBus, PublishTargetConnection, PublishTargetSession } from "../messageBus/baseClasses"
+import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetExcludeCharacter, isPublishTargetExcludeSession, isPublishTargetSession, MessageBus, PublishTargetSession } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 
@@ -22,8 +22,8 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     // are subscribed to maps on behalf of that CharacterId.  As yet, CharacterId targets in ephemeraUpdate only
     // refer to publishing the targeted subscription of map renders.
     //
-    const mapSubscriptionsByCharacterId = (mapSubscriptions || []).reduce<Record<EphemeraCharacterId, PublishTargetConnection[]>>(
-        (previous, { sessionId, characterIds }) => (characterIds.reduce<Record<EphemeraCharacterId, PublishTargetConnection[]>>(
+    const mapSubscriptionsByCharacterId = (mapSubscriptions || []).reduce<Record<EphemeraCharacterId, PublishTargetSession[]>>(
+        (previous, { sessionId, characterIds }) => (characterIds.reduce<Record<EphemeraCharacterId, PublishTargetSession[]>>(
             (accumulator, characterId) => ({
                 ...accumulator,
                 [characterId]: [
@@ -34,30 +34,21 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
         )), {}
     )
 
-    const sortTargetsIntoConnections = async (targets: EphemeraPublishTarget[]): Promise<{ connectionId: PublishTargetConnection, characters: EphemeraCharacterId[] }[]> => {
-        let returnValue: Record<PublishTargetConnection, EphemeraCharacterId[]> = {}
+    const sortTargetsIntoSessions = async (targets: EphemeraPublishTarget[]): Promise<{ sessionId: PublishTargetSession, characters: EphemeraCharacterId[] }[]> => {
+        let returnValue: Record<PublishTargetSession, EphemeraCharacterId[]> = {}
         if (targets.includes('GLOBAL')) {
             const sessions = (await internalCache.Global.get("sessions")) || []
-            const connections = (await internalCache.SessionConnections.get(sessions)) ?? []
-            connections.forEach((connectionId) => {
-                if (!(connectionId in returnValue)) {
-                    returnValue[`CHARACTER#${connectionId}`] = []
+            sessions.forEach((sessionId) => {
+                if (!(sessionId in returnValue)) {
+                    returnValue[`SESSION#${sessionId}`] = []
                 }
             })
         }
         await Promise.all(targets.filter(isPublishTargetSession).map(async (sessionId) => {
-            const connections = (await internalCache.SessionConnections.get(sessionId)) ?? []
-            connections.forEach((connectionId) => {
-                if (!(connectionId in returnValue)) {
-                    returnValue[`CHARACTER#${connectionId}`] = []
-                }
-            })
-        }))
-        targets.filter(isPublishTargetConnection).forEach((connectionId) => {
-            if (!(connectionId in returnValue)) {
-                returnValue[connectionId] = []
+            if (!(sessionId in returnValue)) {
+                returnValue[`SESSION#${sessionId}`] = []
             }
-        })
+        }))
         //
         // Asynchronously create connectionIdsForCharacter from mapSubscriptionsByCharacterId (which contains sessionIds)
         //
@@ -70,30 +61,30 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                 returnValue[connectionId] = unique(returnValue[connectionId] || [], [characterId]) as EphemeraCharacterId[]
             })
         })
-        targets.filter(isPublishTargetExcludeConnection).forEach((excludeConnectionId) => {
-            delete returnValue[excludeConnectionId]
+        targets.filter(isPublishTargetExcludeSession).forEach((excludeSessionId) => {
+            delete returnValue[`SESSION#${excludeSessionId}`]
         })
         targets.filter(isPublishTargetExcludeCharacter).forEach((excludeCharacterId) => {
             returnValue = objectMap(returnValue, (characterList) => (characterList.filter((characterId) => (characterId !== excludeCharacterId))))
         })
-        return Object.entries(returnValue).map(([connectionId, characters]) => ({ connectionId: connectionId as PublishTargetConnection, characters }))
+        return Object.entries(returnValue).map(([sessionId, characters]) => ({ sessionId: sessionId as PublishTargetSession, characters }))
     }
 
-    let updatesByConnectionId: Record<PublishTargetConnection, EphemeraClientMessageEphemeraUpdateItem[]> = {}
+    let updatesBySessionId: Record<PublishTargetSession, EphemeraClientMessageEphemeraUpdateItem[]> = {}
     await Promise.all(
         payloads.map((payload) => (
             Promise.all(payload.updates.map(
                 async (update) => {
-                    const distributeTargets = await sortTargetsIntoConnections(update.connectionTargets)
-                    distributeTargets.forEach(({ connectionId, characters }) => {
+                    const distributeTargets = await sortTargetsIntoSessions(update.connectionTargets)
+                    distributeTargets.forEach(({ sessionId, characters }) => {
                         if (update.type === 'CharacterInPlay') {
                             const { connectionTargets, ...rest } = update
                             if (update.Connected) {
                                 const characterDefaults = characterMetaValues
                                     .filter((value) => (value))
                                     .find(({ EphemeraId }) => (EphemeraId === update.CharacterId))
-                                updatesByConnectionId[connectionId] = [
-                                    ...(updatesByConnectionId[connectionId] || []),
+                                updatesBySessionId[sessionId] = [
+                                    ...(updatesBySessionId[sessionId] || []),
                                     {
                                         ...(characterDefaults
                                             ? {
@@ -108,23 +99,23 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                                 ]
                             }
                             else {
-                                updatesByConnectionId[connectionId] = [
-                                    ...(updatesByConnectionId[connectionId] || []),
+                                updatesBySessionId[sessionId] = [
+                                    ...(updatesBySessionId[sessionId] || []),
                                     rest as EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive
                                 ]
                             }
                         }
                         if (update.type === 'MapClear') {
                             const { targets, ...rest } = update
-                            updatesByConnectionId[connectionId] = [
-                                ...(updatesByConnectionId[connectionId] || []),
+                            updatesBySessionId[sessionId] = [
+                                ...(updatesBySessionId[sessionId] || []),
                                 { ...rest, targets: characters }
                             ]                            
                         }
                         if (update.type === 'MapUpdate') {
                             const { connectionTargets, targets, ...rest } = update
-                            updatesByConnectionId[connectionId] = [
-                                ...(updatesByConnectionId[connectionId] || []),
+                            updatesBySessionId[sessionId] = [
+                                ...(updatesBySessionId[sessionId] || []),
                                 { ...rest, targets: characters }
                             ]                            
                         }
@@ -134,14 +125,19 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
         ))
     )
     await Promise.all(
-        Object.entries(updatesByConnectionId).map(async ([connectionId, updates]) => {
-            await apiClient.send(
-                splitType(connectionId)[1],
-                {
-                    messageType: 'Ephemera',
-                    RequestId,
-                    updates
-                }
+        Object.entries(updatesBySessionId).map(async ([sessionId, updates]) => {
+            const connectionIds = await internalCache.SessionConnections.get([sessionId])
+            await Promise.all(
+                (connectionIds ?? []).map(async (connectionId) => {
+                    await apiClient.send(
+                        connectionId,
+                        {
+                            messageType: 'Ephemera',
+                            RequestId,
+                            updates
+                        }
+                    )
+                })
             )
         })
     )

@@ -51,7 +51,7 @@ describe("registerCharacter", () => {
             messageBus
         })
         expect(connectionDBMock.transactWrite).toHaveBeenCalledWith([
-            { Put: { ConnectionId: 'CONNECTION#TestConnection', DataCategory: 'CHARACTER#ABC' } },
+            { Put: { ConnectionId: 'SESSION#TestSession', DataCategory: 'CHARACTER#ABC' } },
             {
                 Update: {
                     Key: {
@@ -88,7 +88,7 @@ describe("registerCharacter", () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: true,
-                connectionTargets: ['GLOBAL', 'CONNECTION#TestConnection']
+                connectionTargets: ['GLOBAL', 'SESSION#TestSession']
             }]
         })
         expect(internalCacheMock.CharacterSessions.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestSession'])
