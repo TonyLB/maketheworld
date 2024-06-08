@@ -150,7 +150,7 @@ export const disconnect = async (connectionId: string): Promise<void> => {
         connectionDB.optimisticUpdate({
             Key: {
                 ConnectionId: 'Global',
-                DataCategory: 'Connections'
+                DataCategory: 'Sessions'
             },
             updateKeys: ['connections'],
             updateReducer: (draft) => {

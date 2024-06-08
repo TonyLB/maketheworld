@@ -150,16 +150,16 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
                 ConnectionId,
                 DataCategory: 'Meta::Connection'
             }),
-            connectionDB.optimisticUpdate({
-                Key: {
-                    ConnectionId: 'Global',
-                    DataCategory: 'Connections'
-                },
-                updateKeys: ['connections'],
-                updateReducer: (draft) => {
-                    draft.connections[payload.connectionId] = undefined
-                }
-            })
+            // connectionDB.optimisticUpdate({
+            //     Key: {
+            //         ConnectionId: 'Global',
+            //         DataCategory: 'Connections'
+            //     },
+            //     updateKeys: ['connections'],
+            //     updateReducer: (draft) => {
+            //         draft.connections[payload.connectionId] = undefined
+            //     }
+            // })
         ])
     }))
 }

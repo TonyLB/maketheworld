@@ -11,19 +11,19 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             const Items = await connectionDB.query({
                 IndexName: 'DataCategoryIndex',
                 Key: {
-                    DataCategory: 'Meta::Connection'
+                    DataCategory: 'Meta::Session'
                 },
                 ProjectionFields: ['ConnectionId', 'player']
             })
         
-            const connectionMap = Items
-                .map(({ ConnectionId, player }) => ({ Player: player, Connection: splitType(ConnectionId)[1]}))
-                .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
+            const sessionMap = Items
+                .map(({ ConnectionId, player }) => ({ Player: player, Session: splitType(ConnectionId)[1]}))
+                .reduce((previous, { Player, Session }) => ({ ...previous, [Session]: Player }), {})
         
             await connectionDB.putItem({
                 ConnectionId: 'Global',
-                DataCategory: 'Connections',
-                connections: connectionMap
+                DataCategory: 'Sessions',
+                sessions: sessionMap
             })
         }
 

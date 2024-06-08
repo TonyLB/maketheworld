@@ -74,18 +74,14 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             connectionDB.optimisticUpdate({
                 Key: {
                     ConnectionId: 'Global',
-                    DataCategory: 'Connections'    
+                    DataCategory: 'Sessions'    
                 },
-                updateKeys: ['connections', 'sessions'],
-                updateReducer: (draft: { connections?: Record<string, string>; sessions?: Record<string, string> }) => {
-                    if (draft.connections === undefined) {
-                        draft.connections = {}
-                    }
+                updateKeys: ['sessions'],
+                updateReducer: (draft: { sessions?: Record<string, string> }) => {
                     if (draft.sessions === undefined) {
                         draft.sessions = {}
                     }
                     if (userName) {
-                        draft.connections[connectionId] = userName
                         draft.sessions[defaultedSessionId] = userName
                     }
                 },

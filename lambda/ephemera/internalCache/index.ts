@@ -88,7 +88,7 @@ export class CacheGlobalData {
                     const { connections = {} } = (await connectionDB.getItem<{ connections: Record<string, string> }>({
                         Key: {
                             ConnectionId: 'Global',
-                            DataCategory: 'Connections'    
+                            DataCategory: 'Sessions'    
                         },
                         ProjectionFields: ['sessions']
                     })) || {}
