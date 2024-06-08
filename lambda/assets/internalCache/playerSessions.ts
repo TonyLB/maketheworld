@@ -11,7 +11,7 @@ export class CachePlayerSessionsData {
             this.SessionsByPlayer = connectionDB.getItem<{ sessions: Record<string, string> }>({
                     Key: {
                         ConnectionId: 'Global',
-                        DataCategory: 'Connections'
+                        DataCategory: 'Sessions'
                     },
                     ProjectionFields: ['sessions']
                 }).then((value) => (value?.sessions))

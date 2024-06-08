@@ -77,7 +77,7 @@ export const handler = async (event: any) => {
                             Update: {
                                 Key: {
                                     ConnectionId: 'Global',
-                                    DataCategory: 'Connections'
+                                    DataCategory: 'Sessions'
                                 },
                                 updateKeys: ['sessions'],
                                 updateReducer: (draft) => {
