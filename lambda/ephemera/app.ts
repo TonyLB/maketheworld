@@ -86,6 +86,7 @@ export const handler = async (event: any, context: any) => {
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Force Disconnect':
+                console.log(`Force Disconnect: ${JSON.stringify(event.detail, null, 4)}`)
                 if (event.detail.connectionId) {
                     messageBus.send({
                         type: 'Disconnect',
@@ -95,6 +96,12 @@ export const handler = async (event: any, context: any) => {
                 break
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
+                if (event.detail.characterId) {
+                    messageBus.send({
+                        type: 'DisconnectCharacter',
+                        characterId: event.detail.characterId
+                    })
+                }
                 break
             case 'Calculate Cascade':
                 if (event.detail.EphemeraId && (isEphemeraVariableId(event.detail.EphemeraId) || isEphemeraComputedId(event.detail.EphemeraId))) {
