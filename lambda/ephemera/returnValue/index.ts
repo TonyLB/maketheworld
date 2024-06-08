@@ -2,7 +2,7 @@ import { ReturnValueMessage, isReturnValueMessage, MessageBus } from "../message
 
 import internalCache from '../internalCache'
 
-import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
+import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 
 export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMessage[], messageBus?: MessageBus }): Promise<void> => {
     const ConnectionId = await internalCache.Global.get('ConnectionId')

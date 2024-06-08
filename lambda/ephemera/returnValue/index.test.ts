@@ -1,5 +1,5 @@
-jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient')
+import { apiClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 
 jest.mock('../internalCache')
 import internalCache from "../internalCache"

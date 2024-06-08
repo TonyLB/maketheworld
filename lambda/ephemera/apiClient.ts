@@ -1,5 +1,5 @@
 import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/ts/ephemera"
-import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 import messageBus from "./messageBus"
 
 export const apiClient = {
