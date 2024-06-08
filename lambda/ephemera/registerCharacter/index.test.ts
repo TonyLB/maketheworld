@@ -58,7 +58,7 @@ describe("registerCharacter", () => {
                         ConnectionId: 'CHARACTER#ABC',
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['connections', 'sessions'],
+                    updateKeys: ['sessions'],
                     updateReducer: expect.any(Function),
                     successCallback: expect.any(Function)
                 }
