@@ -36,10 +36,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             ConnectionId: CharacterId,
                             DataCategory: 'Meta::Character'
                         },
-                        updateKeys: ['connections', 'sessions'],
+                        updateKeys: ['sessions'],
                         updateReducer: (draft) => {
                             draft.sessions = unique(draft.sessions || [], [sessionId])
-                            draft.connections = unique(draft.connections || [], [connectionId])
                         },
                         successCallback: ({ sessions }) => {
                             internalCache.CharacterSessions.set(CharacterId, sessions)
