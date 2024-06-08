@@ -1,5 +1,5 @@
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
-import { apiClient as apiClientImport } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+import { apiClient as apiClientImport } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 import { SFNClient } from "@aws-sdk/client-sfn"
 
 export const ebClient = new EventBridgeClient({ region: process.env.AWS_REGION })

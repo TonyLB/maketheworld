@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage, isPublishTargetSession } from "../messageBus/baseClasses"
-import { unique } from '@tonylb/mtw-utilities/dist/lists'
+import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
-import { messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { messageDeltaDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'

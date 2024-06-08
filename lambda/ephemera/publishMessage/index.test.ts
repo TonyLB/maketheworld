@@ -1,7 +1,7 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { messageDeltaDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
-import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+import { messageDeltaDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient')
+import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
