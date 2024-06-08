@@ -94,6 +94,15 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
                 break
+            case 'Disconnect Character':
+                console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
+                if (event.detail.characterId) {
+                    messageBus.send({
+                        type: 'DisconnectCharacter',
+                        characterId: event.detail.characterId
+                    })
+                }
+                break
             case 'Calculate Cascade':
                 if (event.detail.EphemeraId && (isEphemeraVariableId(event.detail.EphemeraId) || isEphemeraComputedId(event.detail.EphemeraId))) {
                     await dependencyCascade({

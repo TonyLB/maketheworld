@@ -12,6 +12,7 @@ export const handler = async (event: any) => {
 
     if (routeKey === '$disconnect') {
         await disconnect(connectionId)
+        return
     }
     else if (event.message === 'dropConnection') {
         const epochTime = Date.now()

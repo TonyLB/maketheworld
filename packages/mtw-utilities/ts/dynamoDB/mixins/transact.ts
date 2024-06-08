@@ -59,7 +59,8 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 ProjectionFields: aggregateProjectionFields
             }) : []
 
-            let successCallbacks: (() => void)[] = []
+            let successCallbacks: (() => Promise<void>)[] = []
+            let deleteCallbacks: (() => Promise<void>)[] = []
             const transactions = items.map<TransactWriteItem[]>((item) => {
                 if ('Put' in item) {
                     const returnValue = {
@@ -81,16 +82,19 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Update' in item) {
                     const fetchedItem = item.Update.priorFetch || fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
                     const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
-                    const { successCallback, succeedAll } = item.Update
+                    const { successCallback, succeedAll, deleteCallback } = item.Update
                     if (updateTransaction.action === 'ignore') {
                         if (succeedAll && successCallback) {
-                            successCallbacks = [...successCallbacks, () => { successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                            successCallbacks = [...successCallbacks, async () => { await successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
                         }
                         return []
                     }
                     if (updateTransaction.action === 'delete') {
                         if (succeedAll && successCallback) {
-                            successCallbacks = [...successCallbacks, () => { successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                            successCallbacks = [...successCallbacks, async () => { await successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                        }
+                        if (deleteCallback) {
+                            deleteCallbacks = [...deleteCallbacks, async () => { await deleteCallback(fetchedItem as DBHandlerItem<KIncoming, T>) }]
                         }
                         return updateTransaction.deletes.map((deleteItem) => ({
                             Delete: {
@@ -101,7 +105,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                     }
                     else {
                         if (successCallback) {
-                            successCallbacks = [...successCallbacks, () => { successCallback(updateTransaction.newState, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                            successCallbacks = [...successCallbacks, async () => { await successCallback(updateTransaction.newState, fetchedItem as DBHandlerItem<KIncoming, T>) }]
                         }
                         return [{
                             Update: {
@@ -182,7 +186,10 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 return []
             }).flat()
             await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
-            successCallbacks.forEach((callback) => { callback() })
+            await Promise.all([
+                ...successCallbacks.map(async (callback) => { await callback()  }),
+                ...deleteCallbacks.map(async (callback) => { await callback()  })
+            ])
         }
 
         //

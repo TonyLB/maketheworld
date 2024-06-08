@@ -15,12 +15,13 @@ import {
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
     isCanonUpdateMessage,
-    isCheckLocation
+    isCheckLocation,
+    isDisconnectCharacterMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
-import disconnectMessage, { unregisterCharacterMessage } from '../disconnectMessage'
+import disconnectMessage, { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -69,6 +70,12 @@ messageBus.subscribe({
     priority: 1,
     filter: isUnregisterCharacterMessage,
     callback: unregisterCharacterMessage
+})
+messageBus.subscribe({
+    tag: 'DisconnectCharacter',
+    priority: 1,
+    filter: isDisconnectCharacterMessage,
+    callback: disconnectCharacterMessage
 })
 messageBus.subscribe({
     tag: 'FetchPlayerEphemera',

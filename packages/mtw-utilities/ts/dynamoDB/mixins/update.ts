@@ -194,6 +194,10 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     //
     deleteCascade?: (output: DBHandlerItem<KIncoming, KeyType>) => DBHandlerKey<KIncoming, KeyType>[];
     //
+    // deleteCallback, if provided, is called with the results *only* after a deletion
+    //
+    deleteCallback?: (prior: T) => void | Promise<void>;
+    //
     // successCallback, if provided, is called with the results *only* after the update succeeds
     //
     successCallback?: (output: T, prior: T) => void | Promise<void>;
@@ -344,6 +348,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 checkKeys,
                 deleteCondition,
                 deleteCascade,
+                deleteCallback,
                 successCallback,
                 succeedAll
             } = props
@@ -376,7 +381,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ...deleteItem
                         })))))
                         if (successCallback && succeedAll) {
-                            returnValue = { ...Key, ...state}
+                            returnValue = { ...Key, ...updateOutput.newState}
                         }
                     }
                     catch (err: any) {
@@ -394,6 +399,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                                 returnValue = props.catchException?.(err) ?? {}
                             }
                         }
+                    }
+                    if (deleteCallback) {
+                        await deleteCallback(state as Update)
                     }
                 }
                 else {

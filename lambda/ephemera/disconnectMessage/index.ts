@@ -1,4 +1,4 @@
-import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
+import { DisconnectCharacterMessage, DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import messageBus from "../messageBus"
@@ -124,6 +124,32 @@ export const unregisterCharacterMessage = async ({ payloads }: { payloads: Unreg
             })
         )
     }
+
+}
+
+export const disconnectCharacterMessage = async ({ payloads }: { payloads: DisconnectCharacterMessage[], messageBus?: MessageBus }): Promise<void> => {
+
+    await Promise.all(
+        payloads.map(async ({ characterId }) => {
+            const characterFetch = await internalCache.CharacterMeta.get(characterId)
+            const { RoomId, Name } = characterFetch || {}
+            if (RoomId) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [RoomId, `!${characterId}`],
+                    displayProtocol: 'WorldMessage',
+                    message: [{
+                        tag: 'String',
+                        value: `${Name || 'Someone'} has disconnected.`
+                    }]
+                })
+                messageBus.send({
+                    type: 'RoomUpdate',
+                    roomId: RoomId
+                })
+            }
+        })
+    )
 
 }
 
