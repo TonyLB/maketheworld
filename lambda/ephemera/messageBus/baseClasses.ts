@@ -21,20 +21,15 @@ export type PublishTargetExcludeCharacter = `!CHARACTER#${string}`
 export type PublishTargetSession = `SESSION#${string}`
 export type PublishTargetExcludeSession = `!SESSION#${string}`
 
-export type PublishTargetConnection = `CONNECTION#${string}`
-export type PublishTargetExcludeConnection = `!CONNECTION#${string}`
-
 export type PublishTargetGlobal = `GLOBAL`
 
-export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter | PublishTargetSession | PublishTargetExcludeSession | PublishTargetConnection | PublishTargetExcludeConnection | PublishTargetGlobal
+export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter | PublishTargetSession | PublishTargetExcludeSession | PublishTargetGlobal
 
 export const isPublishTargetRoom = isEphemeraTaggedId<'ROOM'>('ROOM')
 export const isPublishTargetCharacter = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 export const isPublishTargetExcludeCharacter = isEphemeraTaggedId<'!CHARACTER'>('!CHARACTER')
 export const isPublishTargetSession = isEphemeraTaggedId<'SESSION'>('SESSION')
 export const isPublishTargetExcludeSession = isEphemeraTaggedId<'!SESSION'>('!SESSION')
-export const isPublishTargetConnection = isEphemeraTaggedId<'CONNECTION'>('CONNECTION')
-export const isPublishTargetExcludeConnection = isEphemeraTaggedId<'!CONNECTION'>('!CONNECTION')
 export const isPublishTargetGlobal = (key: string): key is PublishTargetGlobal => (key === 'GLOBAL')
 
 export type PublishMessageBase = {
@@ -143,7 +138,7 @@ export type UnregisterCharacterMessage = {
     characterId: EphemeraCharacterId;
 }
 
-export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetConnection | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetExcludeConnection | PublishTargetSession | PublishTargetExcludeSession
+export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetSession | PublishTargetExcludeSession
 
 export type EphemeraPartialCharacterInPlayActive = Pick<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'> & Partial<Omit<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'>>
 
