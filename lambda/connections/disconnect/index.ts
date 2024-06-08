@@ -1,8 +1,4 @@
-// import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
-
-import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-// import messageBus from "../messageBus"
-// import internalCache from "../internalCache"
+import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
@@ -35,40 +31,15 @@ export const atomicallyRemoveCharacterAdjacency = async (sessionId: string, char
                             draft.sessions = draft.sessions.filter((value) => (value !== sessionId))
                         },
                         deleteCondition: ({ sessions = [] }) => (sessions.length === 0),
-                        succeedAll: true,
-                        successCallback: async ({ sessions }) => {
-                            if (sessions.length === 0) {
-                                await ebClient.send(new PutEventsCommand({
-                                    Entries: [{
-                                        EventBusName: process.env.EVENT_BUS_NAME,
-                                        Source: 'mtw.coordination',
-                                        DetailType: 'Disconnect Character',
-                                        Detail: JSON.stringify({ characterId })
-                                    }]
-                                }))
-                                // messageBus.send({
-                                //     type: 'EphemeraUpdate',
-                                //     updates: [{
-                                //         type: 'CharacterInPlay',
-                                //         CharacterId: characterId,
-                                //         Connected: false,
-                                //         connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
-                                //     }]
-                                // })
-                                // messageBus.send({
-                                //     type: 'PublishMessage',
-                                //     targets: [RoomId, `!${characterId}`],
-                                //     displayProtocol: 'WorldMessage',
-                                //     message: [{
-                                //         tag: 'String',
-                                //         value: `${Name || 'Someone'} has disconnected.`
-                                //     }]
-                                // })
-                                // messageBus.send({
-                                //     type: 'RoomUpdate',
-                                //     roomId: RoomId
-                                // })
-                            }
+                        deleteCallback: async () => {
+                            await ebClient.send(new PutEventsCommand({
+                                Entries: [{
+                                    EventBusName: process.env.EVENT_BUS_NAME,
+                                    Source: 'mtw.coordination',
+                                    DetailType: 'Disconnect Character',
+                                    Detail: JSON.stringify({ characterId })
+                                }]
+                            }))
                         }
                     }
                 },
@@ -146,16 +117,6 @@ export const disconnect = async (connectionId: string): Promise<void> => {
         connectionDB.deleteItem({
             ConnectionId,
             DataCategory: 'Meta::Connection'
-        }),
-        connectionDB.optimisticUpdate({
-            Key: {
-                ConnectionId: 'Global',
-                DataCategory: 'Sessions'
-            },
-            updateKeys: ['connections'],
-            updateReducer: (draft) => {
-                draft.connections[connectionId] = undefined
-            }
         })
     ])
 }

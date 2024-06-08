@@ -1,8 +1,8 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import {
     ephemeraDB,
     connectionDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
