@@ -1,4 +1,4 @@
-import { DisconnectCharacterMessage, DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
+import { DisconnectCharacterMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import messageBus from "../messageBus"
@@ -152,42 +152,3 @@ export const disconnectCharacterMessage = async ({ payloads }: { payloads: Disco
     )
 
 }
-
-export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMessage[], messageBus?: MessageBus }): Promise<void> => {
-    //
-    // TODO: Figure out whether a forced disconnet invalidates any cached values
-    //
-
-    await Promise.all(payloads.map(async (payload) => {
-        const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const [characterQuery] = await Promise.all([
-            connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
-                Key: { ConnectionId },
-                ExpressionAttributeValues: {
-                    ':dcPrefix': 'CHARACTER#'
-                },
-                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                ProjectionFields: ['DataCategory']
-            })
-        ])
-        await Promise.all([
-            ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, DataCategory))),
-            connectionDB.deleteItem({
-                ConnectionId,
-                DataCategory: 'Meta::Connection'
-            }),
-            // connectionDB.optimisticUpdate({
-            //     Key: {
-            //         ConnectionId: 'Global',
-            //         DataCategory: 'Connections'
-            //     },
-            //     updateKeys: ['connections'],
-            //     updateReducer: (draft) => {
-            //         draft.connections[payload.connectionId] = undefined
-            //     }
-            // })
-        ])
-    }))
-}
-
-export default disconnectMessage

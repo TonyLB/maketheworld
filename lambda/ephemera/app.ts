@@ -33,20 +33,6 @@ import { sfnClient } from './clients'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
 
-//
-// Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
-// cycle you don't have two lambdas in a race condition where the disconnect update might come after the connect.
-//
-export const disconnect = async (connectionId: string) => {
-
-    messageBus.send({
-        type: 'Disconnect',
-        connectionId
-    })
-    await messageBus.flush()
-
-}
-
 export const handler = async (event: any, context: any) => {
 
     const { connectionId, routeKey } = event.requestContext || {}
@@ -85,15 +71,6 @@ export const handler = async (event: any, context: any) => {
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
-            case 'Force Disconnect':
-                console.log(`Force Disconnect: ${JSON.stringify(event.detail, null, 4)}`)
-                if (event.detail.connectionId) {
-                    messageBus.send({
-                        type: 'Disconnect',
-                        connectionId: event.detail.connectionId
-                    })
-                }
-                break
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
                 if (event.detail.characterId) {

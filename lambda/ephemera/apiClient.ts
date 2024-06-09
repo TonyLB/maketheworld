@@ -1,6 +1,6 @@
 import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/ts/ephemera"
 import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
-import messageBus from "./messageBus"
+import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 export const apiClient = {
     send: async (ConnectionId: string | undefined, message: EphemeraClientMessage) => {
@@ -13,9 +13,9 @@ export const apiClient = {
             }
             catch (err: any) {
                 if (err.name === 'GoneException' || err.name === 'BadRequestException') {
-                    messageBus.send({
-                        type: 'Disconnect',
-                        connectionId: ConnectionId
+                    await connectionDB.deleteItem({
+                        ConnectionId,
+                        DataCategory: 'Meta::Connection'
                     })
                 }
                 else {

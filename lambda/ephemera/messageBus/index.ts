@@ -2,7 +2,6 @@ import {
     MessageBus,
     isPublishMessage,
     isEphemeraUpdate,
-    isDisconnectMessage,
     isRegisterCharacterMessage,
     isFetchPlayerEphemera,
     isPerception,
@@ -21,7 +20,7 @@ import {
 
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
-import disconnectMessage, { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
+import { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -52,12 +51,6 @@ messageBus.subscribe({
     priority: 10,
     filter: isEphemeraUpdate,
     callback: ephemeraUpdate
-})
-messageBus.subscribe({
-    tag: 'Disconnect',
-    priority: 1,
-    filter: isDisconnectMessage,
-    callback: disconnectMessage
 })
 messageBus.subscribe({
     tag: 'RegisterCharacter',
