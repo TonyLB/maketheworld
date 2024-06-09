@@ -123,11 +123,6 @@ export type ReturnValueMessage = {
     body: Record<string, any>;
 }
 
-export type DisconnectMessage = {
-    type: 'Disconnect';
-    connectionId: string;
-}
-
 export type RegisterCharacterMessage = {
     type: 'RegisterCharacter';
     characterId: EphemeraCharacterId;
@@ -298,7 +293,6 @@ export type CanonUpdateMessage = CanonAddRemoveMessage | CanonSetMessage
 export type MessageType = PublishMessage |
     PublishNotification |
     ReturnValueMessage |
-    DisconnectMessage |
     RegisterCharacterMessage |
     UnregisterCharacterMessage |
     DisconnectCharacterMessage |
@@ -329,7 +323,6 @@ export const isPublishNotification = (prop: MessageType): prop is PublishNotific
 export const isInformationNotification = (prop: PublishNotification): prop is PublishInformationNotification => (prop.displayProtocol === 'Information')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
-export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
 
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')
