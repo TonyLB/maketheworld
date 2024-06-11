@@ -29,7 +29,12 @@ type AssetWorkspaceConstructorPersonal = {
     player: string;
 } & AssetWorkspaceConstructorBase
 
-export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
+type AssetWorkspaceConstructorDraft = {
+    zone: 'Draft';
+    player: string;
+}
+
+export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft
 
 export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
     if (!item) {
@@ -43,6 +48,9 @@ export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddres
     }
     if (!(item.zone && typeof item.zone === 'string')) {
         return false
+    }
+    if (item.zone === 'Draft' && item.player && typeof item.player === 'string') {
+        return true
     }
     if (item.subFolder && typeof item.subFolder !== 'string') {
         return false
@@ -126,7 +134,7 @@ export class ReadOnlyAssetWorkspace {
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
-        if (!args.fileName) {
+        if (!(args.zone === 'Draft' || args.fileName)) {
             throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
         }
         this.address = args
@@ -137,6 +145,9 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get filePath(): string {
+        if (this.address.zone === 'Draft') {
+            return `Personal/${this.address.player}/Assets/`
+        }
         const subFolderElements = (this.address.subFolder || '').split('/').filter((value) => (value))
         const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
 
@@ -147,11 +158,11 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get fileNameBase(): string {
-        return `${this.filePath}${this.address.fileName}`
+        return `${this.filePath}${this.fileName}`
     }
 
     get fileName(): string {
-        return this.address.fileName
+        return this.address.zone === 'Draft' ? 'draft' : this.address.fileName
     }
 
     universalKey(searchKey: string): string | undefined {
