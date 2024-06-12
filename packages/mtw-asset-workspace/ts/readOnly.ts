@@ -1,4 +1,4 @@
-import { GetObjectCommand } from "@aws-sdk/client-s3"
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
@@ -170,18 +170,21 @@ export class ReadOnlyAssetWorkspace {
         return matchingNamespaceItem?.universalKey
     }
 
-    // get assetId(): `ASSET#${string}` | `CHARACTER#${string}` | undefined {
-    //     const assets: NormalForm = this.normal || {}
-    //     const asset = Object.values(assets).find(isNormalAsset)
-    //     if (asset && asset.key) {
-    //         return `ASSET#${asset.key}`
-    //     }
-    //     const character = Object.values(assets).find(isNormalCharacter)
-    //     if (character && character.key) {
-    //         return this.universalKey(character.key) as `CHARACTER#${string}`
-    //     }
-    // }
+    async forceDefault(): Promise<void> {
+        const Key = `${this.fileNameBase}.wml`
+        const found = await s3Client.check({ Key })
+        if (!found) {
+            //
+            // If no object exists, create a default value for a draft asset WML
+            //
+            await s3Client.put({
+                Key,
+                Body: `<Asset key=(${ this.assetId ?? 'draft' }) />`
+            })
+        }
 
+    }
+    
     async presignedURL(): Promise<string> {
         const getCommand = new GetObjectCommand({
             Bucket: S3_BUCKET,
