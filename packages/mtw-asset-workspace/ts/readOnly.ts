@@ -170,17 +170,31 @@ export class ReadOnlyAssetWorkspace {
         return matchingNamespaceItem?.universalKey
     }
 
+    //
+    // forceDefault assumes that it is being called on a draft workspace ... would need to be refactored in order to
+    // operate on a workspace where key is defined differently.
+    //
     async forceDefault(): Promise<void> {
         const Key = `${this.fileNameBase}.wml`
         const found = await s3Client.check({ Key })
         if (!found) {
             //
-            // If no object exists, create a default value for a draft asset WML
+            // If no object exists, create default files for a draft asset
             //
-            await s3Client.put({
-                Key,
-                Body: `<Asset key=(${ this.assetId ?? 'draft' }) />`
-            })
+            await Promise.all([
+                s3Client.put({
+                    Key,
+                    Body: `<Asset key=(draft) />`
+                }),
+                s3Client.put({
+                    Key: `${this.fileNameBase}.json`,
+                    Body: JSON.stringify({
+                        assetId: "ASSET#draft",
+                        namespaceIdToDB: [],
+                        standard: { key: "draft", tag: "Asset", byId: {}, metaData: [] }
+                    }, null, 4)
+                })
+            ])
         }
 
     }
