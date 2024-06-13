@@ -12,7 +12,7 @@ export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: Pl
         const derivedPlayer = player || await internalCache.Connection.get("player")
         const derivedSessionId = sessionId || await internalCache.Connection.get("sessionId")
         if (derivedPlayer && derivedSessionId) {
-            const [connections = [], settings, { Characters, Assets }] = await Promise.all([
+            const [connections = [], settings, { Characters, Assets, draftURL }] = await Promise.all([
                 internalCache.PlayerSessions.get(derivedPlayer).then((sessions) => (internalCache.SessionConnections.get(sessions ?? []))),
                 internalCache.PlayerSettings.get(derivedPlayer),
                 internalCache.PlayerLibrary.get(derivedPlayer)
@@ -25,6 +25,7 @@ export const playerInfoMessage = async ({ payloads, messageBus }: { payloads: Pl
                             messageType: 'Player',
                             Characters: Object.values(Characters),
                             Assets: Object.values(Assets),
+                            draftURL,
                             Settings: settings,
                             PlayerName: derivedPlayer,
                             SessionId: derivedSessionId
