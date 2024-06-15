@@ -351,10 +351,10 @@ type EditAssetProps = {}
 
 export const EditAsset: FunctionComponent<EditAssetProps> = () => {
 
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+    const { AssetId: assetKey = 'draft' } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}` as const
     useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}`,
+        href: assetKey === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}`,
         label: `${assetKey}`,
         type: 'LibraryEdit',
         iconName: 'Asset',

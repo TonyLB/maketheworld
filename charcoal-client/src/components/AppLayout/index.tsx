@@ -258,6 +258,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
             <Route path="/Library/" element={<Library />} />
             <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+            <Route path="/Draft/*" element={<EditAsset />} />
             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
