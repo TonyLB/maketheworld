@@ -312,7 +312,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     // Process file if an Asset
     //
     if (assetWorkspace.standard && assetWorkspace.standard.tag === 'Asset') {
-        const assetId = assetWorkspace.standard.key
+        const assetId = assetWorkspace.address.zone === 'Draft' ? `draft[${assetWorkspace.address.player}]` : assetWorkspace.standard.key
         if (check || updateOnly) {
             const assetEphemeraId = assetWorkspace.universalKey(assetId) ?? AssetKey(assetId)
             if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
