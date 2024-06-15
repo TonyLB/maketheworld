@@ -1,4 +1,4 @@
-import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/readOnly"
+import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import {
     EphemeraActionId,
     EphemeraBookmarkId,
