@@ -122,17 +122,23 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         <LibraryBanner
             primary="Edit World Markup Language"
             secondary={assetKey}
-            breadCrumbProps={[{
-                href: '/Library',
-                label: 'Library'
-            },
-            {
-                href: `/Library/Edit/${ (AssetId.split('#')?.[0] || '') === 'CHARACTER' ? 'Character' : 'Asset' }/${assetKey}`,
-                label: assetKey || ''
-            },
-            {
-                label: 'Edit WML'
-            }]}
+            breadCrumbProps={[
+                ...(AssetId === 'ASSET#draft'
+                    ? [{ href: '/Draft/', label: 'draft' }]
+                    : [{
+                            href: '/Library',
+                            label: 'Library'
+                        },
+                        {
+                            href:  `/Library/Edit/${ (AssetId.split('#')?.[0] || '') === 'CHARACTER' ? 'Character' : 'Asset' }/${assetKey}`,
+                            label: assetKey || ''
+                        }
+                    ]
+                ),
+                {
+                    label: 'Edit WML'
+                }
+            ]}
         />
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>
             <Slate
