@@ -1,6 +1,6 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {

@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import ReadOnlyAssetWorkspace, { NamespaceMapping, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import ReadOnlyAssetWorkspace, { NamespaceMapping, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import Meta, { MetaData } from './meta'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 

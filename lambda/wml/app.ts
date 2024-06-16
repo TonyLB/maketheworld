@@ -158,6 +158,7 @@ const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
                 Error: { DataType: 'String', StringValue: 'Internal error in FetchImports' }
             }
         }))
+        console.log(error)
         throw error
     }
 }

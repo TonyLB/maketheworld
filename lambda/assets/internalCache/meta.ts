@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
-import { isAssetWorkspaceAddress, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { isAssetWorkspaceAddress, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 type MetaCache = {

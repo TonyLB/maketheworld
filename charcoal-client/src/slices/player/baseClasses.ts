@@ -23,6 +23,7 @@ export interface PlayerNodes {
     SUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     FETCHNOTIFICATIONS: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     SYNCHRONIZE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
+    FETCHDRAFTASSET: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     CONNECTED: ISSMChoiceNode;
     UNSUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     ERROR: ISSMChoiceNode;

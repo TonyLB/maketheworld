@@ -1,6 +1,7 @@
 import { PlayerData, PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
+    fetchDraftAsset,
     fetchNotifications,
     lifelineCondition,
     subscribeAction,
@@ -94,6 +95,12 @@ export const {
             SYNCHRONIZE: {
                 stateType: 'ATTEMPT',
                 action: syncAction,
+                resolve: 'FETCHDRAFTASSET',
+                reject: 'ERROR'
+            },
+            FETCHDRAFTASSET: {
+                stateType: 'ATTEMPT',
+                action: fetchDraftAsset,
                 resolve: 'CONNECTED',
                 reject: 'ERROR'
             },

@@ -724,7 +724,7 @@ export class Standardizer {
                     name: deserializeValue(value, 'name'),
                     positions: maybeGenericIDFromTree(value.positions),
                     images: maybeGenericIDFromTree(value.images),
-                    themes: maybeGenericIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                    themes: maybeGenericIDFromTree(value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (value.tag === 'Theme') {
@@ -746,7 +746,7 @@ export class Standardizer {
                     summary: deserializeValue(value, 'summary'),
                     description: deserializeValue(value, 'description'),
                     exits: maybeGenericIDFromTree(value.exits),
-                    themes: maybeGenericIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                    themes: maybeGenericIDFromTree(value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (value.tag === 'Message') {

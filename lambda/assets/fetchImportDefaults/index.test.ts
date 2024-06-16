@@ -7,7 +7,7 @@ import internalCache from '../internalCache'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('./baseClasses')
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 const sfnClientMock = sfnClient as jest.Mocked<typeof sfnClient>
 const internalCacheMock = jest.mocked(internalCache, true)
