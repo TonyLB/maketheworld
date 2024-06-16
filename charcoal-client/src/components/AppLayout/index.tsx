@@ -64,7 +64,6 @@ const a11yProps = (index: number) => {
 }
 
 const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; assetId?: string }) => {
-    const { currentDraft } = useSelector(getPlayer)
     switch(iconName) {
         case 'Map':
             return <MapIcon />
@@ -80,12 +79,12 @@ const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; ass
         case 'Asset':
         case 'EditAsset':
             return <React.Fragment>
-                {(currentDraft === assetId?.split('#')[1]) && <EditIcon />}
+                {(assetId?.split('#')[1] === 'draft') && <EditIcon />}
                 <AssetIcon />
             </React.Fragment>
         case 'Room':
             return <React.Fragment>
-                {(currentDraft === assetId?.split('#')[1]) && <EditIcon />}
+                {(assetId?.split('#')[1] === 'draft') && <EditIcon />}
                 <HomeIcon />
             </React.Fragment>
         default:

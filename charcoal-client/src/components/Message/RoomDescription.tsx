@@ -48,7 +48,6 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
     const [open, setOpen] = useState<boolean>(false)
     const ref = useRef(null)
     const dispatch = useDispatch()
-    const { currentDraft } = useSelector(getPlayer)
     const importOptions = useMemo(() => {
         if (Object.entries(assets).length > 1) {
             return Object.entries(assets)
@@ -62,8 +61,8 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
     }, [assets])
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
         dispatch(addOnboardingComplete(['importRoom']))
-        dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
-        navigate(`/Library/Edit/Asset/${currentDraft}/Room/${key}`)
+        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Room', key }))
+        navigate(`/Draft/Room/${key}`)
     }, [navigate])
     const onClick = useCallback(() => {
         if (importOptions.length > 1) {
@@ -115,8 +114,8 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
 
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
-    const { currentDraft, Assets } = useSelector(getPlayer)
-    const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
+    const { Assets } = useSelector(getPlayer)
+    const status = useSelector(getStatus(`ASSET#draft`))
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
     const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void = useCallback((to) => {

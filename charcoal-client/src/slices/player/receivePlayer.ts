@@ -17,9 +17,6 @@ export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerP
     state.Characters = Characters
     state.Settings = Settings
     state.SessionId = SessionId
-    if (state.currentDraft && !(Assets.map(({ AssetId }) => (AssetId)).includes(state.currentDraft))) {
-        state.currentDraft = undefined
-    }
 }
 
 export default receivePlayer

@@ -17,7 +17,7 @@ import {
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
-import { setCurrentDraft as setCurrentDraftReducer, addAsset as addAssetReducer } from './reducers'
+import { addAsset as addAssetReducer } from './reducers'
 import { PromiseCache } from '../promiseCache'
 import { createSelector } from '@reduxjs/toolkit'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
@@ -50,7 +50,6 @@ export const {
     sliceSelector: ({ player }) => (player),
     publicReducers: {
         receivePlayer,
-        setCurrentDraft: setCurrentDraftReducer,
         addAsset: addAssetReducer
     },
     publicSelectors: {
@@ -116,7 +115,7 @@ export const {
     }
 })
 
-export const { setCurrentDraft, addAsset, onEnter } = publicActions
+export const { addAsset, onEnter } = publicActions
 export const {
     getPlayer,
     getMyCharacters,

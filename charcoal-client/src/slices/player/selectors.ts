@@ -2,15 +2,14 @@ import { PlayerPublic } from './baseClasses'
 import { Selector } from '../../store'
 
 export const getPlayer = (player: PlayerPublic): PlayerPublic => {
-    const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, SessionId = "", currentDraft } = player || {}
+    const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, SessionId = "" } = player || {}
     return {
         PlayerName,
         CodeOfConductConsent,
         Assets,
         Characters,
         Settings,
-        SessionId,
-        currentDraft
+        SessionId
     }
 }
 
