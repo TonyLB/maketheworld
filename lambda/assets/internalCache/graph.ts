@@ -1,12 +1,12 @@
-import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
-import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
-import GraphNode from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode"
-import GraphEdge from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge"
+import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
+import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
+import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
+import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
 import { CacheConstructor } from "./baseClasses"
-import withGetOperations from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/get"
-import { DBHandlerBase } from "@tonylb/mtw-utilities/dist/dynamoDB/baseClasses"
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import withPrimitives from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/primitives"
+import withGetOperations from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/get"
+import { DBHandlerBase } from "@tonylb/mtw-utilities/ts/dynamoDB/baseClasses"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import withPrimitives from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/primitives"
 
 export const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,

@@ -153,7 +153,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
-    const { currentDraft } = useSelector(getPlayer)
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -173,7 +172,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             exits,
             features,
             save,
-            readonly: !(currentDraft === assetKey),
+            readonly: !(assetKey === 'draft'),
             serialized,
             status
         }}>

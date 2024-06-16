@@ -6,7 +6,7 @@ import {
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
 import { getMyAssets, getMySettings } from './selectors'
-import { getSerialized } from '../personalAssets'
+import { addItem, getSerialized } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
@@ -57,6 +57,11 @@ export const syncAction: PlayerAction = () => async (dispatch) => {
     // than counting implicitly on the subscription to receive that data
     //
     await dispatch(socketDispatchPromise({ message: 'whoAmI' }, { service: 'asset' }))
+    return {}
+}
+
+export const fetchDraftAsset: PlayerAction = () => async (dispatch) => {
+    await dispatch(addItem({ key: 'ASSET#draft' }))
     return {}
 }
 

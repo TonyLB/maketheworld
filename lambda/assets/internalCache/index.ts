@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"

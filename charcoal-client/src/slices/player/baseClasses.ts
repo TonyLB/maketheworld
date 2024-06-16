@@ -6,9 +6,7 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
-export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'> & {
-    currentDraft?: string;
-}
+export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'>
 
 export type PlayerData = {
     internalData: PlayerInternal;
@@ -25,6 +23,7 @@ export interface PlayerNodes {
     SUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     FETCHNOTIFICATIONS: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     SYNCHRONIZE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
+    FETCHDRAFTASSET: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     CONNECTED: ISSMChoiceNode;
     UNSUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     ERROR: ISSMChoiceNode;

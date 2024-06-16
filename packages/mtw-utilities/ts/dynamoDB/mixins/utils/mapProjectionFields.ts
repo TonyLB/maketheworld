@@ -1,4 +1,4 @@
-export const reservedFields = ['name', 'key', 'value', 'zone', 'connection']
+export const reservedFields = ['name', 'data', 'key', 'value', 'zone', 'connection']
 
 export const mapProjectionFields = (projectionFields: string[]): { ProjectionFields: string[], ExpressionAttributeNames: Record<string, string> } => {
     return projectionFields.reduce<{ ProjectionFields: string[], ExpressionAttributeNames: Record<string, string> }>((previous, projectionField) => {

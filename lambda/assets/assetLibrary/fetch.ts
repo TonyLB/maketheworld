@@ -1,5 +1,5 @@
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
 
 const convertAssetQuery = (queryItems) => {
     const Characters = queryItems

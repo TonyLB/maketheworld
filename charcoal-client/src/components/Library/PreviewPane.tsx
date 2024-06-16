@@ -23,7 +23,6 @@ import { CharacterAvatarDirect } from '../CharacterAvatar'
 
 import AssetIcon from '@mui/icons-material/Landscape'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
-import { setCurrentDraft } from '../../slices/player'
 
 export type PreviewPaneContents = ({
     type: 'Asset'
@@ -55,7 +54,7 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
             action={
                 personal && 
                     <React.Fragment>
-                        <Button
+                        {/* <Button
                             onClick={() => {
                                 dispatch(setCurrentDraft(AssetId))
                                 navigate(`/Library/Edit/Asset/${AssetId}/`)
@@ -64,7 +63,7 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
                         >
                             <EditIcon />
                             Edit
-                        </Button>
+                        </Button> */}
                         <Button
                             onClick={() => {
                                 navigate(`/Library/Edit/Asset/${AssetId}/`)

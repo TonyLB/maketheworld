@@ -126,14 +126,7 @@ type RecursiveFetchImportArgument = {
 export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<GenericTree<SchemaTag>> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { standard } = await jsonHelper.get(assetId)
-    //
-    // Coming straight from the datalake, this normal should already be in standardized form,
-    // and can be fed directly to normalSubset
-    //
 
-    //
-    // TODO: Refactor normalSubset as standardSubset to operate on standardForm
-    //
     const { newStubKeys, standard: newStandard } = standardSubset({ standard, keys, stubKeys })
     newStubKeys.forEach((key) => {
         translate.addTranslation(key, prefixStubKeys ? `${splitType(assetId)[1]}.${key}` : key)

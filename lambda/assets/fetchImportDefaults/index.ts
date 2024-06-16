@@ -5,7 +5,7 @@ import { InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { sfnClient } from "../clients"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
-import { Graph } from "@tonylb/mtw-utilities/dist/graphStorage/utils/graph"
+import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 
 export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([

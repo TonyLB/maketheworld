@@ -25,9 +25,8 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         scopedId,
         characterId: CharacterId
     })
-    const { currentDraft } = useSelector(getPlayer)
     useOnboardingCheckpoint('navigatePlay')
-    useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true, condition: Boolean(currentDraft) })
+    useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true })
     useOnboardingCheckpoint('navigatePlayWithPersonalRoom', { requireSequence: true })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))

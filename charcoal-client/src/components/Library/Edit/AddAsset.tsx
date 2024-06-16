@@ -7,7 +7,6 @@ import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat";
 import AssetDataAddHeader from "./AssetDataAddHeader"
 import { addOnboardingComplete } from "../../../slices/player/index.api";
 import { useNavigate } from "react-router-dom";
-import { setCurrentDraft } from "../../../slices/player";
 
 const addAssetGenerator: FunctionComponent<{ key: string; onChange: (props: { key: string }) => void; errorMessage: string }> = ({ key, onChange, errorMessage }) => {
     return <TextField
@@ -38,7 +37,6 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
         if (type === 'Asset') {
-            dispatch(setCurrentDraft(key))
             navigate(`/Library/Edit/Asset/${key}/`)
         }
     }, [onAdd])

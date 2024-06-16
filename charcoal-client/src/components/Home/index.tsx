@@ -15,6 +15,7 @@ import LibraryIcon from '@mui/icons-material/ArtTrack'
 import KnowledgeIcon from '@mui/icons-material/MenuBook'
 import LockIcon from '@mui/icons-material/Lock'
 import GuestIcon from '@mui/icons-material/PersonSearch'
+import EditIcon from '@mui/icons-material/Edit'
 
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
@@ -161,7 +162,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 </Grid>))
             }
             <Grid item xs={12} />
-            <Grid item xs={12} md={6} sx={{ alignItems: "start" }}>
+            <Grid item xs={12} md={6} lg={4} sx={{ alignItems: "start" }}>
                 <Divider />
                     <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
                         Explore
@@ -207,10 +208,56 @@ export const Home: FunctionComponent<HomeProps> = ({
                 </Grid>
 
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6} lg={4}>
                 <Divider />
                 <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
                     Create
+                </Typography>
+                <Divider />
+                <Grid container justifyContent="center">
+                    <Grid
+                        item
+                        sm={3}
+                        sx={{
+                            marginTop: "1em",
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <Stack
+                            direction="column"
+                            justifyContent="center"
+                            alignItems="center"
+                            spacing={2}
+                            sx={{ marginTop: "1em", width: "100%" }}
+                        >
+                            { libraryUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                    alt={'Edit World'}
+                                    onClick={() => { navigate('/Draft/') }}
+                                >
+                                    <EditIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Edit World
+                            </React.Fragment> }
+                            { !libraryUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                    alt={'Locked'}
+                                >
+                                    <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Locked
+                            </React.Fragment> }
+                        </Stack>
+                    </Grid>
+                </Grid>
+
+            </Grid>
+            <Grid item xs={12} md={6} lg={4}>
+                <Divider />
+                <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
+                    Share
                 </Typography>
                 <Divider />
                 <Grid container justifyContent="center">

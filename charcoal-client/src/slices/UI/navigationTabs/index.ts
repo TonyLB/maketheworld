@@ -6,7 +6,6 @@ import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
 import { setIntent as librarySetIntent } from '../../library';
 import { setIntent as personalAssetSetIntent, getStatus } from '../../personalAssets'
-import { getPlayer, setCurrentDraft } from '../../player';
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 import { pushChoice } from '../choiceDialog';
 import { addOnboardingComplete } from '../../player/index.api';
@@ -83,7 +82,6 @@ export const closeTab = createAsyncThunk(
         const tab = navigationTabPinnedByHref(href)(state)
         const allTabs = navigationTabs(state)
         const tabIndex = navigationTabSelectedIndex(pathname)(state)
-        const { currentDraft } = getPlayer(state)
         let removeHrefs = [href]
         const libraryStillNeeded = Boolean(allTabs.find(({ href: checkHref, type }) => ((href !== checkHref) && (['Library', 'LibraryEdit'].includes(type)))))
         if (tab) {
@@ -106,9 +104,6 @@ export const closeTab = createAsyncThunk(
                         if (dialogValue === 'Save') {
                             dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['NEEDSAVE'] }))
                         }
-                    }
-                    if (tab.assetId.split('#')[1] === currentDraft) {
-                        dispatch(setCurrentDraft(undefined))
                     }
                     if (!libraryStillNeeded) {
                         dispatch(librarySetIntent(['INACTIVE']))
