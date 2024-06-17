@@ -551,7 +551,7 @@ export class Standardizer {
     get schema(): GenericTree<SchemaTag, TreeId> {
         if (this._assetTag === 'Asset') {
             //
-            // TODO: Extract keys from imports, and check when listing components whether it is an empty
+            // Extract keys from imports, and check when listing components whether it is an empty
             // item which is already represented in import (and exclude if so)
             //
             const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
