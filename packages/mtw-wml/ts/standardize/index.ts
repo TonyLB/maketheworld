@@ -454,7 +454,7 @@ export class Standardizer {
                     })
                 ).sort()
             )
-    
+
             //
             // Loop through each tag in standard order
             //
@@ -491,7 +491,7 @@ export class Standardizer {
                     //
                     items.forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
-                        if (standardItem && (item.children.length || !importedKeys.includes(key))) {
+                        if (standardItem && (item.children.length || !importedKeys.includes(key) || !(key in this._byId))) {
                             this._byId[key] = standardItem
                         }
                     })
@@ -550,14 +550,21 @@ export class Standardizer {
 
     get schema(): GenericTree<SchemaTag, TreeId> {
         if (this._assetTag === 'Asset') {
+            //
+            // Extract keys from imports, and check when listing components whether it is an empty
+            // item which is already represented in import (and exclude if so)
+            //
+            const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
+            const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isSchemaWithKey).map(({ key }) => (key)))).flat(1))
             const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = [
-                ...this.metaData.filter(treeNodeTypeguard(isSchemaImport)),
+                ...imports,
                 ...componentKeys
                     .map((tagToList) => (
                         Object.values(this._byId)
                             .filter(({ tag }) => (tag === tagToList))
                             .map(standardItemToSchemaItem)
+                            .filter(({ data, children }) => (children.length || !(isSchemaWithKey(data) && importKeys.includes(data.key))))
                     ))
                     .flat(1),
                 ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))

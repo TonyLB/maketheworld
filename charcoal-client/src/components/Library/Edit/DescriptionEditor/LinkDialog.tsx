@@ -165,7 +165,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 }
 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+    const { AssetId: assetKey = 'draft' } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const actions = validTags.includes('Action')

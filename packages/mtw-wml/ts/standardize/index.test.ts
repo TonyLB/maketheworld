@@ -467,6 +467,25 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should correctly reflect empty imports in byId', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Room key=(testRoomOne) />
+            </Import>
+        </Asset>`)
+        expect(test._byId.testRoomOne).toEqual({
+            description: { data: { tag: 'Description' }, id: '', children: [] },
+            exits: [],
+            id: expect.any(String),
+            key: 'testRoomOne',
+            name: { data: { tag: 'Name' }, id: '', children: [] },
+            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            tag: 'Room',
+            themes: []
+        })
+    })
+
     it('should render unedited imports correctly', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
