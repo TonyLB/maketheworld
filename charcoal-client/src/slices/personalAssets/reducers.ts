@@ -213,4 +213,10 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
+    const normalizer = new Normalizer()
+    const standardizer = deriveWorkingStandardizer(state)
+    state.standard = standardizer.standardForm
+    state.schema = standardizer.schema
+    normalizer.loadSchema(state.schema)
+    state.normal = normalizer.normal
 }
