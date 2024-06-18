@@ -156,7 +156,7 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder, toolbar=true }) => {
     const { field, parentId, tag } = useEditContext()
-    const { normalForm, readonly, updateSchema } = useLibraryAsset()
+    const { standardForm, readonly, updateSchema } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
         if (field.id) {
             if (newRender.length) {
@@ -188,9 +188,9 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         typeGuard: isSchemaOutputTag
     })), [field])
     const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(output, { normal: normalForm })
+        const returnValue = descendantsFromRender(output, { standard: standardForm })
         return returnValue
-    }, [output, normalForm])
+    }, [output, standardForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),

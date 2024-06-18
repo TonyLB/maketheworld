@@ -1,29 +1,22 @@
-import { NormalConditionStatement, NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { deepEqual } from "../../../../lib/objects"
+import { NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import {
     CustomActionLinkElement,
     CustomBlock,
-    // CustomElseBlock,
-    // CustomElseIfBlock,
     CustomFeatureLinkElement,
-    // CustomIfBlock,
     CustomKnowledgeLinkElement,
     CustomParagraphContents,
     CustomParagraphElement,
     CustomText,
     isCustomBlock,
     isCustomIfWrapper,
-    // isCustomElseBlock,
-    // isCustomElseIfBlock,
-    // isCustomIfBlock,
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaOutputTag, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
+import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
-const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents)[] => {
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []
     tree.forEach(({ data: item, children, id }) => {
         switch(item.tag) {
@@ -34,7 +27,7 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
                 break
             case 'Link':
                 returnValue.push({
-                    type: options.normal[item.to]?.tag === 'Feature' ? 'featureLink' : options.normal[item.to]?.tag === 'Action' ? 'actionLink' : 'knowledgeLink',
+                    type: options.standard.byId[item.to]?.tag === 'Feature' ? 'featureLink' : options.standard.byId[item.to]?.tag === 'Action' ? 'actionLink' : 'knowledgeLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
@@ -99,7 +92,7 @@ const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagrap
     }
 }
 
-export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): CustomBlock[] => {
+export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeId>, options: { standard: StandardForm }): CustomBlock[] => {
     let returnValue = [] as CustomBlock[]
     let accumulator = [] as CustomParagraphContents[]
     const translated = descendantsTranslate(render, options)
