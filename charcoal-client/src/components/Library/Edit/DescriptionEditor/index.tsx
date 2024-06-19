@@ -154,7 +154,61 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
     </Button>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder, toolbar=true }) => {
+type DescriptionEditorSlateComponentProperties = {
+    editor: Editor;
+    value: Descendant[];
+    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    placeholder?: string;
+    toolbar?: boolean;
+    readonly: boolean;
+    setValue?: (value: Descendant[]) => void;
+    saveToReduce?: (value: Descendant[]) => void;
+}
+
+const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateComponentProperties> = ({
+    editor,
+    value,
+    validLinkTags,
+    placeholder,
+    toolbar,
+    readonly,
+    setValue = () => {},
+    saveToReduce = () => {}
+}) => {
+    const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
+    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
+    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+
+    const decorate = useCallback(decorateFactory(editor), [editor])
+    return <Slate editor={editor} value={value} onChange={(value) => { setValue(value) }}>
+        <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
+        { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                { (validLinkTags.length &&
+                    <React.Fragment>
+                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                        <RemoveLinkButton />
+                    </React.Fragment>) || null
+                }
+                <AddIfButton forceOnChange={(value: Descendant[]) => {
+                    setValue(value)
+                    saveToReduce(value)
+                }} />
+            </Toolbar>
+        }
+        <Box sx={{ padding: '0.5em' }}>
+            <Editable
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                decorate={decorate}
+                readOnly={readonly}
+                placeholder={placeholder}
+            />
+        </Box>
+    </Slate>
+}
+
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
     const { field, parentId, tag } = useEditContext()
     const { standardForm, readonly, updateSchema } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
@@ -197,16 +251,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
         value: defaultValue,
         comparisonOutput: descendantsToRender(field.children)
     })
-    const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
 
     const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = descendantsToRender(field.children)((value || []).filter(isCustomBlock))
         onChange(maybeGenericIDFromTree(newRender))
     }, [onChange, value, field])
-
-    const onChangeHandler = useCallback((value: Descendant[]) => {
-        setValue(value)
-    }, [setValue])
 
     useDebouncedOnChange({
         value,
@@ -215,43 +264,20 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
             saveToReduce(value)
         }
     })
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
-    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
-    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-
-    const decorate = useCallback(decorateFactory(editor), [editor])
 
     //
     // TODO: Refactor Slate editor as a separate item from its controller, and use to
     // also populate InheritedDescription
     //
     return <React.Fragment>
-        <Slate editor={editor} value={value} onChange={onChangeHandler}>
-            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
-            { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                    { (validLinkTags.length &&
-                        <React.Fragment>
-                            <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                            <RemoveLinkButton />
-                        </React.Fragment>) || null
-                    }
-                    <AddIfButton forceOnChange={(value: Descendant[]) => {
-                        setValue(value)
-                        saveToReduce(value)
-                    }} />
-                </Toolbar>
-            }
-            <Box sx={{ padding: '0.5em' }}>
-                <Editable
-                    renderElement={renderElement}
-                    renderLeaf={renderLeaf}
-                    decorate={decorate}
-                    readOnly={readonly}
-                    placeholder={placeholder}
-                    // onKeyDown={onKeyDown}
-                />
-            </Box>
-        </Slate>
+        <DescriptionEditorSlateComponent
+            { ...props }
+            editor={editor}
+            value={value}
+            readonly={readonly}
+            setValue={setValue}
+            saveToReduce={saveToReduce}
+        />
 
     </React.Fragment>
 }
