@@ -2,11 +2,11 @@ import { v4 as uuidv4 } from 'uuid'
 import { deepEqual, objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit } from "../schema/baseClasses"
 import { unmarkInherited } from "../schema/treeManipulation/inherited"
 import TagTree, { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { filter, treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
@@ -53,6 +53,97 @@ const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaT
     return node
         ? { ...node, children: treeTypeGuard({ tree: defaultSelected(node.children), typeGuard }) }
         : { data: defaultValue, id: '', children: [] }
+}
+
+const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
+    callback: (tree: GenericTree<SchemaTag, TreeId>) => GenericTree<SchemaTag, TreeId>,
+    typeGuard: (value: SchemaTag) => value is T,
+    childTypeGuard: (value: SchemaTag) => value is ChildType,
+    defaultValue: T
+) => (node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
+    const transformedTree = node ? callback([node]) : []
+    if (transformedTree.length === 0) {
+        return { data: defaultValue, id: '', children: [] }
+    }
+    const transformedNode = transformedTree[0]
+    if (transformedTree.length > 1 || !treeNodeTypeguard(typeGuard)(transformedNode)) {
+        throw new Error('Invalid return value in transformStandardItem')
+    }
+    return { ...transformedNode, children: treeTypeGuard({ tree: maybeGenericIDFromTree(defaultSelected(transformedNode.children)), typeGuard: childTypeGuard }) }
+}
+
+const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, TreeId>) => GenericTree<SchemaTag, TreeId>) => (component: StandardComponent): StandardComponent | undefined => {
+    switch(component.tag) {
+        case 'Room':
+            return {
+                tag: 'Room',
+                key: component.key,
+                id: component.id,
+                shortName: transformStandardItem(callback, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' })(component.shortName),
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                summary: transformStandardItem(callback, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' })(component.summary),
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description),
+                exits: defaultSelected(maybeGenericIDFromTree(callback(component.exits))).filter(treeNodeTypeguard(isSchemaExit)),
+                themes: defaultSelected(maybeGenericIDFromTree(callback(component.themes))).filter(treeNodeTypeguard(isSchemaTheme))
+            }
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
+            }
+        case 'Bookmark':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
+            }
+        case 'Message':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description),
+                rooms: defaultSelected(maybeGenericIDFromTree(callback(component.rooms))).filter(treeNodeTypeguard(isSchemaRoom))
+            }
+        case 'Moment':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                messages: defaultSelected(maybeGenericIDFromTree(callback(component.messages))).filter(treeNodeTypeguard(isSchemaMessage))
+            }
+        case 'Map':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                images: defaultSelected(maybeGenericIDFromTree(callback(component.images))).filter(treeNodeTypeguard(isSchemaImage)),
+                positions: defaultSelected(maybeGenericIDFromTree(callback(component.positions))).filter(treeNodeTypeguard(isSchemaRoom)),
+                themes: defaultSelected(maybeGenericIDFromTree(callback(component.themes))).filter(treeNodeTypeguard(isSchemaTheme))
+            }
+        case 'Theme':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                prompts: defaultSelected(maybeGenericIDFromTree(callback(component.prompts))).filter(treeNodeTypeguard(isSchemaPrompt)),
+                rooms: defaultSelected(maybeGenericIDFromTree(callback(component.rooms))).filter(treeNodeTypeguard(isSchemaRoom)),
+                maps: defaultSelected(maybeGenericIDFromTree(callback(component.maps))).filter(treeNodeTypeguard(isSchemaMap))
+            }
+        case 'Variable':
+        case 'Computed':
+        case 'Action':
+            return component
+        default:
+            return undefined
+    }
 }
 
 const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>): StandardComponent | undefined => {
@@ -789,5 +880,30 @@ export class Standardizer {
         this._assetTag = standard.tag
         this._byId = byId
         this.metaData = maybeGenericIDFromTree(standard.metaData)
+    }
+
+    transform(callback: (schema: GenericTree<SchemaTag, TreeId>) => GenericTree<SchemaTag, TreeId>): Standardizer {
+        const mappedByIdEntries = Object.entries(this._byId)
+            .map(([key, value]) => ([{ [key]: transformStandardComponent(callback)(value) }]))
+            .flat(1)
+        const returnStandardizer = new Standardizer()
+        returnStandardizer.loadStandardForm({
+            byId: Object.assign({}, ...mappedByIdEntries),
+            key: this._assetKey,
+            tag: this._assetTag,
+            metaData: this.metaData
+        })
+        return returnStandardizer
+    }
+
+    //
+    // TODO: Add filter and prune methods from TagTree, applied to schema to create a new Standardizer
+    //
+    filter(args: Parameters<SchemaTagTree["filter"]>[0]): Standardizer {
+        const callback = (schema: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
+            const tagTree = new SchemaTagTree(schema)
+            return maybeGenericIDFromTree(tagTree.filter(args).tree)
+        }
+        return this.transform(callback)
     }
 }
