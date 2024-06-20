@@ -46,6 +46,7 @@ export const {
             loadedImages: {},
             normal: {},
             standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+            inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             baseSchema: [],
             schema: []
         }
@@ -72,6 +73,7 @@ export const {
                 loadedImages: {},
                 normal: {},
                 standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+                inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 baseSchema: [],
                 schema: []
             }

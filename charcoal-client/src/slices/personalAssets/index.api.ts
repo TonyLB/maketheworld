@@ -284,9 +284,9 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { schema = [] }}) => async(dispatch) => {
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { baseSchema = [] }}) => async(dispatch) => {
     try {
-        const newWML = schemaToWML(schema)
+        const newWML = schemaToWML(baseSchema)
         return {
             publicData: { currentWML: newWML }
         }

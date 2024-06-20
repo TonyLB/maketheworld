@@ -25,10 +25,10 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOu
 import ConnectionTable from './ConnectionTable'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { standardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, editStandardForm, updateSchema } = useLibraryAsset()
     const component: StandardFeature | StandardKnowledge | StandardRoom = useMemo(() => {
         if (ComponentId) {
-            const component = standardForm.byId[ComponentId]
+            const component = editStandardForm.byId[ComponentId]
             if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
                 return component
             }
@@ -44,7 +44,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             exits: [],
             themes: []
         }
-    }, [ComponentId, standardForm])
+    }, [ComponentId, editStandardForm])
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })

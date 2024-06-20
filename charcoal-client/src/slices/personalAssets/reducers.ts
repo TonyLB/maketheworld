@@ -204,9 +204,23 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             break
     }
     const normalizer = new Normalizer()
-    const standardizer = deriveWorkingStandardizer(state)
+    // const standardizer = deriveWorkingStandardizer(state)
+    const standardizer = new Standardizer(state.baseSchema)
     state.standard = standardizer.standardForm
-    state.schema = standardizer.schema
+    const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
+    const inheritedStandardizer = new Standardizer(
+        ...Object.values(state.importData)
+            .map(markInherited)
+            .map((tree) => (
+                tree.length === 1 && isSchemaAsset(tree[0].data)
+                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                    : []
+            ))
+            .filter((tree) => (tree.length))
+    )
+    state.inherited = inheritedStandardizer.standardForm
+    const combinedStandardizer = deriveWorkingStandardizer(state)
+    state.schema = combinedStandardizer.schema
     normalizer.loadSchema(state.schema)
     state.normal = normalizer.normal
 }
