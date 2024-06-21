@@ -19,6 +19,7 @@ import {
     Toolbar,
     Button,
 } from '@mui/material'
+import { grey } from '@mui/material/colors'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import TreeIcon from '@mui/icons-material/AccountTree';
@@ -289,7 +290,8 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
         { inherited
             ? <Box sx={{
                 padding: '0.5em',
-
+                background: grey[50],
+                width: '100%'
             }}>
                 <DescriptionEditorSlateComponent
                     { ...props }
