@@ -19,6 +19,7 @@ import {
     Toolbar,
     Button,
 } from '@mui/material'
+import { grey } from '@mui/material/colors'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import TreeIcon from '@mui/icons-material/AccountTree';
@@ -44,6 +45,7 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
@@ -154,22 +156,35 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
     </Button>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ validLinkTags=[], placeholder, toolbar=true }) => {
-    const { field, parentId, tag } = useEditContext()
-    const { normalForm, readonly, updateSchema } = useLibraryAsset()
+type DescriptionEditorSlateComponentProperties = {
+    data: GenericTreeNode<SchemaTag, TreeId>;
+    standard: StandardForm;
+    // editor: Editor;
+    // value: Descendant[];
+    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    placeholder?: string;
+    toolbar?: boolean;
+    readonly: boolean;
+    // setValue?: (value: Descendant[]) => void;
+    // saveToReduce?: (value: Descendant[]) => void;
+}
+
+const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+    const { parentId, tag } = useEditContext()
+    const { updateSchema } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        if (field.id) {
+        if (data.id) {
             if (newRender.length) {
                 updateSchema({
                     type: 'replaceChildren',
-                    id: field.id,
+                    id: data.id,
                     children: newRender
                 })
             }
             else {
                 updateSchema({
                     type: 'delete',
-                    id: field.id
+                    id: data.id
                 })
             }
         }
@@ -182,31 +197,25 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
                 })
             }
         }
-    }, [field, updateSchema])
+    }, [data, updateSchema])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: field.children,
+        tree: data.children,
         typeGuard: isSchemaOutputTag
-    })), [field])
+    })), [data])
     const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(output, { normal: normalForm })
+        const returnValue = descendantsFromRender(output, { standard })
         return returnValue
-    }, [output, normalForm])
-    const [value, setValue] = useState<Descendant[]>(defaultValue)
+    }, [output, standard])
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(field.children)
+        comparisonOutput: descendantsToRender(data.children)
     })
-    const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-
+    const [value, setValue] = useState<Descendant[]>(defaultValue)
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender(field.children)((value || []).filter(isCustomBlock))
+        const newRender = descendantsToRender(data.children)((value || []).filter(isCustomBlock))
         onChange(maybeGenericIDFromTree(newRender))
-    }, [onChange, value, field])
-
-    const onChangeHandler = useCallback((value: Descendant[]) => {
-        setValue(value)
-    }, [setValue])
+    }, [onChange, value, data])
 
     useDebouncedOnChange({
         value,
@@ -215,43 +224,90 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ v
             saveToReduce(value)
         }
     })
+
+    return {
+        editor,
+        value,
+        setValue,
+        saveToReduce
+    }
+}
+
+const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateComponentProperties> = ({
+    data,
+    standard,
+    validLinkTags,
+    placeholder,
+    toolbar,
+    readonly
+}) => {
+
+    const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(data, standard)
 
     const decorate = useCallback(decorateFactory(editor), [editor])
+    return <Slate editor={editor} value={value} onChange={(value) => { setValue(value) }}>
+        <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
+        { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                { (validLinkTags.length &&
+                    <React.Fragment>
+                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                        <RemoveLinkButton />
+                    </React.Fragment>) || null
+                }
+                <AddIfButton forceOnChange={(value: Descendant[]) => {
+                    setValue(value)
+                    saveToReduce(value)
+                }} />
+            </Toolbar>
+        }
+        <Box sx={{ padding: '0.5em' }}>
+            <Editable
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                decorate={decorate}
+                readOnly={readonly}
+                placeholder={placeholder}
+            />
+        </Box>
+    </Slate>
+}
 
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
+    const { field, inherited } = useEditContext()
+    const { editStandardForm, inheritedStandardForm, readonly } = useLibraryAsset()
+    //
+    // TODO: Present readonly inherited value where data is available.
+    //
     //
     // TODO: Refactor Slate editor as a separate item from its controller, and use to
     // also populate InheritedDescription
     //
     return <React.Fragment>
-        <Slate editor={editor} value={value} onChange={onChangeHandler}>
-            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
-            { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                    { (validLinkTags.length &&
-                        <React.Fragment>
-                            <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                            <RemoveLinkButton />
-                        </React.Fragment>) || null
-                    }
-                    <AddIfButton forceOnChange={(value: Descendant[]) => {
-                        setValue(value)
-                        saveToReduce(value)
-                    }} />
-                </Toolbar>
-            }
-            <Box sx={{ padding: '0.5em' }}>
-                <Editable
-                    renderElement={renderElement}
-                    renderLeaf={renderLeaf}
-                    decorate={decorate}
-                    readOnly={readonly}
-                    placeholder={placeholder}
-                    // onKeyDown={onKeyDown}
+        { inherited
+            ? <Box sx={{
+                padding: '0.5em',
+                background: grey[50],
+                width: '100%'
+            }}>
+                <DescriptionEditorSlateComponent
+                    { ...props }
+                    data={inherited}
+                    standard={inheritedStandardForm}
+                    readonly={true}
                 />
             </Box>
-        </Slate>
+            : null
+        }
+        <DescriptionEditorSlateComponent
+            { ...props }
+            data={field}
+            standard={editStandardForm}
+            readonly={readonly}
+        />
 
     </React.Fragment>
 }

@@ -572,6 +572,50 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should filter correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Inherited>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                </Inherited>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Room>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const standardizer = new Standardizer(inheritedSchema.schema, testSchema.schema)
+        expect(schemaToWML(standardizer.filter({ not: { match: 'Inherited' }}).schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Space />(at night)</Name>
+                    <Description>
+                        <Space />Shadows cling to the corners of the room.
+                    </Description>
+                </Room>
+            </Asset>
+        `))
+        expect(schemaToWML(standardizer.filter({ match: 'Inherited' }).schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Inherited>Lobby</Inherited></Name>
+                    <Description><Inherited>A plain lobby.</Inherited></Description>
+                </Room>
+            </Asset>
+        `))
+    })
+
     it('should assign tree IDs correctly in map positions', () => {
         const testSchema: GenericTree<SchemaTag, { id: string }> = [{
             data: { tag: 'Asset', key: 'Test', Story: undefined },

@@ -44,6 +44,7 @@ import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaOutputTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -53,6 +54,8 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     schema: GenericTree<SchemaTag, TreeId>;
     standardForm: StandardForm;
+    editStandardForm: StandardForm;
+    inheritedStandardForm: StandardForm;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -75,6 +78,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     schema: [],
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    editStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     updateSchema: () => {},
     properties: {},
     loadedImages: {},
@@ -128,6 +133,18 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const normalForm = useSelector(getNormalized(AssetId))
     const schema = useSelector(getSchema(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
+    const [editStandardForm, inheritedStandardForm] = useMemo(() => {
+        const standardizer = new Standardizer()
+        standardizer.loadStandardForm(standardForm)
+        const editStandardForm = standardizer.filter({ not: { match: 'Inherited' }}).standardForm
+        const inheritedStandardForm = standardizer.filter({ match: 'Inherited' }).standardForm
+        return [editStandardForm, inheritedStandardForm]
+    }, [standardForm])
+    //
+    // TODO: Create StandardForm filter method
+    //
+    // TODO: Use filter method to create "edit" and "inherited" filtered StandardForms
+    //
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
@@ -164,6 +181,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             select,
             schema,
             standardForm,
+            editStandardForm,
+            inheritedStandardForm,
             updateSchema,
             properties,
             loadedImages,

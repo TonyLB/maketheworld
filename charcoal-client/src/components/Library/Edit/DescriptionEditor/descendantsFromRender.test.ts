@@ -1,8 +1,11 @@
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import descendantsFromRender from "./descendantsFromRender"
+
+const stubStandard: StandardForm = { key: '', tag: 'Asset', byId: {}, metaData: [] }
 
 describe('descendantsFromRender', () => {
     it('should return an empty paragraph from empty list', () => {
-        expect(descendantsFromRender([], { normal: {} })).toEqual([{ type: 'paragraph', children: [{ text: '' }]}])
+        expect(descendantsFromRender([], { standard: stubStandard })).toEqual([{ type: 'paragraph', children: [{ text: '' }]}])
     })
 
     it('should return a text description', () => {
@@ -10,7 +13,22 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'String', value: 'This is a test ' }, children: [], id: '' },
             { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [], id: '' },
             { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' },
-        ], { normal: { testFeature: { tag: 'Feature', key: 'testFeature', appearances: [] }}})).toMatchSnapshot()
+        ], {
+            standard: {
+                key: '',
+                tag: 'Asset',
+                byId: {
+                    testFeature: {
+                        tag: 'Feature',
+                        key: 'testFeature',
+                        id: '',
+                        name: { data: { tag: 'Name' }, children: [], id: '' },
+                        description: { data: { tag: 'Description' }, children: [], id: '' }
+                    }
+                },
+                metaData: []
+            }
+        })).toMatchSnapshot()
     })
 
     it('should break paragraphs at LineBreak tags', () => {
@@ -18,7 +36,7 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'String', value: 'This is a test.' }, children: [], id: '' },
             { data: { tag: 'br' }, children: [], id: '' },
             { data: { tag: 'String', value: 'With two paragraphs.' }, children: [], id: '' }
-        ], { normal: {} })).toMatchSnapshot()
+        ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should render a single-level condition', () => {
@@ -42,14 +60,14 @@ describe('descendantsFromRender', () => {
                 id: 'ABC'
             },
             { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' }
-        ], { normal: {} })).toMatchSnapshot()
+        ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should join a space element to text element', () => {
         expect(descendantsFromRender([
             { data: { tag: 'String', value: 'Test' }, children: [], id: '' },
             { data: { tag: 'Space' }, children: [], id: '' }
-        ], { normal: {} })).toMatchSnapshot()
+        ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should render a space after a link in a second paragraph', () => {
@@ -59,6 +77,21 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'String', value: 'Another ' }, children: [], id: '' },
             { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [], id: '' },
             { data: { tag: 'Space' },  children: [], id: '' }
-        ], { normal: { testFeature: { tag: 'Feature', key: 'testFeature', appearances: [] } } })).toMatchSnapshot()
+        ], {
+            standard: {
+                key: '',
+                tag: 'Asset',
+                byId: {
+                    testFeature: {
+                        tag: 'Feature',
+                        key: 'testFeature',
+                        id: '',
+                        name: { data: { tag: 'Name' }, children: [], id: '' },
+                        description: { data: { tag: 'Description' }, children: [], id: '' }
+                    }
+                },
+                metaData: []
+            }
+        })).toMatchSnapshot()
     })
 })

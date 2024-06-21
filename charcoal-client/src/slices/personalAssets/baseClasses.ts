@@ -46,7 +46,14 @@ export interface PersonalAssetsPublic {
     // data it inherits from imports
     //
     schema: GenericTree<SchemaTag, TreeId>;
+    //
+    // standard is the standard form derived from WML
+    //
     standard: StandardForm;
+    //
+    // inherited is the standard form of data inherited from imports
+    //
+    inherited: StandardForm;
     normal: NormalForm;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;

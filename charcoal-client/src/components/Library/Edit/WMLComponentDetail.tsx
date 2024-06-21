@@ -19,32 +19,31 @@ import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { EditSchema } from './EditContext'
-import { isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardForm, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import ConnectionTable from './ConnectionTable'
+import { GenericTree, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { isSchemaInherited, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+
+const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
+    return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
+}
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { standardForm, updateSchema } = useLibraryAsset()
-    const component: StandardFeature | StandardKnowledge | StandardRoom = useMemo(() => {
-        if (ComponentId) {
-            const component = standardForm.byId[ComponentId]
-            if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
-                return component
+    const { editStandardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
+    const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
+        const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
+            if (ComponentId) {
+                const component = standardForm.byId[ComponentId]
+                if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
+                    return component
+                }
             }
+            return undefined
         }
-        return {
-            key: ComponentId,
-            id: '',
-            tag: 'Room',
-            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
-            name: { data: { tag: 'Name' }, id: '', children: [] },
-            summary: { data: { tag: 'Summary' }, id: '', children: [] },
-            description: { data: { tag: 'Description' }, id: '', children: [] },
-            exits: [],
-            themes: []
-        }
-    }, [ComponentId, standardForm])
+        return [extractComponent(editStandardForm), extractComponent(inheritedStandardForm)]
+    }, [ComponentId, editStandardForm, inheritedStandardForm])
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
@@ -81,10 +80,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
     }, [component, updateSchema])
 
-    if (!component.id) {
-        return <Box />
-    }
-    return <Box sx={{
+    return component.id ? <Box sx={{
         marginLeft: '0.5em',
         marginTop: '0.5em',
         display: 'flex',
@@ -94,7 +90,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         {
-            (isStandardRoom(component)) && <EditSchema tag="ShortName" field={component ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+            (isStandardRoom(component)) && <EditSchema
+                tag="ShortName"
+                field={component ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
+                inherited={inherited && isStandardRoom(inherited) ? unwrapInherited([inherited.shortName])[0] : undefined }
+                parentId={component?.id ?? ''}
+            >
                 <TitledBox title="Short Name">
                     <DescriptionEditor
                         validLinkTags={[]}
@@ -104,7 +105,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 </TitledBox>
             </EditSchema>
         }
-        <EditSchema tag="Name" field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+        <EditSchema
+            tag="Name"
+            field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+            inherited={inherited ? unwrapInherited([inherited.name])[0] : undefined }
+            parentId={component?.id ?? ''}
+        >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
                     validLinkTags={[]}
@@ -113,7 +119,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </TitledBox>
         </EditSchema>
         {
-            isStandardRoom(component) && <EditSchema tag="Summary" field={component ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+            isStandardRoom(component) && <EditSchema
+                tag="Summary"
+                field={component ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
+                inherited={inherited && isStandardRoom(inherited) ? unwrapInherited([inherited.summary])[0] : undefined }
+                parentId={component?.id ?? ''}
+            >
                 <TitledBox title="Summary">
                     <DescriptionEditor
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
@@ -122,7 +133,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 </TitledBox>
             </EditSchema>
         }
-        <EditSchema tag="Description" field={component ? component.description : { data: { tag: 'Description' }, children: [], id: '' } } parentId={component?.id ?? ''}>
+        <EditSchema
+            tag="Description"
+            field={component ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
+            inherited={inherited ? unwrapInherited([inherited.description])[0] : undefined }
+            parentId={component?.id ?? ''}
+        >
             <TitledBox>
                 <DescriptionEditor
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
@@ -143,6 +159,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </React.Fragment>
         }
     </Box>
+    : <Box />
 }
 
 interface WMLComponentDetailProps {
