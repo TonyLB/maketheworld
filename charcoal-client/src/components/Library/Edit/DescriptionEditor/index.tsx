@@ -44,6 +44,7 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
@@ -155,30 +156,96 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 }
 
 type DescriptionEditorSlateComponentProperties = {
-    editor: Editor;
-    value: Descendant[];
+    data: GenericTreeNode<SchemaTag, TreeId>;
+    standard: StandardForm;
+    // editor: Editor;
+    // value: Descendant[];
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
-    setValue?: (value: Descendant[]) => void;
-    saveToReduce?: (value: Descendant[]) => void;
+    // setValue?: (value: Descendant[]) => void;
+    // saveToReduce?: (value: Descendant[]) => void;
+}
+
+const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+    const { parentId, tag } = useEditContext()
+    const { updateSchema } = useLibraryAsset()
+    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
+        if (data.id) {
+            if (newRender.length) {
+                updateSchema({
+                    type: 'replaceChildren',
+                    id: data.id,
+                    children: newRender
+                })
+            }
+            else {
+                updateSchema({
+                    type: 'delete',
+                    id: data.id
+                })
+            }
+        }
+        else {
+            if (tag !== 'Statement') {
+                updateSchema({
+                    type: 'addChild',
+                    id: parentId,
+                    item: { data: { tag }, children: newRender }
+                })
+            }
+        }
+    }, [data, updateSchema])
+    const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
+        tree: data.children,
+        typeGuard: isSchemaOutputTag
+    })), [data])
+    const defaultValue = useMemo(() => {
+        const returnValue = descendantsFromRender(output, { standard })
+        return returnValue
+    }, [output, standard])
+    const editor = useUpdatedSlate({
+        initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
+        value: defaultValue,
+        comparisonOutput: descendantsToRender(data.children)
+    })
+    const [value, setValue] = useState<Descendant[]>(defaultValue)
+    const saveToReduce = useCallback((value: Descendant[]) => {
+        const newRender = descendantsToRender(data.children)((value || []).filter(isCustomBlock))
+        onChange(maybeGenericIDFromTree(newRender))
+    }, [onChange, value, data])
+
+    useDebouncedOnChange({
+        value,
+        delay: 1000,
+        onChange: (value) => {
+            saveToReduce(value)
+        }
+    })
+
+    return {
+        editor,
+        value,
+        setValue,
+        saveToReduce
+    }
 }
 
 const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateComponentProperties> = ({
-    editor,
-    value,
+    data,
+    standard,
     validLinkTags,
     placeholder,
     toolbar,
-    readonly,
-    setValue = () => {},
-    saveToReduce = () => {}
+    readonly
 }) => {
+
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(data, standard)
 
     const decorate = useCallback(decorateFactory(editor), [editor])
     return <Slate editor={editor} value={value} onChange={(value) => { setValue(value) }}>
@@ -209,74 +276,35 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
-    const { field, parentId, tag } = useEditContext()
-    const { standardForm, readonly, updateSchema } = useLibraryAsset()
-    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        if (field.id) {
-            if (newRender.length) {
-                updateSchema({
-                    type: 'replaceChildren',
-                    id: field.id,
-                    children: newRender
-                })
-            }
-            else {
-                updateSchema({
-                    type: 'delete',
-                    id: field.id
-                })
-            }
-        }
-        else {
-            if (tag !== 'Statement') {
-                updateSchema({
-                    type: 'addChild',
-                    id: parentId,
-                    item: { data: { tag }, children: newRender }
-                })
-            }
-        }
-    }, [field, updateSchema])
-    const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: field.children,
-        typeGuard: isSchemaOutputTag
-    })), [field])
-    const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(output, { standard: standardForm })
-        return returnValue
-    }, [output, standardForm])
-    const [value, setValue] = useState<Descendant[]>(defaultValue)
-    const editor = useUpdatedSlate({
-        initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
-        value: defaultValue,
-        comparisonOutput: descendantsToRender(field.children)
-    })
-
-    const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender(field.children)((value || []).filter(isCustomBlock))
-        onChange(maybeGenericIDFromTree(newRender))
-    }, [onChange, value, field])
-
-    useDebouncedOnChange({
-        value,
-        delay: 1000,
-        onChange: (value) => {
-            saveToReduce(value)
-        }
-    })
-
+    const { field, inherited } = useEditContext()
+    const { editStandardForm, inheritedStandardForm, readonly } = useLibraryAsset()
+    //
+    // TODO: Present readonly inherited value where data is available.
+    //
     //
     // TODO: Refactor Slate editor as a separate item from its controller, and use to
     // also populate InheritedDescription
     //
     return <React.Fragment>
+        { inherited
+            ? <Box sx={{
+                padding: '0.5em',
+
+            }}>
+                <DescriptionEditorSlateComponent
+                    { ...props }
+                    data={inherited}
+                    standard={inheritedStandardForm}
+                    readonly={true}
+                />
+            </Box>
+            : null
+        }
         <DescriptionEditorSlateComponent
             { ...props }
-            editor={editor}
-            value={value}
+            data={field}
+            standard={editStandardForm}
             readonly={readonly}
-            setValue={setValue}
-            saveToReduce={saveToReduce}
         />
 
     </React.Fragment>
