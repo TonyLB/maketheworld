@@ -38,7 +38,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
         { field: 'key', headerName: 'Key', width: 130 },
         { field: 'name', headerName: 'Name', width: 130 }
     ]
-    const { updateSchema, standardForm } = useLibraryAsset()
+    const { updateSchema, combinedStandardForm: standardForm } = useLibraryAsset()
 
     const currentConnections = useMemo((): ConnectionTablePossibleConnection[] => {
         const component = standardForm.byId[target]

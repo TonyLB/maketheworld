@@ -28,7 +28,8 @@ import {
     getStatus,
     getSerialized,
     getSchema,
-    getStandardForm
+    getStandardForm,
+    getInherited
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -54,7 +55,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     schema: GenericTree<SchemaTag, TreeId>;
     standardForm: StandardForm;
-    editStandardForm: StandardForm;
+    combinedStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
@@ -78,7 +79,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     schema: [],
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-    editStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     updateSchema: () => {},
     properties: {},
@@ -133,18 +134,14 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const normalForm = useSelector(getNormalized(AssetId))
     const schema = useSelector(getSchema(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
-    const [editStandardForm, inheritedStandardForm] = useMemo(() => {
+    const inheritedStandardForm = useSelector(getInherited(AssetId))
+    const combinedStandardForm = useMemo((): StandardForm => {
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standardForm)
-        const editStandardForm = standardizer.filter({ not: { match: 'Inherited' }}).standardForm
-        const inheritedStandardForm = standardizer.filter({ match: 'Inherited' }).standardForm
-        return [editStandardForm, inheritedStandardForm]
-    }, [standardForm])
-    //
-    // TODO: Create StandardForm filter method
-    //
-    // TODO: Use filter method to create "edit" and "inherited" filtered StandardForms
-    //
+        const inheritedStandardizer = new Standardizer()
+        inheritedStandardizer.loadStandardForm(inheritedStandardForm)
+        return inheritedStandardizer.merge(standardizer).standardForm
+    }, [standardForm, inheritedStandardForm])
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
@@ -181,7 +178,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             select,
             schema,
             standardForm,
-            editStandardForm,
+            combinedStandardForm,
             inheritedStandardForm,
             updateSchema,
             properties,

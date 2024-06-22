@@ -10,6 +10,7 @@ export type PublicSelectors = {
     getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
+    getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
@@ -22,6 +23,8 @@ const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 const getSchema = ({ schema }: PersonalAssetsPublic) => (schema)
 
 const getStandardForm = ({ standard }: PersonalAssetsPublic) => (standard)
+
+const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
 //
 // TODO: Refactor getNormalized to derive from schema rather than storing normal
@@ -43,6 +46,7 @@ export const publicSelectors: PublicSelectors = {
     getNormalized,
     getSchema,
     getStandardForm,
+    getInherited,
     getProperties,
     getLoadedImages,
     getSerialized

@@ -20,7 +20,7 @@ interface WMLComponentHeaderProps {
 }
 
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
-    const { standardForm } = useLibraryAsset()
+    const { combinedStandardForm: standardForm } = useLibraryAsset()
     const primary = useCallback(({ item }) => {
         if (isNormalComponent(item)) {
             const component = standardForm.byId[item.key]

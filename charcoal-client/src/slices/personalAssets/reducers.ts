@@ -208,7 +208,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
     const standardizer = new Standardizer(state.baseSchema)
     state.standard = standardizer.standardForm
     const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
-    const inheritedStandardizer = new Standardizer(
+    const importsStandardizer = new Standardizer(
         ...Object.values(state.importData)
             .map((tree) => (
                 tree.length === 1 && isSchemaAsset(tree[0].data)
@@ -217,12 +217,13 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             ))
             .filter((tree) => (tree.length))
     )
-    inheritedStandardizer.loadStandardForm({
-        byId: inheritedStandardizer._byId,
+    importsStandardizer.loadStandardForm({
+        byId: importsStandardizer._byId,
         key: baseKey,
         tag: 'Asset',
         metaData: standardizer.metaData
     })
+    const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
     state.inherited = inheritedStandardizer.standardForm
     const combinedStandardizer = inheritedStandardizer.merge(standardizer)
     state.schema = combinedStandardizer.schema
@@ -234,7 +235,9 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
     state.importData[action.payload.assetKey] = action.payload.schema
     const normalizer = new Normalizer()
     const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
-    const inheritedStandardizer = new Standardizer(
+    const standardizer = new Standardizer()
+    standardizer.loadStandardForm(state.standard)
+    const importsStandardizer = new Standardizer(
         ...Object.values(state.importData)
             .map((tree) => (
                 tree.length === 1 && isSchemaAsset(tree[0].data)
@@ -243,15 +246,14 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
             ))
             .filter((tree) => (tree.length))
     )
-    inheritedStandardizer.loadStandardForm({
-        byId: inheritedStandardizer._byId,
+    importsStandardizer.loadStandardForm({
+        byId: importsStandardizer._byId,
         key: baseKey,
         tag: 'Asset',
-        metaData: state.standard.metaData
+        metaData: standardizer.metaData
     })
+    const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
     state.inherited = inheritedStandardizer.standardForm
-    const standardizer = new Standardizer()
-    standardizer.loadStandardForm(state.standard)
     const combinedStandardizer = inheritedStandardizer.merge(standardizer)
     state.schema = combinedStandardizer.schema
     normalizer.loadSchema(state.schema)

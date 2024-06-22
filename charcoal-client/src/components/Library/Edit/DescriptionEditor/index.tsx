@@ -278,7 +278,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
     const { field, inherited } = useEditContext()
-    const { editStandardForm, inheritedStandardForm, readonly } = useLibraryAsset()
+    const { standardForm, inheritedStandardForm, readonly } = useLibraryAsset()
     //
     // TODO: Present readonly inherited value where data is available.
     //
@@ -305,7 +305,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
         <DescriptionEditorSlateComponent
             { ...props }
             data={field}
-            standard={editStandardForm}
+            standard={standardForm}
             readonly={readonly}
         />
 
