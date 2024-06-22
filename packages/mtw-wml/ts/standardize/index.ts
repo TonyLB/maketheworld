@@ -12,6 +12,13 @@ import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
 
+export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
+    if (typeguard(value)) {
+        return value
+    }
+    throw new Error('Type mismatch')
+}
+
 export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, Extra>): GenericTree<SchemaTag, Extra> => (
     tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
@@ -143,6 +150,87 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
             return component
         default:
             return undefined
+    }
+}
+
+const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent => {
+    switch(base.tag) {
+        case 'Room':
+            if (!isStandardRoom(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Room',
+                key: base.key,
+                id: base.id,
+                shortName: { ...base.shortName, children: [...base.shortName.children, ...incoming.shortName.children] },
+                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                summary: { ...base.summary, children: [...base.summary.children, ...incoming.summary.children] },
+                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] },
+                exits: [...base.exits, ...incoming.exits],
+                themes: [...base.themes, ...incoming.themes]
+            }
+        case 'Feature':
+        case 'Knowledge':
+            if ((isStandardFeature(base) && !isStandardFeature(incoming)) || !isStandardKnowledge(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: base.tag,
+                key: base.key,
+                id: base.id,
+                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] }
+            }
+        case 'Bookmark':
+            if (!isStandardBookmark(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Bookmark',
+                key: base.key,
+                id: base.id,
+                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] }
+            }
+        case 'Message':
+            if (!isStandardMessage(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Message',
+                key: base.key,
+                id: base.id,
+                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] },
+                rooms: [...base.rooms, ...incoming.rooms]
+            }
+        case 'Moment':
+            if (!isStandardMoment(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Moment',
+                key: base.key,
+                id: base.id,
+                messages: [...base.messages, ...incoming.messages]
+            }
+        case 'Map':
+            if (!isStandardMap(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Map',
+                key: base.key,
+                id: base.id,
+                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                positions: [...base.positions, ...incoming.positions],
+                images: [...base.images, ...incoming.images],
+                themes: [...base.themes, ...incoming.themes]
+            }
+        case 'Theme':
+            if (!isStandardTheme(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: 'Theme',
+                key: base.key,
+                id: base.id,
+                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                prompts: [...base.prompts, ...incoming.prompts],
+                rooms: [...base.rooms, ...incoming.rooms],
+                maps: [...base.maps, ...incoming.maps]
+            }
+        case 'Variable':
+        case 'Computed':
+        case 'Action':
+            return base
+        default:
+            throw new Error('Invalid incoming StandardComponent')
     }
 }
 
@@ -905,5 +993,33 @@ export class Standardizer {
             return maybeGenericIDFromTree(tagTree.filter(args).tree)
         }
         return this.transform(callback)
+    }
+
+    merge(incoming: Standardizer): Standardizer {
+        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
+        const combinedById = Object.assign({}, ...(allKeys.map((key) => {
+            const rootComponent = this._byId[key]
+            const incomingComponent = incoming._byId[key]
+            if (rootComponent) {
+                if (incomingComponent) {
+                    return { [key]: mergeStandardComponents(rootComponent, incomingComponent) }
+                }
+                else {
+                    return { [key]: rootComponent }
+                }
+            }
+            else {
+                return { [key]: incomingComponent }
+            }
+        })))
+
+        const returnStandardizer = new Standardizer()
+        returnStandardizer.loadStandardForm({
+            byId: combinedById,
+            key: this._assetKey,
+            tag: this._assetTag,
+            metaData: this.metaData
+        })
+        return returnStandardizer
     }
 }
