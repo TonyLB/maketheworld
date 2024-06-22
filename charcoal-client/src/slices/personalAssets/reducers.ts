@@ -210,7 +210,6 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
     const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
     const inheritedStandardizer = new Standardizer(
         ...Object.values(state.importData)
-            .map(markInherited)
             .map((tree) => (
                 tree.length === 1 && isSchemaAsset(tree[0].data)
                     ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
@@ -218,8 +217,14 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             ))
             .filter((tree) => (tree.length))
     )
+    inheritedStandardizer.loadStandardForm({
+        byId: inheritedStandardizer._byId,
+        key: baseKey,
+        tag: 'Asset',
+        metaData: standardizer.metaData
+    })
     state.inherited = inheritedStandardizer.standardForm
-    const combinedStandardizer = deriveWorkingStandardizer(state)
+    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
     state.schema = combinedStandardizer.schema
     normalizer.loadSchema(state.schema)
     state.normal = normalizer.normal
@@ -228,9 +233,27 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
     const normalizer = new Normalizer()
-    const standardizer = deriveWorkingStandardizer(state)
-    state.standard = standardizer.standardForm
-    state.schema = standardizer.schema
+    const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
+    const inheritedStandardizer = new Standardizer(
+        ...Object.values(state.importData)
+            .map((tree) => (
+                tree.length === 1 && isSchemaAsset(tree[0].data)
+                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                    : []
+            ))
+            .filter((tree) => (tree.length))
+    )
+    inheritedStandardizer.loadStandardForm({
+        byId: inheritedStandardizer._byId,
+        key: baseKey,
+        tag: 'Asset',
+        metaData: state.standard.metaData
+    })
+    state.inherited = inheritedStandardizer.standardForm
+    const standardizer = new Standardizer()
+    standardizer.loadStandardForm(state.standard)
+    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
+    state.schema = combinedStandardizer.schema
     normalizer.loadSchema(state.schema)
     state.normal = normalizer.normal
 }
