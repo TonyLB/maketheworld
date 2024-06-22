@@ -984,13 +984,18 @@ export class Standardizer {
         return returnStandardizer
     }
 
-    //
-    // TODO: Add filter and prune methods from TagTree, applied to schema to create a new Standardizer
-    //
     filter(args: Parameters<SchemaTagTree["filter"]>[0]): Standardizer {
         const callback = (schema: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
             const tagTree = new SchemaTagTree(schema)
             return maybeGenericIDFromTree(tagTree.filter(args).tree)
+        }
+        return this.transform(callback)
+    }
+
+    prune(args: Parameters<SchemaTagTree["prune"]>[0]): Standardizer {
+        const callback = (schema: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
+            const tagTree = new SchemaTagTree(schema)
+            return maybeGenericIDFromTree(tagTree.prune(args).tree)
         }
         return this.transform(callback)
     }

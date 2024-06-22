@@ -659,6 +659,30 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should prune correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Inherited>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                </Inherited>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        expect(schemaToWML(inheritedStandard.prune({ match: 'Inherited' }).schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+            </Asset>
+        `))
+    })
+
     it('should assign tree IDs correctly in map positions', () => {
         const testSchema: GenericTree<SchemaTag, { id: string }> = [{
             data: { tag: 'Asset', key: 'Test', Story: undefined },
