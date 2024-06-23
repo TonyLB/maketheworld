@@ -31,7 +31,7 @@ const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<Sche
 }
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { editStandardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
         const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (ComponentId) {
@@ -42,8 +42,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             }
             return undefined
         }
-        return [extractComponent(editStandardForm), extractComponent(inheritedStandardForm)]
-    }, [ComponentId, editStandardForm, inheritedStandardForm])
+        return [extractComponent(standardForm), extractComponent(inheritedStandardForm)]
+    }, [ComponentId, standardForm, inheritedStandardForm])
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })

@@ -225,6 +225,7 @@ export const {
     getNormalized,
     getSchema,
     getStandardForm,
+    getInherited,
     getProperties,
     getLoadedImages,
     getSerialized,
