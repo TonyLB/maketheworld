@@ -104,16 +104,15 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 ...node,
                 data: {
                     ...data,
-                    key: nextSyntheticKey({ schema, tag: data.tag })
+                    key: nextSyntheticKey({ schema: state.baseSchema, tag: data.tag })
                 },
             }
         }
         return node
     }
-    const schema = filter({ tree: state.schema, callback: ({ tag }: SchemaTag, id: TreeId) => (tag !== 'Inherited') })
     switch(payload.type) {
         case 'replace':
-            const replacedSchema = map(schema, (node) => {
+            const replacedSchema = map(state.baseSchema, (node) => {
                 if (node.id === payload.id) {
                     return addKeyIfNeeded(maybeGenericIDFromTree([payload.item])[0])
                 }
@@ -124,7 +123,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = replacedSchema
             break
         case 'replaceChildren':
-            const replaceChildrenSchema = map(schema, (node) => {
+            const replaceChildrenSchema = map(state.baseSchema, (node) => {
                 if (node.id === payload.id) {
                     return { ...node, children: maybeGenericIDFromTree(payload.children) }
                 }
@@ -135,7 +134,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = replaceChildrenSchema
             break
         case 'updateNode':
-            const updatedSchema = map(schema, ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>) => ([{
+            const updatedSchema = map(state.baseSchema, ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>) => ([{
                 data: id === payload.id ? payload.item : data,
                 children,
                 id
@@ -143,7 +142,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = updatedSchema
             break
         case 'addChild':
-            const addedSchema = map(schema, (node: GenericTreeNode<SchemaTag, TreeId>) => {
+            const addedSchema = map(state.baseSchema, (node: GenericTreeNode<SchemaTag, TreeId>) => {
                 if (node.id === payload.id) {
                     const afterIndex = payload.afterId ? node.children.findIndex(({ id }) => (id === payload.afterId)) : -1
                     if (afterIndex !== -1) {
@@ -173,7 +172,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = addedSchema
             break
         case 'rename':
-            const renamedSchema = map(schema, (node) => {
+            const renamedSchema = map(state.baseSchema, (node) => {
                 let returnValue: SchemaTag = node.data
                 if (isSchemaWithKey(returnValue) && returnValue.key === payload.fromKey) {
                     returnValue = {
@@ -199,7 +198,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = renamedSchema
             break
         case 'delete':
-            const deletedSchema = filter({ tree: schema, callback: (_: SchemaTag, { id }: TreeId) => (Boolean(id !== payload.id)) })
+            const deletedSchema = filter({ tree: state.baseSchema, callback: (_: SchemaTag, { id }: TreeId) => (Boolean(id !== payload.id)) })
             state.baseSchema = deletedSchema
             break
     }

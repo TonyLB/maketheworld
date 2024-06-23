@@ -305,7 +305,6 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             item: { data: newItem, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
         }))
     }
-    console.log(`fetchImports: ${assetId}`)
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
     dispatch(heartbeat)
