@@ -49,7 +49,7 @@ import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
-    placeholder?: string;
+    fieldName?: string;
     toolbar?: boolean;
 }
 
@@ -162,6 +162,7 @@ type DescriptionEditorSlateComponentProperties = {
     // editor: Editor;
     // value: Descendant[];
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    fieldName?: string;
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
@@ -238,12 +239,13 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
     standard,
     validLinkTags,
     placeholder,
+    fieldName,
     toolbar,
     readonly
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} placeholder={placeholder} />))), [validLinkTags, placeholder])
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} fieldName={fieldName} />))), [validLinkTags, placeholder])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(data, standard)
@@ -279,15 +281,8 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
     const { field, inherited } = useEditContext()
     const { standardForm, inheritedStandardForm, readonly } = useLibraryAsset()
-    //
-    // TODO: Present readonly inherited value where data is available.
-    //
-    //
-    // TODO: Refactor Slate editor as a separate item from its controller, and use to
-    // also populate InheritedDescription
-    //
     return <React.Fragment>
-        { inherited
+        { inherited?.id
             ? <Box sx={{
                 padding: '0.5em',
                 background: grey[50],
@@ -304,6 +299,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
         }
         <DescriptionEditorSlateComponent
             { ...props }
+            placeholder={`${inherited?.id ? 'Add to': 'Enter a'} ${props.fieldName}`}
             data={field}
             standard={standardForm}
             readonly={readonly}

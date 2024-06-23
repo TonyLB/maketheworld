@@ -115,7 +115,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     <TitledBox title="Name">
                         <DescriptionEditor
                             validLinkTags={[]}
-                            placeholder="Name"
+                            fieldName="name"
                             toolbar={false}
                         />
                     </TitledBox>

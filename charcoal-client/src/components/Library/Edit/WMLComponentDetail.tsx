@@ -99,7 +99,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 <TitledBox title="Short Name">
                     <DescriptionEditor
                         validLinkTags={[]}
-                        placeholder="Enter a short name"
+                        fieldName="short name"
                         toolbar={false}
                     />
                 </TitledBox>
@@ -114,7 +114,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
                     validLinkTags={[]}
-                    placeholder="Enter a name"
+                    fieldName="name"
                 />
             </TitledBox>
         </EditSchema>
@@ -128,7 +128,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 <TitledBox title="Summary">
                     <DescriptionEditor
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                        placeholder="Enter a summary"
+                        fieldName="summary"
                     />
                 </TitledBox>
             </EditSchema>
@@ -142,7 +142,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             <TitledBox>
                 <DescriptionEditor
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                    placeholder="Enter a description"
+                    fieldName="description"
                 />
             </TitledBox>
         </EditSchema>
