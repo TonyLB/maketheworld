@@ -285,7 +285,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
         { inherited?.id
             ? <Box sx={{
                 padding: '0.5em',
-                background: grey[50],
+                background: grey[100],
                 width: '100%'
             }}>
                 <DescriptionEditorSlateComponent
