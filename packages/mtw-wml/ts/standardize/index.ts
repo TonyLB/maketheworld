@@ -1025,6 +1025,7 @@ export class Standardizer {
             tag: this._assetTag,
             metaData: this.metaData
         })
+        returnStandardizer._assetId = this._assetId === 'Test' ? incoming._assetId : this._assetId
         return returnStandardizer
     }
 }

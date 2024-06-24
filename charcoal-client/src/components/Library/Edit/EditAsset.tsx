@@ -148,7 +148,7 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, updateSchema, normalForm, save, status, serialized, standardForm } = useLibraryAsset()
+    const { schema, baseSchema, updateSchema, normalForm, save, status, serialized, standardForm } = useLibraryAsset()
     const navigate = useNavigate()
 
     const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardTheme)), [standardForm])
@@ -175,11 +175,11 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                 dispatch(addOnboardingComplete(['addRoom']))
                 break
         }
-        if (schema.length === 0) {
+        if (baseSchema.length === 0) {
             return
         }
-        const rootItem = schema[0]
-        if (schema.length > 1 || !isSchemaAsset(rootItem.data)) {
+        const rootItem = baseSchema[0]
+        if (baseSchema.length > 1 || !isSchemaAsset(rootItem.data)) {
             throw new Error('Top-level asset error in AssetEdit update')
         }
         updateSchema({
@@ -187,7 +187,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
             id: rootItem.id,
             item: { data: defaultItemFromTag(tag, ''), children: [] }
         })
-    }, [schema, updateSchema, dispatch])
+    }, [baseSchema, updateSchema, dispatch])
     const innerSaveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveAsset'], { requireSequence: true }))
         save()

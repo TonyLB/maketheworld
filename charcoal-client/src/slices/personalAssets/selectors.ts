@@ -9,6 +9,7 @@ export type PublicSelectors = {
     getDraftWML: (state: PersonalAssetsPublic) => string;
     getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
+    getBaseSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
@@ -21,6 +22,8 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
 const getSchema = ({ schema }: PersonalAssetsPublic) => (schema)
+
+const getBaseSchema = ({ baseSchema }: PersonalAssetsPublic) => (baseSchema)
 
 const getStandardForm = ({ standard }: PersonalAssetsPublic) => (standard)
 
@@ -45,6 +48,7 @@ export const publicSelectors: PublicSelectors = {
     getDraftWML,
     getNormalized,
     getSchema,
+    getBaseSchema,
     getStandardForm,
     getInherited,
     getProperties,
