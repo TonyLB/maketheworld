@@ -55,24 +55,19 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
             onChange(event)
         }
     }, [onChange, readonly])
-    //
-    // Sometimes targets are transitionally not legal (particularly when React is resorting its
-    // component tree after a room rename), so render something that won't throw an ephemeral error
-    //
-    if (!(target in roomNamesInScope)) {
-        return null
-    }
+
     return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
         <InputLabel id="select-small">Target</InputLabel>
         <Select
             sx={{ background: 'white' }}
             labelId="select-small"
             id="select-small"
-            value={target}
+            value={target in roomNamesInScope ? target : ''}
             label="Target"
             onChange={onChangeHandler}
             disabled={readonly || inherited}
         >
+            <MenuItem key='#empty' value=''></MenuItem>
             {
                 Object.entries(roomNamesInScope).map(([key, name]) => {
                     return <MenuItem key={key} value={key}>{ name }</MenuItem>
