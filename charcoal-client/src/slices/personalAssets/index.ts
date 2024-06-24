@@ -224,6 +224,7 @@ export const {
     getDraftWML,
     getNormalized,
     getSchema,
+    getBaseSchema,
     getStandardForm,
     getInherited,
     getProperties,

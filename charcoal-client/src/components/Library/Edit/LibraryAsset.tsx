@@ -29,7 +29,8 @@ import {
     getSerialized,
     getSchema,
     getStandardForm,
-    getInherited
+    getInherited,
+    getBaseSchema
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -54,6 +55,7 @@ type LibraryAssetContextType = {
     draftWML: string;
     normalForm: NormalForm;
     schema: GenericTree<SchemaTag, TreeId>;
+    baseSchema: GenericTree<SchemaTag, TreeId>;
     standardForm: StandardForm;
     combinedStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
@@ -78,6 +80,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     normalForm: {},
     schema: [],
+    baseSchema: [],
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
@@ -133,6 +136,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const schema = useSelector(getSchema(AssetId))
+    const baseSchema = useSelector(getBaseSchema(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const combinedStandardForm = useMemo((): StandardForm => {
@@ -177,6 +181,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             select,
             schema,
+            baseSchema,
             standardForm,
             combinedStandardForm,
             inheritedStandardForm,
