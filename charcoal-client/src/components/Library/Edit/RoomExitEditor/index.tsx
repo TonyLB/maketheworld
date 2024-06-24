@@ -13,7 +13,7 @@ import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaOutputTag, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaOutputTag, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
@@ -21,6 +21,8 @@ import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { selectItemsByKey } from "@tonylb/mtw-wml/dist/normalize/selectors/itemsByKey"
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import SidebarTitle from "../SidebarTitle"
+import AddRoomExit from "../AddRoomExit"
+import IfElseTree from "../IfElseTree"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -53,24 +55,19 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
             onChange(event)
         }
     }, [onChange, readonly])
-    //
-    // Sometimes targets are transitionally not legal (particularly when React is resorting its
-    // component tree after a room rename), so render something that won't throw an ephemeral error
-    //
-    if (!(target in roomNamesInScope)) {
-        return null
-    }
+
     return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
         <InputLabel id="select-small">Target</InputLabel>
         <Select
             sx={{ background: 'white' }}
             labelId="select-small"
             id="select-small"
-            value={target}
+            value={target in roomNamesInScope ? target : ''}
             label="Target"
             onChange={onChangeHandler}
             disabled={readonly || inherited}
         >
+            <MenuItem key='#empty' value=''></MenuItem>
             {
                 Object.entries(roomNamesInScope).map(([key, name]) => {
                     return <MenuItem key={key} value={key}>{ name }</MenuItem>
@@ -204,30 +201,6 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
     }
 }
 
-const useOutgoingExitTree = (RoomId: string) => {
-    const { schema } = useLibraryAsset()
-    return useMemo(() => {
-        const tagTree = new SchemaTagTree(schema)
-        const relevantExits = tagTree
-            .filter({ match: ({ data: tag }) => (isSchemaRoom(tag) && (tag.key === RoomId)) })
-            .prune({ not: { or: [{ match: 'If' }, { match: 'Exit' }] } })
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Exit' }])
-        return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaExitTag, TreeId>
-    }, [schema, RoomId])
-}
-
-const useIncomingExitTree = (RoomId: string) => {
-    const { schema } = useLibraryAsset()
-    return useMemo(() => {
-        const tagTree = new SchemaTagTree(schema)
-        const relevantExits = tagTree
-            .filter({ match: ({ data: tag }) => (isSchemaExit(tag) && tag.to === RoomId) })
-            .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Exit' }] } })
-            .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { match: 'Exit' }])
-        return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaRoomTag | SchemaExitTag, TreeId>
-    }, [schema, RoomId])
-}
-
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { standardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
 
@@ -264,6 +237,9 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         { exitTree.map((node) => (
             <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { if (roomComponent) { updateSchema({ type: 'addChild', id: roomComponent?.id, item: node }) } }} />
         ))}
+        {/* 
+            TODO: Replace naive list of exits with one that properly handles conditional items.
+         */}
         {/* <IfElseTree
             tree={outgoingExits}
             parentId={schema[0]?.id ?? ''}
@@ -271,16 +247,17 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             addItemIcon={<ExitIcon />}
             defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }}
         /> */}
-        {/* { outgoingExits.map((node) => {
+        {/* { exitTree.map((node) => {
             if (isSchemaCondition(node.data)) {
                 return <IfElseTree
                     tree={treeTypeGuard({ tree: node.children, typeGuard: (subNode): subNode is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (['Statement', 'Fallthrough'].includes(subNode.data.tag)) }) }
                     render={(props) => (<RoomExitComponent tree={props.} RoomId={RoomId} />)}
             }
             else {
-
+                return <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { if (roomComponent) { updateSchema({ type: 'addChild', id: roomComponent?.id, item: node }) } }} />
             }
-        })} */}
+        }) } */}
+        <AddRoomExit RoomId={RoomId} />
     </SidebarTitle>
 }
 
