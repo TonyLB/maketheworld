@@ -8,16 +8,7 @@ import {
     SxProps
 } from '@mui/material'
 
-import { NormalFeature, NormalItem, NormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { AssetComponent } from './LibraryAsset'
 import MiniChip from '../../MiniChip'
-
-type AssetDataHeaderRenderFunctionProps = {
-    item: NormalItem;
-    inheritedItem?: NormalRoom | NormalFeature;
-    normalForm: Record<string, NormalItem>;
-    rooms: Record<string, AssetComponent>;
-}
 
 export type AssetDataHeaderRenderFunction = {
     (key: string): ReactChild;
