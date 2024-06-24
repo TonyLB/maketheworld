@@ -8,21 +8,16 @@ import {
     SxProps
 } from '@mui/material'
 
-import { NormalFeature, NormalItem, NormalRoom, isNormalFeature, isNormalImport, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { AssetComponent, useLibraryAsset } from './LibraryAsset'
 import MiniChip from '../../MiniChip'
 
-type AssetDataHeaderRenderFunctionProps = {
-    item: NormalItem;
-    inheritedItem?: NormalRoom | NormalFeature;
-    normalForm: Record<string, NormalItem>;
-    rooms: Record<string, AssetComponent>;
-}
-
 export type AssetDataHeaderRenderFunction = {
-    (props: AssetDataHeaderRenderFunctionProps): ReactChild;
+    (key: string): ReactChild;
 }
 
+//
+// TODO: ISS3887: REfactor AssetDataHeader with primary taking a key (and using useLibraryAsset context
+// to derive data, rather than passing full arguments)
+//
 interface AssetDataHeaderProps {
     ItemId: string;
     icon: ReactChild;
@@ -35,17 +30,10 @@ interface AssetDataHeaderProps {
 }
 
 export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
-    const { normalForm, rooms } = useLibraryAsset()
-
-    const props = {
-        item: normalForm[ItemId],
-        normalForm,
-        rooms
-    }
     const primaryOutput = <React.Fragment>
-        { primary?.(props) || null }
+        { primary?.(ItemId) || null }
     </React.Fragment>
-    const secondaryOutput = secondary?.(props) || null
+    const secondaryOutput = secondary?.(ItemId) || null
     if (onClick) {
         return <ListItem sx={sx} secondaryAction={actions}>
             <ListItemButton onClick={onClick} selected={selected}>

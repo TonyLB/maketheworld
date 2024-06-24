@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactChild, useCallback } from 'react'
+import React, { FunctionComponent, ReactChild, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
 import { SxProps } from '@mui/material'
@@ -10,6 +10,7 @@ import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import MiniChip from '../../MiniChip'
 
 interface WMLComponentHeaderProps {
     ItemId: string;
@@ -19,25 +20,31 @@ interface WMLComponentHeaderProps {
     selected?: boolean;
 }
 
-export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
-    const { combinedStandardForm: standardForm } = useLibraryAsset()
-    const primary = useCallback(({ item }) => {
-        if (isNormalComponent(item)) {
-            const component = standardForm.byId[item.key]
-            if (!component) {
-                return 'Untitled'
-            }
-            if (isStandardRoom(component)) {
-                return schemaOutputToString(component.shortName.children) || 'Untitled'
-            }
-            if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
-                return schemaOutputToString(component.name.children) || 'Untitled'
-            }
-        }
-        return ''
-    }, [standardForm])
+const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => {
+    const { inheritedStandardForm, combinedStandardForm } = useLibraryAsset()
+    const component = combinedStandardForm.byId[itemId]
+    if (!component) {
+        return <React.Fragment>Untitled</React.Fragment>
+    }
+    if (isStandardRoom(component)) {
+        return <React.Fragment>
+            { schemaOutputToString(component.shortName.children) || 'Untitled' }
+            { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
+        </React.Fragment>
+    }
+    if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
+        return <React.Fragment>
+            { schemaOutputToString(component.name.children) || 'Untitled' }
+            { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
+        </React.Fragment>
+    }
+    return null
+}
 
-    const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
+    const primary = useCallback((key) => (<WMLComponentName itemId={key} />), [])
+
+    const secondaryBase: AssetDataHeaderRenderFunction = (key) => (key)
     const secondary = useCallback(secondaryBase, [])
     return <AssetDataHeader
         ItemId={ItemId}

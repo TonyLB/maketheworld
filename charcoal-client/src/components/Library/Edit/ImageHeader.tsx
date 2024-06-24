@@ -17,7 +17,7 @@ interface ImageHeaderProps {
 }
 
 const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const primaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
+    const primaryBase: AssetDataHeaderRenderFunction = (key) => (key)
     const primary = useCallback(primaryBase, [])
     const { dragActive, openUpload } = useFileWrapper()
 
