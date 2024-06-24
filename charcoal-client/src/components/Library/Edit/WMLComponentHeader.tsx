@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactChild, useCallback } from 'react'
+import React, { FunctionComponent, ReactChild, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
 import { SxProps } from '@mui/material'
@@ -19,25 +19,28 @@ interface WMLComponentHeaderProps {
     selected?: boolean;
 }
 
+const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => {
+    const { inheritedStandardForm, combinedStandardForm } = useLibraryAsset()
+    const component = combinedStandardForm.byId[itemId]
+    if (!component) {
+        return <React.Fragment>Untitled</React.Fragment>
+    }
+    if (isStandardRoom(component)) {
+        return <React.Fragment>
+            { schemaOutputToString(component.shortName.children) || 'Untitled' }
+        </React.Fragment>
+    }
+    if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
+        return <React.Fragment>{ schemaOutputToString(component.name.children) || 'Untitled' }</React.Fragment>
+    }
+    return null
+}
+
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
     const { combinedStandardForm: standardForm } = useLibraryAsset()
-    const primary = useCallback(({ item }) => {
-        if (isNormalComponent(item)) {
-            const component = standardForm.byId[item.key]
-            if (!component) {
-                return 'Untitled'
-            }
-            if (isStandardRoom(component)) {
-                return schemaOutputToString(component.shortName.children) || 'Untitled'
-            }
-            if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
-                return schemaOutputToString(component.name.children) || 'Untitled'
-            }
-        }
-        return ''
-    }, [standardForm])
+    const primary = useCallback((key) => (<WMLComponentName itemId={key} />), [])
 
-    const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
+    const secondaryBase: AssetDataHeaderRenderFunction = (key) => (key)
     const secondary = useCallback(secondaryBase, [])
     return <AssetDataHeader
         ItemId={ItemId}
