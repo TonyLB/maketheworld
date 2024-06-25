@@ -11,16 +11,16 @@ import HomeIcon from '@mui/icons-material/Home'
 import { NormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 interface MapHeaderProps {
-    mapItem: NormalMap;
+    itemId: string;
     onClick: () => void;
 }
 
-export const MapHeader: FunctionComponent<MapHeaderProps> = ({ mapItem, onClick }) => {
+export const MapHeader: FunctionComponent<MapHeaderProps> = ({ itemId, onClick }) => {
     return <ListItemButton onClick={onClick}>
         <ListItemIcon>
             <HomeIcon />
         </ListItemIcon>
-        <ListItemText primary={mapItem.key} />
+        <ListItemText primary={itemId} />
     </ListItemButton>
 }
 
