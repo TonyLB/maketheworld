@@ -58,7 +58,7 @@ import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
-import { StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
@@ -148,15 +148,18 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, baseSchema, updateSchema, normalForm, save, status, serialized, standardForm } = useLibraryAsset()
+    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm } = useLibraryAsset()
     const navigate = useNavigate()
 
+    //
+    // TODO: Refactor below into a single reduce statement that updates a record of lists.
+    //
     const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardTheme)), [standardForm])
     const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardRoom)), [standardForm])
     const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardFeature)), [standardForm])
     const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardKnowledge)), [standardForm])
     const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardMap)), [standardForm])
-    const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
+    const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardImage)), [standardForm])
     const jsItems = useMemo(() => (
         treeTypeGuardOnce<SchemaTag, SchemaComputedTag | SchemaVariableTag | SchemaActionTag, TreeId>({ tree: baseSchema, typeGuard: (data: SchemaTag): data is SchemaComputedTag | SchemaVariableTag | SchemaActionTag => (['Action', 'Computed', 'Varaible'].includes(data.tag)) })
     ), [schema])
@@ -167,7 +170,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const variables = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaVariableTag, TreeId>({ tree: jsItems, typeGuard: isSchemaVariable })), [jsItems])
     const computes = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaComputedTag, TreeId>({ tree: jsItems, typeGuard: isSchemaComputed })), [jsItems])
     const actions = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaActionTag, TreeId>({ tree: jsItems, typeGuard: isSchemaAction })), [jsItems])
-    const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
@@ -200,8 +202,8 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     }, [innerSaveHandler, serialized, setAssignDialogShown])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
-            primary={asset?.key || 'Untitled'}
-            secondary={asset?.Story ? 'Story' : 'Asset'}
+            primary={standardForm.key || 'Untitled'}
+            secondary={'Asset'}
             commands={
                 <React.Fragment>
                     <Button onClick={saveHandler} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
@@ -215,7 +217,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                     label: 'Library'
                 },
                 {
-                    label: asset?.key || 'Untitled'
+                    label: standardForm.key || 'Untitled'
             }]}
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>

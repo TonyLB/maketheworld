@@ -1,6 +1,5 @@
 import { FunctionComponent, useMemo } from "react"
 import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
-import { isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { useMapContext } from "../../Controller"
 import {
     List,
@@ -14,17 +13,18 @@ import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
 import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
+import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
 type UnshownRoomsProps = {
 
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { normalForm, select } = useLibraryAsset()
+    const { standardForm, select } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
-    const unshownRoomItems = Object.values(normalForm)
-        .filter(isNormalRoom)
+    const unshownRoomItems = Object.values(standardForm.byId)
+        .filter(isStandardRoom)
         .filter(({ key }) => (!shownRooms.includes(key)))
     return <List>
         {
