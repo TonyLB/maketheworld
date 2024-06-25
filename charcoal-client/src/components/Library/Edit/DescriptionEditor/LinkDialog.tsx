@@ -10,7 +10,7 @@ import {
     IconButton
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useMemo } from 'react';
 import { ReactEditor, useSlate } from 'slate-react';
 import { useSelector } from 'react-redux';
 import { getNormalized } from '../../../../slices/personalAssets';
@@ -23,6 +23,8 @@ import {
     Transforms,
     Element as SlateElement
 } from 'slate';
+import { useLibraryAsset } from '../LibraryAsset';
+import { isStandardAction, isStandardFeature, isStandardKnowledge } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
 
 interface LinkDialogProps {
     open: boolean;
@@ -165,21 +167,21 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 }
 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
-    const { AssetId: assetKey = 'draft' } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
-    const actions = validTags.includes('Action')
-        ? Object.values(normalForm)
-            .filter(isNormalAction)
-        : []
-    const features = validTags.includes('Feature')
-        ? Object.values(normalForm)
-            .filter(isNormalFeature)
-        : []
-    const knowledges = validTags.includes('Knowledge')
-        ? Object.values(normalForm)
-            .filter(isNormalKnowledge)
-        : []
+    const { standardForm } = useLibraryAsset()
+    const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
+        Object.values(standardForm.byId).reduce((previous, component) => {
+            if (validTags.includes('Action') && isStandardAction(component)) {
+                return { ...previous, actions: [previous.actions, component.key]}
+            }
+            if (validTags.includes('Feature') && isStandardFeature(component)) {
+                return { ...previous, features: [previous.features, component.key]}
+            }
+            if (validTags.includes('Knowledge') && isStandardKnowledge(component)) {
+                return { ...previous, knowledges: [previous.knowledges, component.key]}
+            }
+            return previous
+        }, { actions: [], features: [], knowledges: [] })
+    ), [standardForm])
     return <Dialog
         open={open}
         scroll='paper'
@@ -205,19 +207,19 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTa
             <List>
                 <LinkChoicesSubsection
                     subheader="Actions"
-                    keys={actions.map(({ key }) => (key)) }
+                    keys={actions}
                     onClose={onClose}
                     wrapLink={wrapActionLink}
                 />
                 <LinkChoicesSubsection
                     subheader="Features"
-                    keys={features.map(({ key }) => (key)) }
+                    keys={features}
                     onClose={onClose}
                     wrapLink={wrapFeatureLink}
                 />
                 <LinkChoicesSubsection
                     subheader="Knowledge"
-                    keys={knowledges.map(({ key }) => (key)) }
+                    keys={knowledges}
                     onClose={onClose}
                     wrapLink={wrapKnowledgeLink}
                 />
