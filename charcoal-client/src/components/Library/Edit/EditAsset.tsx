@@ -58,7 +58,7 @@ import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
-import { StandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
@@ -152,13 +152,13 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const navigate = useNavigate()
 
     const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardTheme)), [standardForm])
-    const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
-    const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
-    const knowledges = useMemo<NormalKnowledge[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Knowledge')) as NormalKnowledge[]), [normalForm])
-    const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
+    const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardRoom)), [standardForm])
+    const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardFeature)), [standardForm])
+    const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardKnowledge)), [standardForm])
+    const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardMap)), [standardForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const jsItems = useMemo(() => (
-        treeTypeGuardOnce<SchemaTag, SchemaComputedTag | SchemaVariableTag | SchemaActionTag, TreeId>({ tree: schema, typeGuard: (data: SchemaTag): data is SchemaComputedTag | SchemaVariableTag | SchemaActionTag => (['Action', 'Computed', 'Varaible'].includes(data.tag)) })
+        treeTypeGuardOnce<SchemaTag, SchemaComputedTag | SchemaVariableTag | SchemaActionTag, TreeId>({ tree: baseSchema, typeGuard: (data: SchemaTag): data is SchemaComputedTag | SchemaVariableTag | SchemaActionTag => (['Action', 'Computed', 'Varaible'].includes(data.tag)) })
     ), [schema])
     //
     // Build variables, computes, and actions out of jsItems rather than Normal, and refactor JSHeader to accept GenericTreeNode<Schema??Tag, TreeId>
@@ -241,7 +241,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                         ? <React.Fragment>
                             { maps.map((mapItem) => (<MapHeader
                                 key={mapItem.key}
-                                mapItem={mapItem}
+                                itemId={mapItem.key}
                                 onClick={() => { navigate(`Map/${mapItem.key}`)}}
                             />))}
                         </React.Fragment>
