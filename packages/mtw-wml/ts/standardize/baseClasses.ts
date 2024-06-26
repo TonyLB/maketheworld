@@ -107,7 +107,8 @@ export type StandardComponent =
     StandardMoment |
     StandardVariable |
     StandardComputed |
-    StandardAction
+    StandardAction |
+    StandardImage
 
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
 
@@ -120,6 +121,7 @@ export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 export const isStandardAction = isStandardFactory<StandardAction>("Action")
+export const isStandardImage = isStandardFactory<StandardImage>("Image")
 
 export type StandardForm = {
     key: string;
@@ -228,7 +230,8 @@ export type SerializableStandardComponent =
     SerializableStandardMoment |
     SerializableStandardVariable |
     SerializableStandardComputed |
-    SerializableStandardAction
+    SerializableStandardAction |
+    SerializableStandardImage
 
 export type SerializableStandardForm = {
     key: string;

@@ -440,6 +440,12 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 id: item.id,
                 children: []
             }
+        case 'Image':
+            return {
+                data: { tag: item.tag, key: item.key },
+                id: item.id,
+                children: []
+            }
     }
 }
 
@@ -516,6 +522,11 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Action':
             return {
                 data: { tag: item.tag, key: item.key, src: item.src },
+                children: []
+            }
+        case 'Image':
+            return {
+                data: { tag: item.tag, key: item.key },
                 children: []
             }
     }

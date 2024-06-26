@@ -13,13 +13,14 @@ import { selectMapRooms } from '@tonylb/mtw-wml/dist/normalize/selectors/mapRoom
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
 import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { StandardMap, isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 type MapEditProps = {
 }
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { select } = useLibraryAsset()
+    const { standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/Map/${mapId}`,
@@ -29,11 +30,18 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         mapId: `MAP#${mapId}`,
         cascadingClose: true
     })
+    const mapComponent = useMemo<StandardMap | undefined>(() => {
+        const mapComponent = standardForm.byId[mapId]
+        if (mapComponent && isStandardMap(mapComponent)) {
+            return mapComponent
+        }
+        return undefined
+    }, [standardForm, mapId])
 
     //
     // TODO: Figure out how to extract fileURL from defaultAppearances
     //
-    const mapImages = useMemo<string[]>(() => (select({ key: mapId, selector: selectMapRooms }).map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1)), [select, mapId])
+    const mapImages = useMemo<string[]>(() => (mapComponent ? mapComponent.images.map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1) : []), [mapComponent])
 
     return <MapController mapId={mapId}>
         <div className={localClasses.grid}>

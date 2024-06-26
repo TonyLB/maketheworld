@@ -24,7 +24,8 @@ import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import ConnectionTable from './ConnectionTable'
 import { GenericTree, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { isSchemaInherited, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
@@ -168,7 +169,7 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, normalForm, updateSchema, standardForm } = useLibraryAsset()
+    const { assetKey, updateSchema, standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
@@ -205,9 +206,23 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
     }, [updateSchema, ComponentId, navigate, assetKey, dispatch, tag])
-    const allExportKeys = Object.values(normalForm).map(({ key, exportAs }) => (exportAs ?? key))
+    const allExportKeys = useMemo(() => {
+        const tagTree = new SchemaTagTree(standardForm.metaData)
+            .filter({ match: 'Export' })
+            .prune({ match: 'Export' })
+        const exportMappings: Record<string, string> = Object.assign({}, ...tagTree.tree.map((node) => {
+            const isSchemaWithKeyOtherThanAsset = (data: SchemaTag): data is Exclude<SchemaWithKey, SchemaAssetTag | SchemaStoryTag | SchemaCharacterTag> => (isSchemaWithKey(data) && !(isSchemaAsset(data) || isSchemaCharacter(data)))
+            if (treeNodeTypeguard(isSchemaWithKeyOtherThanAsset)(node)) {
+                return { [node.data.key]: node.data.as ?? node.data.key }
+            }
+            else {
+                return {}
+            }
+        }))
+        return Object.keys(standardForm.byId).map((key) => (exportMappings[key] ?? key))
+    }, [standardForm])
     const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
-    if (!(ComponentId && ComponentId in normalForm)) {
+    if (!(ComponentId && ComponentId in standardForm.byId)) {
         return <Box />
     }
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
