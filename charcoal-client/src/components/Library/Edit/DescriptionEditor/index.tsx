@@ -293,6 +293,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
                     data={inherited}
                     standard={inheritedStandardForm}
                     readonly={true}
+                    toolbar={false}
                 />
             </Box>
             : null
