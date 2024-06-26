@@ -114,6 +114,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
+                    toolbar
                     validLinkTags={[]}
                     fieldName="name"
                 />
@@ -128,6 +129,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             >
                 <TitledBox title="Summary">
                     <DescriptionEditor
+                        toolbar
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                         fieldName="summary"
                     />
@@ -142,6 +144,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         >
             <TitledBox>
                 <DescriptionEditor
+                    toolbar
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                     fieldName="description"
                 />
