@@ -189,7 +189,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         return ''
     }, [combinedStandardForm, ComponentId])
     useAutoPin({
-        href: `${assetKey === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}${tag}/${ComponentId}`,
+        href: `${(assetKey ?? 'draft') === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}${tag}/${ComponentId}`,
         label: componentName || 'Untitled',
         type: 'ComponentEdit',
         iconName: 'Room',

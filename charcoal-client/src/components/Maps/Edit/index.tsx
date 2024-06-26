@@ -23,7 +23,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const { standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}/Map/${mapId}`,
+        href: `${(assetKey ?? 'draft') === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}Map/${mapId}`,
         label: `${mapId}`,
         type: 'MapEdit',
         iconName: 'MapEdit',
