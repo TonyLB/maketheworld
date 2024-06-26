@@ -17,10 +17,11 @@ import { EditSchema } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
 import treeListFactory from "../treeListFactory"
-import { GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaPromptTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import ConnectionTable from "../ConnectionTable"
+import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 
 const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
     const { updateSchema } = useLibraryAsset()
@@ -42,7 +43,7 @@ type ThemeEditorProps = {}
 export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateSchema, standardForm, normalForm } = useLibraryAsset()
+    const { assetKey, updateSchema, standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component: StandardTheme = useMemo(() => {
         if (ComponentId) {
@@ -85,9 +86,23 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/Theme/${toKey}`)
     }, [updateSchema, ComponentId, navigate, assetKey, dispatch])
-    const allExportKeys = Object.values(normalForm).map(({ key, exportAs }) => (exportAs ?? key))
+    const allExportKeys = useMemo(() => {
+        const tagTree = new SchemaTagTree(standardForm.metaData)
+            .filter({ match: 'Export' })
+            .prune({ match: 'Export' })
+        const exportMappings: Record<string, string> = Object.assign({}, ...tagTree.tree.map((node) => {
+            const isSchemaWithKeyOtherThanAsset = (data: SchemaTag): data is Exclude<SchemaWithKey, SchemaAssetTag | SchemaStoryTag | SchemaCharacterTag> => (isSchemaWithKey(data) && !(isSchemaAsset(data) || isSchemaCharacter(data)))
+            if (treeNodeTypeguard(isSchemaWithKeyOtherThanAsset)(node)) {
+                return { [node.data.key]: node.data.as ?? node.data.key }
+            }
+            else {
+                return {}
+            }
+        }))
+        return Object.keys(standardForm.byId).map((key) => (exportMappings[key] ?? key))
+    }, [standardForm])
     const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
-    if (!(ComponentId && ComponentId in normalForm)) {
+    if (!(ComponentId && ComponentId in standardForm.byId)) {
         return <Box />
     }
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
