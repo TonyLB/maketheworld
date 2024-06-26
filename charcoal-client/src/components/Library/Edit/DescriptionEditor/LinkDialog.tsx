@@ -12,10 +12,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import React, { FunctionComponent, useMemo } from 'react';
 import { ReactEditor, useSlate } from 'slate-react';
-import { useSelector } from 'react-redux';
-import { getNormalized } from '../../../../slices/personalAssets';
-import { useParams } from 'react-router-dom';
-import { NormalFeature, isNormalAction, isNormalFeature, isNormalKnowledge } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
 import { CustomActionLinkElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses';
 import {
     Range,
