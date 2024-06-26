@@ -172,12 +172,12 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateSchema, standardForm } = useLibraryAsset()
+    const { assetKey, updateSchema, standardForm, combinedStandardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
     const componentName = useMemo(() => {
-        const component = standardForm.byId[ComponentId]
+        const component = combinedStandardForm.byId[ComponentId]
         if (component) {
             if (isStandardRoom(component)) {
                 return schemaOutputToString(component.shortName.children)
@@ -187,9 +187,9 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             }
         }
         return ''
-    }, [standardForm, ComponentId])
+    }, [combinedStandardForm, ComponentId])
     useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
+        href: `${assetKey === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}${tag}/${ComponentId}`,
         label: componentName || 'Untitled',
         type: 'ComponentEdit',
         iconName: 'Room',
