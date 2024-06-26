@@ -148,7 +148,7 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm } = useLibraryAsset()
+    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm, readonly } = useLibraryAsset()
     const navigate = useNavigate()
 
     //
@@ -237,7 +237,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                         </React.Fragment>
                         : null
                     }
-                    <AddWMLComponent type="Theme" onAdd={addAsset('Theme')} />
+                    { !readonly && <AddWMLComponent type="Theme" onAdd={addAsset('Theme')} /> }
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
@@ -249,7 +249,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                         </React.Fragment>
                         : null
                     }
-                    <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
+                    { !readonly && <AddWMLComponent type="Map" onAdd={addAsset('Map')} /> }
                     <ListSubheader>Rooms</ListSubheader>
                     { rooms.length
                         ? rooms.map((room) => (<WMLComponentHeader
@@ -259,7 +259,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             />))
                         : null
                     }
-                    <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                    { !readonly && <AddWMLComponent type="Room" onAdd={addAsset('Room')} /> }
                     <ListSubheader>Features</ListSubheader>
                     { features.length
                         ? features.map((feature) => (<WMLComponentHeader
@@ -270,7 +270,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             />))
                         : null
                     }
-                    <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                    { !readonly && <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} /> }
                     <ListSubheader>Knowledge</ListSubheader>
                     { knowledges.length
                         ? knowledges.map((knowledge) => (<WMLComponentHeader
@@ -281,7 +281,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             />))
                         : null
                     }
-                    <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
+                    { !readonly && <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} /> }
                     <ListSubheader>Images</ListSubheader>
                     { images.length
                         ? images.map((image) => (<ImageHeader
@@ -291,7 +291,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             />))
                         : null
                     }
-                    <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+                    { !readonly && <AddWMLComponent type="Image" onAdd={addAsset('Image')} /> }
                     <ListSubheader>Variables</ListSubheader>
                     { (variables || [])
                         .map((variable) => (<JSHeader
@@ -308,7 +308,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             maxHeight="4em"
                         />))
                     }
-                    <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
+                    { !readonly && <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} /> }
                     <ListSubheader>Computes</ListSubheader>
                     { (computes || []).map((compute) => (<JSHeader
                             key={compute.id}
@@ -325,7 +325,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             maxHeight="8em"
                         />))
                     }
-                    <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
+                    { !readonly && <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} /> }
                     <ListSubheader>Actions</ListSubheader>
                     { (actions || []).map((action) => (<JSHeader
                             key={action.id}
@@ -341,7 +341,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             maxHeight="32em"
                         />))
                     }
-                    <AddWMLComponent type="Action" onAdd={addAsset('Action')} />
+                    { !readonly && <AddWMLComponent type="Action" onAdd={addAsset('Action')} /> }
                 </List>
             </Box>
             <DraftLockout />
