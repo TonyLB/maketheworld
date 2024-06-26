@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo } from "react"
+import { FunctionComponent, useCallback, useMemo } from "react"
 import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
 import { useMapContext } from "../../Controller"
 import {
@@ -11,7 +11,6 @@ import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
-import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
@@ -20,12 +19,19 @@ type UnshownRoomsProps = {
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { standardForm, select } = useLibraryAsset()
+    const { standardForm, combinedStandardForm } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
     const unshownRoomItems = Object.values(standardForm.byId)
         .filter(isStandardRoom)
         .filter(({ key }) => (!shownRooms.includes(key)))
+    const nameFromKey = useCallback((key: string): string => {
+        const component = combinedStandardForm.byId[key]
+        if (component && isStandardRoom(component)) {
+            return schemaOutputToString(component.shortName.children) || 'Untitled'
+        }
+        return 'Untitled'
+    }, [combinedStandardForm])
     return <List>
         {
             unshownRoomItems.map(({ key }) => (
@@ -39,7 +45,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                     <ListItemAvatar>
                         <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
                     </ListItemAvatar>
-                    <ListItemText primary={ schemaOutputToString(select({ key, selector: selectName })) } />
+                    <ListItemText primary={ nameFromKey(key) } />
                 </ListItemButton>
             ))
         }
