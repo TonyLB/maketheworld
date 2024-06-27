@@ -72,7 +72,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             </Box>
         </Box>
         { MapId && <MapDisplayController tree={genericIDFromTree(cacheToTree(maps[MapId]))}>
-            <MapArea fileURL={maps[MapId].fileURL} />
+            <MapArea fileURL={maps[MapId].fileURL} editMode={false} />
         </MapDisplayController> }
     </Box>
 }

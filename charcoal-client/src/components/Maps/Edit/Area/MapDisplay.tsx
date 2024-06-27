@@ -274,7 +274,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                         id={room.id}
                                         PermanentId={room.roomId}
                                         Name={room.name || room.roomId}
-                                        Locked={editMode && room.parentId !== (parentID)}
+                                        Locked={editMode && (room.parentId !== parentID)}
                                         className={localClasses.roomNode}
                                         contrastClassName={localClasses.svgLightBlueContrast}
                                         x={room.x + (MAP_WIDTH / 2)}

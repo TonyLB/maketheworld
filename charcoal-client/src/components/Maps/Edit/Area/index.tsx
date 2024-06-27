@@ -8,6 +8,7 @@ import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, Sche
 
 type MapAreaProps = {
     fileURL?: string;
+    editMode?: boolean;
 }
 
 export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>): MapTreeExit[] => {
@@ -29,7 +30,7 @@ export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag
     }, [])
 }
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
 
     const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
     const exits = useMemo(() => (treeToExits(tree)), [tree])
@@ -73,7 +74,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
             onClick={onClick}
             decoratorCircles={decoratorCircles}
             decoratorExits={decoratorExits}
-            editMode
+            editMode={editMode}
             highlightCursor={highlightCursor}
         />
     </React.Fragment>
