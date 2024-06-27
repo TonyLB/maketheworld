@@ -5,8 +5,12 @@ import {
     FormControl,
     InputLabel,
     Select,
-    MenuItem
+    MenuItem,
+    IconButton,
+    Avatar,
+    useMediaQuery
 } from '@mui/material'
+import EditIcon from '@mui/icons-material/Edit'
 
 import { useActiveCharacter } from '../../ActiveCharacter';
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
@@ -18,12 +22,16 @@ import cacheToTree from './cacheToTree'
 import { EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { MapDisplayController } from '../Controller';
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
+import { useNavigate } from 'react-router-dom';
 
 type MapViewProps = {
 }
 
 export const MapView: FunctionComponent<MapViewProps> = () => {
     const dispatch = useDispatch()
+    const medium = useMediaQuery('(min-width: 600px)')
+    const large = useMediaQuery('(min-width: 1200px)')
+    const iconSize = large ? 50 : medium ? 40 : 30
     const { maps, CharacterId, scopedId, info: { Name = '???' } = {} } = useActiveCharacter()
     useAutoPin({
         href: `/Character/${scopedId}/Map/`,
@@ -32,6 +40,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         type: 'Map',
         characterId: CharacterId
     })
+    const navigate = useNavigate()
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(setIntent({ key: CharacterId, intent: ['MAPSUBSCRIBED'] }))
@@ -44,7 +53,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         }
     }, [MapId, setMapId, maps])
 
-    return <Box sx={{ height: "100%", width: "100%" }}>
+    return <Box sx={{ height: "100%", width: "100%", position: "relative" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
             <Box>
                 <FormControl fullWidth>
@@ -74,6 +83,18 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         { MapId && <MapDisplayController tree={genericIDFromTree(cacheToTree(maps[MapId]))}>
             <MapArea fileURL={maps[MapId].fileURL} editMode={false} />
         </MapDisplayController> }
+        <Box sx={{ right: "2em", top: "0.25em", position: "absolute" }}>
+            <Avatar
+                sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                alt={'Edit Map'}
+                onClick={() => {
+                    // dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
+                    // navigate(`/Draft/Room/${key}`)            
+                }}
+            >
+                <EditIcon sx={{ fontSize: iconSize * 0.6 }} />
+            </Avatar>
+        </Box>
     </Box>
 }
 
