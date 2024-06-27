@@ -49,16 +49,10 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                 returnValue[`SESSION#${sessionId}`] = []
             }
         }))
-        //
-        // Asynchronously create connectionIdsForCharacter from mapSubscriptionsByCharacterId (which contains sessionIds)
-        //
-        const connectionIdsPerSession = Object.assign({}, ...(await Promise.all(
-            unique(...Object.values(mapSubscriptionsByCharacterId)).map(async (sessionId) => ({ [sessionId]: (await internalCache.SessionConnections.get(sessionId)) || [] }))
-        ))) as Record<string, string[]>
         targets.filter(isPublishTargetCharacter).forEach((characterId) => {
-            const connectionIdsForCharacter = (mapSubscriptionsByCharacterId[characterId] || []).map((sessionId) => (connectionIdsPerSession[sessionId] ?? [])).flat(1)
-            connectionIdsForCharacter.forEach((connectionId) => {
-                returnValue[connectionId] = unique(returnValue[connectionId] || [], [characterId]) as EphemeraCharacterId[]
+            const sessionIdsForCharacter = mapSubscriptionsByCharacterId[characterId] || []
+            sessionIdsForCharacter.forEach((sessionId) => {
+                returnValue[sessionId] = unique(returnValue[sessionId] || [], [characterId]) as EphemeraCharacterId[]
             })
         })
         targets.filter(isPublishTargetExcludeSession).forEach((excludeSessionId) => {
