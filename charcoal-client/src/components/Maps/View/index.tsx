@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useState } from 'react'
+import React, { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     Box,
@@ -19,10 +19,12 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
-import { EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraAssetId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { MapDisplayController } from '../Controller';
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
 import { useNavigate } from 'react-router-dom';
+import { AssetPicker } from '../../AssetPicker';
+import { addImport } from '../../../slices/personalAssets';
 
 type MapViewProps = {
 }
@@ -52,6 +54,36 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             setMapId(Object.keys(maps || {})[0] as EphemeraMapId)
         }
     }, [MapId, setMapId, maps])
+    const selectedMap = useMemo(() => (maps[MapId]), [maps, MapId])
+    const assets = useMemo(() => (selectedMap?.assets ?? {}), [selectedMap])
+    const ref = useRef()
+    const [open, setOpen] = useState<boolean>(false)
+    const importOptions = useMemo(() => {
+        if (Object.entries(assets).length > 1) {
+            return Object.entries(assets)
+                .filter(([asset]) => (asset !== 'ASSET#primitives'))
+                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
+        }
+        else {
+            return Object.entries(assets)
+                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
+        }
+    }, [assets])
+    const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
+        // dispatch(addOnboardingComplete(['importRoom']))
+        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
+        navigate(`/Draft/Map/${key}`)
+    }, [navigate])
+    const onClick = useCallback(() => {
+        if (importOptions.length > 1) {
+            setOpen(true)
+        }
+        else {
+            if (importOptions.length) {
+                onImportListItemClick(importOptions[0])
+            }
+        }
+    }, [importOptions, setOpen, onImportListItemClick])
 
     return <Box sx={{ height: "100%", width: "100%", position: "relative" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
@@ -87,13 +119,18 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             <Avatar
                 sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                 alt={'Edit Map'}
-                onClick={() => {
-                    // dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
-                    // navigate(`/Draft/Room/${key}`)            
-                }}
+                onClick={onClick}
+                ref={ref}
             >
                 <EditIcon sx={{ fontSize: iconSize * 0.6 }} />
             </Avatar>
+            <AssetPicker
+                anchorRef={ref}
+                open={open}
+                setOpen={setOpen}
+                assets={assets}
+                onSelect={onImportListItemClick}
+            />
         </Box>
     </Box>
 }
