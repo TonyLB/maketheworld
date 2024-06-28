@@ -17,10 +17,11 @@ export type ActiveCharacterChange = ActiveCharacterMapChange
 
 export const receiveMapEphemera = (state: any, action: PayloadAction<ActiveCharacterChange>) => {
     if (action.payload.active) {
-        const { MapId, name, rooms, fileURL } = action.payload
+        const { MapId, name, rooms, assets, fileURL } = action.payload
         state.maps[MapId] = {
             name,
             rooms,
+            assets,
             fileURL
         }    
     }
