@@ -1,6 +1,6 @@
 import { SimCallback, MapLinks, SimNode, SimulationReturn, MapNodes } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { unique } from '../../../../lib/lists'
@@ -12,6 +12,7 @@ export type SimulationTreeNode = SimulationReturn & {
 
 type MapDThreeTreeProps = {
     tree: GenericTree<SimulationTreeNode>;
+    inherited?: GenericTree<SimulationTreeNode>;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
@@ -270,6 +271,7 @@ export class MapDThreeTree extends Object {
     onStability: SimCallback = () => {};
     onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
+    _inherited: MapDThreeIterator = new MapDThreeIterator('', [], [])
     _cascadeIndex?: number;
     _visibleLayers: number[] = [];
 
@@ -277,6 +279,7 @@ export class MapDThreeTree extends Object {
         super(props)
         const {
             tree,
+            inherited = [],
             onStabilize,
             onTick
         } = props
@@ -284,6 +287,7 @@ export class MapDThreeTree extends Object {
         // TODO: ISS3228: Refactor construction of MapDThree layers
         //
         this.layers = []
+        this.updateInherited(inherited)
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.update(tree)
         this.checkStability()
@@ -303,7 +307,7 @@ export class MapDThreeTree extends Object {
                         { ...node, layers: [layerIndex, ...(previousNode?.layers ?? [])] }
                     ]
                 }, previous)
-        }, [])
+        }, this._inherited._nodes.map((node) => ({ ...node, layers: [] })))
     }
 
     get nodes(): (SimNode & { layers: number[] })[] {
@@ -320,6 +324,29 @@ export class MapDThreeTree extends Object {
             this.onTick = onTick
         }
     }
+    //
+    // Update responds to changes in the semantic structure of the inherited map, flattening it into a single
+    // fixed layer from which the active layers can start their cascade.
+    //
+    updateInherited(tree: GenericTree<SimulationTreeNode>): void {
+        const reduceCallback = (previous: SimulationTreeNode, { data, children }: GenericTreeNode<SimulationTreeNode>): SimulationTreeNode => {
+            if (data.visible) {
+                return children.reduce(reduceCallback, {
+                    ...previous,
+                    nodes: [
+                        ...previous.nodes.filter(({ roomId }) => (!data.nodes.find(({ roomId: checkId }) => (checkId === roomId)))),
+                        ...data.nodes
+                    ],
+                    links: [...previous.links, ...data.links]
+                })
+            }
+            return previous
+        }
+        const inheritedLayer = tree.reduce(reduceCallback, { key: '', nodes: [], links: [], visible: true })
+        this._inherited = new MapDThreeIterator(inheritedLayer.key, inheritedLayer.nodes, inheritedLayer.links)
+    }
+
+
     //
     // Update responds to changes in the semantic structure of the map, while keeping live and running simulations.
     //
@@ -377,6 +404,9 @@ export class MapDThreeTree extends Object {
         })
         if (visibleLayers.length) {
             this.layers[visibleLayers.slice(-1)[0]].setCallbacks({ onTick: this.cascade.bind(this) })
+        }
+        else {
+            this.cascade()
         }
         this.checkStability()
 
