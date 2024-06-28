@@ -35,6 +35,7 @@ import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
+import { AssetPicker } from '../AssetPicker'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -80,35 +81,13 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
             onClick={onClick}
             ref={ref}
         />
-        <Popover
+        <AssetPicker
             open={open}
-            onClose={() => { setOpen(false) }}
-            anchorEl={ref.current}
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-            }}
-            transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-        >
-            <Typography variant="body2">Branch from?</Typography>
-            <Divider />
-            <List>
-                {
-                    importOptions.map(({ asset, key }) => (
-                        <ListItem key={`Import-${asset}`} >
-                            <ListItemButton
-                                onClick={() => { onImportListItemClick({ asset, key }) }}
-                            >
-                                { asset.split('#')[1] }
-                            </ListItemButton>
-                        </ListItem>
-                    ))
-                }
-            </List>
-        </Popover>
+            setOpen={setOpen}
+            assets={assets}
+            onSelect={onImportListItemClick}
+            anchorRef={ref}
+        />
     </React.Fragment>
 }
 
