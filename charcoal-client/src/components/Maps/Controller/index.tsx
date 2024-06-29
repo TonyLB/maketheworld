@@ -23,6 +23,7 @@ const MapContext = React.createContext<MapContextType>({
     mapId: '',
     nodeId: '',
     tree: [],
+    inherited: [],
     UI: {
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
@@ -203,6 +204,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'UpdateTree':
                 mapD3.update(action.tree, mapComponent.id)
                 return
+            case 'UpdateInherited':
+                mapD3.updateInherited(action.tree)
+                return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
                 return
@@ -273,6 +277,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
+    useEffect(() => {
+        mapDispatch({ type: 'UpdateInherited', tree: inheritedTree })
+    }, [mapDispatch, inheritedTree])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
@@ -282,6 +289,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             mapId,
             nodeId: mapComponent.id,
             tree,
+            inherited: inheritedTree,
             UI: {
                 toolSelected,
                 exitDrag,
@@ -364,6 +372,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             mapId: '',
             nodeId: '',
             tree: mappedTree,
+            inherited: [],
             UI: {
                 toolSelected: 'Select',
                 exitDrag: { sourceRoomId: '', x: 0, y: 0 }

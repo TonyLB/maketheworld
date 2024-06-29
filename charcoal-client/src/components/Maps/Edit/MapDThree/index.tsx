@@ -176,6 +176,12 @@ export class MapDThree extends Object {
         this.tree.checkStability()
     }
 
+    updateInherited(tree: GenericTree<SchemaTag, TreeId>): void {
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, 'NONE')
+        
+        this.tree.updateInherited(simulatorTree)
+    }
+
     //
     // dragNode and endDrag dispatch events to set forces on the appropriate layer
     //

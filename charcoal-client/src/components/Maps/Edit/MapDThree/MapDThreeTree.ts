@@ -344,6 +344,13 @@ export class MapDThreeTree extends Object {
         }
         const inheritedLayer = tree.reduce(reduceCallback, { key: '', nodes: [], links: [], visible: true })
         this._inherited = new MapDThreeIterator(inheritedLayer.key, inheritedLayer.nodes, inheritedLayer.links)
+        if (this._visibleLayers.length) {
+            this.layers[this._visibleLayers.slice(-1)[0]].setCallbacks({ onTick: this.cascade.bind(this) })
+        }
+        else {
+            this.cascade()
+        }
+        this.checkStability()
     }
 
 

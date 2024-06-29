@@ -53,6 +53,11 @@ type MapDispatchUpdateTree = {
     tree: GenericTree<SchemaTag, TreeId>;
 }
 
+type MapDispatchUpdateInherited = {
+    type: 'UpdateInherited';
+    tree: GenericTree<SchemaTag, TreeId>;
+}
+
 type MapContextItemSelectedLayer = {
     type: 'Layer';
     key: string;
@@ -104,6 +109,7 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchDragExit |
     MapDispatchSetNode |
     MapDispatchUpdateTree |
+    MapDispatchUpdateInherited |
     MapDispatchSelectItem |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
@@ -123,6 +129,7 @@ export type MapContextType = {
     mapId: string;
     nodeId: string;
     tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>;
+    inherited: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>;
     UI: {
         //
         // The Map editor can conceivably need data for:
