@@ -116,9 +116,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     const extractRoomsHelper = useCallback((parentId: string, contextRoomId?: string) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
         const { data, children, id } = item
-        if (isSchemaInherited(data)) {
-            return children.reduce(extractRoomsHelper(parentId), previous)
-        }
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = standardForm.byId[data.key]
@@ -157,7 +154,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return previous
     }, [standardForm.byId])
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
-        const basePositions = [...inheritedTree, ...tree].reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id), [])
+        const basePositions = tree
+            .reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id),
+            inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper('INHERITED'), [])
+        )
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
             (typeof item.id !== 'undefined') &&

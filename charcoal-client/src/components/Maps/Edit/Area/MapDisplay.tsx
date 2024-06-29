@@ -82,6 +82,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         }
     }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
     const { UI: { toolSelected, parentID }, localPositions: rooms, mapDispatch } = useMapContext()
+    console.log(`rooms[${parentID}, ${editMode}]: ${JSON.stringify(rooms, null, 4)}`)
     const bind = (useGesture as any)({
         onWheel: ({ movement: [, y] }: any) => {
             const oldScale = scale

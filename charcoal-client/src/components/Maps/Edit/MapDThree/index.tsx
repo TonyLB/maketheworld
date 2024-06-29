@@ -129,7 +129,7 @@ export class MapDThree extends Object {
     }) {
         super()
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
-        const inheritedLayer: GenericTree<SimulationTreeNode> = mapTreeTranslate(defaultSelected(inherited), '')
+        const inheritedLayer: GenericTree<SimulationTreeNode> = mapTreeTranslate(defaultSelected(inherited), 'INHERITED')
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
             inherited: inheritedLayer,

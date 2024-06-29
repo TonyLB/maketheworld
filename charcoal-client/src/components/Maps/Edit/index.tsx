@@ -51,6 +51,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 </div>
                 <MapArea
                     fileURL={mapImages.length ? mapImages[0] : undefined}
+                    editMode
                 />
             </div>
             <div className={localClasses.sidebar} >
