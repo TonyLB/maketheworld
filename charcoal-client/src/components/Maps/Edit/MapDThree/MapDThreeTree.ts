@@ -301,9 +301,9 @@ export class MapDThreeTree extends Object {
             const layer: MapNodes = (options.referenceLayers ? options.referenceLayers[layerIndex] : this.layers[layerIndex].nodes) || []
             return layer
                 .reduce<(SimNode & { layers: number[] })[]>((accumulator, node) => {
-                    const previousNode = accumulator.find(({ id }) => (id === node.id))
+                    const previousNode = accumulator.find(({ roomId }) => (roomId === node.roomId))
                     return [
-                        ...accumulator.filter(({ id }) => (id !== node.id)),
+                        ...accumulator.filter(({ roomId }) => (roomId !== node.roomId)),
                         { ...node, layers: [layerIndex, ...(previousNode?.layers ?? [])] }
                     ]
                 }, previous)

@@ -89,7 +89,7 @@ const useMapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTree<
 }
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { schema, standardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
+    const { schema, standardForm, inheritedStandardForm, combinedStandardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -118,7 +118,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const { data, children, id } = item
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const roomComponent = standardForm.byId[data.key]
+            const roomComponent = combinedStandardForm.byId[data.key]
             const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) : data.key
             return children.reduce(extractRoomsHelper(parentId, data.key), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
@@ -152,8 +152,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             }
         }
         return previous
-    }, [standardForm.byId])
-    const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
+    }, [combinedStandardForm.byId])
+    const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>, inheritedTree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
         const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id),
             inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper('INHERITED'), [])
@@ -170,7 +170,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return overwrittenPositions.filter(valuesPresentTypeguard)
     }, [extractRoomsHelper, mapComponent.id])
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
-        extractRoomsById({})(tree)
+        extractRoomsById({})(tree, inheritedTree)
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes
@@ -180,9 +180,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     : previous
             ), {})
 
-        const extractedPositions = extractRoomsById(xyByRoomId)(tree)
+        const extractedPositions = extractRoomsById(xyByRoomId)(tree, inheritedTree)
         return setLocalPositions(extractedPositions)
-    }, [tree])
+    }, [tree, inheritedTree])
 
     //
     // TODO: Extract a MapTreeItem tree out of Schema (particularly, assigning names)
