@@ -20,6 +20,9 @@ describe('standardSubset', () => {
             </Description>
         </Room>
         <Feature key=(testFeature) />
+        <Map key=(testMap)>
+            <Room key=(testOne)><Position x="0" y="0" /></Room>
+        </Map>
     </Asset>`
     const schema = new Schema()
     schema.loadWML(testSource)
@@ -51,13 +54,48 @@ describe('standardSubset', () => {
                                 children: [{ data: { tag: 'String', value: 'test' }, children: [] }]
                             }]
                         },
-                        exits: []
+                        exits: [],
+                        themes: []
                     },
                     testFeature: {
                         key: 'testFeature',
                         tag: 'Feature',
                         name: { data: { tag: 'Name' }, children: [] },
                         description: { data: { tag: 'Description' }, children: [] }
+                    }
+                }
+            }
+        })
+    })
+
+    it('should return stubs for rooms linked in map', () => {
+        expect(standardSubset({ standard: testStandard, keys: ['testMap'], stubKeys: [] })).toEqual({
+            newStubKeys: [],
+            standard: {
+                key: 'Test',
+                tag: 'Asset',
+                metaData: [],
+                byId: {
+                    testMap: {
+                        key: 'testMap',
+                        tag: 'Map',
+                        name: { data: { tag: 'Name' }, children: [] },
+                        positions: [{ data: { tag: 'Room', key: 'testOne' }, children: [{ data: { tag: 'Position', x: 0, y: 0  }, children: [] }]}],
+                        images: [],
+                        themes: []
+                    },
+                    testOne: {
+                        key: 'testOne',
+                        tag: 'Room',
+                        shortName: { data: { tag: 'ShortName' }, children: [] },
+                        name: { data: { tag: 'Name' }, children: [] },
+                        summary: { data: { tag: 'Summary' }, children: [] },
+                        description: {
+                            data: { tag: 'Description' },
+                            children: []
+                        },
+                        exits: [],
+                        themes: []
                     }
                 }
             }

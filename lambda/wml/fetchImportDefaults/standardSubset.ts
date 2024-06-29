@@ -10,8 +10,9 @@ import {
     isSchemaExit
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
-import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardRoom, SerializableStandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, SerializableStandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 export const standardSubset = ({ standard, keys, stubKeys }: { standard: SerializableStandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: SerializableStandardForm } => {
     const standardizer = new Standardizer()
@@ -21,6 +22,24 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
     // Extend the incoming stubKeys with any that need to be added because of connection to first-class
     // keys
     //
+    const newMapKeys = unique(
+        Object.values(standardizer.standardForm.byId)
+            .filter(isStandardMap)
+            .map(({ positions, key }) => {
+                if (!keys.includes(key)) {
+                    return []
+                }
+                const tagTree = new SchemaTagTree(positions)
+                const finalMapTargets = tagTree
+                    .prune({ not: { match: 'Room' }})
+                    .tree
+                    .map(({ data }) => (data))
+                    .filter(isSchemaRoom)
+                    .map(({ key }) => (key))
+                return finalMapTargets
+            }).flat(2)
+            .filter((key) => (!keys.includes(key)))
+    )
     const newExitKeys = unique(
         Object.values(standardizer.standardForm.byId)
             .filter(isStandardRoom)
@@ -43,7 +62,7 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
                 return finalExitTargets
             })
             .flat(2)
-            .filter((key) => (!keys.includes(key))),
+            .filter((key) => (!keys.includes(key)))
     )
     const newLinkKeys = unique(
         Object.values(standardizer.standardForm.byId)
@@ -62,9 +81,9 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
                 return linkTargets
             })
             .flat()
-            .filter((key) => (!keys.includes(key))),
+            .filter((key) => (!keys.includes(key)))
     )
-    const allStubKeys = unique(stubKeys, newExitKeys, newLinkKeys)
+    const allStubKeys = unique(stubKeys, newMapKeys, newExitKeys, newLinkKeys)
        
     //
     // Redact the schema items for stubs that match against this asset (since we won't need their
