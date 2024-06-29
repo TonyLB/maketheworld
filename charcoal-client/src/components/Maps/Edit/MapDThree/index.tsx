@@ -12,8 +12,9 @@ import { produce } from 'immer'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import { defaultSelected } from '@tonylb/mtw-wml/dist/standardize'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -45,7 +46,7 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
 }
 
 const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
-    const { data: nodeData, children, id } = node
+    const { data: nodeData, children } = node
     if (isSchemaCondition(nodeData)) {
         const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
         return {
@@ -117,8 +118,9 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    constructor({ tree, parentId, onStability, onTick, onExitDrag, onAddExit }: {
+    constructor({ tree, inherited=[], parentId, onStability, onTick, onExitDrag, onAddExit }: {
         tree: GenericTree<SchemaTag, TreeId>;
+        inherited?: GenericTree<SchemaTag, TreeId>;
         parentId: string;
         onStability?: SimCallback;
         onTick?: SimCallback;
@@ -127,8 +129,10 @@ export class MapDThree extends Object {
     }) {
         super()
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
+        const inheritedLayer: GenericTree<SimulationTreeNode> = mapTreeTranslate(defaultSelected(inherited), 'INHERITED')
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
+            inherited: inheritedLayer,
             onTick,
             onStabilize: onStability
         })
@@ -170,6 +174,12 @@ export class MapDThree extends Object {
         
         this.tree.update(simulatorTree)
         this.tree.checkStability()
+    }
+
+    updateInherited(tree: GenericTree<SchemaTag, TreeId>): void {
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, 'NONE')
+        
+        this.tree.updateInherited(simulatorTree)
     }
 
     //

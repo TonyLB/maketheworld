@@ -32,8 +32,8 @@ export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
 
-    const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
-    const exits = useMemo(() => (treeToExits(tree)), [tree])
+    const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, inherited, mapDispatch } = useMapContext()
+    const exits = useMemo(() => (treeToExits([...inherited, ...tree])), [inherited, tree])
 
     const exitDragSourceRoom = useMemo(() => (exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))), [exitDrag, rooms])
     const decoratorCircles = useMemo(() => {

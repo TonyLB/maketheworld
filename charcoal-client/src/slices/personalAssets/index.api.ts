@@ -12,9 +12,11 @@ import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } fr
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { getNormalized, setImport } from '.'
+import { getStandardForm, setImport } from '.'
 import { deriveWorkingStandardizer } from './reducers'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { isImportable, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -78,19 +80,19 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
     if (!id) {
         return {}
     }
-    const normal = getNormalized(id)(getState())
+    const standardForm = getStandardForm(id)(getState())
 
-    const importsByAssetId = Object.values(normal || {})
-        .filter(({ tag }) => (tag === 'Import'))
-        .map((item) => (item as NormalImport))
-        .reduce((previous, { from, mapping }) => ({
+    const importsByAssetId = standardForm.metaData
+        .filter(treeNodeTypeguard(isSchemaImport))
+        .reduce<Record<string, Record<string, string>>>((previous, { data, children }) => ({
             ...previous,
-            [from]: Object.entries(mapping)
-                .reduce((previous, [localKey, { key: awayKey }]) => ({
-                    ...previous,
-                    [localKey]: awayKey
-                }), {})
-        }), {} as ImportsByAssets)
+            [data.from]: children
+                .filter(treeNodeTypeguard(isImportable))
+                .reduce((accumulator, { data: { key, as }}) => ({
+                    ...accumulator,
+                    [as ?? key]: key
+                }), previous[data.from] ?? {})
+        }), {})
 
     const importFetches: AssetClientFetchImports[] = await Promise.all(
         Object.entries(importsByAssetId).map(([assetId, keys]) => (
