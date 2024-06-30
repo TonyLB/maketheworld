@@ -9,10 +9,10 @@ import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { defaultSelected } from '@tonylb/mtw-wml/dist/standardize'
 
@@ -47,6 +47,9 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
 
 const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
     const { data: nodeData, children } = node
+    if (isSchemaAsset(nodeData)) {
+        return children.reduce(mapTreeTranslateHelper, previous)
+    }
     if (isSchemaCondition(nodeData)) {
         const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
         return {
@@ -129,7 +132,10 @@ export class MapDThree extends Object {
     }) {
         super()
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
-        const inheritedLayer: GenericTree<SimulationTreeNode> = mapTreeTranslate(defaultSelected(inherited), 'INHERITED')
+        const inheritedLayer: GenericTree<SimulationTreeNode> = defaultSelected(inherited)
+            .filter(treeNodeTypeguard(isSchemaAsset))
+            .map(({ data, children }) => (mapTreeTranslate(children, `INHERITED#${data.key}`)))
+            .flat(1)
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
             inherited: inheritedLayer,
@@ -177,7 +183,10 @@ export class MapDThree extends Object {
     }
 
     updateInherited(tree: GenericTree<SchemaTag, TreeId>): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, 'NONE')
+        const simulatorTree: GenericTree<SimulationTreeNode> = tree
+            .filter(treeNodeTypeguard(isSchemaAsset))
+            .map(({ data, children }) => (mapTreeTranslate(children, `INHERITED#${data.key}`)))
+            .flat(1)
         
         this.tree.updateInherited(simulatorTree)
     }

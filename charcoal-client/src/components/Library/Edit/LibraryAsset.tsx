@@ -19,7 +19,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
     getCurrentWML,
-    getNormalized,
     getLoadedImages,
     setIntent,
     getProperties,
@@ -30,22 +29,17 @@ import {
     getSchema,
     getStandardForm,
     getInherited,
-    getBaseSchema
+    getBaseSchema,
+    getInheritedByAssetId
 } from '../../../slices/personalAssets'
-import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem, isNormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { objectFilter } from '../../../lib/objects'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
-import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaOutputTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 type LibraryAssetContextType = {
@@ -58,6 +52,7 @@ type LibraryAssetContextType = {
     standardForm: StandardForm;
     combinedStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
+    inheritedByAssetId: { assetId: string; standardForm: StandardForm }[];
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -78,6 +73,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    inheritedByAssetId: [],
     updateSchema: () => {},
     properties: {},
     loadedImages: {},
@@ -93,13 +89,6 @@ type LibraryAssetProps = {
     character?: boolean;
 }
 
-export type AssetComponent = {
-    tag: NormalItem["tag"];
-    name: GenericTree<SchemaOutputTag>;
-    render: GenericTree<SchemaOutputTag>;
-    importFrom?: string;
-}
-
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children, character }) => {
 
     const AssetId = useMemo<EphemeraCharacterId | EphemeraAssetId>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
@@ -109,6 +98,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const baseSchema = useSelector(getBaseSchema(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
+    const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
     const combinedStandardForm = useMemo((): StandardForm => {
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standardForm)
@@ -144,6 +134,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             standardForm,
             combinedStandardForm,
             inheritedStandardForm,
+            inheritedByAssetId,
             updateSchema,
             properties,
             loadedImages,

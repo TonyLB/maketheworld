@@ -3,15 +3,18 @@ import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import { createSelector } from '@reduxjs/toolkit';
+import { Standardizer } from '@tonylb/mtw-wml/dist/standardize';
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getDraftWML: (state: PersonalAssetsPublic) => string;
-    getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getBaseSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
+    getImportData: (state: PersonalAssetsPublic & { key: string }) => Record<string, GenericTree<SchemaTag, TreeId>>;
+    getInheritedByAssetId: (state: PersonalAssetsPublic & { key: string }) => { assetId: string, standardForm: StandardForm }[];
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
@@ -29,11 +32,16 @@ const getStandardForm = ({ standard }: PersonalAssetsPublic) => (standard)
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
-//
-// TODO: Refactor getNormalized to derive from schema rather than storing normal
-// separately
-//
-const getNormalized = ({ normal }: PersonalAssetsPublic) => (normal)
+const getImportData = ({ importData }: PersonalAssetsPublic) => (importData)
+
+const getInheritedByAssetId = createSelector(getImportData, (importData) => {
+    const standardFormsById = Object.entries(importData)
+        .map(([assetId, schema]) => {
+            const standardizer = new Standardizer(schema)
+            return { assetId, standardForm: standardizer.standardForm }  
+        })
+    return standardFormsById
+})
 
 const getProperties = (state: PersonalAssetsPublic) => (state.properties)
 
@@ -46,11 +54,12 @@ const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefine
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getDraftWML,
-    getNormalized,
     getSchema,
     getBaseSchema,
     getStandardForm,
     getInherited,
+    getImportData,
+    getInheritedByAssetId,
     getProperties,
     getLoadedImages,
     getSerialized
