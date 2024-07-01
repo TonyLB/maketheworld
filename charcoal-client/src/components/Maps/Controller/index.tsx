@@ -156,9 +156,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return previous
     }, [combinedStandardForm.byId])
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>, inheritedTree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
+        console.log(`extractRooms tree: ${JSON.stringify(inheritedTree, null, 4)}`)
         const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id),
-            inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper('INHERITED'), [])
+            inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(''), [])
         )
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
