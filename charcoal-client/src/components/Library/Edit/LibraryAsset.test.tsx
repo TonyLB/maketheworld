@@ -1,15 +1,11 @@
 import { render } from '@testing-library/react'
-import React from 'react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
-import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
+import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { stripIdFromNormal } from '@tonylb/mtw-wml/dist/normalize/genericId'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 const mockStore = configureStore()
