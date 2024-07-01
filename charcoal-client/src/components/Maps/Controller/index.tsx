@@ -18,6 +18,7 @@ import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
+import { addImport } from "../../../slices/personalAssets"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -87,7 +88,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode
 }
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { schema, standardForm, inheritedByAssetId, combinedStandardForm, updateSchema } = useLibraryAsset()
+    const { AssetId, schema, standardForm, inheritedByAssetId, combinedStandardForm, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -156,7 +157,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return previous
     }, [combinedStandardForm.byId])
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>, inheritedTree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
-        console.log(`extractRooms tree: ${JSON.stringify(inheritedTree, null, 4)}`)
         const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id),
             inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(''), [])
@@ -257,6 +257,12 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 else {
                     const relevantContext = localPositions.find(({ id }) => (id === action.roomId))
                     if (relevantContext) {
+                        if (relevantContext.parentId.startsWith('INHERITED#')) {
+                            const fromAsset = relevantContext.parentId.split('#')[1]
+                            if (fromAsset) {
+                                dispatch(addImport({ assetId: AssetId, fromAsset, type: 'Room', key: relevantContext.roomId }))
+                            }
+                        }
                         addRoomFactory({ parentId: dispatchParentId, schema, updateSchema })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
                     }
                 }
@@ -265,7 +271,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch])
+    }, [AssetId, mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ schema, updateSchema, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
