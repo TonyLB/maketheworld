@@ -14,9 +14,11 @@ import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
+import { useNavigate } from 'react-router-dom'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
+    const navigate = useNavigate()
     const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
     useAutoPin({
         href: `/Character/${scopedId}/Play`,
@@ -43,9 +45,14 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         if (mode in modeMapping) {
             dispatch(addOnboardingComplete([modeMapping[mode]]))
         }
-        dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
+        if (mode === 'Command' && entry.toLowerCase().trim() === 'map') {
+            navigate(`/Character/${scopedId}/Map/`)
+        }
+        else {
+            dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
+        }
         return true
-    }, [dispatch, CharacterId])
+    }, [dispatch, CharacterId, scopedId, navigate])
     return <Box sx={{
             display: 'grid',
             height: '100%',
