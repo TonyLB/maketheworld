@@ -116,7 +116,7 @@ const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boole
     ...(needsOnboarding
         ? [<Tab
             key="Onboarding"
-            label="Onboarding"
+            label="Tutorials"
             value="/Onboarding/"
             {...a11yProps(0)}
             icon={<OnboardingIcon />}

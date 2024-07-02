@@ -60,13 +60,16 @@ const onboardingChaptersRaw = [
                     <React.Fragment>
                         Welcome to this community, hosted on Make The World! We're glad you're here!
                         <br /><br />
-                        These onboarding tutorials will step you through how to use Make The World to explore what other members have created of the world,
-                        take part in stories, and make up your own new ideas to share.
+                        Make The World is a system for helping people to create stories together ... from collaborating on settings through
+                        to playing the parts of fictional characters as they each make an impact.
+                        <br /><br />
+                        These onboarding tutorials will step you through how to use Make The World to explore what other members have created
+                        of the world, take part in stories, and make up your own new ideas to share.
                         
                         { large && <React.Fragment>
                             <br /><br />
-                            You've got a lot of screen real-estate: Would you like to always show onboarding, so you can follow along easily, no matter what
-                            part of the application you're looking at?  You can always adjust that setting later in Settings.
+                            You've got a lot of screen real-estate: Would you like to always show the tutorial on-screen, so you can follow along easily, 
+                            matter what part of the application you're looking at?  You can always adjust that setting later in Settings.
                             <br /><br />{ alwaysShowSetting }
                         </React.Fragment> }
                     </React.Fragment>
@@ -84,7 +87,7 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'navigateBack',
-                        text: ({ portrait }) => (`Select the "Onboarding" tab ${ portrait ? "above" : "to the left" } in order to return.`),
+                        text: ({ portrait }) => (`Select the "Tutorials" tab ${ portrait ? "above" : "to the left" } in order to return.`),
                         icon: <Stack sx={{ alignItems: 'center' }}><OnboardingIcon fontSize="small" /><Typography sx={{ fontSize: "8pt" }}>ONBOARDING</Typography></Stack>
                     }
                 ]
@@ -119,7 +122,7 @@ const onboardingChaptersRaw = [
                 text: <React.Fragment>
                     Congratulations! Navigation tabs will help keep things organized if you start doing a lot with the application, and Knowledge will tell you about the specific world of this instance.
                     <br /><br />
-                    But that's not the only way to learn about the world. Onboarding has more chapters to lead you through more of Make The World's features.
+                    But that's not the only way to learn about the world. There are more tutorials to lead you through more of Make The World's features.
                 </React.Fragment>,
                 subItems: []
             }
@@ -224,7 +227,7 @@ const onboardingChaptersRaw = [
         pages: [
             {
                 pageKey: 'pageCreateAssetIntro',
-                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip the rest of the onboarding). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
+                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
                 subItems: []
             },
             {
@@ -235,30 +238,16 @@ const onboardingChaptersRaw = [
                     that the fans create.
                     <br /><br />
                     The point here is that in a shared story-telling space, there isn't <em>one, uniquely authoritative</em> version of the world. Instead, there are at least as many viewpoints on the story as there are people to do the viewing.
-                    Make The World supports that by organizing the data it stores into layers called "Assets". Each Asset can define a number of things about the world (rooms, features, knowledge, etc.) and can also refer to
-                    things defined in earlier assets and extend them. Think of each asset a like layers in image-editing software (but for words): A given room, for instance, can have its basic description and exits to other rooms defined in a first
-                    asset, but then get description and more exits (to other rooms) added onto it in a second asset. The world gets built up and made more complicated through successive layers.
-                </React.Fragment>,
-                subItems: []
-            },
-            {
-                pageKey: 'pageExplainCanon',
-                text: <React.Fragment>
-                    The reason to build the world in layers is to support many viewpoints: Some Assets are considered "Canon", which means that the system automatically serves up that information to everyone. But other assets are not
-                    canon, they are opt-in ... not everyone will see the changes in those assets, only those who have chosen to.
-                    <br /><br />
-                    Opting in to layers of the world is one of the fundamental ways that Make The World supports many outcomes that communities need. If you and a group of your friends want to go off and tell a wacky story of time-travel,
-                    alternate worlds, and multiverse hijinks, you can do all of that without asking anyone for permission to completely rewrite the rules of reality ... you just do it in a set of assets that only your friends opt in on.
-                    Other players might be confused about some of your conversations, but they're not going to have to deal with the mirror-universe impinging upon their own, different, stories.
+                    Make The World supports that by letting people make their own changes, and publish those for other people to share in (or not).
                 </React.Fragment>,
                 subItems: []
             },
             {
                 pageKey: 'pageExplainWorkshopping',
                 text: <React.Fragment>
-                    The other, really important, thing that layered Assets provides is a toolkit for players to start creating <em>bad first drafts</em> of their ideas, and then improve upon them. Everything that players create is first
-                    stored as assets that only they can see. They work on those until they feel that they're ready to show them around, and then use Make The World's tools to invite people to make comments and suggestions, in a process
-                    called "Workshopping" (code still being very-actively developed). Through workshopping an asset can go from private, to something available in the library, and even to being included in the canon.
+                    Giving everyone their own viewpoint provides a toolkit for players to start creating <em>bad first drafts</em> of their ideas, and then improve upon them. Everything that players create (and everything
+                    that you will create) is first stored as assets that only they can see. You'll work on those until you feel that they're ready to show them around, and then use Make The World's tools to invite people to make comments and suggestions, in a process
+                    called "Workshopping" (code still being very-actively developed). Through workshopping an asset can go from private, to something available in the library, and even to being included in the canon that everyone sees by default.
                     <br /><br />
                     Workshopping serves several purposes:
                         <ul>
@@ -268,10 +257,10 @@ const onboardingChaptersRaw = [
                             </li>
                             <li>
                                 Even among people of good will, first drafts are mostly just awful. Getting those awful first drafts "on paper" is the only way to improve them, so it's vitally important that the system not encourage
-                                writer's block by saying "Well, you need to prove your draft is at least yay-good before we put it into the system."
+                                writer's block by saying "Well, you need to prove your draft is at least <em>this good</em> before we let you store it anywhere."
                             </li>
                             <li>
-                                Even people of good will and miraculous ability are not mind-readers. To share a story with a community, you need to check in with that community, plain and simple.
+                                Even people of good will and miraculous ability are not mind-readers. To share a story with a community, you need to check in with that community, plain and simple. They'll have ideas and concerns you didn't anticipate.
                             </li>
                         </ul>
                 </React.Fragment>,
@@ -286,25 +275,60 @@ const onboardingChaptersRaw = [
                         text: `Use the navigation tabs to return to the Home page.`
                     },
                     {
-                        key: 'navigateLibrary',
-                        text: `Select the "Library" button in the "Create" section below.`
+                        key: 'navigateInPlayEdit',
+                        text: 'On the Home tab, under the "Play" section, select a character in order to see their perspective in the virtual world.'
                     }
                 ]
             },
             {
-                pageKey: 'pageDraftAsset',
-                text: `This is the Library in which Make The World organizes the Assets that make the game. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try`,
+                pageKey: 'pageMapView',
+                text: `First, it helps to get a better sense of your surroundings before figuring out where to add a new place. Get to the map view in play`,
                 subItems: [
                     {
-                        key: 'createAsset',
-                        text: 'In the Personal section, below, click Add Asset.'
+                        key: 'openMap',
+                        text: 'Either enter "map" in command mode, or click the "..." options button on bottom right and select the map icon.'
                     },
                     {
-                        key: 'nameAsset',
-                        text: 'Give the new Asset an unique name (this may take some trying ... the name must be globally unique) and click "Add"'
+                        key: 'editMap',
+                        text: 'In the upper right corner, select the pencil button to edit this map and add your own ideas to it.'
                     }
                 ]
             },
+            {
+                pageKey: 'pageDraftMap',
+                text: `You've created your own version of the map, inheriting from canon. Now you can add your own room into the map and connect it to existing ones`,
+                subItems: [
+                    {
+                        key: 'addNewRoom',
+                        text: 'Select the "New Room" item in the upper right, to create a new room to add into the map'
+                    },
+                    {
+                        key: 'positionNewRoom',
+                        text: 'Click in the map area to position the new room'
+                    },
+                    {
+                        key: 'renameNewRoom',
+                        text: `Find the new room in the 'Layers' section at right, and click the rename icon to rename it to something descriptive`
+                    }
+                ]
+            },
+            {
+                pageKey: 'pageDraftExit',
+                text: `Your room exists, but there is no way to get to it yet. You can add 'exits' to connect the room to existing rooms`,
+                subItems: [
+                    {
+                        key: 'selectExitToolbar',
+                        text: `Click the two-way exit icon in the map toolbar`
+                    },
+                    {
+                        key: 'connectNewRoom',
+                        text: 'Drag from a canon room to the new room to create exits between the two'
+                    }
+                ]
+            },
+            //
+            // TODO: Rewrite the room editing section of the tutorial
+            //
             {
                 pageKey: 'pageDraftRoom',
                 text: `You have created a personal asset that you can make private changes in. The Asset Editor can be daunting, but you'll start small. Create a new room of your own invention to include in the world`,
@@ -324,38 +348,6 @@ const onboardingChaptersRaw = [
                     {
                         key: 'describeRoom',
                         text: 'Enter a description for the room.'
-                    }
-                ]
-            },
-            {
-                pageKey: 'pageDraftImportRoom',
-                text: `Now you can find a place already in the world, and attach your room nearby. The easiest way to do that is straight from the world itself. Give it a go`,
-                subItems: [
-                    {
-                        key: 'navigatePlayWithAsset',
-                        text: 'Use the Navigation tabs to go back to the page where you are playing a character.'
-                    },
-                    {
-                        key: 'importRoom',
-                        text: 'You will note that room descriptions now include an "Edit" button. Pick a room you want to expand the world from, and click the Edit button on that room.'
-                    }
-                ]
-            },
-            {
-                pageKey: 'pageDraftExits',
-                text: `You've told Make The World that your Personal Asset will not only create your new room, it will also add content to an already existing room. Now you can change that room to make it possible to travel from there to your new room`,
-                subItems: [
-                    {
-                        key: 'navigateAssetWithImport',
-                        text: `If needed, navigate back to the library and select the imported room to get to its detail editor.`
-                    },
-                    {
-                        key: 'addExit',
-                        text: `In the Exits section, click "Add Exit". Give the exit a descriptive name, and select the key of the room you created as a destination.`
-                    },
-                    {
-                        key: 'addExitBack',
-                        text: `Click enter in the exit name, and you should be given an identical exit. Click the "here" button in it to reverse it to point back from your created room to the room you imported. Give that a descriptive name as well.`
                     }
                 ]
             },
