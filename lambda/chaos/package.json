@@ -1,0 +1,17 @@
+{
+  "name": "chaos",
+  "version": "1.0.0",
+  "description": "Lambda for chaos engineering injection of faults",
+  "main": "app.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "typescript": "^5.5.3"
+  }
+}
