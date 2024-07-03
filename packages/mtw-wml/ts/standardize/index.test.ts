@@ -450,7 +450,11 @@ describe('standardizeSchema', () => {
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
+                <Map key=(testMap)>
+                    <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
+                </Map>
             </Import>
+            <Room key=(testRoomTwo) />
             <Variable key=(testVar) />
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
@@ -458,11 +462,16 @@ describe('standardizeSchema', () => {
                 <Import from=(vanishingPoint)>
                     <Variable key=(testVar) from=(power) />
                     <Room key=(testRoomOne) />
+                    <Map key=(testMap) />
                 </Import>
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
+                <Room key=(testRoomTwo) />
+                <Map key=(testMap)>
+                    <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
+                </Map>
             </Asset>
         `))
     })
