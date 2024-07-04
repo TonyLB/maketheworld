@@ -188,6 +188,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         const assets = (assetWorkspace.standard?.metaData ?? [])
             .filter(treeNodeTypeguard(isSchemaImport))
             .map(({ data }) => (data.from))
+        const address = assetWorkspace.address
+        const player = address.zone === 'Personal' ? address.player : undefined
         return {
             key: item.key,
             EphemeraId,
@@ -203,7 +205,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             // fileURL,
             Connected: false,
             ConnectionIds: [],
-            RoomId: 'VORTEX'
+            RoomId: 'VORTEX',
+            player
         }
 
     }
