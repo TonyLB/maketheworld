@@ -153,6 +153,8 @@ export const handler = async (event: any, context: any) => {
                 else {
                     return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
                 }
+            case 'Player Connected':
+                console.log(`Player connected: ${event.detail.player}`)
         }
     }
     else {
