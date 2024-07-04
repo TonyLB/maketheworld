@@ -3,12 +3,9 @@ import React, { FunctionComponent, ReactChild, useCallback } from 'react'
 import HomeIcon from '@mui/icons-material/Home'
 import { SxProps } from '@mui/material'
 
-import { isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
-import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import MiniChip from '../../MiniChip'
 

@@ -1,16 +1,8 @@
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { addImport, removeImport } from "."
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
 
-const normalizer = new Normalizer()
-normalizer.loadWML(`<Asset key=(testAsset)>
-    <Import from=(testImport)>
-        <Room key=(testRoom) />
-    </Import>
-    <Room key=(testRoom)><Name>: imported</Name></Room>
-</Asset>`)
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
     <Import from=(testImport)>
@@ -19,8 +11,6 @@ schema.loadWML(`<Asset key=(testAsset)>
     <Room key=(testRoom)><Name>: imported</Name></Room>
 </Asset>`)
 
-const overrideGetNormalizedInternal = jest.fn()
-const overrideGetNormalized = jest.fn()
 const overrideGetSchemaInternal = jest.fn()
 const overrideGetSchema = jest.fn()
 const overrideUpdateSchemaInternal = jest.fn()
@@ -35,8 +25,6 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
-            overrideGetNormalizedInternal.mockReturnValue(normalizer.normal)
-            overrideGetNormalized.mockReturnValue(overrideGetNormalizedInternal)
             overrideGetSchemaInternal.mockReturnValue(schema.schema)
             overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
             overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
@@ -97,11 +85,6 @@ describe('personalAssets slice', () => {
         })
 
         it('should add new import item to character', () => {
-            const normalizer = new Normalizer()
-            normalizer.loadWML(`<Character key=(testCharacter)>
-                <Name>Test</Name>
-                <Import from=(testImportOne) />
-            </Character>`)
             const schema = new Schema()
             schema.loadWML(`<Character key=(testCharacter)>
                 <Name>Test</Name>
@@ -132,7 +115,7 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
-            overrideGetSchemaInternal.mockReturnValue(normalizer.schema)
+            overrideGetSchemaInternal.mockReturnValue(schema.schema)
             overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
             overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
         })

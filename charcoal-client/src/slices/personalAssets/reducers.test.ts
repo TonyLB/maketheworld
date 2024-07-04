@@ -18,7 +18,7 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'replace',
@@ -32,7 +32,7 @@ describe('personalAsset slice reducers', () => {
                         }]
                     }
                 }
-            })).schema).toEqual([{
+            })).baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: expect.any(String),
                 children: [
@@ -63,7 +63,7 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'addChild',
@@ -73,7 +73,7 @@ describe('personalAsset slice reducers', () => {
                         children: []
                     }
                 }
-            })).schema).toEqual([{
+            })).baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: expect.any(String),
                 children: [
@@ -111,13 +111,13 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'delete',
                     id: 'DEF'
                 }
-            })).schema).toEqual([{
+            })).baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: expect.any(String),
                 children: [
@@ -148,7 +148,7 @@ describe('personalAsset slice reducers', () => {
                                     data: { tag: 'If' },
                                     id: 'IF-Wrapper',
                                     children: [{
-                                        data: { tag: 'Statement', if: 'true' },
+                                        data: { tag: 'Statement', if: 'true', selected: false },
                                         id: 'IF-1',
                                         children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]
                                     }]
@@ -159,14 +159,14 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'updateNode',
                     id: 'ABC',
                     item: { tag: 'Room', key: 'lobby' }
                 }
-            })).schema).toEqual([{
+            })).baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: expect.any(String),
                 children: [
@@ -181,7 +181,7 @@ describe('personalAsset slice reducers', () => {
                                     data: { tag: 'If' },
                                     id: expect.any(String),
                                     children: [{
-                                        data: { tag: 'Statement', if: 'true' },
+                                        data: { tag: 'Statement', if: 'true', selected: false },
                                         id: expect.any(String),
                                         children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]
                                     }]
@@ -218,14 +218,14 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            expect(produce({ schema: testSchema }, (state) => updateSchema(state as any, {
+            expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'rename',
                     fromKey: 'room2',
                     toKey: 'garden'
                 }
-            })).schema).toEqual([{
+            })).baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: 'UUID1',
                 children: [
@@ -275,7 +275,7 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }]
-            const testOutput = produce({ schema: testSchema, baseSchema: [] }, (state) => updateSchema(state as any, {
+            const testOutput = produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
                 type: 'updateSchema',
                 payload: {
                     type: 'rename',
@@ -283,7 +283,7 @@ describe('personalAsset slice reducers', () => {
                     toKey: 'clockTower'
                 }
             }))
-            expect(testOutput.schema).toEqual([{
+            expect(testOutput.baseSchema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: 'UUID1',
                 children: [

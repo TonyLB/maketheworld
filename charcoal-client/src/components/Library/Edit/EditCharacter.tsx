@@ -35,7 +35,7 @@ import {
     setLoadedImage,
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { isNormalImport, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'

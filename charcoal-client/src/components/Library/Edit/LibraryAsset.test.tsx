@@ -4,7 +4,6 @@ import configureStore from 'redux-mock-store'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
@@ -53,10 +52,10 @@ inheritedSchema.loadWML(`<Asset key=(Test)>
     </Inherited>
 </Asset>`)
 
-const standardizer = new Standardizer(inheritedSchema.schema, baseSchema)
-const schema = standardizer.schema
-const normalizer = new Normalizer()
-normalizer.loadSchema(schema)
+const standardizer = new Standardizer(baseSchema)
+const inheritedStandardizer = new Standardizer(inheritedSchema.schema)
+const combinedStandardizer = inheritedStandardizer.merge(standardizer)
+const schema = combinedStandardizer.schema
 
 const store = mockStore({
     personalAssets: {
@@ -67,7 +66,8 @@ const store = mockStore({
                     currentWML,
                     baseSchema,
                     schema,
-                    normal: normalizer.normal,
+                    standard: standardizer.standardForm,
+                    inherited: inheritedStandardizer.standardForm,
                     importDefaults: {},
                     importData: {
                         BASE: inheritedSchema.schema
