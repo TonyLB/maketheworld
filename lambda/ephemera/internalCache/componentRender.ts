@@ -518,9 +518,9 @@ export class ComponentRenderData {
         }
         if (isEphemeraMapId(EphemeraId)) {
             const assets = Object.assign({}, ...allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
+                .filter((assetId) => (Boolean(appearancesByAsset[assetId].key)))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraMap[]
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId]?.key ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraMap[]
             //
             // TODO: Refactor mapRoom handling to use GenericTree<SchemaTag> instead of bespoke MapRoom structures
             //
