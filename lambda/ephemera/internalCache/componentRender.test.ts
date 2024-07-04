@@ -116,6 +116,62 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
+    it('should render room descriptions and headers differently', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            Base: {
+                EphemeraId: 'ROOM#TestOne',
+                assetId: 'Base',
+                shortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+                name: [],
+                summary: [{ data: { tag: 'String', value: 'Summary' }, children: [] }],
+                render: [{ data: { tag: 'String', value: 'Description' }, children: [] }],
+                exits: [],
+                key: 'testRoom',
+                stateMapping: {},
+                keyMapping: {}
+            }
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
+        ])
+        const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(descriptionOutput).toEqual({
+            RoomId: 'ROOM#TestOne',
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'Description' }],
+            Exits: [],
+            assets: {
+                ['ASSET#Base']: 'testRoom',
+            }
+        })
+        const summaryOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne', { header: true })
+        expect(summaryOutput).toEqual({
+            RoomId: 'ROOM#TestOne',
+            ShortName: [{ tag: 'String', value: 'TestRoom' }],
+            Name: [],
+            Summary: [{ tag: 'String', value: 'Summary' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [],
+            Exits: [],
+            assets: {
+                ['ASSET#Base']: 'testRoom',
+            }
+        })
+    })
+
     it('should render only features correctly', async () => {
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
