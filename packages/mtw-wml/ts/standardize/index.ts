@@ -665,7 +665,7 @@ export class Standardizer {
                         .prune({ before: nodeMatch })
                     switch(tag) {
                         case 'Room':
-                            filteredTagTree = filteredTagTree.filter({ not: { match: 'Position' }})
+                            filteredTagTree = filteredTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
                             break
                         case 'Map':
                             filteredTagTree = tagTree
