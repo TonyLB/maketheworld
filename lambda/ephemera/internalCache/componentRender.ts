@@ -1,9 +1,9 @@
-import { ComponentMeta, ComponentMetaData, ComponentMetaFromId, ComponentMetaId, ComponentMetaItem } from './componentMeta'
+import { ComponentMeta, ComponentMetaData, ComponentMetaFromId, ComponentMetaId } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraBookmark, EphemeraCondition, EphemeraFeature, EphemeraItem, EphemeraKnowledge, EphemeraMap, EphemeraMessage, EphemeraRoom, isEphemeraMapItem, isEphemeraRoomItem } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
-import { unique } from '@tonylb/mtw-utilities/dist/lists';
+import { unique } from '@tonylb/mtw-utilities/ts/lists';
 import AssetState, { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
     EphemeraAssetId,
@@ -31,7 +31,7 @@ import {
 import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
-import { splitType } from '@tonylb/mtw-utilities/dist/types';
+import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
 import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
@@ -54,6 +54,7 @@ type ComponentDescriptionCache = {
 
 type ComponentRenderGetOptions = {
     priorRenderChain?: string[];
+    header?: boolean;
 }
 
 export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (address: EvaluateCodeAddress) => Promise<boolean>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
@@ -122,7 +123,7 @@ export const evaluateSchemaBookmarks = <T extends SchemaTag>(renderBookmark: (bo
     }
 }
 
-const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraBookmarkId | EphemeraMessageId) => (`${CharacterId}::${EphemeraId}`)
+const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraBookmarkId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
 
 export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
     //
@@ -420,7 +421,8 @@ export class ComponentRenderData {
         >(
             nameMapping: {
                 [P in { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]]: { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
-            }
+            },
+            excluded: ({ [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T])[] = []
         ): Promise<Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>> => {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as unknown as T[]
             //
@@ -430,7 +432,7 @@ export class ComponentRenderData {
                 from: from as { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T],
                 to: to as { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
             }))
-            const evaluatePromise = await Promise.all(remapped.map(({ from }) => (evaluateSchemaOutputPromise(assetData, from))))
+            const evaluatePromise = await Promise.all(remapped.map(({ from }) => (excluded.includes(from) ? Promise.resolve([]) : evaluateSchemaOutputPromise(assetData, from))))
             return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
                 Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>
         }
@@ -442,7 +444,9 @@ export class ComponentRenderData {
             const [roomCharacterList, exits, rest] = (await Promise.all([
                 this._roomCharacterList(EphemeraId),
                 evaluateSchemaPromise(assetData, 'exits'),
-                mapEvaluatedSchemaOutputPromise<EphemeraRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', render: 'Description' })
+                (getOptions && ('header' in getOptions) && getOptions.header)
+                    ? mapEvaluatedSchemaOutputPromise<EphemeraRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', render: 'Description' }, ['render'])
+                    : mapEvaluatedSchemaOutputPromise<EphemeraRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', render: 'Description' }, ['summary'])
             ]))
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
@@ -612,7 +616,7 @@ export class ComponentRenderData {
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<MessageDescribeData>
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem>
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem> {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId)
+        const cacheKey = generateCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
             // TODO: Figure out how to convince Typescript to evaluate each branch independently, *without* having
@@ -620,7 +624,8 @@ export class ComponentRenderData {
             //
             if (isEphemeraRoomId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
+                    promiseFactory: () => (
+                        (options && 'header' in options && options.header) ? this._getPromiseFactory(CharacterId, EphemeraId, options): this._getPromiseFactory(CharacterId, EphemeraId, { priorRenderChain: options?.priorRenderChain })),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {

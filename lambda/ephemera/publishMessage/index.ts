@@ -216,7 +216,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 RoomId: payload.RoomId,
                 Name: payload.Name,
-                Description: payload.Description,
+                Description: payload.displayProtocol === 'RoomDescription' ? payload.Description : payload.Summary,
                 Characters: payload.Characters,
                 Exits: payload.Exits,
                 assets: payload.assets

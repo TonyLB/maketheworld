@@ -113,7 +113,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             if (isEphemeraRoomId(payload.ephemeraId)) {
                 const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
                 await Promise.all(characterList.map(async (characterId) => {
-                    const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
+                    const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId, { header: payload.header })
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [characterId],
