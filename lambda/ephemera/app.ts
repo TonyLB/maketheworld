@@ -32,6 +32,7 @@ import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
+import { confirmGuestCharacter } from './guestCharacter'
 
 export const handler = async (event: any, context: any) => {
 
@@ -154,7 +155,9 @@ export const handler = async (event: any, context: any) => {
                     return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
                 }
             case 'Player Connected':
-                console.log(`Player connected: ${event.detail.player}`)
+                await confirmGuestCharacter(event.detail.player)
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
         }
     }
     else {
