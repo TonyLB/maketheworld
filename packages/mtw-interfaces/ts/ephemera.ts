@@ -436,7 +436,7 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             if (!('messages' in message)) {
                 return false
             }
-            if ('LastSync' in message && typeof message.LastSync !== 'number') {
+            if ('LastSync' in message && typeof message.LastSync !== 'number' && message.LastSync !== null) {
                 return false
             }
             const messages = message.messages

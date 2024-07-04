@@ -493,6 +493,22 @@ describe('standardizeSchema', () => {
             tag: 'Room',
             themes: []
         })
+        const mapTest = schemaTestStandarized(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Room key=(testRoomOne)><Position x="0" y="100" /></Room>
+            </Map>
+        </Asset>`)
+        expect(mapTest._byId.testRoomOne).toEqual({
+            description: { data: { tag: 'Description' }, id: '', children: [] },
+            exits: [],
+            id: expect.any(String),
+            key: 'testRoomOne',
+            name: { data: { tag: 'Name' }, id: '', children: [] },
+            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            tag: 'Room',
+            themes: []
+        })
     })
 
     it('should render unedited imports correctly', () => {
