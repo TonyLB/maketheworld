@@ -14,7 +14,10 @@ export type CharacterMetaItem = {
     HomeId: EphemeraRoomId;
     assets: string[];
     Pronouns: NormalCharacterPronouns;
+    player?: string;
 }
+
+type CharacterMetaFetch = Omit<CharacterMetaItem, 'RoomId' | 'HomeId' > & { RoomId?: string; HomeId?: string; }
 
 const defaultRoomStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
 
@@ -27,19 +30,20 @@ export class CacheCharacterMetaData {
     async get(characterId: EphemeraCharacterId, options?: { check: false }): Promise<CharacterMetaItem>
     async get(characterId: EphemeraCharacterId, options?: { check: boolean }): Promise<CharacterMetaItem | undefined> {
         if (!(this.CharacterMetaById[characterId])) {
-            const characterData = await ephemeraDB.getItem<Omit<CharacterMetaItem, 'RoomId' | 'HomeId' > & { RoomId?: string; HomeId?: string; }>({
+            const characterData: CharacterMetaFetch = await ephemeraDB.getItem<CharacterMetaFetch>({
                     Key: {
                         EphemeraId: characterId,
                         DataCategory: 'Meta::Character'
                     },
-                    ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'RoomStack', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns']
-                }) || { EphemeraId: '', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
-            if (options?.check && !characterData.EphemeraId) {
+                    ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'RoomStack', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns', 'player']
+                }) || { EphemeraId: 'CHARACTER#', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+            if (options?.check && !(characterData.EphemeraId.split('#').slice(1)[0])) {
                 return undefined
             }
+            const { player } = characterData
             this.CharacterMetaById[characterId] = {
                 ...characterData,
-                assets: characterData.assets || [],
+                assets: [...(player ? [`draft[${player}]`] : []), ...(characterData.assets || [])],
                 RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
                 RoomStack: characterData.RoomStack ?? defaultRoomStack,
                 HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,

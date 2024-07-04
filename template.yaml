@@ -271,6 +271,7 @@ Resources:
                 - Decanonize Asset
                 - Set Canon Assets
                 - Disconnect Character
+                - Player Connected
         Development:
           Type: CloudWatchEvent
           Properties:

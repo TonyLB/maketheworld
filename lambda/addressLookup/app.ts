@@ -14,12 +14,12 @@ export const handler = async (event) => {
         assetId.startsWith('ASSET#draft[') && assetId.endsWith(']')
     )
     const draftAssetIds = (assetIds as string[]).filter(isDraftAssetId)
-    const nonDraftAssetIds = (assetIds as string[]).filter((assetId) => (!isDraftAssetId))
+    const nonDraftAssetIds = (assetIds as string[]).filter((assetId) => (!isDraftAssetId(assetId)))
 
     const addressfetches = (await assetDB.getItems<MetaCache>({
         Keys: nonDraftAssetIds.map((AssetId) => ({
             AssetId,
-            DataCategory: `Meta::${tag}`
+            DataCategory: `Meta::${tag ?? (AssetId.split('#')[0] === 'CHARACTER' ? 'Character' : 'Asset')}`
         })),
         ProjectionFields: ['AssetId', 'address']
     })) || []

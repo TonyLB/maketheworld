@@ -188,6 +188,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         const assets = (assetWorkspace.standard?.metaData ?? [])
             .filter(treeNodeTypeguard(isSchemaImport))
             .map(({ data }) => (data.from))
+        const address = assetWorkspace.address
+        const player = address.zone === 'Personal' ? address.player : undefined
         return {
             key: item.key,
             EphemeraId,
@@ -203,7 +205,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             // fileURL,
             Connected: false,
             ConnectionIds: [],
-            RoomId: 'VORTEX'
+            RoomId: 'VORTEX',
+            player
         }
 
     }
@@ -272,7 +275,7 @@ const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter
 }
 
 export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }, meta?: CharacterMetaItem) => {
-    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
+    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'player']
     await ephemeraDB.optimisticUpdate({
         Key: {
             EphemeraId: character.EphemeraId,

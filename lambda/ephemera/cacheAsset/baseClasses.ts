@@ -131,6 +131,7 @@ export type EphemeraCharacter = {
     ConnectionIds: string[];
     RoomId: string;
     assets: string[];
+    player?: string;
 }
 
 export type EphemeraAction = {
