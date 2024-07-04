@@ -19,6 +19,7 @@ import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
 import { addImport } from "../../../slices/personalAssets"
+import { objectFilter } from "../../../lib/objects"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -242,11 +243,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 //
                 // If roomId references a cascadeNode in that iterator, add it (at that location), otherwise no-op
                 //
-
-                //
-                // TODO: ISS-3917: Embed information about the asset source of a node, so that at this
-                // point you can addImport if necessary
-                //
                 const relevantMapDThreeIterator = mapD3.tree.layers.find(({ key }) => (key === dispatchParentId))
                 if (relevantMapDThreeIterator) {
                     const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
@@ -272,8 +268,14 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 return
         }
     }, [AssetId, mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch])
+    const addExitImport = useCallback((key: string) => {
+        const relevantAssets = inheritedByAssetId.filter(({ standardForm }) => (key in standardForm.byId))
+        if (relevantAssets.length) {
+            dispatch(addImport({ assetId: AssetId, fromAsset: relevantAssets[0].assetId, type: 'Room', key }))
+        }
+    }, [inheritedByAssetId, dispatch])
     useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ standardForm: combinedStandardForm, updateSchema, parentId: dispatchParentId })
+        const addExitFactoryOutput = addExitFactory({ standardForm, combinedStandardForm, updateSchema, addImport: addExitImport, parentId: dispatchParentId })
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
@@ -287,7 +289,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             },
             onAddExit
         })
-    }, [mapD3, mapId, onTick, combinedStandardForm, schema, updateSchema, dispatchParentId])
+    }, [addExitImport, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSchema, dispatchParentId])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
