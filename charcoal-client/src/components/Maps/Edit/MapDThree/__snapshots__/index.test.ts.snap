@@ -3,6 +3,7 @@
 exports[`MapDThree should initialize stack on construction 1`] = `
 Array [
   Object {
+    "inherited": Array [],
     "onStabilize": undefined,
     "onTick": undefined,
     "tree": Array [

@@ -1,5 +1,4 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
@@ -54,7 +53,6 @@ export interface PersonalAssetsPublic {
     // inherited is the standard form of data inherited from imports
     //
     inherited: StandardForm;
-    normal: NormalForm;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;

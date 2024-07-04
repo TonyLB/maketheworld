@@ -8,8 +8,6 @@ import {
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 
-import { NormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-
 interface MapHeaderProps {
     itemId: string;
     onClick: () => void;

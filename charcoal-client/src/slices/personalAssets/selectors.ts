@@ -1,6 +1,5 @@
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
 import { createSelector } from '@reduxjs/toolkit';

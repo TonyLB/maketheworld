@@ -1,4 +1,3 @@
-import { NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
 import {
     SimulationNodeDatum,
     SimulationLinkDatum

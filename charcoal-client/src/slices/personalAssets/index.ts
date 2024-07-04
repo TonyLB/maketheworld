@@ -22,7 +22,6 @@ import { addAsset } from '../player'
 import { SchemaImportMapping, SchemaImportTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
-import { SchemaTagWithNormalEquivalent } from '@tonylb/mtw-wml/dist/normalize'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -44,7 +43,6 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            normal: {},
             standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             baseSchema: [],
@@ -71,7 +69,6 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                normal: {},
                 standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 baseSchema: [],

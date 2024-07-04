@@ -1,7 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -10,13 +9,36 @@ import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { Schema } from '@tonylb/mtw-wml/dist/schema'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
-    const normalizer = new Normalizer()
-    normalizer.loadWML(newCurrent.payload.value)
-    state.normal = normalizer.normal
     state.draftWML = undefined
+    const schema = new Schema()
+    schema.loadWML(newCurrent.payload.value)
+    const standardizer = new Standardizer(schema.schema)
+    state.baseSchema = standardizer.schema
+    state.standard = standardizer.standardForm
+    const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
+    const importsStandardizer = new Standardizer(
+        ...Object.values(state.importData)
+            .map((tree) => (
+                tree.length === 1 && isSchemaAsset(tree[0].data)
+                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                    : []
+            ))
+            .filter((tree) => (tree.length))
+    )
+    importsStandardizer.loadStandardForm({
+        byId: importsStandardizer._byId,
+        key: baseKey,
+        tag: 'Asset',
+        metaData: standardizer.metaData
+    })
+    const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
+    state.inherited = inheritedStandardizer.standardForm
+    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
+    state.schema = combinedStandardizer.schema
 }
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -202,7 +224,6 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             state.baseSchema = deletedSchema
             break
     }
-    const normalizer = new Normalizer()
     // const standardizer = deriveWorkingStandardizer(state)
     const standardizer = new Standardizer(state.baseSchema)
     state.baseSchema = standardizer.schema
@@ -227,13 +248,10 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
     state.inherited = inheritedStandardizer.standardForm
     const combinedStandardizer = inheritedStandardizer.merge(standardizer)
     state.schema = combinedStandardizer.schema
-    normalizer.loadSchema(state.schema)
-    state.normal = normalizer.normal
 }
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
-    const normalizer = new Normalizer()
     const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
     const standardizer = new Standardizer()
     standardizer.loadStandardForm(state.standard)
@@ -256,6 +274,4 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
     state.inherited = inheritedStandardizer.standardForm
     const combinedStandardizer = inheritedStandardizer.merge(standardizer)
     state.schema = combinedStandardizer.schema
-    normalizer.loadSchema(state.schema)
-    state.normal = normalizer.normal
 }

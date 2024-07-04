@@ -39,7 +39,7 @@ out at every single component
 ### useLibraryAsset
 
 ```ts
-    const { assetKey, normalForm, schema, updateSchema, defaultAppearances, updateWML, rooms } = useLibraryAsset()
+    const { assetKey, schema, updateSchema, defaultAppearances, updateWML, rooms } = useLibraryAsset()
 ```
 
 ---
@@ -55,7 +55,6 @@ out at every single component
 - ***currentWML***: The text of the currently stored WML for the asset
 - ***draftWML***: The text of the current WML in the editor (which may differ from currentWML
 if the editor is in an unparsable error state)
-- ***normalForm***: The normal form of all current data for the asset
 - ***defaultAppearances***: The basic appearance of all components in the asset
 *as inherited from* the import-tree of assets they are imported from (before the
 changes in the asset itself)

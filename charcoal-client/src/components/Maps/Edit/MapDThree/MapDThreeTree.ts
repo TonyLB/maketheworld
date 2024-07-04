@@ -271,7 +271,7 @@ export class MapDThreeTree extends Object {
     onStability: SimCallback = () => {};
     onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
-    _inherited: MapDThreeIterator = new MapDThreeIterator('', [], [])
+    _inherited?: MapDThreeIterator
     _cascadeIndex?: number;
     _visibleLayers: number[] = [];
 
@@ -307,7 +307,7 @@ export class MapDThreeTree extends Object {
                         { ...node, layers: [layerIndex, ...(previousNode?.layers ?? [])] }
                     ]
                 }, previous)
-        }, this._inherited._nodes.map((node) => ({ ...node, layers: [] })))
+        }, (this._inherited?._nodes ?? []).map((node) => ({ ...node, layers: [] })))
     }
 
     get nodes(): (SimNode & { layers: number[] })[] {
@@ -343,7 +343,9 @@ export class MapDThreeTree extends Object {
             return previous
         }
         const inheritedLayer = tree.reduce(reduceCallback, { key: '', nodes: [], links: [], visible: true })
-        this._inherited = new MapDThreeIterator(inheritedLayer.key, inheritedLayer.nodes, inheritedLayer.links)
+        if (inheritedLayer.key) {
+            this._inherited = new MapDThreeIterator(inheritedLayer.key, inheritedLayer.nodes, inheritedLayer.links)
+        }
         if (this._visibleLayers.length) {
             this.layers[this._visibleLayers.slice(-1)[0]].setCallbacks({ onTick: this.cascade.bind(this) })
         }

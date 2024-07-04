@@ -1,4 +1,3 @@
-import { NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import {
     CustomActionLinkElement,
     CustomBlock,
