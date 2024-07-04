@@ -98,7 +98,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
     const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
-    const tree = useMemo(() => ([mapTreeMemo(standardForm, mapId)]), [standardForm, mapId])
+    const tree = useMemo(() => (mapTreeMemo(standardForm, mapId).children), [standardForm, mapId])
     const inheritedTree = useMemo(() => (inheritedByAssetId.map(({ standardForm }) => (mapTreeMemo(standardForm, mapId)))), [inheritedByAssetId, mapId])
 
     //
