@@ -13,6 +13,8 @@ import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { useDispatch } from "react-redux"
+import { addOnboardingComplete } from "../../../../slices/player/index.api"
 
 type UnshownRoomsProps = {
 
@@ -21,6 +23,7 @@ type UnshownRoomsProps = {
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const { standardForm, combinedStandardForm } = useLibraryAsset()
     const { tree, inherited, UI: { itemSelected }, mapDispatch } = useMapContext()
+    const dispatch = useDispatch()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')([...tree, ...inherited])), [tree, inherited])
     const unshownRoomItems = Object.values(standardForm.byId)
         .filter(isStandardRoom)
@@ -40,7 +43,9 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                     dense
                     sx={{ width: '100%' }}
                     selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
-                    onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})}}
+                    onClick={() => { 
+                        mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})
+                    }}
                 >
                     <ListItemAvatar>
                         <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
@@ -53,7 +58,10 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
             dense
             sx={{ width: '100%' }}
             selected={itemSelected?.type === 'UnshownRoomNew'}
-            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})}}
+            onClick={() => {
+                dispatch(addOnboardingComplete(['addNewRoom']))
+                mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})
+            }}
         >
             <ListItemAvatar>
                 <AddIcon sx={{ fontSize: "15px", color: grey[500] }} />

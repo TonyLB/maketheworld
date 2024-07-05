@@ -11,6 +11,7 @@ import RoomIcon from '@mui/icons-material/Home'
 import MoveIcon from '@mui/icons-material/OpenWith'
 import { useMapContext } from '../../Controller'
 import { ToolSelected } from '../../Controller/baseClasses'
+import useOnboarding, { useNextOnboarding } from '../../../Onboarding/useOnboarding'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {
@@ -37,6 +38,8 @@ interface ToolSelectGroups {
 export const ToolSelect: FunctionComponent<{}> = () => {
     const { UI: { toolSelected }, mapDispatch } = useMapContext()
     const classes = localStyles()
+    const nextOnboarding = useNextOnboarding()
+    const [_, addOnboarding] = useOnboarding('selectExitToolbar')
     const tools: ToolSelectGroups[] = [
         {
             key: 'Select',
@@ -71,6 +74,9 @@ export const ToolSelect: FunctionComponent<{}> = () => {
                             colorPrimary: classes['normal.selected']
                         }}
                         onClick={() => {
+                            if (nextOnboarding === 'selectExitToolbar' && key === 'TwoWayExit') {
+                                addOnboarding()
+                            }
                             mapDispatch({ type: 'SetToolSelected', value: key })
                         }}
                         size="large">

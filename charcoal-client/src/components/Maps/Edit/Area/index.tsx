@@ -5,6 +5,8 @@ import { useMapContext } from '../../Controller'
 import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaAssetTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { useDispatch } from 'react-redux'
+import { addOnboardingComplete } from '../../../../slices/player/index.api'
 
 type MapAreaProps = {
     fileURL?: string;
@@ -33,6 +35,7 @@ export const treeToExits = (tree: GenericTree<SchemaAssetTag | SchemaRoomTag | S
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
 
     const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, inherited, mapDispatch } = useMapContext()
+    const dispatch = useDispatch()
     const exits = useMemo(() => (treeToExits([...inherited, ...tree])), [inherited, tree])
 
     const exitDragSourceRoom = useMemo(() => (exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))), [exitDrag, rooms])
@@ -63,10 +66,11 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) =
                     mapDispatch({ type: 'SelectItem' })
                     break
                 case 'UnshownRoomNew':
+                    dispatch(addOnboardingComplete(['positionNewRoom']))
                     mapDispatch({ type: 'AddRoom', x: clientX, y: clientY })
             }
         }
-    }, [itemSelected, mapDispatch])
+    }, [itemSelected, mapDispatch, dispatch])
     return <React.Fragment>
         <MapDisplay
             fileURL={fileURL}

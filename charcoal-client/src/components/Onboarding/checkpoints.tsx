@@ -9,6 +9,7 @@ import NarrateMessageIcon from '@mui/icons-material/Receipt'
 import OOCMessageIcon from '@mui/icons-material/CropFree'
 import CommandIcon from '@mui/icons-material/Code'
 import ExitIcon from '@mui/icons-material/ExitToApp'
+import RenameIcon from "../Maps/Edit/MapLayers/RenameIcon"
 
 type DeepReadonly<T> =
     T extends (infer R)[] ? DeepReadonlyArray<R> :
@@ -223,11 +224,10 @@ const onboardingChaptersRaw = [
     {
         chapterKey: 'CreateAsset',
         title: 'Make changes to the world',
-        lock: 'endPlayCharacter',
         pages: [
             {
                 pageKey: 'pageCreateAssetIntro',
-                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
+                text: `Plenty of people enjoy just playing roles in the story (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
                 subItems: []
             },
             {
@@ -308,7 +308,8 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'renameNewRoom',
-                        text: `Find the new room in the 'Layers' section at right, and click the rename icon to rename it to something descriptive`
+                        text: `Find the new room in the 'Layers' section at right, and click the rename icon to rename it to something descriptive`,
+                        icon: <Stack sx={{ alignItems: 'center' }}><RenameIcon /></Stack>
                     }
                 ]
             },
@@ -331,44 +332,30 @@ const onboardingChaptersRaw = [
             //
             {
                 pageKey: 'pageDraftRoom',
-                text: `You have created a personal asset that you can make private changes in. The Asset Editor can be daunting, but you'll start small. Create a new room of your own invention to include in the world`,
+                text: `You have created a new room that you can make private changes in. Time to add some details`,
                 subItems: [
                     {
-                        key: 'addRoom',
-                        text: `In the Rooms subsection, below, click the Add Room button, and give the room an internal key.`
-                    },
-                    {
                         key: 'navigateRoom',
-                        text: `Click the new (Untitled) room item to navigate to its detail editor.`
+                        text: `In the map layers at right, click the edit button on your room to navigate to the room details.`
                     },
                     {
-                        key: 'nameRoom',
-                        text: 'Enter a name for the room.'
+                        key: 'summarizeRoom',
+                        text: 'Enter a summary for the room to be shown when people first arrive.'
                     },
                     {
                         key: 'describeRoom',
-                        text: 'Enter a description for the room.'
+                        text: 'Enter a more detailed description for the room if they look more closely.'
                     }
                 ]
             },
             {
                 pageKey: 'pageDraftSave',
-                text: `You have a draft of a new creation for the shared world, now it's time to let the system know about it`,
+                text: `You have a draft of a new creation for the shared world. Once you save it, you will be able to see the changes in-play`,
                 subItems: [
                     {
                         key: 'saveAsset',
-                        text: `Close the detail editor and return to the main table-of-contents for your new Asset. Press the "Save" button at upper right to send your draft to the system.`
+                        text: `Close the detail editor and return to the Draft tab. Press the "Save" button at upper right to send your draft to the system.`
                     },
-                    {
-                        key: 'navigateLibraryAfterAsset',
-                        text: `Select the main Library on the navigation tabs.`
-                    }
-                ]
-            },
-            {
-                pageKey: 'pageDraftNavigate',
-                text: `You've updated the system to know about your asset. Time to go take a look in-character`,
-                subItems: [
                     {
                         key: 'navigatePlayWithPersonalRoom',
                         text: `Navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`
@@ -381,7 +368,7 @@ const onboardingChaptersRaw = [
             },
             {
                 pageKey: 'pageCreateAssetCongratulations',
-                text: `Congratulations! You've learned how to use Make The World to create new assets and extend the world. This is the basic tool that people use to generate the entire setting for shared stories.`,
+                text: `Congratulations! You've learned how to use Make The World to create places and extend the world. This is the basic tool that people use to generate the entire setting for shared stories.`,
                 subItems: []
             }
         ]
