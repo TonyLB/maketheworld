@@ -350,7 +350,7 @@ const onboardingChaptersRaw = [
             },
             {
                 pageKey: 'pageDraftSave',
-                text: `You have a draft of a new creation for the shared world, now it's time to save it`,
+                text: `You have a draft of a new creation for the shared world. Once you save it, you will be able to see the changes in-play`,
                 subItems: [
                     {
                         key: 'saveAsset',
