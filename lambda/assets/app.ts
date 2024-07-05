@@ -217,7 +217,7 @@ export const handler = async (event, context) => {
                     player,
                     requestId: request.RequestId,
                     connectionId,
-                    assetId: request.AssetId,
+                    assetId: request.AssetId === 'ASSET#draft' ? `ASSET#draft[${player}]` : request.AssetId,
                     images: request.images,
                     uploadName: request.uploadName,
                     create: request.create,
