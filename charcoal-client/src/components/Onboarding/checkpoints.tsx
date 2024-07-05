@@ -223,11 +223,10 @@ const onboardingChaptersRaw = [
     {
         chapterKey: 'CreateAsset',
         title: 'Make changes to the world',
-        lock: 'endPlayCharacter',
         pages: [
             {
                 pageKey: 'pageCreateAssetIntro',
-                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
+                text: `Plenty of people enjoy just playing roles in the story (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
                 subItems: []
             },
             {
