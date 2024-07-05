@@ -227,7 +227,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
-    const { standardForm } = useLibraryAsset()
+    const { standardForm, combinedStandardForm } = useLibraryAsset()
     const { data } = item
     const { mapDispatch } = useMapContext()
     const onClick = useCallback((id: string) => {
@@ -243,7 +243,9 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Position':
             return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
-            return <ExitLayer name={data.to} />
+            const destinationComponent = combinedStandardForm.byId[data.to]
+            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(destinationComponent.shortName.children) : ''
+            return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema tag="If" field={item} parentId="">
                 <IfElseTree
