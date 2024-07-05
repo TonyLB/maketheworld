@@ -18,7 +18,7 @@ import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
-import { addImport } from "../../../slices/personalAssets"
+import { addImport, getInherited } from "../../../slices/personalAssets"
 import { objectFilter } from "../../../lib/objects"
 
 const MapContext = React.createContext<MapContextType>({
@@ -56,7 +56,7 @@ const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeI
     }, undefined)
 }
 
-const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag, TreeId> => {
+const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string[]): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag, TreeId> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
     const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag => (
         isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
@@ -71,8 +71,13 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode
                 : [{ data, ...rest, children: filterRoomsWithChildren(children) }]
         )).flat(1)
     }
+    //
+    // TODO: ISS3954: roomKeys must select from positions in both incoming standardForm and
+    // any inheritance (to catch exits from rooms that are imported by not positioned within
+    // the base asset's version of the map)
+    //
     const positions = mapComponent?.positions ?? []
-    const roomKeys = selectKeysByTag('Room')(positions)
+    const roomKeys = allKeys ?? selectKeysByTag('Room')(positions)
     const roomAndExits = roomKeys
         .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
         .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
@@ -99,7 +104,13 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
     const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
-    const tree = useMemo(() => (mapTreeMemo(standardForm, mapId).children), [standardForm, mapId])
+    const tree = useMemo(() => {
+        const mapComponent = combinedStandardForm.byId[mapId]
+        const allKeys = (mapComponent && isStandardMap(mapComponent))
+            ? selectKeysByTag('Room')(mapComponent.positions)
+            : undefined
+        return mapTreeMemo(standardForm, mapId, allKeys).children
+    }, [standardForm, combinedStandardForm, mapId])
     const inheritedTree = useMemo(() => (inheritedByAssetId.map(({ standardForm }) => (mapTreeMemo(standardForm, mapId)))), [inheritedByAssetId, mapId])
 
     //
