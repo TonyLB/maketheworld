@@ -19,7 +19,7 @@ import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
 import { addImport, getInherited } from "../../../slices/personalAssets"
-import { objectFilter } from "../../../lib/objects"
+import { addOnboardingComplete } from "../../../slices/player/index.api"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -289,6 +289,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
+                dispatch(addOnboardingComplete(['connectNewRoom']))
                 addExitFactoryOutput({ from: toRoomId, to: fromRoomId })
             }
         }
@@ -299,7 +300,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             },
             onAddExit
         })
-    }, [addExitImport, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSchema, dispatchParentId])
+    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSchema, dispatchParentId])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
