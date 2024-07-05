@@ -672,7 +672,11 @@ export class Standardizer {
                                 .filter(nodeMatch)
                                 .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
                                 .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { or: [{ match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] } ]}, { match: 'Inherited' }])
+                                .filter(({ or: [{ match: 'Image' }, { match: 'Name' }, { match: 'Theme' }, { and: [{ match: 'If' }, { not: { match: 'Room' }}] }, { and: [{ match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }]}] }]}))
                                 .prune({ before: nodeMatch })
+                            if (!filteredTagTree.tree.length) {
+                                filteredTagTree = tagTree.prune({ not: { match: 'Map' }})
+                            }
                             break
                     }
                     const items = unmarkInherited(maybeGenericIDFromTree(filteredTagTree.tree))
