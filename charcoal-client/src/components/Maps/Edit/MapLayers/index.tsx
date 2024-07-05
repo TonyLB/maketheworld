@@ -24,6 +24,8 @@ import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import ConnectionTable from '../../../Library/Edit/ConnectionTable'
+import { addOnboardingComplete } from '../../../../slices/player/index.api'
+import { useDispatch } from 'react-redux'
 
 type MapLayersProps = {
     mapId: string;
@@ -39,6 +41,7 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean }> = ({ id, roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
+    const dispatch = useDispatch()
     const { inheritedInvisible } = useMapLayersContext()
     const { standardForm, updateSchema } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
@@ -50,6 +53,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
         if (!(roomComponent && isStandardRoom(roomComponent))) {
             return
         }
+        dispatch(addOnboardingComplete(['renameNewRoom']))
         if (value !== schemaOutputToString(roomComponent.shortName.children) ?? roomId) {
             if (roomComponent.shortName.id) {
                 updateSchema({
@@ -69,7 +73,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                 })
             }
         }
-    }, [standardForm, updateSchema, roomId, name])
+    }, [standardForm, updateSchema, roomId, name, dispatch])
     return <React.Fragment>
         <ListItemButton
             dense

@@ -13,6 +13,7 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
 import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardMap, isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
 type MapEditProps = {
 }
@@ -29,6 +30,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         mapId: `MAP#${mapId}`,
         cascadingClose: true
     })
+    useOnboardingCheckpoint('editMap', { requireSequence: true })
     const mapComponent = useMemo<StandardMap | undefined>(() => {
         const mapComponent = standardForm.byId[mapId]
         if (mapComponent && isStandardMap(mapComponent)) {

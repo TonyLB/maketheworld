@@ -25,6 +25,7 @@ import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
 import { addImport } from '../../../slices/personalAssets';
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 
 type MapViewProps = {
 }
@@ -43,6 +44,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         characterId: CharacterId
     })
     const navigate = useNavigate()
+    useOnboardingCheckpoint('openMap', { requireSequence: true })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(setIntent({ key: CharacterId, intent: ['MAPSUBSCRIBED'] }))

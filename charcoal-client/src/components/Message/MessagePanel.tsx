@@ -28,6 +28,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         characterId: CharacterId
     })
     useOnboardingCheckpoint('navigatePlay')
+    useOnboardingCheckpoint('navigateInPlayEdit', { requireSequence: true })
     useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true })
     useOnboardingCheckpoint('navigatePlayWithPersonalRoom', { requireSequence: true })
     useEffect(() => {
