@@ -10,8 +10,6 @@ import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
 import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
-import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { defaultSelected } from '@tonylb/mtw-wml/dist/standardize'

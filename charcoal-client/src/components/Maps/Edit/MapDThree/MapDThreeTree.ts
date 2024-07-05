@@ -337,7 +337,8 @@ export class MapDThreeTree extends Object {
                         ...previous.nodes.filter(({ roomId }) => (!data.nodes.find(({ roomId: checkId }) => (checkId === roomId)))),
                         ...data.nodes
                     ],
-                    links: [...previous.links, ...data.links]
+                    links: [...previous.links, ...data.links],
+                    key: data.key ?? previous.key
                 })
             }
             return previous
