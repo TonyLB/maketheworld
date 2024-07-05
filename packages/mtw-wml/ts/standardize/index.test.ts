@@ -277,6 +277,7 @@ describe('standardizeSchema', () => {
                     </Room>
                 </If>
                 <If {true} />
+                <Room key=(testRoomThree) />
                 <Image key=(mapBackground) />
             </Map>
         </Asset>`)
@@ -286,6 +287,7 @@ describe('standardizeSchema', () => {
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
+                <Room key=(testRoomThree) />
                 <Room key=(testRoomTwo)>
                     <Description><If {false}>Test Room Two</If></Description>
                     <If {false}><Exit to=(testRoomOne)>one</Exit></If>
@@ -295,12 +297,18 @@ describe('standardizeSchema', () => {
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
                     <If {false}>
-                        <Room key=(testRoomOne) />
                         <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
                     </If>
                     <If {true} />
                 </Map>
             </Asset>
+        `))
+    })
+
+    it('should render empty maps', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)><Map key=(testMap) /></Asset>`)
+        expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)><Map key=(testMap) /></Asset>
         `))
     })
 
