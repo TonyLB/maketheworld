@@ -11,6 +11,7 @@ import ArrowIcon from '@mui/icons-material/CallMade'
 import AcceptIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 import PositionIcon from '@mui/icons-material/ControlCamera'
+import EditIcon from '@mui/icons-material/Edit'
 import { grey } from '@mui/material/colors'
 import { useMapContext } from '../../Controller'
 import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -26,6 +27,7 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOu
 import ConnectionTable from '../../../Library/Edit/ConnectionTable'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 
 type MapLayersProps = {
     mapId: string;
@@ -42,6 +44,7 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean }> = ({ id, roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
+    const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
     const { standardForm, updateSchema } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
@@ -132,6 +135,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                                 <RenameIcon />
                         </IconButton>
             }
+            <IconButton onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
             {
                 childrenPresent &&
                 (open

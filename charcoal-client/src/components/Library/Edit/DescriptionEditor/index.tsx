@@ -39,13 +39,15 @@ import LinkDialog from './LinkDialog'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaDescription, isSchemaOutputTag, isSchemaSummary, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { useDispatch } from 'react-redux'
+import { addOnboardingComplete } from '../../../../slices/player/index.api'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
@@ -172,10 +174,17 @@ type DescriptionEditorSlateComponentProperties = {
 
 const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const { parentId, tag } = useEditContext()
+    const dispatch = useDispatch()
     const { updateSchema } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
         if (data.id) {
             if (newRender.length) {
+                if (isSchemaSummary(data.data)) {
+                    dispatch(addOnboardingComplete(['summarizeRoom']))
+                }
+                if (isSchemaDescription(data.data)) {
+                    dispatch(addOnboardingComplete(['describeRoom']))
+                }
                 updateSchema({
                     type: 'replaceChildren',
                     id: data.id,
@@ -191,6 +200,12 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
         }
         else {
             if (tag !== 'Statement') {
+                if (isSchemaSummary(data.data)) {
+                    dispatch(addOnboardingComplete(['summarizeRoom']))
+                }
+                if (isSchemaDescription(data.data)) {
+                    dispatch(addOnboardingComplete(['describeRoom']))
+                }
                 updateSchema({
                     type: 'addChild',
                     id: parentId,
