@@ -184,9 +184,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         )
         return overwrittenPositions.filter(valuesPresentTypeguard)
     }, [extractRoomsHelper, mapComponent.id])
-    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
-        extractRoomsById({})(tree, inheritedTree)
-    )
+    const rawPositions = useMemo<MapContextPosition[]>(() => (extractRoomsById({})(tree, inheritedTree)), [tree, inheritedTree])
+    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(rawPositions)
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes
             .reduceRight<Record<string, { x: number; y: number}>>((previous, { roomId, x, y }) => (
@@ -262,7 +261,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     }
                 }
                 else {
-                    const relevantContext = localPositions.find(({ id }) => (id === action.roomId))
+                    const relevantContext = rawPositions.find(({ id }) => (id === action.roomId))
                     if (relevantContext) {
                         if (relevantContext.parentId.startsWith('INHERITED#')) {
                             const fromAsset = relevantContext.parentId.split('#')[1]
@@ -278,7 +277,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [AssetId, mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch])
+    }, [AssetId, mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, schema, updateSchema, dispatch, rawPositions])
     const addExitImport = useCallback((key: string) => {
         const relevantAssets = inheritedByAssetId.filter(({ standardForm }) => (key in standardForm.byId))
         if (relevantAssets.length) {
