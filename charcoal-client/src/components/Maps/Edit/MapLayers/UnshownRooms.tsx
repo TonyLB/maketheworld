@@ -45,6 +45,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                     selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
                     onClick={() => { 
                         mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})
+                        mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
                     }}
                 >
                     <ListItemAvatar>
@@ -61,6 +62,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
             onClick={() => {
                 dispatch(addOnboardingComplete(['addNewRoom']))
                 mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})
+                mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
             }}
         >
             <ListItemAvatar>
