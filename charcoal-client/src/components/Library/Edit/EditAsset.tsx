@@ -187,7 +187,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
         })
     }, [baseSchema, updateSchema, dispatch])
     const innerSaveHandler = useCallback(() => {
-        dispatch(addOnboardingComplete(['saveAsset'], { requireSequence: true }))
+        dispatch(addOnboardingComplete(['saveAsset']))
         save()
     }, [save, dispatch])
     const saveHandler = useCallback(() => {
