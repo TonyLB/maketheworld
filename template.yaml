@@ -1230,12 +1230,6 @@ Resources:
         # Environment:
         #   Variables:
         #     TABLE_PREFIX: !Ref TablePrefix
-        Policies:
-          - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource: 'arn:aws:bedrock:*::foundation-model/amazon.titan-text-express-v1'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
@@ -1433,6 +1427,11 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref LargeLanguageModelFunction
         - CloudWatchLogsFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: 'arn:aws:bedrock:*::foundation-model/amazon.titan-text-express-v1'
 
 Outputs:
   UserPoolClient:

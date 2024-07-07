@@ -1,10 +1,11 @@
-import { roomGenerate } from "./roomGenerate"
+import { roomGeneratePrompt } from "./roomGenerate"
 
 export const handler = async (event) => {
 
     switch(event.type) {
         case 'RoomGenerate':
-            return await roomGenerate(event.name)
+            const prompt = await roomGeneratePrompt(event.name)
+            return { prompt }
     }
-    return { message: 'Invalid inputs'}
+    throw new Error('Invalid input type')
 }
