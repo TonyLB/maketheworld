@@ -18,7 +18,8 @@ import {
     isFetchImportsAPIMessage,
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
-    isAssetPlayerSettingsAPIMessage
+    isAssetPlayerSettingsAPIMessage,
+    isAssetLLMGenerateAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -278,6 +279,20 @@ export const handler = async (event, context) => {
                     RequestId: request.RequestId,
                     actions: request.actions
                 })
+            }
+        }
+        if (isAssetLLMGenerateAPIMessage(request)) {
+            await sfnClient.send(new StartExecutionCommand({
+                stateMachineArn: process.env.LLM_GENERATE_SFN,
+                input: JSON.stringify({
+                    requestId: request.RequestId,
+                    connectionId,
+                    name: request.name
+                })
+            }))
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
             }
         }
     }
