@@ -88,6 +88,12 @@ export type AssetPlayerSettingsAPIMessage = {
     actions: (AssetPlayerSettingsAddOnboarding | AssetPlayerSettingsRemoveOnboarding)[];
 }
 
+export type AssetLLMGenerateRequestAPIMessage = {
+    message: 'llmGenerate';
+    name: string;
+    requestId: string;
+}
+
 export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     FetchLibraryAPIMessage |
     MetaDataAPIMessage |
@@ -100,7 +106,8 @@ export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     AssetSubscribeAPIMessage |
     AssetUnsubscribeAPIMessage |
     AssetWhoAmIAPIMessage |
-    AssetPlayerSettingsAPIMessage
+    AssetPlayerSettingsAPIMessage |
+    AssetLLMGenerateRequestAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -115,6 +122,7 @@ export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is
 export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message is AssetUnsubscribeAPIMessage => (message.message === 'unsubscribe')
 export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isAssetPlayerSettingsAPIMessage = (message: AssetAPIMessage): message is AssetPlayerSettingsAPIMessage => (message.message === 'updatePlayerSettings')
+export const isAssetLLMGenerateAPIMessage = (message: AssetAPIMessage): message is AssetLLMGenerateRequestAPIMessage => (message.message === 'llmGenerate')
 
 export type AssetClientPlayerAsset = {
     AssetId: string;
