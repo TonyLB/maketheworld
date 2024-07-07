@@ -1218,6 +1218,24 @@ Resources:
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_ephemera'
+  LareLanguageModelFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/llm/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 15
+        # Environment:
+        #   Variables:
+        #     TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: 'arn:aws:bedrock:*::foundation-model/amazon.titan-text-express-v1'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
