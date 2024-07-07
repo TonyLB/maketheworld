@@ -22,7 +22,7 @@ States:
                 Variable: "$.args.name"
                 IsPresent: True
                 Next: Create Prompt
-        Default: Fail
+        Default: Notify of Failure
     "Create Prompt":
         Type: Task
         Next: Invoke Model
@@ -34,7 +34,7 @@ States:
             -
                 ErrorEquals:
                     - States.ALL
-                Next: Fail
+                Next: Notify of Failure
         ResultPath: "$.results"
     "Invoke Model":
         Type: Task
@@ -47,9 +47,42 @@ States:
                     maxTokenCount: 300
                     temperature: 0.5
                     topP: 0.9
-        OutputPath: "$.Body"
+        OutputPath: "$.Body.results"
+        ResultPath: "$.results"
+        Next: Parse Results
+    "Parse Results":
+        Type: Task
+        Resource: "${LargeLanguageModelFunctionArn}"
+        Parameters:
+            type: ParseRoomGenerate
+            "results.$": "$.results"
         Next: Done
-    Fail:
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
+    "Notify of Failure":
+        Type: Task
+        Next: Failure
+        Resource: "arn:aws:states:::sns:publish"
+        Parameters:
+            TopicArn: "${TopicArn}"
+            Message: "{}"
+            MessageAttributes:
+                Type:
+                    DataType: String
+                    StringValue: Error
+                RequestId:
+                    DataType: String
+                    "StringValue.$": "$.args.requestId"
+                ConnectionIds:
+                    DataType: String.Array
+                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
+                Error:
+                    DataType: String
+                    StringValue: "Error while generating room description"
+    Failure:
         Type: Fail
     Done:
         Type: Succeed

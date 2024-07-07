@@ -215,13 +215,20 @@ export type AssetClientParseWML = {
     images: ParseWMLAPIImage[];
 }
 
+export type AssetClientLLMGenerate = {
+    messageType: 'LLMGenerate';
+    RequestId?: string;
+    description: string;
+}
+
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage |
     AssetClientMetaDataMessage |
     AssetClientFetchURL |
     AssetClientUploadURL |
     AssetClientFetchImports |
-    AssetClientParseWML
+    AssetClientParseWML |
+    AssetClientLLMGenerate
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {

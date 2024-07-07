@@ -978,6 +978,7 @@ Resources:
                   CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
                   FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine
+                  LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -993,6 +994,8 @@ Resources:
                 StateMachineName: !Sub '${TablePrefix}_fetch_imports_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_heal_step_function'
+            - StepFunctionsExecutionPolicy:
+                StateMachineName: !Sub '${TablePrefix}_llm_generate_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'
@@ -1423,10 +1426,13 @@ Resources:
         Level: ALL
       DefinitionSubstitutions:
         LargeLanguageModelFunctionArn: !GetAtt LargeLanguageModelFunction.Arn
+        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref LargeLanguageModelFunction
         - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MTWFeedbackTopic.TopicName
         - Statement:
           - Effect: Allow
             Action:
