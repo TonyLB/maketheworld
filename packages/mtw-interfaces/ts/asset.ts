@@ -361,6 +361,10 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 checkTypes(message, {}, { RequestId: 'string' }),
                 ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' }))),
             )
+        case 'LLMGenerate':
+            return checkAll(
+                checkTypes(message, { description: 'string' }, { RequestId: 'string' })
+            )
         default: return false
     }
 
