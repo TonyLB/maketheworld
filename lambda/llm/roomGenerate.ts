@@ -1,7 +1,7 @@
 import { llmCall } from '@tonylb/mtw-utilities/ts/llm'
 
-export const roomGenerate = async (name: string): Promise<{ summary: string; description: string }> => {
-    const userMessage = `Act like you are a game master in a role playing game. You are tasked to describe a place for the benefit of someone playing the role of a character in that place. Please follow the instructions below in crafting a description based on the provided context.
+export const roomGeneratePrompt = async (name: string): Promise<string> => {
+    return `Act like you are a game master in a role playing game. You are tasked to describe a place for the benefit of someone playing the role of a character in that place. Please follow the instructions below in crafting a description based on the provided context.
     
     Instructions:
     - Begin with a broad overview of the entire place
@@ -15,9 +15,4 @@ export const roomGenerate = async (name: string): Promise<{ summary: string; des
     Context:
     The name of the place is "${name}"
     `
-    const results = await llmCall(userMessage)
-    return {
-        summary: '',
-        description: results
-    }
 }

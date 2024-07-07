@@ -25,10 +25,10 @@ States:
         Default: Fail
     "Create Prompt":
         Type: Task
-        Next: Done
+        Next: Invoke Model
         Resource: "${LargeLanguageModelFunctionArn}"
         Parameters:
-            "type": "RoomGenerate"
+            type: RoomGenerate
             "name.$": "$.args.name"
         Catch:
             -
@@ -36,6 +36,19 @@ States:
                     - States.ALL
                 Next: Fail
         ResultPath: "$.results"
+    "Invoke Model":
+        Type: Task
+        Resource: "arn:aws:states:::bedrock:invokeModel"
+        Parameters:
+            ModelId: "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-text-express-v1"
+            Body:
+                "inputText.$": "$.results.prompt"
+                textGenerationConfig:
+                    maxTokenCount: 300
+                    temperature: 0.5
+                    topP: 0.9
+        OutputPath: "$.Body"
+        Next: Done
     Fail:
         Type: Fail
     Done:
