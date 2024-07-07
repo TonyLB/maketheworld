@@ -47,7 +47,6 @@ States:
                     maxTokenCount: 300
                     temperature: 0.5
                     topP: 0.9
-        OutputPath: "$.Body.results"
         ResultPath: "$.results"
         Next: Parse Results
     "Parse Results":

@@ -995,7 +995,7 @@ Resources:
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_llm_generate_function'
+                StateMachineName: !Sub '${TablePrefix}_llm_generate_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'

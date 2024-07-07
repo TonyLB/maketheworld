@@ -28,6 +28,8 @@ import ConnectionTable from '../../../Library/Edit/ConnectionTable'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { socketDispatchPromise } from '../../../../slices/lifeLine'
+import { v4 as uuidv4 } from 'uuid'
 
 type MapLayersProps = {
     mapId: string;
@@ -75,6 +77,11 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                     }
                 })
             }
+            dispatch(socketDispatchPromise({
+                message: 'llmGenerate',
+                name: value,
+                requestId: uuidv4()
+            }, { service: 'asset' }))
         }
     }, [standardForm, updateSchema, roomId, name, dispatch])
     return <React.Fragment>
