@@ -22,6 +22,10 @@ import { addAsset } from '../player'
 import { SchemaImportMapping, SchemaImportTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
+import { socketDispatchPromise } from '../lifeLine'
+import { v4 as uuidv4 } from 'uuid'
+import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -348,6 +352,32 @@ export const assignAssetToCharacterId = ({ assetId, characterId }: { assetId: Ep
         dispatch(heartbeat)
     })
     dispatch(heartbeat)
+}
+
+export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: string }) => async (dispatch, getState) => {
+    const standardSelector = getStandardForm(assetId)
+    const standard = standardSelector(getState())
+
+    const roomComponent = standard.byId[roomId]
+
+    if (roomComponent && isStandardRoom(roomComponent)) {
+        const name = roomComponent.name.children.length ? schemaOutputToString(roomComponent.name.children) : roomComponent.shortName.children.length ? schemaOutputToString(roomComponent.shortName.children) : ''
+        if (name) {
+            dispatch(socketDispatchPromise({
+                message: 'llmGenerate',
+                name,
+                requestId: uuidv4()
+            }, { service: 'asset' })).then(({ description = '' }) => {
+                if (description) {
+                    dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [{ data: { tag: 'String', value: description.trim() }, children: [] }]}))
+                    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY']}))
+                    dispatch(heartbeat)
+                }
+            })
+        }
+    
+    }
+
 }
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>

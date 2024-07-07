@@ -28,6 +28,10 @@ import ConnectionTable from '../../../Library/Edit/ConnectionTable'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { socketDispatchPromise } from '../../../../slices/lifeLine'
+import { v4 as uuidv4 } from 'uuid'
+import { requestLLMGeneration } from '../../../../slices/personalAssets'
+import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
@@ -46,7 +50,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
-    const { standardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, updateSchema, AssetId } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
@@ -75,8 +79,11 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                     }
                 })
             }
+            if (isEphemeraAssetId(AssetId)) {
+                dispatch(requestLLMGeneration({ assetId: AssetId, roomId }))
+            }
         }
-    }, [standardForm, updateSchema, roomId, name, dispatch])
+    }, [standardForm, updateSchema, roomId, name, dispatch, AssetId])
     return <React.Fragment>
         <ListItemButton
             dense
