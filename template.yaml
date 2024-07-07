@@ -1230,9 +1230,12 @@ Resources:
         MemorySize: 256
         Runtime: nodejs18.x
         Timeout: 15
-        # Environment:
-        #   Variables:
-        #     TABLE_PREFIX: !Ref TablePrefix
+        Environment:
+          Variables:
+            FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
+        Policies:
+          - SNSPublishMessagePolicy:
+              TopicName: !GetAtt MTWFeedbackTopic.TopicName
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:

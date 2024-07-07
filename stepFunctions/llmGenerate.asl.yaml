@@ -54,6 +54,8 @@ States:
         Resource: "${LargeLanguageModelFunctionArn}"
         Parameters:
             type: ParseRoomGenerate
+            "RequestId.$": "$.args.requestId"
+            "ConnectionId.$": "$.args.connectionId"
             "results.$": "$.results"
         Next: Done
         Catch:
