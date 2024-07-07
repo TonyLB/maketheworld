@@ -1,0 +1,42 @@
+---
+Comment: Command step-function to generate LLM outputs
+StartAt: Define Defaults
+States:
+    "Define Defaults":
+        Type: Pass
+        Next: Apply Defaults
+        ResultPath: "$.inputDefaults"
+        Parameters:
+            connectionId: ""
+            requestId: ""
+    "Apply Defaults":
+        Type: Pass
+        Next: Check Name
+        ResultPath: "$"
+        Parameters:
+            "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
+    "Check Name":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.args.name"
+                IsPresent: True
+                Next: Create Prompt
+        Default: Fail
+    "Create Prompt":
+        Type: Task
+        Next: Done
+        Resource: "${LargeLanguageModelFunctionArn}"
+        Parameters:
+            "type": "RoomGenerate"
+            "name.$": "$.args.name"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Fail
+        ResultPath: "$.results"
+    Fail:
+        Type: Fail
+    Done:
+        Type: Succeed
