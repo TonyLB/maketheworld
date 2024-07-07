@@ -1,5 +1,3 @@
-import { llmCall } from '@tonylb/mtw-utilities/ts/llm'
-
 export const roomGeneratePrompt = async (name: string): Promise<string> => {
     return `Act like you are a game master in a role playing game. You are tasked to describe a place for the benefit of someone playing the role of a character in that place. Please follow the instructions below in crafting a description based on the provided context.
     
