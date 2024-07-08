@@ -219,6 +219,7 @@ export type AssetClientLLMGenerate = {
     messageType: 'LLMGenerate';
     RequestId?: string;
     description: string;
+    summary: string;
 }
 
 export type AssetClientMessage = AssetClientPlayerMessage |
@@ -363,7 +364,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             )
         case 'LLMGenerate':
             return checkAll(
-                checkTypes(message, { description: 'string' }, { RequestId: 'string' })
+                checkTypes(message, { description: 'string', summary: 'string' }, { RequestId: 'string' })
             )
         default: return false
     }
