@@ -19,13 +19,14 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { SchemaImportMapping, SchemaImportTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaImportMapping, SchemaImportTag, SchemaStringTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { v4 as uuidv4 } from 'uuid'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -367,9 +368,26 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                 message: 'llmGenerate',
                 name,
                 requestId: uuidv4()
-            }, { service: 'asset' })).then(({ description = '' }) => {
+            }, { service: 'asset' })).then(({ description = '', summary = '' }) => {
                 if (description) {
-                    dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [{ data: { tag: 'String', value: description.trim() }, children: [] }]}))
+                    const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
+                    if (roomComponent.description.id) {
+                        dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [stringTag]}))
+                    }
+                    else {
+                        dispatch(updateSchema(assetId)({ type: 'addChildren', id: roomComponent.id, children: [{ data: { tag: 'Description' }, children: [stringTag] }]}))
+                    }
+                }
+                if (summary) {
+                    const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: summary.trim() }, children: [] }
+                    if (roomComponent.summary.id) {
+                        dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.summary.id, children: [stringTag]}))
+                    }
+                    else {
+                        dispatch(updateSchema(assetId)({ type: 'addChildren', id: roomComponent.id, children: [{ data: { tag: 'Summary' }, children: [stringTag] }]}))
+                    }
+                }
+                if (description || summary) {
                     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY']}))
                     dispatch(heartbeat)
                 }
