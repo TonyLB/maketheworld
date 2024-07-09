@@ -154,17 +154,6 @@ describe('flattenTaggedMessageContent', () => {
         expect(output).toMatchSnapshot()
     })
 
-    it('should correctly expand after tag', async () => {
-        expect(await flattenTaggedMessageContent([
-            { tag: 'String', value: 'One' },
-            { tag: 'After', contents: [
-                { tag: 'String', value: 'Two' },
-                { tag: 'String', value: 'Three' },
-            ]},
-            { tag: 'String', value: 'Four' },
-        ])).toMatchSnapshot()
-    })
-
     it('should correctly expand replace tag', async () => {
         expect(await flattenTaggedMessageContent([
             { tag: 'String', value: 'Uno' },

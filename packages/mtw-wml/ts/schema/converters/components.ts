@@ -146,12 +146,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Bookmark: {
         initialize: ({ parseOpen }): SchemaBookmarkTag => {
             const { display, ...rest } = validateProperties(componentTemplates.Bookmark)(parseOpen)
-            if (display && !(display === 'after' || display === 'replace')) {
-                throw new Error(`Display property must be one of 'after', 'replace'`)
+            if (display && display !== 'replace') {
+                throw new Error(`Display property must be one of 'replace'`)
             }
             return {
                 tag: 'Bookmark',
-                display: display as 'after' | 'replace',
+                display: display as 'replace',
                 ...rest
             }
         },

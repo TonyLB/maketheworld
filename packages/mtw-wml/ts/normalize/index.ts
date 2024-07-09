@@ -70,7 +70,7 @@ const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWith
     isSchemaWithKey(node) || (['Import'].includes(node.tag))
 )
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Theme" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Replace">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Theme" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "Replace">
 
 export type NormalizerInsertPosition = {
     contextStack: NormalReference[];
