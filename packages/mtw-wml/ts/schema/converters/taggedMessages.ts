@@ -1,5 +1,5 @@
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
+import { SchemaAfterTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaAfter, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
@@ -9,7 +9,6 @@ import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const taggedMessageTemplates = {
     After: {},
-    Before: {},
     Replace: {},
     br: {},
     Space: {},
@@ -27,22 +26,6 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
         typeCheckContents: isSchemaOutputTag,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => {
             if (!isSchemaAfter(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
-    Before: {
-        initialize: ({ parseOpen }): SchemaBeforeTag => ({
-            tag: 'Before',
-            ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
-        }),
-        typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => {
-            if (!isSchemaBefore(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
@@ -102,17 +85,6 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
-    Before: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        const returnValue = isSchemaBefore(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Before',
-                properties: [],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-        return returnValue
-    },
     After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaAfter(tag)
             ? tagRender({

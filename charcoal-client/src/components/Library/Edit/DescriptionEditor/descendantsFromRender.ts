@@ -41,10 +41,9 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
                 break
             case 'After':
                 break
-            case 'Before':
             case 'Replace':
                 returnValue.push({
-                    type: item.tag === 'Before' ? 'before' : 'replace',
+                    type: 'replace',
                     children: [...descendantsTranslate(children, options)].filter(isCustomParagraphContents)
                 })
                 break

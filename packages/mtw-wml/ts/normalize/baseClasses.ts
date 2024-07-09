@@ -89,9 +89,6 @@ export type ComponentRenderItem = {
 } | {
     tag: 'Replace';
     contents: ComponentRenderItem[];
-} | {
-    tag: 'Before';
-    contents: ComponentRenderItem[];
 } | ({
     tag: 'Condition';
     contents: ComponentRenderItem[];

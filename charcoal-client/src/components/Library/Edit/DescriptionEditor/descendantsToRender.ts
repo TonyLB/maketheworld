@@ -1,8 +1,6 @@
 import {
-    CustomBeforeBlock,
     CustomBlock,
     CustomReplaceBlock,
-    isCustomBeforeBlock,
     isCustomIfWrapper,
     isCustomLink,
     isCustomNewIfWrapper,
@@ -19,7 +17,7 @@ import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 //
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
-export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag, Partial<TreeId>> => {
+export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag, Partial<TreeId>> => {
     const returnValue = items.reduce<GenericTree<SchemaOutputTag, Partial<TreeId>>>((tree, item, index) => {
         if (isCustomNewIfWrapper(item)) {
             return [
@@ -47,7 +45,7 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
                 { data, id: item.treeId, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
             ]
         }
-        if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
+        if (isCustomParagraph(item) || (isCustomParagraphContents(item) && isCustomReplaceBlock(item))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<GenericTree<SchemaOutputTag>>((previous, item) => {
@@ -67,11 +65,11 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
                             }
                         ]
                     }
-                    if (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)) {
+                    if (isCustomReplaceBlock(item)) {
                         return [
                             ...previous,
                             {
-                                data: { tag: item.type === 'before' ? 'Before' : 'Replace' },
+                                data: { tag: 'Replace' },
                                 children: descendantsToRender(schema)([item])
                             }
                         ]

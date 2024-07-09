@@ -802,8 +802,7 @@ describe('schemaToWML', () => {
             <Asset key=(Test)>
                 <Feature key=(doors)>
                     <Description>
-                        <After>Dingy doors</After> <Replace>portals</Replace>
-                        <Before>Clean<Space /></Before>
+                        <After>Dingy doors</After> <Replace>Clean portals</Replace>
                     </Description>
                 </Feature>
             </Asset>

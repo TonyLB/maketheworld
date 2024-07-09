@@ -62,7 +62,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Refactor before and replace as blocks rather than inlines, so they can contain conditionals
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'knowledgeLink', 'before', 'replace'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'knowledgeLink', 'replace'].includes(element.type) || isInline(element)
     )
 
     return editor
