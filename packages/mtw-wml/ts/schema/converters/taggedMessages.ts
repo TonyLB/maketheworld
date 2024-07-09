@@ -1,5 +1,5 @@
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaAfterTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaAfter, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
+import { SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
@@ -8,7 +8,6 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const taggedMessageTemplates = {
-    After: {},
     Replace: {},
     br: {},
     Space: {},
@@ -18,22 +17,6 @@ const taggedMessageTemplates = {
 } as const
 
 export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
-    After: {
-        initialize: ({ parseOpen }): SchemaAfterTag => ({
-            tag: 'After',
-            ...validateProperties(taggedMessageTemplates.After)(parseOpen)
-        }),
-        typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => {
-            if (!isSchemaAfter(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
     Replace: {
         initialize: ({ parseOpen }): SchemaReplaceTag => ({
             tag: 'Replace',
@@ -85,16 +68,6 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
-    After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
-        isSchemaAfter(tag)
-            ? tagRender({
-                ...args,
-                tag: 'After',
-                properties: [],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
     Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaReplace(tag)
             ? tagRender({

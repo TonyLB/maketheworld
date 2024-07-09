@@ -84,9 +84,6 @@ export type ComponentRenderItem = {
 } | {
     tag: 'Space';
 } | {
-    tag: 'After';
-    contents: ComponentRenderItem[];
-} | {
     tag: 'Replace';
     contents: ComponentRenderItem[];
 } | ({

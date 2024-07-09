@@ -39,8 +39,6 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
             case 'br':
                 returnValue.push({ type: 'lineBreak' })
                 break
-            case 'After':
-                break
             case 'Replace':
                 returnValue.push({
                     type: 'replace',

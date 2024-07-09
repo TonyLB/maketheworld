@@ -2,7 +2,7 @@
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
-import { SchemaTag, isSchemaAfter, isSchemaBookmark, isSchemaCondition, isSchemaLineBreak, isSchemaLink, isSchemaReplace, isSchemaSpacer, isSchemaString, isSchemaTaggedMessageLegalContents, isSchemaWhitespace } from "../../baseClasses"
+import { SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaLineBreak, isSchemaLink, isSchemaReplace, isSchemaSpacer, isSchemaString, isSchemaTaggedMessageLegalContents, isSchemaWhitespace } from "../../baseClasses"
 
 //
 export const translateTaggedMessageContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
@@ -59,7 +59,7 @@ export const translateTaggedMessageContents = (contents: GenericTree<SchemaTag>)
                 currentToken = { data: item.data, children: [] }
             }
         }
-        if (isSchemaCondition(item.data) || isSchemaAfter(item.data) || isSchemaReplace(item.data)) {
+        if (isSchemaCondition(item.data) || isSchemaReplace(item.data)) {
             if (currentToken) {
                 returnValue.push(currentToken)
             }
