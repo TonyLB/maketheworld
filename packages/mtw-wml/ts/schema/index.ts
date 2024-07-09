@@ -290,7 +290,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
             }
         case 'If':
         case 'After':
-        case 'Before':
         case 'Replace':
         case 'Description':
             return { tag }

@@ -53,16 +53,11 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
                     <InlineChromiumBugfix />
                 </DescriptionLinkActionChip>
             </span>
-        case 'before':
         case 'replace':
-            const highlight = element.type === 'before' ? green : pink
             return <SlateIndentBox
                     { ...attributes }
-                    color={highlight}
-                    label={element.type === 'before'
-                        ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                        : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
-                    }
+                    color={pink}
+                    label={<React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>}
                 >
                     { children }
             </SlateIndentBox>
