@@ -192,7 +192,7 @@ export type SchemaReplaceTag = {
 export type SchemaBookmarkTag = {
     tag: 'Bookmark';
     key: string;
-    display?: 'before' | 'after' | 'replace';
+    display?: 'after' | 'replace';
 } & SchemaImportableBase
 
 export type SchemaLineBreakTag = {
