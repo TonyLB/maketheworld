@@ -17,7 +17,8 @@ const characterTemplates = {
     OneCoolThing: {},
     Outfit: {},
     Character: {
-        key: { required: true, type: ParsePropertyTypes.Key }
+        key: { required: true, type: ParsePropertyTypes.Key },
+        update: { type: ParsePropertyTypes.Boolean }
     }
 } as const
 
@@ -89,17 +90,29 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Character: {
-        initialize: ({ parseOpen }): SchemaCharacterTag => ({
-            tag: 'Character',
-            Pronouns: {
-                subject: 'they',
-                object: 'them',
-                possessive: 'their',
-                adjective: 'theirs',
-                reflexive: 'themself'
-            },
-            ...validateProperties(characterTemplates.Character)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaCharacterTag => {
+            const properties = validateProperties(characterTemplates.Character)(parseOpen)
+            const Pronouns = properties.update
+                ? {
+                    subject: '',
+                    object: '',
+                    possessive: '',
+                    adjective: '',
+                    reflexive: ''
+                }
+                : {
+                    subject: 'they',
+                    object: 'them',
+                    possessive: 'their',
+                    adjective: 'theirs',
+                    reflexive: 'themself'
+                }
+            return {
+                tag: 'Character',
+                Pronouns,
+                ...properties
+            }
+        },
         typeCheckContents: isSchemaCharacterContents,
         finalize: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag> => {
             if (!isSchemaCharacter(initialTag)) {
@@ -135,7 +148,8 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Character',
                 properties: [
-                    { key: 'key', type: 'key', value: tag.key }
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'update', type: 'boolean', value: tag.update ?? false }
                 ],
                 node: { data: tag, children }
             })

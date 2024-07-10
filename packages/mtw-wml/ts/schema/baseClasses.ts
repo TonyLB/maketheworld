@@ -30,6 +30,7 @@ type SchemaAssetBase = {
 export type SchemaAssetTag = {
     tag: 'Asset';
     Story: undefined;
+    update?: boolean;
 } & SchemaAssetBase
 
 export type SchemaStoryTag = {
@@ -83,6 +84,7 @@ export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
     Pronouns: SchemaPronouns;
+    update?: boolean;
 } & SchemaBase
 
 export type SchemaVariableTag = {

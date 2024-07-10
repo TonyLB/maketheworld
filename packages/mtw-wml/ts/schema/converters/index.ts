@@ -18,7 +18,8 @@ import { tagRender } from "./tagRender"
 
 const validationTemplates = {
     Asset: {
-        key: { required: true, type: ParsePropertyTypes.Key }
+        key: { required: true, type: ParsePropertyTypes.Key },
+        update: { type: ParsePropertyTypes.Boolean }
     },
     Story: {
         key: { required: true, type: ParsePropertyTypes.Key },
@@ -62,7 +63,8 @@ export const printMap: Record<string, PrintMapEntry> = {
             tag: 'Asset',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'Story', type: 'boolean', value: tag.Story ?? false }
+                { key: 'Story', type: 'boolean', value: tag.Story ?? false },
+                { key: 'update', type: 'boolean', value: tag.update ?? false }
             ],
             node: { data: tag, children }
         })
