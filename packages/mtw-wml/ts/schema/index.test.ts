@@ -267,6 +267,38 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should parse asset update key', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test) update>
+                <Room key=(ABC)>
+                    <Description>
+                        Test One Update
+                    </Description>
+                </Room>
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([
+            {
+                data: {
+                    tag: "Asset",
+                    key: "Test",
+                    update: true
+                },
+                children: [{
+                    data: {
+                        tag: "Room",    
+                        key: "ABC"
+                    },
+                    children: [{
+                        data: { tag: "Description" },
+                        children: [{ data: { tag: "String", value: "Test One Update" }, children: [] }]
+                    }]
+                }]
+            }
+        ])
+
+    })
+
     it('should combine conditional elements at every level', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
@@ -438,6 +470,28 @@ describe('schemaFromParse', () => {
 
     })
 
+    it('should make a schema for a character update correctly', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Character key=(TESS) update><Name>Tess</Name></Character>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Character",
+                key: "TESS",
+                Pronouns: {
+                    adjective: "",
+                    object: "",
+                    possessive: "",
+                    reflexive: "",
+                    subject: "",
+                },
+                update: true
+            },
+            children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] }]
+        }])
+
+    })
+
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
@@ -565,6 +619,14 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip an asset update', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test) update>
+                <Room key=(VORTEX)><Description>Test Room Update</Description></Room>
+            </Asset>`)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
     it('should correctly join elements in Description context', () => {
         const testWML = `
             <Description>
@@ -680,6 +742,13 @@ describe('schemaToWML', () => {
                 <Image key=(TESSIcon) />
                 <Import from=(base) />
             </Character>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip a character update', () => {
+        const testWML = deIndentWML(`
+            <Character key=(TESS) update><Name>Tess</Name></Character>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
