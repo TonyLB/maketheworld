@@ -147,6 +147,34 @@ export type StandardComponent =
     StandardAction |
     StandardImage
 
+export type StandardAbstractComponent =
+    StandardCharacter |
+    StandardCharacterUpdate |
+    StandardRoom |
+    StandardRoomUpdate |
+    StandardFeature |
+    StandardFeatureUpdate |
+    StandardKnowledge |
+    StandardKnowledgeUpdate |
+    StandardBookmark |
+    StandardBookmarkUpdate |
+    StandardMap |
+    StandardMapUpdate |
+    StandardTheme |
+    StandardThemeUpdate |
+    StandardMessage |
+    StandardMessageUpdate |
+    StandardMoment |
+    StandardMomentUpdate |
+    StandardVariable |
+    StandardVariableUpdate |
+    StandardComputed |
+    StandardComputedUpdate |
+    StandardAction |
+    StandardActionUpdate |
+    StandardImage |
+    StandardImageUpdate
+
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
 
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
@@ -164,6 +192,14 @@ export type StandardForm = {
     key: string;
     tag: 'Asset' | 'Character';
     byId: Record<string, StandardComponent>;
+    metaData: GenericTree<SchemaTag, TreeId>;
+}
+
+export type StandardAbstractForm = {
+    key: string;
+    tag: 'Asset' | 'Character';
+    update: boolean;
+    byId: Record<string, StandardAbstractComponent>;
     metaData: GenericTree<SchemaTag, TreeId>;
 }
 
