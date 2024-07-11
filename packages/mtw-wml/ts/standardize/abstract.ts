@@ -10,7 +10,8 @@ import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNode
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardAbstractForm, StandardAbstractComponent, StandardForm, isStandardComponent, isStandardAbstractRoom, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, isStandardAbstractFeature, isStandardAbstractKnowledge, isStandardAbstractBookmark, StandardBookmark, isStandardAbstractMessage, StandardMessage, isStandardAbstractMoment, isStandardAbstractMap, StandardMap, isStandardAbstractTheme, StandardTheme } from "./baseClasses"
+import { excludeUndefined } from '../lib/lists'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -79,13 +80,15 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     return { ...transformedNode, children: treeTypeGuard({ tree: maybeGenericIDFromTree(defaultSelected(transformedNode.children)), typeGuard: childTypeGuard }) }
 }
 
-const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, TreeId>) => GenericTree<SchemaTag, TreeId>) => (component: StandardComponent): StandardComponent | undefined => {
+const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, TreeId>) => GenericTree<SchemaTag, TreeId>) => (component: StandardAbstractComponent): StandardAbstractComponent | undefined => {
+    const updateEntry = isStandardComponent(component) ? {} : { update: true }
     switch(component.tag) {
         case 'Room':
             return {
                 tag: 'Room',
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 shortName: transformStandardItem(callback, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' })(component.shortName),
                 name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
                 summary: transformStandardItem(callback, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' })(component.summary),
@@ -94,11 +97,20 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 themes: defaultSelected(maybeGenericIDFromTree(callback(component.themes))).filter(treeNodeTypeguard(isSchemaTheme))
             }
         case 'Feature':
+            return {
+                tag: component.tag,
+                key: component.key,
+                id: component.id,
+                ...updateEntry,
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
+            }
         case 'Knowledge':
             return {
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
                 description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
             }
@@ -107,6 +119,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
             }
         case 'Message':
@@ -114,6 +127,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description),
                 rooms: defaultSelected(maybeGenericIDFromTree(callback(component.rooms))).filter(treeNodeTypeguard(isSchemaRoom))
             }
@@ -122,6 +136,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 messages: defaultSelected(maybeGenericIDFromTree(callback(component.messages))).filter(treeNodeTypeguard(isSchemaMessage))
             }
         case 'Map':
@@ -129,6 +144,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
                 images: defaultSelected(maybeGenericIDFromTree(callback(component.images))).filter(treeNodeTypeguard(isSchemaImage)),
                 positions: defaultSelected(maybeGenericIDFromTree(callback(component.positions))).filter(treeNodeTypeguard(isSchemaRoom)),
@@ -139,6 +155,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
                 tag: component.tag,
                 key: component.key,
                 id: component.id,
+                ...updateEntry,
                 name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
                 prompts: defaultSelected(maybeGenericIDFromTree(callback(component.prompts))).filter(treeNodeTypeguard(isSchemaPrompt)),
                 rooms: defaultSelected(maybeGenericIDFromTree(callback(component.rooms))).filter(treeNodeTypeguard(isSchemaRoom)),
@@ -153,74 +170,100 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag, Tree
     }
 }
 
-const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent => {
+//
+// TODO: Create standardAbstract typeguards, and refactor mergeStandardComponents to deal with possible undefined values
+//
+const mergeStandardComponents = (base: StandardAbstractComponent, incoming: StandardAbstractComponent): StandardAbstractComponent => {
+    const combineTagChildren = <T extends StandardAbstractComponent, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] => (
+        excludeUndefined(base[key])
+            ? excludeUndefined(incoming[key])
+                ? { ...base[key], children: [...(base[key] as any).children, ...(incoming[key] as any).children] }
+                : base[key]
+            : incoming[key]
+    )
+    const updateEntry = (isStandardComponent(base) || isStandardComponent(incoming)) ? {} : { update: true }
     switch(base.tag) {
         case 'Room':
-            if (!isStandardRoom(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractRoom(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Room',
                 key: base.key,
                 id: base.id,
-                shortName: { ...base.shortName, children: [...base.shortName.children, ...incoming.shortName.children] },
-                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
-                summary: { ...base.summary, children: [...base.summary.children, ...incoming.summary.children] },
-                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] },
+                ...updateEntry,
+                shortName: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'shortName'),
+                name: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'name'),
+                summary: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'summary'),
+                description: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'description'),
                 exits: [...base.exits, ...incoming.exits],
                 themes: [...base.themes, ...incoming.themes]
             }
         case 'Feature':
-        case 'Knowledge':
-            if ((isStandardFeature(base) && !isStandardFeature(incoming)) || !isStandardKnowledge(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractFeature(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: base.tag,
                 key: base.key,
                 id: base.id,
-                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
-                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] }
+                ...updateEntry,
+                name: combineTagChildren(base as StandardFeature | StandardKnowledge, incoming as StandardFeature | StandardKnowledge, 'name'),
+                description: combineTagChildren(base as StandardFeature | StandardKnowledge, incoming as StandardFeature | StandardKnowledge, 'description')
+            }
+        case 'Knowledge':
+            if (!isStandardAbstractKnowledge(incoming)) { throw new Error('Type mismatch') }
+            return {
+                tag: base.tag,
+                key: base.key,
+                id: base.id,
+                ...updateEntry,
+                name: combineTagChildren(base as StandardFeature | StandardKnowledge, incoming as StandardFeature | StandardKnowledge, 'name'),
+                description: combineTagChildren(base as StandardFeature | StandardKnowledge, incoming as StandardFeature | StandardKnowledge, 'description')
             }
         case 'Bookmark':
-            if (!isStandardBookmark(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractBookmark(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Bookmark',
                 key: base.key,
                 id: base.id,
-                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] }
+                ...updateEntry,
+                description: combineTagChildren(base as StandardBookmark, incoming as StandardBookmark, 'description')
             }
         case 'Message':
-            if (!isStandardMessage(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractMessage(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Message',
                 key: base.key,
                 id: base.id,
-                description: { ...base.description, children: [...base.description.children, ...incoming.description.children] },
+                ...updateEntry,
+                description: combineTagChildren(base as StandardMessage, incoming as StandardMessage, 'description'),
                 rooms: [...base.rooms, ...incoming.rooms]
             }
         case 'Moment':
-            if (!isStandardMoment(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractMoment(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Moment',
                 key: base.key,
                 id: base.id,
+                ...updateEntry,
                 messages: [...base.messages, ...incoming.messages]
             }
         case 'Map':
-            if (!isStandardMap(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractMap(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Map',
                 key: base.key,
                 id: base.id,
-                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                ...updateEntry,
+                name: combineTagChildren(base as StandardMap, incoming as StandardMap, 'name'),
                 positions: [...base.positions, ...incoming.positions],
                 images: [...base.images, ...incoming.images],
                 themes: [...base.themes, ...incoming.themes]
             }
         case 'Theme':
-            if (!isStandardTheme(incoming)) { throw new Error('Type mismatch') }
+            if (!isStandardAbstractTheme(incoming)) { throw new Error('Type mismatch') }
             return {
                 tag: 'Theme',
                 key: base.key,
                 id: base.id,
-                name: { ...base.name, children: [...base.name.children, ...incoming.name.children] },
+                name: combineTagChildren(base as StandardTheme, incoming as StandardTheme, 'name'),
                 prompts: [...base.prompts, ...incoming.prompts],
                 rooms: [...base.rooms, ...incoming.rooms],
                 maps: [...base.maps, ...incoming.maps]
@@ -353,15 +396,15 @@ const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag, TreeId>): G
     field.id ? [field] : []
 )
 
-const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag, TreeId> => {
+const standardItemToSchemaItem = (item: StandardAbstractComponent): GenericTreeNode<SchemaTag, TreeId> => {
     switch(item.tag) {
         case 'Character':
-            const { tag, ...pronouns } = item.pronouns.data
+            const { tag, ...pronouns } = (item.pronouns ?? { data: { tag: 'Pronouns', subject: '', object: '', possessive: '', adjective: '', reflexive: '' }}).data
             return {
                 data: { tag: 'Character', key: item.key, Pronouns: pronouns },
                 id: item.id,
                 children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit, item.image].map(standardFieldToOutputNode).flat(1),
+                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit, item.image].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1),
                 ]
             }
         case 'Room':
@@ -369,7 +412,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Room', key: item.key },
                 id: item.id,
                 children: [
-                    ...[item.shortName, item.name, item.summary, item.description].map(standardFieldToOutputNode).flat(1),
+                    ...[item.shortName, item.name, item.summary, item.description].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1),
                     ...item.exits
                 ]
             }
@@ -378,13 +421,13 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
             return {
                 data: { tag: item.tag, key: item.key },
                 id: item.id,
-                children: [item.name, item.description].map(standardFieldToOutputNode).flat(1)
+                children: [item.name, item.description].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1)
             }
         case 'Bookmark':
             return {
                 data: { tag: 'Bookmark', key: item.key },
                 id: item.id,
-                children: standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1)
+                children: item.description ? standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1) : []
             }
         case 'Message':
             return {
@@ -392,7 +435,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 id: item.id,
                 children: [
                     ...item.rooms,
-                    ...standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1)
+                    ...(item.description ? standardFieldToOutputNode(item.description).map(({ children }) => (children)).flat(1) : [])
                 ]
             }
         case 'Moment':
@@ -406,7 +449,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Map', key: item.key },
                 id: item.id,
                 children: [
-                    ...standardFieldToOutputNode(item.name),
+                    ...(item.name ? standardFieldToOutputNode(item.name) : []),
                     ...item.images,
                     ...item.positions
                 ]
@@ -416,7 +459,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
                 data: { tag: 'Theme', key: item.key },
                 id: item.id,
                 children: [
-                    ...standardFieldToOutputNode(item.name),
+                    ...(item.name ? standardFieldToOutputNode(item.name) : []),
                     ...item.prompts,
                     ...item.rooms,
                     ...item.maps
@@ -535,9 +578,10 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
 export class StandardizerAbstract {
     _assetKey: string;
     _assetTag: (SchemaAssetTag | SchemaCharacterTag)["tag"];
+    _update: boolean = false
     _assetId: string;
-    _byId: StandardForm["byId"];
-    metaData: StandardForm["metaData"];
+    _byId: StandardAbstractForm["byId"];
+    metaData: StandardAbstractForm["metaData"];
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
         this._byId = {}
         this.metaData = []
@@ -729,6 +773,7 @@ export class StandardizerAbstract {
             }
             this._assetKey = characterData.key
             this._assetTag = characterData.tag
+            this._update = characterData.update ?? false
             this._assetId = allStandardCharacters[0].id ?? ''
         }
         else {
@@ -738,6 +783,7 @@ export class StandardizerAbstract {
             }
             this._assetKey = assetData.key
             this._assetTag = assetData.tag
+            this._update = assetData.update ?? false
             this._assetId = allStandardAssets[0].id ?? ''
         }
     }
@@ -782,17 +828,21 @@ export class StandardizerAbstract {
         throw new Error('Invalid internal tags on Standardizer schema')
     }
 
-    loadStandardForm(standard: StandardForm): void {
+    loadStandardForm(standard: StandardAbstractForm | StandardForm): void {
         this._assetKey = standard.key
         this._assetTag = standard.tag
+        if ('update' in standard) {
+            this._update = standard.update
+        }
         this._byId = standard.byId
         this.metaData = standard.metaData
     }
 
-    get standardForm(): StandardForm {
+    get standardForm(): StandardAbstractForm {
         return {
             key: this._assetKey,
             tag: this._assetTag,
+            update: this._update,
             byId: this._byId,
             metaData: this.metaData
         }
@@ -825,80 +875,8 @@ export class StandardizerAbstract {
         this.loadStandardForm(assignedStandardizer.standardForm)
     }
 
-    get stripped(): SerializableStandardForm {
-        const byId: SerializableStandardForm["byId"] = objectMap(this._byId, (value) => {
-            const { id, ...rest } = value
-            const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never => {
-                const { id, ...subItem } = item[key] as GenericTreeNodeFiltered<FilterType, InnerType, TreeId>
-                return { ...subItem, children: stripIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never
-            }
-            if (isStandardBookmark(value)) {
-                return {
-                    ...rest,
-                    description: stripValue(value, 'description')
-                }
-            }
-            if (isStandardFeature(value) || isStandardKnowledge(value)) {
-                return {
-                    ...rest,
-                    name: stripValue(value, 'name'),
-                    description: stripValue(value, 'description')
-                }
-            }
-            if (isStandardMap(value)) {
-                return {
-                    ...rest,
-                    name: stripValue(value, 'name'),
-                    positions: stripIDFromTree(value.positions),
-                    images: stripIDFromTree(value.images),
-                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
-                }
-            }
-            if (isStandardTheme(value)) {
-                return {
-                    ...rest,
-                    name: stripValue(value, 'name'),
-                    prompts: stripIDFromTree(value.prompts).filter(treeNodeTypeguard(isSchemaPrompt)),
-                    rooms: stripIDFromTree(value.rooms),
-                    maps: stripIDFromTree(value.maps)
-                }
-            }
-            if (isStandardRoom(value)) {
-                return {
-                    ...rest,
-                    shortName: stripValue(value, 'shortName'),
-                    name: stripValue(value, 'name'),
-                    summary: stripValue(value, 'summary'),
-                    description: stripValue(value, 'description'),
-                    exits: stripIDFromTree(value.exits),
-                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
-                }
-            }
-            if (isStandardMessage(value)) {
-                return {
-                    ...rest,
-                    description: stripValue(value, 'description'),
-                    rooms: stripIDFromTree(value.rooms)
-                }
-            }
-            if (isStandardMoment(value)) {
-                return {
-                    ...rest,
-                    messages: stripIDFromTree(value.messages)
-                }
-            }
-            return rest
-        })
-        return {
-            key: this._assetKey,
-            tag: this._assetTag,
-            byId,
-            metaData: stripIDFromTree(this.metaData)
-        }
-    }
-
     deserialize(standard: SerializableStandardForm): void {
-        const byId: StandardForm["byId"] = objectMap(standard.byId, (value) => {
+        const byId: StandardAbstractForm["byId"] = objectMap(standard.byId, (value) => {
             const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
                 const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
                 return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never

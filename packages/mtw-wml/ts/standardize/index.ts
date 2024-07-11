@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { deepEqual, objectMap } from "../lib/objects"
+import { deepEqual, objectFilter, objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit } from "../schema/baseClasses"
@@ -10,7 +10,7 @@ import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFilte
 import { filter, treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, StandardForm, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardComponent } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
@@ -534,4 +534,87 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
 }
 
 export class Standardizer extends StandardizerAbstract {
+
+    get byId(): StandardForm["byId"] {
+        const byId: StandardForm["byId"] = Object.entries(this._byId)
+            .reduce((previous, [key, value]) => {
+                if (isStandardComponent(value)) {
+                    return { ...previous, [key]: value }
+                }
+                return previous
+            }, {})
+        return byId
+    }
+
+    get stripped(): SerializableStandardForm {
+        const byId: SerializableStandardForm["byId"] = objectMap(this.byId, (value) => {
+            const { id, ...rest } = value
+            const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never => {
+                const { id, ...subItem } = item[key] as GenericTreeNodeFiltered<FilterType, InnerType, TreeId>
+                return { ...subItem, children: stripIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never
+            }
+            if (isStandardBookmark(value)) {
+                return {
+                    ...rest,
+                    description: stripValue(value, 'description')
+                }
+            }
+            if (isStandardFeature(value) || isStandardKnowledge(value)) {
+                return {
+                    ...rest,
+                    name: stripValue(value, 'name'),
+                    description: stripValue(value, 'description')
+                }
+            }
+            if (isStandardMap(value)) {
+                return {
+                    ...rest,
+                    name: stripValue(value, 'name'),
+                    positions: stripIDFromTree(value.positions),
+                    images: stripIDFromTree(value.images),
+                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                }
+            }
+            if (isStandardTheme(value)) {
+                return {
+                    ...rest,
+                    name: stripValue(value, 'name'),
+                    prompts: stripIDFromTree(value.prompts).filter(treeNodeTypeguard(isSchemaPrompt)),
+                    rooms: stripIDFromTree(value.rooms),
+                    maps: stripIDFromTree(value.maps)
+                }
+            }
+            if (isStandardRoom(value)) {
+                return {
+                    ...rest,
+                    shortName: stripValue(value, 'shortName'),
+                    name: stripValue(value, 'name'),
+                    summary: stripValue(value, 'summary'),
+                    description: stripValue(value, 'description'),
+                    exits: stripIDFromTree(value.exits),
+                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                }
+            }
+            if (isStandardMessage(value)) {
+                return {
+                    ...rest,
+                    description: stripValue(value, 'description'),
+                    rooms: stripIDFromTree(value.rooms)
+                }
+            }
+            if (isStandardMoment(value)) {
+                return {
+                    ...rest,
+                    messages: stripIDFromTree(value.messages)
+                }
+            }
+            return rest
+        })
+        return {
+            key: this._assetKey,
+            tag: this._assetTag,
+            byId,
+            metaData: stripIDFromTree(this.metaData)
+        }
+    }
 }

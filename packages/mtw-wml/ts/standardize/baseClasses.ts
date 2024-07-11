@@ -6,7 +6,7 @@ type StandardBase = {
     id: string;
 }
 
-type StandardNodeKeys<T extends StandardBase> = Exclude<{
+export type StandardNodeKeys<T extends StandardBase> = Exclude<{
         [K in Exclude<keyof T, 'key' | 'id'>]: T[K] extends GenericTreeNodeFiltered<any, any, any> ? K : never
     }[Exclude<keyof T, 'key' | 'id'>], undefined>
 
@@ -175,18 +175,31 @@ export type StandardAbstractComponent =
     StandardImage |
     StandardImageUpdate
 
+export const isStandardComponent = (value: StandardAbstractComponent): value is StandardAbstractComponent => (!('update' in value && value.update))
+
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
+export const isStandardAbstractFactory = <T extends StandardAbstractComponent>(tag: T["tag"]) => (value: StandardAbstractComponent): value is T => (value.tag === tag)
 
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
+export const isStandardAbstractRoom = isStandardAbstractFactory<StandardRoom | StandardRoomUpdate>("Room")
 export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
+export const isStandardAbstractFeature = isStandardAbstractFactory<StandardFeature | StandardFeatureUpdate>("Feature")
 export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
+export const isStandardAbstractKnowledge = isStandardAbstractFactory<StandardKnowledge | StandardKnowledgeUpdate>("Knowledge")
 export const isStandardBookmark = isStandardFactory<StandardBookmark>("Bookmark")
+export const isStandardAbstractBookmark = isStandardAbstractFactory<StandardBookmark | StandardBookmarkUpdate>("Bookmark")
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
+export const isStandardAbstractMap = isStandardAbstractFactory<StandardMap | StandardMapUpdate>("Map")
 export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
+export const isStandardAbstractTheme = isStandardAbstractFactory<StandardTheme | StandardThemeUpdate>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
+export const isStandardAbstractMessage = isStandardAbstractFactory<StandardMessage | StandardMessageUpdate>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
+export const isStandardAbstractMoment = isStandardAbstractFactory<StandardMoment | StandardMomentUpdate>("Moment")
 export const isStandardAction = isStandardFactory<StandardAction>("Action")
+export const isStandardAbstractAction = isStandardAbstractFactory<StandardAction | StandardActionUpdate>("Action")
 export const isStandardImage = isStandardFactory<StandardImage>("Image")
+export const isStandardAbstractImage = isStandardAbstractFactory<StandardImage | StandardImageUpdate>("Image")
 
 export type StandardForm = {
     key: string;
