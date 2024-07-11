@@ -617,4 +617,14 @@ export class Standardizer extends StandardizerAbstract {
             metaData: stripIDFromTree(this.metaData)
         }
     }
+
+    override get standardForm(): StandardForm {
+        return {
+            key: this._assetKey,
+            tag: this._assetTag,
+            byId: this.byId,
+            metaData: this.metaData
+        }
+    }
+
 }

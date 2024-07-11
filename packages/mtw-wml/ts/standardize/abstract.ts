@@ -838,11 +838,10 @@ export class StandardizerAbstract {
         this.metaData = standard.metaData
     }
 
-    get standardForm(): StandardAbstractForm {
+    get standardForm(): Omit<StandardAbstractForm, 'update'> {
         return {
             key: this._assetKey,
             tag: this._assetTag,
-            update: this._update,
             byId: this._byId,
             metaData: this.metaData
         }
@@ -872,7 +871,7 @@ export class StandardizerAbstract {
                 return [node]
             })
         const assignedStandardizer = new StandardizerAbstract(assignedSchema)
-        this.loadStandardForm(assignedStandardizer.standardForm)
+        this.loadStandardForm({ ...assignedStandardizer.standardForm, update: assignedStandardizer._update })
     }
 
     deserialize(standard: SerializableStandardForm): void {
