@@ -268,7 +268,7 @@ export class Standardizer extends StandardizerAbstract {
                     name: stripValue(value ?? { data: { tag: 'Name' }, children: [], id: '' }, 'name'),
                     positions: stripIDFromTree(value.positions),
                     images: stripIDFromTree(value.images),
-                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                    themes: stripIDFromTree(value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (isStandardTheme(value)) {
@@ -288,7 +288,7 @@ export class Standardizer extends StandardizerAbstract {
                     summary: stripValue(value ?? { data: { tag: 'Summary' }, children: [], id: '' }, 'summary'),
                     description: stripValue(value ?? { data: { tag: 'Description' }, children: [], id: '' }, 'description'),
                     exits: stripIDFromTree(value.exits),
-                    themes: stripIDFromTree(value.themes).filter(treeNodeTypeguard(isSchemaTheme))
+                    themes: stripIDFromTree(value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
                 }
             }
             if (isStandardMessage(value)) {

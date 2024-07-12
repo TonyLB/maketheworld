@@ -242,10 +242,10 @@ export class ReadOnlyAssetWorkspace {
             return
         }
 
-        this.standard = standard as StandardForm
         const normalizer = new Normalizer()
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standard)
+        this.standard = standardizer.stripped
         normalizer.loadSchema(standardizer.schema)
         this.normal = normalizer.normal
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping

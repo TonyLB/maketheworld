@@ -4,7 +4,7 @@
 // needed in order to render the structure of the object specified by the given keys
 //
 
-import { unique } from "@tonylb/mtw-utilities/ts/lists"
+import { excludeUndefined, unique } from "@tonylb/mtw-utilities/ts/lists"
 import {
     isSchemaLink,
     isSchemaExit
@@ -71,7 +71,7 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
                 if (!keys.includes(key)) {
                     return []
                 }
-                const tagTree = new SchemaTagTree([summary, description])
+                const tagTree = new SchemaTagTree([summary, description].filter(excludeUndefined))
                 const linkTargets = tagTree
                     .prune({ not: { match: 'Link' } })
                     .tree
