@@ -61,8 +61,8 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
             return
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
-        if (value !== schemaOutputToString(roomComponent.shortName.children) ?? roomId) {
-            if (roomComponent.shortName.id) {
+        if (value !== schemaOutputToString(roomComponent.shortName?.children ?? []) ?? roomId) {
+            if (roomComponent.shortName?.id) {
                 updateSchema({
                     type: 'replaceChildren',
                     id: roomComponent.shortName.id,
@@ -252,14 +252,14 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
-            return <RoomLayer id={item.id} roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) || data.key : data.key}>
+            return <RoomLayer id={item.id} roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) || data.key : data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':
             return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
             const destinationComponent = combinedStandardForm.byId[data.to]
-            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(destinationComponent.shortName.children) : ''
+            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(destinationComponent.shortName?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema tag="If" field={item} parentId="">

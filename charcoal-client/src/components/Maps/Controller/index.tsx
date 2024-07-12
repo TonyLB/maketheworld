@@ -134,7 +134,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = combinedStandardForm.byId[data.key]
-            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName.children) : data.key
+            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) : data.key
             return children.reduce(extractRoomsHelper(parentId, { ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {

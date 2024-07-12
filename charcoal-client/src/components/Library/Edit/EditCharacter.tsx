@@ -237,7 +237,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const { updateSchema } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return character[tag].data.value || ''
+        return character[tag]?.data?.value || ''
     })
 
     const id = useMemo(() => (character[tag].id), [character])
@@ -246,7 +246,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     useEffect(() => {
         const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
         const item = { tag: schemaTag, value: debouncedTagValue }
-        if (!deepEqual(character[tag].data, item)) {
+        if (!deepEqual(character[tag]?.data ?? {}, item)) {
             updateSchema({
                 type: 'updateNode',
                 id,
@@ -269,15 +269,15 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     const { updateSchema } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
-        return schemaOutputToString(character.name.children) || ''
+        return schemaOutputToString(character.name?.children ?? []) || ''
     })
 
-    const id = useMemo(() => (character.name.id), [character])
+    const id = useMemo(() => (character.name?.id), [character])
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
         const children = [{ data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }]
-        if (!deepEqual(stripIDFromTree(character.name.children), children)) {
+        if (!deepEqual(stripIDFromTree(character.name?.children ?? []), children)) {
             updateSchema({
                 type: 'replaceChildren',
                 id,

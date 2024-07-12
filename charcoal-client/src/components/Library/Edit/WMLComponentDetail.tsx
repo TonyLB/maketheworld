@@ -51,7 +51,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         if (isStandardRoom(component)) {
             const newValue = event.target.value
             if (newValue) {
-                if (component.shortName.id) {
+                if (component.shortName?.id) {
                     updateSchema({
                         type: 'replaceChildren',
                         id: component.shortName.id,
@@ -70,7 +70,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 }
             }
             else {
-                if (component.shortName.id) {
+                if (component.shortName?.id) {
                     updateSchema({
                         type: 'delete',
                         id: component.shortName.id
@@ -92,8 +92,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             (isStandardRoom(component)) && <EditSchema
                 tag="ShortName"
-                field={component ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
-                inherited={inherited && isStandardRoom(inherited) ? unwrapInherited([inherited.shortName])[0] : undefined }
+                field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
+                inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
                 parentId={component?.id ?? ''}
             >
                 <TitledBox title="Short Name">
@@ -107,8 +107,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
         <EditSchema
             tag="Name"
-            field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
-            inherited={inherited ? unwrapInherited([inherited.name])[0] : undefined }
+            field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+            inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
             parentId={component?.id ?? ''}
         >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
@@ -122,8 +122,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             isStandardRoom(component) && <EditSchema
                 tag="Summary"
-                field={component ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
-                inherited={inherited && isStandardRoom(inherited) ? unwrapInherited([inherited.summary])[0] : undefined }
+                field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
+                inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
                 parentId={component?.id ?? ''}
             >
                 <TitledBox title="Summary">
@@ -137,8 +137,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
         <EditSchema
             tag="Description"
-            field={component ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
-            inherited={inherited ? unwrapInherited([inherited.description])[0] : undefined }
+            field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
+            inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
             parentId={component?.id ?? ''}
         >
             <TitledBox>
@@ -179,10 +179,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         const component = combinedStandardForm.byId[ComponentId]
         if (component) {
             if (isStandardRoom(component)) {
-                return schemaOutputToString(component.shortName.children)
+                return schemaOutputToString(component.shortName?.children ?? [])
             }
             else if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
-                return schemaOutputToString(component.name.children)
+                return schemaOutputToString(component.name?.children ?? [])
             }
         }
         return ''

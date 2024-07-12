@@ -362,7 +362,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
     const roomComponent = standard.byId[roomId]
 
     if (roomComponent && isStandardRoom(roomComponent)) {
-        const name = roomComponent.name.children.length ? schemaOutputToString(roomComponent.name.children) : roomComponent.shortName.children.length ? schemaOutputToString(roomComponent.shortName.children) : ''
+        const name = schemaOutputToString(roomComponent.name?.children ?? []) || schemaOutputToString(roomComponent.shortName?.children ?? [])
         if (name) {
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',
@@ -371,7 +371,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
             }, { service: 'asset' })).then(({ description = '', summary = '' }) => {
                 if (description) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
-                    if (roomComponent.description.id) {
+                    if (roomComponent.description?.id) {
                         dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [stringTag]}))
                     }
                     else {
@@ -380,7 +380,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                 }
                 if (summary) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: summary.trim() }, children: [] }
-                    if (roomComponent.summary.id) {
+                    if (roomComponent.summary?.id) {
                         dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.summary.id, children: [stringTag]}))
                     }
                     else {

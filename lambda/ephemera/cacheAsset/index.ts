@@ -78,10 +78,10 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId: EphemeraId,
-            shortName: item.shortName.children,
-            name: item.name.children,
-            summary: item.summary.children,
-            render: item.description.children,
+            shortName: item.shortName?.children ?? [],
+            name: item.name?.children ?? [],
+            summary: item.summary?.children ?? [],
+            render: item.description?.children ?? [],
             exits: item.exits,
             stateMapping,
             keyMapping
@@ -91,8 +91,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name.children,
-            render: item.description.children,
+            name: item.name?.children ?? [],
+            render: item.description?.children ?? [],
             stateMapping,
             keyMapping
         }
@@ -101,8 +101,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name.children,
-            render: item.description.children,
+            name: item.name?.children ?? [],
+            render: item.description?.children ?? [],
             stateMapping,
             keyMapping
         }
@@ -111,7 +111,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            render: item.description.children,
+            render: item.description?.children ?? [],
             stateMapping,
             keyMapping
         }
@@ -132,7 +132,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             key: item.key,
             EphemeraId,
             rooms,
-            render: item.description.children,
+            render: item.description?.children ?? [],
             stateMapping,
             keyMapping
         }
@@ -159,7 +159,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name.children,
+            name: item.name?.children ?? [],
             images: map(item.images, (node) => {
                 const { data, children } = node
                 if (isSchemaImage(data)) {
@@ -194,11 +194,11 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             key: item.key,
             EphemeraId,
             address: assetWorkspace.address,
-            Name: schemaOutputToString(item.name.children),
+            Name: schemaOutputToString(item.name?.children ?? []),
             Pronouns: pronouns,
-            FirstImpression: item.firstImpression.data.value,
-            OneCoolThing: item.oneCoolThing.data.value,
-            Outfit: item.outfit.data.value,
+            FirstImpression: item.firstImpression?.data?.value ?? '',
+            OneCoolThing: item.oneCoolThing?.data?.value ?? '',
+            Outfit: item.outfit?.data?.value ?? '',
             // image,
             assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,

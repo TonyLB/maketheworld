@@ -13,7 +13,7 @@ const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<
 export const addExitFactory = ({ standardForm, combinedStandardForm, updateSchema, addImport, parentId }: { standardForm: StandardForm, combinedStandardForm: StandardForm, updateSchema: (action: UpdateSchemaPayload) => void, addImport: (key: string) => void, parentId: string }) => ({ to, from }: { to: string; from: string }) => {
     const destinationComponent = combinedStandardForm.byId[to]
     const children = (destinationComponent && isStandardRoom(destinationComponent))
-        ? destinationComponent.shortName.children
+        ? destinationComponent.shortName?.children ?? []
         : []
     if (!(to in standardForm)) {
         addImport(to)
