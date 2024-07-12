@@ -31,7 +31,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const nameFromKey = useCallback((key: string): string => {
         const component = combinedStandardForm.byId[key]
         if (component && isStandardRoom(component)) {
-            return schemaOutputToString(component.shortName.children) || 'Untitled'
+            return schemaOutputToString(component.shortName?.children ?? []) || 'Untitled'
         }
         return 'Untitled'
     }, [combinedStandardForm])

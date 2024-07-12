@@ -227,7 +227,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                                     <ListItemIcon>
                                         <ThemeIcon />
                                     </ListItemIcon>
-                                    <ListItemText primary={schemaOutputToString(themeItem.name.children) || 'Untitled'} secondary={themeItem.key} />
+                                    <ListItemText primary={schemaOutputToString(themeItem.name?.children ?? []) || 'Untitled'} secondary={themeItem.key} />
                                 </ListItemButton>
                             ))}
                         </React.Fragment>

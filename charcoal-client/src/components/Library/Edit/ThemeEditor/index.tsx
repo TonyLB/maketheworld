@@ -63,7 +63,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         }
     }, [ComponentId, standardForm])
     const componentName = useMemo(() => {
-        return schemaOutputToString(component.name.children)
+        return schemaOutputToString(component.name?.children ?? [])
     }, [component])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/Theme/${ComponentId}`,
@@ -126,7 +126,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <EditSchema tag="Name" field={component ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                <EditSchema tag="Name" field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
                     <TitledBox title="Name">
                         <DescriptionEditor
                             validLinkTags={[]}

@@ -4,15 +4,16 @@ import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } fro
 type StandardBase = {
     key: string;
     id: string;
+    update?: boolean;
 }
 
 export type StandardNodeKeys<T extends StandardBase> = Exclude<{
-        [K in Exclude<keyof T, 'key' | 'id'>]: T[K] extends GenericTreeNodeFiltered<any, any, any> ? K : never
-    }[Exclude<keyof T, 'key' | 'id'>], undefined>
+        [K in keyof T]: T[K] extends GenericTreeNodeFiltered<any, any, any> | undefined ? K : never
+    }[keyof T], (undefined | 'key' | 'id' | 'update')>
 
 type StandardNonNodeKeys<T extends StandardBase> = Exclude<{
-        [K in Exclude<keyof T, 'key' | 'id'>]: T[K] extends GenericTreeNodeFiltered<any, any, any> ? never : K
-    }[Exclude<keyof T, 'key' | 'id'>], undefined>
+        [K in Exclude<keyof T, 'key' | 'id' | 'update'>]: T[K] extends GenericTreeNodeFiltered<any, any, any> ? never : K
+    }[Exclude<keyof T, 'key' | 'id' | 'update'>], undefined>
 
 type StandardUpdateItem <T extends StandardBase> = {
     [K in StandardNodeKeys<T>]?: T[K]
@@ -24,22 +25,22 @@ type StandardUpdateItem <T extends StandardBase> = {
 
 export type StandardCharacter = {
     tag: 'Character';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId>;
-    oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId>;
-    outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId>;
-    pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId>;
-    image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    firstImpression?: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId>;
+    oneCoolThing?: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId>;
+    outfit?: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId>;
+    pronouns?: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId>;
+    image?: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId>;
 } & StandardBase
 
 export type StandardCharacterUpdate = StandardUpdateItem<StandardCharacter>
 
 export type StandardRoom = {
     tag: 'Room';
-    shortName: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag, TreeId>;
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag, TreeId>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    shortName?: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    summary?: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag, TreeId>;
+    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     exits: GenericTree<SchemaTag, TreeId>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
 } & StandardBase
@@ -48,30 +49,30 @@ export type StandardRoomUpdate = StandardUpdateItem<StandardRoom>
 
 export type StandardFeature = {
     tag: 'Feature';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardFeatureUpdate = StandardUpdateItem<StandardFeature>
 
 export type StandardKnowledge = {
     tag: 'Knowledge';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardKnowledgeUpdate = StandardUpdateItem<StandardKnowledge>
 
 export type StandardBookmark = {
     tag: 'Bookmark';
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardBookmarkUpdate = StandardUpdateItem<StandardBookmark>
 
 export type StandardMap = {
     tag: 'Map';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
     images: GenericTree<SchemaTag, TreeId>;
     positions: GenericTree<SchemaTag, TreeId>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
@@ -81,7 +82,7 @@ export type StandardMapUpdate = StandardUpdateItem<StandardMap>
 
 export type StandardTheme = {
     tag: 'Theme';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
     prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
     maps: GenericTree<SchemaTag, TreeId>;
@@ -91,7 +92,7 @@ export type StandardThemeUpdate = StandardUpdateItem<StandardTheme>
 
 export type StandardMessage = {
     tag: 'Message';
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
@@ -147,77 +148,33 @@ export type StandardComponent =
     StandardAction |
     StandardImage
 
-export type StandardAbstractComponent =
-    StandardCharacter |
-    StandardCharacterUpdate |
-    StandardRoom |
-    StandardRoomUpdate |
-    StandardFeature |
-    StandardFeatureUpdate |
-    StandardKnowledge |
-    StandardKnowledgeUpdate |
-    StandardBookmark |
-    StandardBookmarkUpdate |
-    StandardMap |
-    StandardMapUpdate |
-    StandardTheme |
-    StandardThemeUpdate |
-    StandardMessage |
-    StandardMessageUpdate |
-    StandardMoment |
-    StandardMomentUpdate |
-    StandardVariable |
-    StandardVariableUpdate |
-    StandardComputed |
-    StandardComputedUpdate |
-    StandardAction |
-    StandardActionUpdate |
-    StandardImage |
-    StandardImageUpdate
-
-export const isStandardComponent = (value: StandardAbstractComponent): value is StandardAbstractComponent => (!('update' in value && value.update))
-
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
-export const isStandardAbstractFactory = <T extends StandardAbstractComponent>(tag: T["tag"]) => (value: StandardAbstractComponent): value is T => (value.tag === tag)
 
+export const isStandardCharacter = isStandardFactory<StandardCharacter>("Character")
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
-export const isStandardAbstractRoom = isStandardAbstractFactory<StandardRoom | StandardRoomUpdate>("Room")
 export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
-export const isStandardAbstractFeature = isStandardAbstractFactory<StandardFeature | StandardFeatureUpdate>("Feature")
 export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
-export const isStandardAbstractKnowledge = isStandardAbstractFactory<StandardKnowledge | StandardKnowledgeUpdate>("Knowledge")
 export const isStandardBookmark = isStandardFactory<StandardBookmark>("Bookmark")
-export const isStandardAbstractBookmark = isStandardAbstractFactory<StandardBookmark | StandardBookmarkUpdate>("Bookmark")
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
-export const isStandardAbstractMap = isStandardAbstractFactory<StandardMap | StandardMapUpdate>("Map")
 export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
-export const isStandardAbstractTheme = isStandardAbstractFactory<StandardTheme | StandardThemeUpdate>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
-export const isStandardAbstractMessage = isStandardAbstractFactory<StandardMessage | StandardMessageUpdate>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
-export const isStandardAbstractMoment = isStandardAbstractFactory<StandardMoment | StandardMomentUpdate>("Moment")
 export const isStandardAction = isStandardFactory<StandardAction>("Action")
-export const isStandardAbstractAction = isStandardAbstractFactory<StandardAction | StandardActionUpdate>("Action")
+export const isStandardVariable = isStandardFactory<StandardVariable>("Variable")
+export const isStandardComputed = isStandardFactory<StandardComputed>("Computed")
 export const isStandardImage = isStandardFactory<StandardImage>("Image")
-export const isStandardAbstractImage = isStandardAbstractFactory<StandardImage | StandardImageUpdate>("Image")
 
 export type StandardForm = {
     key: string;
     tag: 'Asset' | 'Character';
+    update?: boolean;
     byId: Record<string, StandardComponent>;
-    metaData: GenericTree<SchemaTag, TreeId>;
-}
-
-export type StandardAbstractForm = {
-    key: string;
-    tag: 'Asset' | 'Character';
-    update: boolean;
-    byId: Record<string, StandardAbstractComponent>;
     metaData: GenericTree<SchemaTag, TreeId>;
 }
 
 type SerializableStandardBase = {
     key: string;
+    update?: boolean;
 }
 
 export type SerializableStandardCharacter = {

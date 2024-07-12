@@ -25,13 +25,13 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
     }
     if (isStandardRoom(component)) {
         return <React.Fragment>
-            { schemaOutputToString(component.shortName.children) || 'Untitled' }
+            { schemaOutputToString(component.shortName?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
     if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
         return <React.Fragment>
-            { schemaOutputToString(component.name.children) || 'Untitled' }
+            { schemaOutputToString(component.name?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }

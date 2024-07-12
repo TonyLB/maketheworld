@@ -10,3 +10,5 @@ export const toSpliced = <T extends any>(arr: T[], start: number, replace: numbe
     ]
     return returnVal
 }
+
+export const excludeUndefined = <T extends Exclude<any, undefined>>(value: T | undefined): value is T => (typeof value !== 'undefined')
