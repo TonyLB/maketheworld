@@ -196,6 +196,7 @@ export type PerceptionRoomMessage = {
 export type PerceptionComponentMessage = {
     characterId?: EphemeraCharacterId;
     ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
+    directResponse?: boolean;
 } & PerceptionBase
 
 export type PerceptionMapMessage = {
