@@ -116,6 +116,52 @@ describe('standardizeSchema', () => {
         })
     })
 
+    it('should prefer non-import IDs to import IDs', () => {
+        const test: GenericTree<SchemaTag, TreeId> = [{
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            id: 'ABC',
+            children: [
+                {
+                    data: { tag: 'Import', from: 'primitives', mapping: {} },
+                    id: 'DEF',
+                    children: [{
+                        data: { tag: 'Knowledge', key: 'knowledgeRoot' },
+                        id: 'ImportId',
+                        children: [{ data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] }]
+                    }]
+                },
+                {
+                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
+                    id: 'NonImportId',
+                    children: []
+                }
+            ]
+        }]
+        const standardizer = new Standardizer(test)
+        expect(standardizer.standardForm).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [{
+                data: { tag: 'Import', from: 'primitives', mapping: {} },
+                id: 'DEF',
+                children: [{
+                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
+                    id: 'ImportId',
+                    children: []
+                }]
+            }],
+            byId: {
+                knowledgeRoot: {
+                    tag: 'Knowledge',
+                    key: 'knowledgeRoot',
+                    id: 'NonImportId',
+                    name: { data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] },
+                    description: { data: { tag: 'Description' }, id: '', children: [] },
+                }
+            }
+        })
+    })
+
     it('should combine descriptions in rooms and features', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Room key=(test)>

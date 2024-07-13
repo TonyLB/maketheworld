@@ -3,12 +3,12 @@ import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../normalize/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit } from "../schema/baseClasses"
-import { unmarkInherited } from "../schema/treeManipulation/inherited"
+import { markInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
-import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
+import { maybeGenericIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
@@ -654,13 +654,6 @@ export class StandardizerAbstract {
                     ]}}
                 ]})
             const importItems = importTagTree.tree.filter(({ children }) => (children.length))
-            const importedKeys = unique(tagTree
-                .filter({ match: 'Import' })
-                .prune({ or: [{ before: { match: 'Import' } }, { match: 'Import' }] })
-                .tree
-                .map(({ data }) => (data))
-                .filter(isSchemaWithKey)
-                .map(({ key }) => (key)))
         
             this.metaData = [...this.metaData, ...importItems.filter((node): node is GenericTreeNodeFiltered<SchemaImportTag, SchemaTag, TreeId> => (isSchemaImport(node.data)))]
         
@@ -692,7 +685,6 @@ export class StandardizerAbstract {
                     // Aggregate and reorder all top-level information
                     //
                     const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }) => (data.tag === tag && data.key === key) }
-                    const nodeFilteredTree = tagTree.filter(nodeMatch)
                     const adjustTagTree = (tagTree: SchemaTagTree): SchemaTagTree => {
                         const prunedTagTree = tagTree
                             .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
@@ -713,24 +705,15 @@ export class StandardizerAbstract {
                     const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }))
                     const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { match: 'Import' }] }))
 
-                    const items = unmarkInherited(maybeGenericIDFromTree([...filteredTagTree.tree, ...importedTagTree.tree]))
                     //
                     // TODO: Make sure that import items don't supplant the ID of non-imported items
                     //
-                    unmarkInherited(maybeGenericIDFromTree(filteredTagTree.tree)).forEach((item) => {
+                    maybeGenericIDFromTree([...filteredTagTree.tree, ...markInherited(maybeGenericIDFromTree(importedTagTree.tree))]).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
                         if (standardItem) {
                             this._byId[key] = key in this._byId
                                 ? mergeStandardComponents(this._byId[key], standardItem)
                                 : standardItem
-                        }
-                    })
-                    unmarkInherited(maybeGenericIDFromTree(importedTagTree.tree)).forEach((item) => {
-                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
-                        if (standardItem) {
-                            this._byId[key] = key in this._byId
-                                ? mergeStandardComponents(this._byId[key], standardItem)
-                                : { ...standardItem, id: uuidv4() }
                         }
                     })
                 })
