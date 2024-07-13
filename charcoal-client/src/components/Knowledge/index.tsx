@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useEffect } from 'react'
+import { FunctionComponent, useCallback, useEffect, useMemo } from 'react'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 import Box from '@mui/material/Box'
@@ -11,8 +11,10 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { getCachedPerception } from '../../slices/perceptionCache'
 import Spinner from '../Spinner'
 import ComponentDescription from '../Message/ComponentDescription'
-import { EphemeraKnowledgeId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getPlayer } from '../../slices/player'
+import { getStatus } from '../../slices/personalAssets'
+import EditButton from '../Message/EditButton'
 
 type KnowledgeProps = {
 }
@@ -22,7 +24,7 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
     useOnboardingCheckpoint('navigateKnowledge')
     useOnboardingCheckpoint('knowledgeDetail', { condition: KnowledgeId !== 'knowledgeRoot'})
     useAutoPin({ href: `/Knowledge/`, label: `Knowledge`, iconName: 'Knowledge', type: 'Knowledge' })
-    const { Settings: { guestId }} = useSelector(getPlayer)
+    const { Settings: { guestId }, Assets } = useSelector(getPlayer)
     const dispatch = useDispatch()
     useEffect(() => {
         dispatch(socketDispatchPromise({
@@ -45,6 +47,9 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
             }
         }
     }, [navigate])
+    const currentAssets = useMemo(() => (rest.assets || {}), [rest])
+    const status = useSelector(getStatus(`ASSET#draft`))
+    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         {
@@ -58,6 +63,11 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
                     }}
                     icon={<KnowledgeIcon />}
                     onClickLink={onClickLink}
+                    toolActions={
+                        showEdit
+                            ? <EditButton tag="Knowledge" assets={currentAssets} />
+                            : undefined
+                    }
                 />
                 : <Spinner size={150} border={10} />
         }
