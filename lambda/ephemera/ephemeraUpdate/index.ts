@@ -40,13 +40,13 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
             const sessions = (await internalCache.Global.get("sessions")) || []
             sessions.forEach((sessionId) => {
                 if (!(sessionId in returnValue)) {
-                    returnValue[`SESSION#${sessionId}`] = []
+                    returnValue[sessionId] = []
                 }
             })
         }
         await Promise.all(targets.filter(isPublishTargetSession).map(async (sessionId) => {
             if (!(sessionId in returnValue)) {
-                returnValue[`SESSION#${sessionId}`] = []
+                returnValue[sessionId] = []
             }
         }))
         targets.filter(isPublishTargetCharacter).forEach((characterId) => {
@@ -56,10 +56,10 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
             })
         })
         targets.filter(isPublishTargetExcludeSession).forEach((excludeSessionId) => {
-            delete returnValue[`SESSION#${excludeSessionId}`]
+            delete returnValue[excludeSessionId.slice(1)]
         })
         targets.filter(isPublishTargetExcludeCharacter).forEach((excludeCharacterId) => {
-            returnValue = objectMap(returnValue, (characterList) => (characterList.filter((characterId) => (characterId !== excludeCharacterId))))
+            returnValue = objectMap(returnValue, (characterList) => (characterList.filter((characterId) => (characterId !== excludeCharacterId.slice(1)))))
         })
         return Object.entries(returnValue).map(([sessionId, characters]) => ({ sessionId: sessionId as PublishTargetSession, characters }))
     }
@@ -120,7 +120,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     )
     await Promise.all(
         Object.entries(updatesBySessionId).map(async ([sessionId, updates]) => {
-            const connectionIds = await internalCache.SessionConnections.get([sessionId])
+            const connectionIds = await internalCache.SessionConnections.get([sessionId.split('#')[1]])
             await Promise.all(
                 (connectionIds ?? []).map(async (connectionId) => {
                     await apiClient.send(
