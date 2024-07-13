@@ -692,35 +692,45 @@ export class StandardizerAbstract {
                     // Aggregate and reorder all top-level information
                     //
                     const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }) => (data.tag === tag && data.key === key) }
-                    let filteredTagTree = tagTree
-                        .filter(nodeMatch)
-                        .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
-                        .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
-                        .prune({ before: nodeMatch })
-                    switch(tag) {
-                        case 'Room':
-                            filteredTagTree = filteredTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
-                            break
-                        case 'Map':
-                            filteredTagTree = tagTree
-                                .filter(nodeMatch)
-                                .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
-                                .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { or: [{ match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] } ]}, { match: 'Inherited' }])
-                                .filter(({ or: [{ match: 'Image' }, { match: 'Name' }, { match: 'Theme' }, { and: [{ match: 'If' }, { not: { match: 'Room' }}] }, { and: [{ match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }]}] }]}))
-                                .prune({ before: nodeMatch })
-                            if (!filteredTagTree.tree.length) {
-                                filteredTagTree = tagTree.prune({ not: { match: 'Map' }})
-                            }
-                            break
+                    const nodeFilteredTree = tagTree.filter(nodeMatch)
+                    const adjustTagTree = (tagTree: SchemaTagTree): SchemaTagTree => {
+                        const prunedTagTree = tagTree
+                            .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
+                            .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                            .prune({ before: nodeMatch })
+                        switch(tag) {
+                            case 'Room':
+                                return prunedTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
+                            case 'Map':
+                                return tagTree
+                                    .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
+                                    .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { or: [{ match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] } ]}, { match: 'Inherited' }])
+                                    .filter({ or: [{ and: [{ match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }]}]}, { not: { match: 'Room' }}]})
+                                    .prune({ before: nodeMatch })
+                        }
+                        return prunedTagTree
                     }
-                    const items = unmarkInherited(maybeGenericIDFromTree(filteredTagTree.tree))
+                    const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }))
+                    const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { match: 'Import' }] }))
+
+                    const items = unmarkInherited(maybeGenericIDFromTree([...filteredTagTree.tree, ...importedTagTree.tree]))
                     //
-                    // TODO: Replace topLevelItems.push with a write of a StandardItem into this._byId
+                    // TODO: Make sure that import items don't supplant the ID of non-imported items
                     //
-                    items.forEach((item) => {
+                    unmarkInherited(maybeGenericIDFromTree(filteredTagTree.tree)).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
-                        if (standardItem && (item.children.length || !importedKeys.includes(key) || !(key in this._byId))) {
-                            this._byId[key] = standardItem
+                        if (standardItem) {
+                            this._byId[key] = key in this._byId
+                                ? mergeStandardComponents(this._byId[key], standardItem)
+                                : standardItem
+                        }
+                    })
+                    unmarkInherited(maybeGenericIDFromTree(importedTagTree.tree)).forEach((item) => {
+                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
+                        if (standardItem) {
+                            this._byId[key] = key in this._byId
+                                ? mergeStandardComponents(this._byId[key], standardItem)
+                                : { ...standardItem, id: uuidv4() }
                         }
                     })
                 })
