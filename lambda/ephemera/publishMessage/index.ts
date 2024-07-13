@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage, isPublishTargetSession } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
 import { messageDeltaDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -119,6 +119,12 @@ class PublishMessageTargetMapper {
             .filter((characterId) => (!excludeTargets.includes(characterId)))
     }
 
+    bareSessions(targets: PublishTarget[]): `SESSION#${string}`[] {
+        const sessionTargets = targets.filter(isPublishTargetSession)
+        const excludeTargets = targets.filter(isPublishTargetExcludeSession).map((excludeSession) => (excludeSession.slice(1) as `SESSION#${string}`))
+        return sessionTargets.filter((sessionId) => (!excludeTargets.includes(sessionId)))
+    }
+
     characterConnections(characterId: EphemeraCharacterId): string[] {
         return (this.sessionsByCharacterId[characterId] || []).map((sessionId) => (this.connectionsBySessionId[sessionId] || [])).flat(1)
     }
@@ -157,6 +163,17 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                     })
                 })
             })
+            const bareSessionTargets = mapper.bareSessions(Targets)
+            bareSessionTargets.forEach((target) => {
+                const connections = mapper.connectionsBySessionId[target.split('#')[1]] || []
+                connections.forEach((connectionId) => {
+                    if (!(connectionId in messagesByConnectionId)) {
+                        messagesByConnectionId[connectionId] = []
+                    }
+                    messagesByConnectionId[connectionId].push(rest)
+                })
+            })
+            
         }
         else {
             const connectionId = await internalCache.Global.get("ConnectionId")

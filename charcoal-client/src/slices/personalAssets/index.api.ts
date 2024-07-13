@@ -233,7 +233,8 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
 }
 
-export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draftWML }}) => async(dispatch) => {
+export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => async(dispatch) => {
+    const { draftWML } = publicData
     if (!draftWML) {
         return {}
     }
@@ -242,10 +243,13 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
         const schema = new Schema()
         schema.loadWML(draftWML)
         const standardizer = new Standardizer(schema.schema)
+        const baseSchema = standardizer.schema
+        const workingStandardizer = deriveWorkingStandardizer({ ...publicData, baseSchema })
         return {
             publicData: {
                 standard: standardizer.standardForm,
-                schema: schema.schema,
+                baseSchema,
+                schema: workingStandardizer.schema,
                 currentWML: draftWML,
                 draftWML: undefined
             },

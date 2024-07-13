@@ -289,7 +289,8 @@ export const handler = async (event: any, context: any) => {
                     messageBus.send({
                         type: 'Perception',
                         characterId: CharacterId,
-                        ephemeraId: request.to
+                        ephemeraId: request.to,
+                        directResponse: request.directResponse
                     })
                 }
             }

@@ -12,6 +12,7 @@ import { getCachedPerception } from '../../slices/perceptionCache'
 import Spinner from '../Spinner'
 import ComponentDescription from '../Message/ComponentDescription'
 import { EphemeraKnowledgeId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { getPlayer } from '../../slices/player'
 
 type KnowledgeProps = {
 }
@@ -21,11 +22,14 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
     useOnboardingCheckpoint('navigateKnowledge')
     useOnboardingCheckpoint('knowledgeDetail', { condition: KnowledgeId !== 'knowledgeRoot'})
     useAutoPin({ href: `/Knowledge/`, label: `Knowledge`, iconName: 'Knowledge', type: 'Knowledge' })
+    const { Settings: { guestId }} = useSelector(getPlayer)
     const dispatch = useDispatch()
     useEffect(() => {
         dispatch(socketDispatchPromise({
             message: 'link',
+            CharacterId: `CHARACTER#${guestId}`,
             to: `KNOWLEDGE#${KnowledgeId}`,
+            directResponse: true
         }))
     }, [KnowledgeId, dispatch])
     const { fetched, ...rest } = useSelector(getCachedPerception({ EphemeraId: `KNOWLEDGE#${KnowledgeId}` }))

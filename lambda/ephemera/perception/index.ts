@@ -1,4 +1,4 @@
-import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter, EphemeraMessage, EphemeraMoment } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
@@ -124,7 +124,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 }))
             }
         }
-        else {
+        else if (isPerceptionComponentMessage(payload)) {
             const { characterId = 'ANONYMOUS', ephemeraId } = payload
             if (isEphemeraCharacterId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                 const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
@@ -160,7 +160,12 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     })
                 }
                 if (isEphemeraKnowledgeId(ephemeraId)) {
-                    const targets = isEphemeraCharacterId(characterId) ? [characterId] : []
+                    //
+                    // Knowledge perception can be passed a CharacterID to view *as*, even if that character is not in play.
+                    // When the response should be piped directly back to the calling session (rather than added to the
+                    // message DB), the directResponse argument is passed True.
+                    //
+                    const targets = (isEphemeraCharacterId(characterId) && !payload.directResponse) ? [characterId] : [`SESSION#${await internalCache.Global.get('SessionId')}` as const]
                     const knowledgeDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
                         type: 'PublishMessage',
@@ -171,21 +176,24 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         messageGroupId: payload.messageGroupId
                     })
                 }
-                if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
-                    const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
-                    if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === roomId))) {
-                        messageBus.send({
-                            type: `EphemeraUpdate`,
-                            updates: [{
-                                type: 'MapUpdate',
-                                active: true,
-                                targets: [characterId],
-                                connectionTargets: [characterId],
-                                ...mapDescribe,
-                                MapId: payload.ephemeraId
-                            }]
-                        })
-                    }
+            }
+        }
+        else {
+            const { characterId = 'ANONYMOUS' } = payload
+            if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
+                const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
+                if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === roomId))) {
+                    messageBus.send({
+                        type: `EphemeraUpdate`,
+                        updates: [{
+                            type: 'MapUpdate',
+                            active: true,
+                            targets: [characterId],
+                            connectionTargets: [characterId],
+                            ...mapDescribe,
+                            MapId: payload.ephemeraId
+                        }]
+                    })
                 }
             }
         }
