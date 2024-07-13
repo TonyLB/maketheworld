@@ -24,71 +24,19 @@ import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 import { getPlayer } from '../../slices/player'
-import { addImport, getStatus } from '../../slices/personalAssets'
-import { EphemeraActionId, EphemeraAssetId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import ListItemButton from '@mui/material/ListItemButton'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import { useNavigate } from 'react-router-dom'
-import { addOnboardingComplete } from '../../slices/player/index.api'
+import { getStatus } from '../../slices/personalAssets'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
-import { AssetPicker } from '../AssetPicker'
+import EditButton from './EditButton'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
     header?: boolean;
     currentHeader?: boolean;
-}
-
-const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string> }> = ({ assets }) => {
-    const navigate = useNavigate()
-    const [open, setOpen] = useState<boolean>(false)
-    const ref = useRef(null)
-    const dispatch = useDispatch()
-    const importOptions = useMemo(() => {
-        if (Object.entries(assets).length > 1) {
-            return Object.entries(assets)
-                .filter(([asset]) => (asset !== 'ASSET#primitives'))
-                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
-        }
-        else {
-            return Object.entries(assets)
-                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
-        }
-    }, [assets])
-    const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
-        dispatch(addOnboardingComplete(['importRoom']))
-        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Room', key }))
-        navigate(`/Draft/Room/${key}`)
-    }, [navigate])
-    const onClick = useCallback(() => {
-        if (importOptions.length > 1) {
-            setOpen(true)
-        }
-        else {
-            if (importOptions.length) {
-                onImportListItemClick(importOptions[0])
-            }
-        }
-    }, [importOptions, setOpen, onImportListItemClick])
-    return <React.Fragment>
-        <Chip
-            label="Edit"
-            onClick={onClick}
-            ref={ref}
-        />
-        <AssetPicker
-            open={open}
-            setOpen={setOpen}
-            assets={assets}
-            onSelect={onImportListItemClick}
-            anchorRef={ref}
-        />
-    </React.Fragment>
 }
 
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
@@ -125,7 +73,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
             }}
             leftIcon={<HouseIcon />}
             toolActions={showEdit
-                ? <RoomEditButton assets={currentAssets} />
+                ? <EditButton tag="Room" assets={currentAssets} />
                 : undefined
             }
         >

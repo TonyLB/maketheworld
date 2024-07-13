@@ -26,9 +26,10 @@ type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescr
     icon: ReactElement;
     bevel?: string;
     onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
+    toolActions?: ReactElement;
 }
 
-export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel, onClickLink }: ComponentDescriptionProps<T>) => {
+export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel, onClickLink, toolActions }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
     const bevelCSS = bevel
         ? `polygon(
@@ -53,6 +54,7 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 ...(bevel ? { clipPath: bevelCSS } : {})
             }}
             leftIcon={icon}
+            toolActions={toolActions}
         >
             <Box css={css`
                 grid-area: content;
