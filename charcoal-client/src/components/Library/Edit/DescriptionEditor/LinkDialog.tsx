@@ -167,13 +167,13 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTa
     const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
         Object.values(standardForm.byId).reduce((previous, component) => {
             if (validTags.includes('Action') && isStandardAction(component)) {
-                return { ...previous, actions: [previous.actions, component.key]}
+                return { ...previous, actions: [...previous.actions, component.key]}
             }
             if (validTags.includes('Feature') && isStandardFeature(component)) {
-                return { ...previous, features: [previous.features, component.key]}
+                return { ...previous, features: [...previous.features, component.key]}
             }
             if (validTags.includes('Knowledge') && isStandardKnowledge(component)) {
-                return { ...previous, knowledges: [previous.knowledges, component.key]}
+                return { ...previous, knowledges: [...previous.knowledges, component.key]}
             }
             return previous
         }, { actions: [], features: [], knowledges: [] })
