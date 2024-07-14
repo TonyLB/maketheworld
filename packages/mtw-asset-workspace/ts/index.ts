@@ -7,7 +7,7 @@ import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFe
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
-import ReadOnlyAssetWorkspace from "./readOnly"
+import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
@@ -16,6 +16,10 @@ export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddr
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     wml?: string;
+
+    changeAddress(address: AssetWorkspaceAddress) {
+        this.address = address
+    }
 
     //
     // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
