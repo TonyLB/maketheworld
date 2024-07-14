@@ -3,7 +3,7 @@ import { isSchemaAsset, isSchemaCharacter } from "@tonylb/mtw-wml/ts/schema/base
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 
-type CopyWMLArguments = {
+export type CopyWMLArguments = {
     key: string;
     from: AssetWorkspaceAddress;
     to: AssetWorkspaceAddress;

@@ -5,6 +5,7 @@ import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
 import { parseWMLHandler } from './parseWML'
+import copyWML from './copyWML';
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -47,6 +48,8 @@ export const handler = async (event: any) => {
     switch(event.message) {
         case 'parseWML':
             return await parseWMLHandler(event)
+        case 'copyWML':
+            return await copyWML(event)
         case 'fetchImports':
             return await fetchImportsHandler(event)
     }
