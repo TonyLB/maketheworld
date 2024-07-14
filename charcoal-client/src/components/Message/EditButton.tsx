@@ -2,12 +2,15 @@ import { EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import React, { FunctionComponent, useCallback, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
+import Chip from "@mui/material/Chip"
+import EditIcon from '@mui/icons-material/Edit'
+
 import { addOnboardingComplete } from "../../slices/player/index.api"
 import { addImport } from "../../slices/personalAssets"
-import Chip from "@mui/material/Chip"
 import { AssetPicker } from "../AssetPicker"
 import { getPlayer } from "../../slices/player"
 import { objectFilter } from "../../lib/objects"
+import { Avatar } from "@mui/material"
 
 export const EditButton: FunctionComponent<{ tag: 'Room' | 'Map' | 'Knowledge'; assets: Record<EphemeraAssetId, string> }> = ({ tag, assets }) => {
     const { PlayerName } = useSelector(getPlayer)
@@ -48,11 +51,13 @@ export const EditButton: FunctionComponent<{ tag: 'Room' | 'Map' | 'Knowledge'; 
         }
     }, [importOptions, setOpen, onImportListItemClick])
     return <React.Fragment>
-        <Chip
-            label="Edit"
+        <Avatar
+            alt={'Edit World'}
             onClick={onClick}
             ref={ref}
-        />
+        >
+            <EditIcon />
+        </Avatar>
         <AssetPicker
             open={open}
             setOpen={setOpen}
