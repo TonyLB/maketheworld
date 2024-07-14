@@ -1,0 +1,73 @@
+---
+Comment: Command step-function to publish a WML file from draft
+StartAt: Define Defaults
+States:
+    "Define Defaults":
+        Type: Pass
+        Next: Apply Defaults
+        ResultPath: "$.inputDefaults"
+        Parameters:
+            requestId: ""
+    "Apply Defaults":
+        Type: Pass
+        Next: Check Arguments
+        ResultPath: "$"
+        Parameters:
+            "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
+    "Check Arguments":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.args.player"
+                IsPresent: false
+                Next: Failure
+            -
+                Variable: "$.args.address"
+                IsPresent: false
+                Next: Notify of Failure
+            -
+                Variable: "$.args.key"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Copy WML
+    "Copy WML":
+        Type: Task
+        Next: Done
+        Resource: "${WMLFunctionArn}"
+        Parameters:
+            message: copyWML
+            from:
+                zone: Draft
+                player.$: "$.args.player"
+            to.$: "$.args.address"
+            key.$: "$.args.key"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
+        ResultPath: "$.copyResults"
+    "Notify of Failure":
+        Type: Task
+        Next: Failure
+        Resource: "arn:aws:states:::sns:publish"
+        Parameters:
+            TopicArn: "${TopicArn}"
+            Message: "{}"
+            MessageAttributes:
+                Type:
+                    DataType: String
+                    StringValue: Error
+                RequestId:
+                    DataType: String
+                    "StringValue.$": "$.args.requestId"
+                ConnectionIds:
+                    DataType: String.Array
+                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
+                Error:
+                    DataType: String
+                    StringValue: "Error while publishing WML"
+    Failure:
+        Type: Fail
+    Done:
+        Type: Succeed
