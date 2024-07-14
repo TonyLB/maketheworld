@@ -10,6 +10,7 @@ import OOCMessageIcon from '@mui/icons-material/CropFree'
 import CommandIcon from '@mui/icons-material/Code'
 import ExitIcon from '@mui/icons-material/ExitToApp'
 import RenameIcon from "../Maps/Edit/MapLayers/RenameIcon"
+import EditIcon from '@mui/icons-material/Edit'
 
 type DeepReadonly<T> =
     T extends (infer R)[] ? DeepReadonlyArray<R> :
@@ -290,7 +291,8 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'editMap',
-                        text: 'In the upper right corner, select the pencil button to edit this map and add your own ideas to it.'
+                        text: 'In the upper right corner, select the pencil button to edit this map and add your own ideas to it.',
+                        icon: <EditIcon />
                     }
                 ]
             },
