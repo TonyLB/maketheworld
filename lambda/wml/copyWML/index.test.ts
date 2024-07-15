@@ -1,5 +1,6 @@
 jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
+jest.mock('../serialize/dbRegister')
 
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
@@ -73,14 +74,14 @@ describe('copyWML', () => {
                 </Asset>
             `)
         })
-        expect(s3ClientMock.put.mock.calls[1][0].Key).toEqual('Personal/Test/Assets/testCopy.json')
-        expect(JSON.parse(s3ClientMock.put.mock.calls[1][0].Body)).toEqual({
+
+        const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.json'))
+        expect(jsonIndex).not.toEqual(-1)
+        expect(JSON.parse(s3ClientMock.put.mock.calls[jsonIndex][0].Body)).toEqual({
             ...testJSON,
             assetId: 'ASSET#testCopy',
             normal: expect.any(Object)
-        })
-            // `{"assetId":"ASSET#Test","namespaceIdToDB":[],"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{}}`
-        
+        })        
 
     })
 

@@ -2,6 +2,7 @@ import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspa
 import { isSchemaAsset, isSchemaCharacter } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { dbRegister } from "../serialize/dbRegister";
 
 export type CopyWMLArguments = {
     key: string;
@@ -45,8 +46,11 @@ export const copyWML = async (args: CopyWMLArguments) => {
     //
     await fromWorkspace.setWML(schemaToWML(schema.schema))
     fromWorkspace.changeAddress(args.to)
-    await fromWorkspace.pushWML()
-    await fromWorkspace.pushJSON()
+    await Promise.all([
+        fromWorkspace.pushJSON(),
+        fromWorkspace.pushWML(),
+        dbRegister(fromWorkspace)
+    ])
 
 }
 
