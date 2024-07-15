@@ -50,18 +50,19 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<GenericTree<SchemaOutputTag>>((previous, item) => {
                     if (isCustomLink(item)) {
+                        const text = item.children
+                            .filter((child) => ('text' in child))
+                            .map(({ text }) => (text))
+                            .join('')
                         return [
                             ...previous,
                             {
                                 data: {
                                     tag: 'Link', 
                                     to: item.to,
-                                    text: item.children
-                                    .filter((child) => ('text' in child))
-                                    .map(({ text }) => (text))
-                                    .join('')
+                                    text
                                 },
-                                children: []
+                                children: [{ data: { tag: 'String', value: text }, children: [] }]
                             }
                         ]
                     }
