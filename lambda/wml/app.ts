@@ -6,6 +6,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
 import { parseWMLHandler } from './parseWML'
 import copyWML from './copyWML';
+import { resetWML } from './resetWML';
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -50,6 +51,8 @@ export const handler = async (event: any) => {
             return await parseWMLHandler(event)
         case 'copyWML':
             return await copyWML(event)
+        case 'resetWML':
+            return await resetWML(event)
         case 'fetchImports':
             return await fetchImportsHandler(event)
     }
