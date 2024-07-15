@@ -52,7 +52,15 @@ export const handler = async (event: any) => {
         case 'copyWML':
             return await copyWML(event)
         case 'resetWML':
-            return await resetWML(event)
+            if (event.address.zone === 'Draft') {
+                return await resetWML({
+                    ...event,
+                    key: `draft[${event.address.player}]`
+                })
+            }
+            else {
+                return await resetWML(event)
+            }
         case 'fetchImports':
             return await fetchImportsHandler(event)
     }
