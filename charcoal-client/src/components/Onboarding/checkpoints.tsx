@@ -329,12 +329,9 @@ const onboardingChaptersRaw = [
                     }
                 ]
             },
-            //
-            // TODO: Rewrite the room editing section of the tutorial
-            //
             {
                 pageKey: 'pageDraftRoom',
-                text: `You have created a new room that you can make private changes in. Time to add some details`,
+                text: `You have created a new room that you can make private changes in. The application will try to create a first guess of descriptive text, but you can edit it to more closely match your vision`,
                 subItems: [
                     {
                         key: 'navigateRoom',
@@ -342,11 +339,11 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'summarizeRoom',
-                        text: 'Enter a summary for the room to be shown when people first arrive.'
+                        text: 'Edit the summary of the room that is shown when people first arrive.'
                     },
                     {
                         key: 'describeRoom',
-                        text: 'Enter a more detailed description for the room if they look more closely.'
+                        text: 'Edit the more detailed description that is shown if they look more closely.'
                     }
                 ]
             },
