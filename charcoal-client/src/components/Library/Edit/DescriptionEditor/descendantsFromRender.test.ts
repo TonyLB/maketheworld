@@ -11,7 +11,7 @@ describe('descendantsFromRender', () => {
     it('should return a text description', () => {
         expect(descendantsFromRender([
             { data: { tag: 'String', value: 'This is a test ' }, children: [], id: '' },
-            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [], id: '' },
+            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [{ data: { tag: 'String', value: 'with a link' }, children: [], id: '' }], id: '' },
             { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' },
         ], {
             standard: {
@@ -75,7 +75,7 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'String', value: 'Test' }, children: [], id: '' },
             { data: { tag: 'br' }, children: [], id: '' },
             { data: { tag: 'String', value: 'Another ' }, children: [], id: '' },
-            { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [], id: '' },
+            { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [{ data: { tag: 'String', value: 'test' }, children: [], id: ''}], id: '' },
             { data: { tag: 'Space' },  children: [], id: '' }
         ], {
             standard: {

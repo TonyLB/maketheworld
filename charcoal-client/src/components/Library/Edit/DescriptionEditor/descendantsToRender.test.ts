@@ -21,7 +21,7 @@ describe('descendantsToRender', () => {
             }]
         }])).toEqual([
             { data: { tag: 'String', value: 'This is a test ' }, children: [] },
-            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [{ data: { tag: 'String', value: 'with a link' }, children: [] }] },
             { data: { tag: 'String', value: ' and more text.' }, children: [] }
         ])
     })
@@ -61,7 +61,7 @@ describe('descendantsToRender', () => {
             { data: { tag: 'String', value: 'This is a test.' }, children: [] },
             { data: { tag: 'br' }, children: [] },
             { data: { tag: 'String', value: 'With ' }, children: [] },
-            { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [{ data: { tag: 'String', value: 'link' }, children: [] }] },
             { data: { tag: 'Space' }, children: [] }
         ])
     })
