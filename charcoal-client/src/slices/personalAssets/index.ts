@@ -366,16 +366,16 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
         if (name) {
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',
-                name,
-                requestId: uuidv4()
-            }, { service: 'asset' })).then(({ description = '', summary = '' }) => {
+                name
+            }, { service: 'asset' })).then((results) => {
+                const { description, summary } = results
                 if (description) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
                     if (roomComponent.description?.id) {
                         dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [stringTag]}))
                     }
                     else {
-                        dispatch(updateSchema(assetId)({ type: 'addChildren', id: roomComponent.id, children: [{ data: { tag: 'Description' }, children: [stringTag] }]}))
+                        dispatch(updateSchema(assetId)({ type: 'addChild', id: roomComponent.id, item: { data: { tag: 'Description' }, children: [stringTag] }}))
                     }
                 }
                 if (summary) {
@@ -384,7 +384,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                         dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.summary.id, children: [stringTag]}))
                     }
                     else {
-                        dispatch(updateSchema(assetId)({ type: 'addChildren', id: roomComponent.id, children: [{ data: { tag: 'Summary' }, children: [stringTag] }]}))
+                        dispatch(updateSchema(assetId)({ type: 'addChild', id: roomComponent.id, item: { data: { tag: 'Summary' }, children: [stringTag] }}))
                     }
                 }
                 if (description || summary) {
