@@ -13,15 +13,19 @@ export const roomGeneratePrompt = async (name: string): Promise<string> => {
         DO NOT directly address the audience.
         DO NOT mention anything inside the "Instructions:" or "Examples:" tag in the response.
 
+        Context:
+
+        The context in which the description and summary should fit is that of a fantasy world during a time of new exploration, with the following specifics:
+            Low levels of magic exist and are studied but not yet completely understood
+            Non-magical technology is roughly analogous to the very beginning of the Steam Age in reality.
+
         Instructions:
-
-        Description:
-            Provide a detailed, sensory-rich description of the place.
-            Focus on visual, auditory, olfactory, and tactile elements that a character would perceive.
-
-        Summary:
-            Provide a brief, minimal summary highlighting only the essential elements of the place.
-            Keep the summary succinct and focused on the most immediate and critical aspects.
+            Description:
+                Provide a detailed, sensory-rich description of the place.
+                Focus on visual, auditory, olfactory, and tactile elements that a character would perceive.
+            Summary:
+                Provide a brief, minimal summary highlighting only the essential elements of the place.
+                Keep the summary succinct and focused on the most immediate and critical aspects.
 
         Output Schema:
             You MUST answer in JSON format only
