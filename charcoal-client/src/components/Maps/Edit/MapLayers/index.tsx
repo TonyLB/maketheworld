@@ -278,13 +278,13 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     const { tree, UI: { parentID }, nodeId } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
-        <ConnectionTable
+        {/* <ConnectionTable
             label="Themes"
             minHeight="10em"
             target={mapId}
             tag="Theme"
             orientation="parents"
-        />
+        /> */}
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>

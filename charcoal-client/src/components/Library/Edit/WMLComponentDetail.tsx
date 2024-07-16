@@ -152,13 +152,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             isStandardRoom(component) && <React.Fragment>
                 <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
-                <ConnectionTable
+                {/* <ConnectionTable
                     label="Themes"
                     minHeight="10em"
                     target={ComponentId}
                     tag="Theme"
                     orientation="parents"
-                />
+                /> */}
             </React.Fragment>
         }
     </Box>
