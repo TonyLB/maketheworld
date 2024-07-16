@@ -91,7 +91,6 @@ export type AssetPlayerSettingsAPIMessage = {
 export type AssetLLMGenerateRequestAPIMessage = {
     message: 'llmGenerate';
     name: string;
-    requestId: string;
 }
 
 export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
