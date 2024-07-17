@@ -50,7 +50,7 @@ Resources:
         - Name: email
           AttributeDataType: String
           Mutable: false
-          Required: true
+          Required: false
       Policies:
         PasswordPolicy:
           MinimumLength: 6
