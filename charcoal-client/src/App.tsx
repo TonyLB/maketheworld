@@ -45,9 +45,30 @@ export const App = ({ signOut }: { signOut: () => void }) => (
 // JSON by asynchronous fetch.
 //
 const AuthenticatedApp = (withAuthenticator as any)(App, {
-  signUpAttributes: ['email'],
+  signUpAttributes: [],
   signUpConfig: {
     hiddenDefaults: ['phone_number']
+  },
+  formFields: {
+    signUp: {
+      username: {
+        order: 1,
+        label: 'User name'
+      },
+      email: {
+        order: 2,
+        label: 'Email (optional, for account recovery)',
+        isRequired: false
+      },
+      password: {
+        order: 3,
+        label: 'Password'
+      },
+      confirm_password: {
+        order: 4,
+        label: 'Confirm Password'
+      }
+    }
   },
   components: {
     SignUp: {
