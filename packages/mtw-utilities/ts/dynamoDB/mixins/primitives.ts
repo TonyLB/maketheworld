@@ -14,6 +14,19 @@ export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends st
             })
         }
 
+        async nonCollidingPutItem(item: DBHandlerItem<KIncoming, T>): Promise<boolean> {
+            let returnValue = false
+            await asyncSuppressExceptions(async () => {
+                await this._client.send(new PutItemCommand({
+                    TableName: this._tableName,
+                    Item: marshall(this._remapIncomingObject(item), { removeUndefinedValues: true }),
+                    ConditionExpression: 'attribute_not_exists(DataCategory)'
+                }))
+                returnValue = true
+            })
+            return returnValue
+        }
+
         async deleteItem(key: DBHandlerKey<KIncoming, T>): Promise<void> {
             return await asyncSuppressExceptions(async () => {
                 await this._client.send(new DeleteItemCommand({
