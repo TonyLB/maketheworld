@@ -1210,9 +1210,9 @@ Resources:
               EventBusName: !Sub ${TablePrefix}-bus
               Pattern:
                 source:
-                  - mtw.diagnostics
+                  - mtw.connections
                 detail-type:
-                  - Heal Player
+                  - New Player
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'

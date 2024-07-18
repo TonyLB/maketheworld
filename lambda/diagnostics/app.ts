@@ -5,7 +5,7 @@ export const handler = async (event) => {
     //
     // Handle EventBridge messages
     //
-    if (event?.source === 'mtw.diagnostics' && event["detail-type"] === 'Heal Player' && event.detail?.player) {
+    if (event?.source === 'mtw.connections' && event["detail-type"] === 'New Player' && event.detail?.player) {
         return await healPlayer(event.detail?.player)
     }
 
