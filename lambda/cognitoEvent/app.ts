@@ -9,8 +9,8 @@ export const handler = async (event) => {
         await ebClient.send(new PutEventsCommand({
             Entries: [{
                 EventBusName: process.env.EVENT_BUS_NAME,
-                Source: 'mtw.diagnostics',
-                DetailType: 'Heal Player',
+                Source: 'mtw.connections',
+                DetailType: 'New Player',
                 Detail: JSON.stringify({ player: event.userName })
             }]
         }))
