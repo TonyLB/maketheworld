@@ -1203,6 +1203,16 @@ Resources:
         Environment:
           Variables:
             TABLE_PREFIX: !Ref TablePrefix
+        Events:
+          Diagnostics:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.diagnostics
+                detail-type:
+                  - Heal Player
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'

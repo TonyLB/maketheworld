@@ -66,10 +66,12 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
     })
 
     const { guestName, guestId } = fetch || {}
-    const confirmedGuestName = guestName || await newGuestName()
-    const confirmedGuestId = guestId || uuidv4()
+    let finalGuestName = guestName
+    let finalGuestId = guestId
     if (!guestName || !guestId) {
-        await assetDB.optimisticUpdate({
+        const confirmedGuestName = guestName || await newGuestName()
+        const confirmedGuestId = guestId || uuidv4()
+        const result = await assetDB.optimisticUpdate<{ guestName: string; guestId: string }>({
             Key: {
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player'
@@ -80,6 +82,10 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
                 draft.guestId = confirmedGuestId
             }
         })
+        if (result) {
+            finalGuestName = result.guestName
+            finalGuestId = result.guestId
+        }
     }
     
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
@@ -87,8 +93,8 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
     return {
         Characters,
         Assets,
-        guestName: confirmedGuestName,
-        guestId: confirmedGuestId
+        guestName: finalGuestName || '',
+        guestId: finalGuestId || ''
     }
 }
 
