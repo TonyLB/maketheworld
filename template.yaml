@@ -889,6 +889,7 @@ Resources:
           CodeUri: lambda/cognitoEvent/
           Runtime: nodejs18.x
           Handler: app.handler
+          MemorySize: 128
           Timeout: 20
           Environment:
               Variables:
@@ -906,6 +907,12 @@ Resources:
                 UserPool:
                   Ref: UserPool
                 Trigger: PostConfirmation
+            CognitoUserPoolPreSignup:
+              Type: Cognito
+              Properties:
+                UserPool:
+                  Ref: UserPool
+                Trigger: PreSignUp
   InitializeFunction:
       Type: AWS::Serverless::Function
       Metadata:
