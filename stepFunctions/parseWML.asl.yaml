@@ -104,7 +104,7 @@ States:
             StateMachineArn: "${HealStepFunctionArn}"
             Input:
                 type: "Player"
-                player.$: "$.args.player"
+                player.$: "$.args.address.player"
         Next: Done
     "Notify of Failure":
         Type: Task
