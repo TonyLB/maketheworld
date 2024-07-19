@@ -5,7 +5,8 @@ import {
   Authenticator,
   withAuthenticator,
   useAuthenticator,
-  CheckboxField
+  CheckboxField,
+  TextField
 } from '@aws-amplify/ui-react'
 import '@aws-amplify/ui-react/styles.css'
 import { CssBaseline } from '@mui/material'
@@ -53,20 +54,17 @@ const AuthenticatedApp = (withAuthenticator as any)(App, {
     signUp: {
       username: {
         order: 1,
-        label: 'User name'
       },
       email: {
         order: 2,
-        label: 'Email (optional, for account recovery)',
+        placeholder: 'Email (optional, for account recovery)',
         isRequired: false
       },
       password: {
         order: 3,
-        label: 'Password'
       },
       confirm_password: {
         order: 4,
-        label: 'Confirm Password'
       }
     }
   },
@@ -75,12 +73,22 @@ const AuthenticatedApp = (withAuthenticator as any)(App, {
       FormFields() {
         const { validationErrors } = useAuthenticator()
         const [showingDialog, setShowingDialog] = useState(false)
+        const [inviteCode, setInviteCode] = useState('')
 
         return (
           <React.Fragment>
             <CodeOfConductConsentDialog
               open={showingDialog}
               onClose={ () => { setShowingDialog(false) } }
+            />
+            <TextField
+              label=''
+              value={inviteCode}
+              onChange={(event) => { setInviteCode(event.target.value) }}
+              placeholder={`Enter Invitation Code here (example: '1AB23C')`}
+              name='invitation'
+              hasError={!!validationErrors.invitation}
+              errorMessage={validationErrors.invitation as string}
             />
             <Authenticator.SignUp.FormFields />
 
@@ -114,12 +122,16 @@ const AuthenticatedApp = (withAuthenticator as any)(App, {
     }
   },
   services: {
-    async validateCustomSignUp(formData: { acknowledgement: boolean }) {
-      if (!formData.acknowledgement) {
-        return {
-          acknowledgement: 'You must agree to abide by the Code of Conduct',
-        };
+    async validateCustomSignUp(formData: { acknowledgement: boolean; invitation: string }) {
+      let errors: Partial<{ acknowledgement: string; invitation: string }> = {}
+      if (!(formData.invitation && formData.invitation.match(/^\d[A-Z][A-Z]\d\d[A-Z]$/))) {
+        errors.invitation = `To sign up you need a six character invitation code from a current player.`
       }
+      if (!formData.acknowledgement) {
+        errors.acknowledgement = 'You must agree to abide by the Code of Conduct'
+      }
+      console.log(`errors: ${JSON.stringify(errors, null, 4)}`)
+      return errors
     },
   }
 })
