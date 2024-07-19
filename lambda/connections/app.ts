@@ -5,6 +5,7 @@ import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/t
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { generateInvitationCode } from "./invitationCodes"
 
 export const handler = async (event: any) => {
 
@@ -122,6 +123,10 @@ export const handler = async (event: any) => {
             })
         }
         return
+    }
+    else if (event.message === 'generateInvitation') {
+        const invitationCode = await generateInvitationCode()
+        return { invitationCode }
     }
     throw new Error('Invalid parameters')
 }
