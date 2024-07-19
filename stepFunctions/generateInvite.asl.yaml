@@ -1,0 +1,19 @@
+---
+Comment: Administrative step-function to generate an invite code
+StartAt: Generate Invitation
+States:
+    "Generate Invitation":
+        Type: Task
+        Next: Done
+        Resource: "${ConnectionFunctionArn}"
+        Parameters:
+            message: "generateInvitation"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Failure
+    Failure:
+        Type: Fail
+    Done:
+        Type: Succeed
