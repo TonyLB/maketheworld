@@ -247,12 +247,13 @@ const NavigationTabs = () => {
 }
 
 
-export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback }: any) => {
+export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
 
     const routes = useMemo(() => (
         <Routes>
+            <Route path="/SignIn" element={signInOrUp} />
             <Route path="/Character/Archived" element={<InDevelopment />} />
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
             <Route path="/Library/" element={<Library />} />

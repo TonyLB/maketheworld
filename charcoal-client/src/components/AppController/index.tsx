@@ -23,6 +23,7 @@ import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 import Settings from '../Settings'
 import Onboarding from '../Onboarding'
+import { SignInOrUp } from '../SignIn'
 
 type AppControllerProps = {
     signOut: () => void;
@@ -62,6 +63,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
         closeFeedback={closeFeedback}
         whoPanel={<WhoDrawer />}
         onboardingPanel={<Onboarding />}
+        signInOrUp={<SignInOrUp />}
     />
 }
 
