@@ -23,7 +23,6 @@ import AppController from './components/AppController'
 import './App.css';
 import { getConfiguration, getConfigurationError, loadConfiguration } from './slices/configuration'
 import Spinner from './components/Spinner'
-import { anonymousAPIPromise } from './anonymousAPI'
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
