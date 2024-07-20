@@ -4,6 +4,7 @@ import Tab, { tabClasses } from "@mui/material/Tab"
 import Box from "@mui/material/Box"
 import { blue } from '@mui/material/colors'
 import { useState } from "react"
+import { Button, Stack, TextField } from "@mui/material"
 
 const TabItem = styled(Tab)(({
     theme
@@ -60,15 +61,40 @@ const TabItem = styled(Tab)(({
 }));
 
 const SignIn = ({ value }: { value: number }) => {
+    const [userName, setUserName] = useState('')
+    const [password, setPassword] = useState('')
     return <Box
         hidden={value !== 0}
         sx={{
             borderColor: blue[500],
             borderStyle: "solid",
-            height: "calc(100% - 3em)"
+            height: "calc(100% - 3em)",
+            textAlign: "center",
+            padding: "1em"
         }}
     >
-        Sign In
+        <Stack
+            sx={{
+                minWidth: "19em",
+                width: "90%",
+                marginRight: "auto",
+                marginLeft: "auto"
+            }}
+            spacing={1}
+        >
+            <TextField
+                value={userName}
+                onChange={(event) => { setUserName(event.target.value) }}
+                placeholder="Enter user name"
+            />
+            <TextField
+                value={password}
+                onChange={(event) => { setPassword(event.target.value) }}
+                placeholder="Enter password"
+                type="password"
+            />
+            <Button variant="contained">Sign In</Button>
+        </Stack>
     </Box>
 }
 
