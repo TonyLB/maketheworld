@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { stringify } from 'uuid';
 
 interface ConfigurationData {
     AppBaseURL?: string;
+    AnonymousAPIURI?: string;
     UserPoolId?: string;
     UserPoolClient?: string;
     WebSocketURI?: string;
@@ -19,6 +19,7 @@ const configurationSlice = createSlice({
     reducers: {
         receiveConfiguration(state, action: PayloadAction<ConfigurationData>) {
             state.AppBaseURL = action.payload.AppBaseURL
+            state.AnonymousAPIURI = action.payload.AnonymousAPIURI
             state.UserPoolClient = action.payload.UserPoolClient
             state.UserPoolId = action.payload.UserPoolId
             state.WebSocketURI = action.payload.WebSocketURI
@@ -54,12 +55,13 @@ export const loadConfiguration = async (dispatch: any) => {
             }
             return previous
         }, {})
-        if (!(configuration.UserPoolId && configuration.UserPoolClient && configuration.WebSocketURI)) {
+        if (!(configuration.UserPoolId && configuration.UserPoolClient && configuration.WebSocketURI && configuration.AnonymousApiURI)) {
             dispatch(receiveConfigurationError())
         }
         else {
             dispatch(receiveConfiguration({
                 AppBaseURL: configuration.AppBaseURL,
+                AnonymousAPIURI: configuration.AnonymousApiURI,
                 UserPoolId: configuration.UserPoolId,
                 UserPoolClient: configuration.UserPoolClient,
                 WebSocketURI: configuration.WebSocketURI,
