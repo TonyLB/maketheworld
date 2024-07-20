@@ -92,7 +92,10 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: MTWAnonymousAPI
-      StageName: prod      
+      StageName: prod
+      Cors:
+        AllowMethods: "'POST, GET'"
+        AllowOrigin: "'*'"
   AuthenticationPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
