@@ -3,9 +3,12 @@ import Tabs from "@mui/material/Tabs"
 import Tab, { tabClasses } from "@mui/material/Tab"
 import Box from "@mui/material/Box"
 import { blue } from '@mui/material/colors'
-import React, { useState } from "react"
+import React, { useCallback, useState } from "react"
 import { Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
+import { anonymousAPIPromise, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
+import { useSelector } from "react-redux"
+import { getConfiguration } from "../../slices/configuration"
 
 const TabItem = styled(Tab)(({
     theme
@@ -64,6 +67,23 @@ const TabItem = styled(Tab)(({
 const SignIn = ({ value }: { value: number }) => {
     const [userName, setUserName] = useState('')
     const [password, setPassword] = useState('')
+    const [isValidating, setIsValidating] = useState(false)
+    const { AnonymousAPIURI } = useSelector(getConfiguration)
+    const signIn = useCallback(() => {
+        if (!isValidating) {
+            setIsValidating(true)
+            anonymousAPIPromise({ path: 'signIn', userName, password }, AnonymousAPIURI)
+                .then((results) => {
+                    if (isAnonymousAPIResultSignInSuccess(results)) {
+                        console.log(`Refresh token: ${results.RefreshToken}`)
+                        window.localStorage.setItem('RefreshToken', results.RefreshToken)
+                    }
+                })
+                .then(() => {
+                    setIsValidating(false)
+                })
+        }
+    }, [userName, password, isValidating, setIsValidating])
     return <Box
         hidden={value !== 0}
         sx={{
@@ -94,7 +114,13 @@ const SignIn = ({ value }: { value: number }) => {
                 placeholder="Enter password"
                 type="password"
             />
-            <Button variant="contained">Sign In</Button>
+            <Button
+                variant="contained"
+                disabled={isValidating}
+                onClick={signIn}
+            >
+                Sign In
+            </Button>
         </Stack>
     </Box>
 }
