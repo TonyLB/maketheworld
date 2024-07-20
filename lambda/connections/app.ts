@@ -6,6 +6,9 @@ import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
+import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
+
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION })
 
 export const handler = async (event: any) => {
 
@@ -30,6 +33,38 @@ export const handler = async (event: any) => {
                 statusCode: 200,
                 body: JSON.stringify({ valid }),
                 headers: { 'Access-Control-Allow-Origin': '*' }
+            }
+        }
+    }
+    if (resourcePath === '/signIn') {
+        const json = JSON.parse(event.body)
+        if (typeof json === 'object' && 'userName' in json && 'password' in json) {
+            try {
+                const results = await cognitoClient.send(new InitiateAuthCommand({
+                    AuthFlow: 'USER_PASSWORD_AUTH',
+                    AuthParameters: {
+                        USERNAME: json.userName,
+                        PASSWORD: json.password
+                    },
+                    ClientId: process.env.COGNITO_USER_POOL_CLIENT
+                }))
+                const { AuthenticationResult } = results
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        AccessToken: AuthenticationResult?.AccessToken,
+                        IdToken: AuthenticationResult?.IdToken,
+                        RefreshToken: AuthenticationResult?.RefreshToken
+                    })
+                }
+            }
+            catch (error: any) {
+                return {
+                    statusCode: 403,
+                    body: JSON.stringify({
+                        errorMessage: 'Incorrect username or password.'
+                    })
+                }
             }
         }
     }
