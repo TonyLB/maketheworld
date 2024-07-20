@@ -23,6 +23,7 @@ import AppController from './components/AppController'
 import './App.css';
 import { getConfiguration, getConfigurationError, loadConfiguration } from './slices/configuration'
 import Spinner from './components/Spinner'
+import { anonymousAPIPromise } from './anonymousAPI'
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
@@ -130,7 +131,6 @@ const AuthenticatedApp = (withAuthenticator as any)(App, {
       if (!formData.acknowledgement) {
         errors.acknowledgement = 'You must agree to abide by the Code of Conduct'
       }
-      console.log(`errors: ${JSON.stringify(errors, null, 4)}`)
       return errors
     },
   }
@@ -165,6 +165,7 @@ const ConfiguredApp = () => {
       
           }      
         })
+        anonymousAPIPromise({ path: 'validateInvitation', inviteCode: '1AB23C', AnonymousApiURI: configuration.AnonymousAPIURI }).then((value) => { console.log(`InviteCode check: ${value}`)})
       }
       else {
         dispatch(loadConfiguration)
@@ -174,7 +175,7 @@ const ConfiguredApp = () => {
   if (error) {
     return <div>Error loading MTW configuration</div>
   }
-  else if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI) {
+  else if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI && configuration.AnonymousAPIURI) {
     return <AuthenticatedApp />
   }
   else {
