@@ -61,9 +61,41 @@ export const handler = async (event: any) => {
             }
             catch (error: any) {
                 return {
-                    statusCode: 403,
+                    statusCode: 200,
                     body: JSON.stringify({
                         errorMessage: 'Incorrect username or password.'
+                    }),
+                    headers: { 'Access-Control-Allow-Origin': '*' }
+                }
+            }
+        }
+    }
+    if (resourcePath === '/accessToken') {
+        const json = JSON.parse(event.body)
+        if (typeof json === 'object' && 'RefreshToken' in json) {
+            try {
+                const results = await cognitoClient.send(new InitiateAuthCommand({
+                    AuthFlow: 'REFRESH_TOKEN_AUTH',
+                    AuthParameters: {
+                        REFRESH_TOKEN: json.RefreshToken
+                    },
+                    ClientId: process.env.COGNITO_USER_POOL_CLIENT
+                }))
+                const { AuthenticationResult } = results
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        AccessToken: AuthenticationResult?.AccessToken,
+                        IdToken: AuthenticationResult?.IdToken,
+                    }),
+                    headers: { 'Access-Control-Allow-Origin': '*' }
+                }
+            }
+            catch (error: any) {
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        errorMessage: 'Invalid refresh token.'
                     }),
                     headers: { 'Access-Control-Allow-Origin': '*' }
                 }

@@ -191,6 +191,13 @@ Resources:
               Method: post
               RestApiId:
                 Ref: AnonymousAPI
+          AccessTokenEvent:
+            Type: Api
+            Properties:
+              Path: /accessToken
+              Method: post
+              RestApiId:
+                Ref: AnonymousAPI
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
