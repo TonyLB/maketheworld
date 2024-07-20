@@ -6,6 +6,6 @@ export const anonymousAPIPromise = async (args: { path: 'validateInvitation', in
             body: JSON.stringify({ invitationCode: args.inviteCode })
         }
     )
-    const { valid } = results.json as any
+    const { valid } = await results.json()
     return Boolean(valid)
 }

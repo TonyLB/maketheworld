@@ -28,7 +28,8 @@ export const handler = async (event: any) => {
             const valid = await validateInvitationCode(json.invitationCode)
             return {
                 statusCode: 200,
-                body: JSON.stringify({ valid })
+                body: JSON.stringify({ valid }),
+                headers: { 'Access-Control-Allow-Origin': '*' }
             }
         }
     }

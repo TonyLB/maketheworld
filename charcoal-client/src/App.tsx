@@ -165,7 +165,6 @@ const ConfiguredApp = () => {
       
           }      
         })
-        anonymousAPIPromise({ path: 'validateInvitation', inviteCode: '1AB23C', AnonymousApiURI: configuration.AnonymousAPIURI }).then((value) => { console.log(`InviteCode check: ${value}`)})
       }
       else {
         dispatch(loadConfiguration)
