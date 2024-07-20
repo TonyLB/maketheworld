@@ -9,6 +9,7 @@ import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
 import { useSelector } from "react-redux"
 import { getConfiguration } from "../../slices/configuration"
+import ScreenCenter from "../ScreenCenter"
 
 const TabItem = styled(Tab)(({
     theme
@@ -239,36 +240,23 @@ const a11yProps = (index: number) => ({
 
 export const SignInOrUp = () => {
     const [value, setValue] = useState(0)
-    return <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignContent: 'center',
-        height: "100%",
-    }}>
+    return <ScreenCenter>
         <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignContent: 'center',
-            width: "100%",
+            minWidth: '20em',
+            width: '40em',
+            maxWidth: "90%",
+            minHeight: "30em"
         }}>
-            <Box sx={{
-                minWidth: '20em',
-                width: '40em',
-                maxWidth: "90%",
-                minHeight: "30em"
-            }}>
-                <Tabs
-                    variant="fullWidth"
-                    value={value}
-                    onChange={(event, newValue) => { setValue(newValue) }}
-                >
-                    <TabItem label="Sign In" {...a11yProps(0)} />
-                    <TabItem label="New User" {...a11yProps(1)} />
-                </Tabs>
-                <SignIn value={value} />
-                <SignUp value={value} />
-            </Box>
+            <Tabs
+                variant="fullWidth"
+                value={value}
+                onChange={(event, newValue) => { setValue(newValue) }}
+            >
+                <TabItem label="Sign In" {...a11yProps(0)} />
+                <TabItem label="New User" {...a11yProps(1)} />
+            </Tabs>
+            <SignIn value={value} />
+            <SignUp value={value} />
         </Box>
-    </Box>
+    </ScreenCenter>
 }
