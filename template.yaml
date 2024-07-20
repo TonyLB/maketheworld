@@ -78,7 +78,6 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
       CallbackURLs:
         - !Ref CognitoCallbackURL
-
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -97,6 +96,11 @@ Resources:
       Cors:
         AllowMethods: "'POST, GET'"
         AllowOrigin: "'*'"
+      MethodSettings:
+        - ResourcePath: /signIn
+          HttpMethod: POST
+          ThrottlingBurstLimit: 100
+          ThrottlingRateLimit: 10
   AuthenticationPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
