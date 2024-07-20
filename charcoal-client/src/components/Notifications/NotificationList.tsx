@@ -1,5 +1,4 @@
-import { TableCell } from "@aws-amplify/ui-react"
-import { Avatar, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Paper, Table, TableBody, TableContainer, TableHead, TablePagination, TableRow } from "@mui/material"
+import { Avatar, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TablePagination } from "@mui/material"
 import { FunctionComponent, useCallback, useState } from "react"
 import { useSelector } from "react-redux"
 import { getNotifications } from "../../slices/notifications"

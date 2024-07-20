@@ -1,5 +1,4 @@
-import { Divider } from "@aws-amplify/ui-react"
-import { List, ListItem, ListItemButton, Popover, Typography } from "@mui/material"
+import { Divider, List, ListItem, ListItemButton, Popover, Typography } from "@mui/material"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import React, { FunctionComponent, useCallback, useMemo, useRef } from "react"
 
