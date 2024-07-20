@@ -5,17 +5,38 @@ import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/t
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { generateInvitationCode } from "./invitationCodes"
+import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
 
 export const handler = async (event: any) => {
 
-    const { connectionId, routeKey } = event.requestContext || {}
+    const { connectionId, routeKey, resourcePath } = event.requestContext || {}
 
+    //
+    // Handle direct disconnect call from RealTimeWebSocket
+    //
     if (routeKey === '$disconnect') {
         await disconnect(connectionId)
         return
     }
-    else if (event.message === 'dropConnection') {
+
+    //
+    // Handle call from AnonymousAPI
+    //
+    if (resourcePath === '/validateInvitation') {
+        const json = JSON.parse(event.body)
+        if (typeof json === 'object' && 'invitationCode' in json) {
+            const valid = await validateInvitationCode(json.invitationCode)
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ valid })
+            }
+        }
+    }
+
+    //
+    // Handle messages from RealTimeWebSocket
+    //
+    if (event.message === 'dropConnection') {
         const epochTime = Date.now()
         const { sessionId, connectionId } = event
         const { dropAfter } = (await connectionDB.optimisticUpdate<{ dropAfter?: number }>({
@@ -42,7 +63,7 @@ export const handler = async (event: any) => {
         }) || {})
         return { dropAfter }
     }
-    else if (event.message === 'checkSession') {
+    if (event.message === 'checkSession') {
         const epochTime = Date.now()
         const { sessionId } = event
         let shouldDrop = false
@@ -124,7 +145,7 @@ export const handler = async (event: any) => {
         }
         return
     }
-    else if (event.message === 'generateInvitation') {
+    if (event.message === 'generateInvitation') {
         const invitationCode = await generateInvitationCode()
         return { invitationCode }
     }

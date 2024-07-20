@@ -25,3 +25,14 @@ export const generateInvitationCode = async (): Promise<string> => {
     }
     return generatedCode
 }
+
+export const validateInvitationCode = async (invitationCode: string): Promise<boolean> => {
+    const { DataCategory } = (await connectionDB.getItem<{ DataCategory: string }>({
+        Key: {
+            ConnectionId: `INVITATION#${invitationCode}`,
+            DataCategory: 'Meta::Invitation',
+        },
+        ProjectionFields: ['DataCategory']
+    })) || {}
+    return (DataCategory === 'Meta::Invitation')
+}
