@@ -75,6 +75,7 @@ Resources:
       ExplicitAuthFlows:
         - ALLOW_REFRESH_TOKEN_AUTH
         - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
       CallbackURLs:
         - !Ref CognitoCallbackURL
 
@@ -160,6 +161,7 @@ Resources:
             Variables:
                 TABLE_PREFIX: !Ref TablePrefix
                 EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_connections'
@@ -175,6 +177,13 @@ Resources:
             Type: Api
             Properties:
               Path: /validateInvitation
+              Method: post
+              RestApiId:
+                Ref: AnonymousAPI
+          SignInEvent:
+            Type: Api
+            Properties:
+              Path: /signIn
               Method: post
               RestApiId:
                 Ref: AnonymousAPI
