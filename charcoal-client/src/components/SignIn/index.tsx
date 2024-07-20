@@ -6,7 +6,7 @@ import { blue } from '@mui/material/colors'
 import React, { useCallback, useState } from "react"
 import { Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
-import { anonymousAPIPromise, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
+import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
 import { useSelector } from "react-redux"
 import { getConfiguration } from "../../slices/configuration"
 
@@ -68,6 +68,7 @@ const SignIn = ({ value }: { value: number }) => {
     const [userName, setUserName] = useState('')
     const [password, setPassword] = useState('')
     const [isValidating, setIsValidating] = useState(false)
+    const [error, setError] = useState('')
     const { AnonymousAPIURI } = useSelector(getConfiguration)
     const signIn = useCallback(() => {
         if (!isValidating) {
@@ -75,15 +76,17 @@ const SignIn = ({ value }: { value: number }) => {
             anonymousAPIPromise({ path: 'signIn', userName, password }, AnonymousAPIURI)
                 .then((results) => {
                     if (isAnonymousAPIResultSignInSuccess(results)) {
-                        console.log(`Refresh token: ${results.RefreshToken}`)
                         window.localStorage.setItem('RefreshToken', results.RefreshToken)
+                    }
+                    if (isAnonymousAPIResultSignInFailure(results)) {
+                        setError(results.errorMessage)
                     }
                 })
                 .then(() => {
                     setIsValidating(false)
                 })
         }
-    }, [userName, password, isValidating, setIsValidating])
+    }, [userName, password, isValidating, setIsValidating, setError])
     return <Box
         hidden={value !== 0}
         sx={{
@@ -105,18 +108,27 @@ const SignIn = ({ value }: { value: number }) => {
         >
             <TextField
                 value={userName}
-                onChange={(event) => { setUserName(event.target.value) }}
+                onChange={(event) => {
+                    setError('')
+                    setUserName(event.target.value)
+                }}
                 placeholder="Enter user name"
+                error={Boolean(error)}
             />
             <TextField
                 value={password}
-                onChange={(event) => { setPassword(event.target.value) }}
+                onChange={(event) => {
+                    setError('')
+                    setPassword(event.target.value)
+                }}
                 placeholder="Enter password"
                 type="password"
+                error={Boolean(error)}
+                helperText={error}
             />
             <Button
                 variant="contained"
-                disabled={isValidating}
+                disabled={isValidating || Boolean(error) || !(userName && password)}
                 onClick={signIn}
             >
                 Sign In
