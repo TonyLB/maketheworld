@@ -88,6 +88,11 @@ Resources:
       Name: MTWRealTimeSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.service"
+  AnonymousAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: MTWAnonymousAPI
+      StageName: prod      
   AuthenticationPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -143,25 +148,33 @@ Resources:
   ConnectionFunction:
       Type: AWS::Serverless::Function
       Properties:
-          CodeUri: lambda/connections/build/
-          Handler: lambda.handler
-          MemorySize: 256
-          Runtime: nodejs18.x
-          Timeout: 5
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
-          Policies:
-            - DynamoDBCrudPolicy:
-                TableName: !Sub '${TablePrefix}_connections'
-            - DynamoDBCrudPolicy:
-                TableName: !Sub '${TablePrefix}_ephemera'
-            - Statement:
-              - Effect: Allow
-                Resource: '*'
-                Action:
-                  - events:PutEvents
+        CodeUri: lambda/connections/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+            Variables:
+                TABLE_PREFIX: !Ref TablePrefix
+                EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_connections'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
+          - Statement:
+            - Effect: Allow
+              Resource: '*'
+              Action:
+                - events:PutEvents
+        Events:
+          ValidateInvitationEvent:
+            Type: Api
+            Properties:
+              Path: /validateInvitation
+              Method: post
+              RestApiId:
+                Ref: AnonymousAPI
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -1526,3 +1539,7 @@ Outputs:
   AppBaseURL:
       Description: "The base URL of the CloudFront distribution of the app"
       Value: !GetAtt ImageCloudFrontDistribution.DomainName
+
+  AnonymousApiURI:
+      Description: "The URI for anonymous API messages"
+      Value: !Join [ '', [ 'https://', !Ref AnonymousAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/prod'] ]
