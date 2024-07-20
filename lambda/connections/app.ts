@@ -55,7 +55,8 @@ export const handler = async (event: any) => {
                         AccessToken: AuthenticationResult?.AccessToken,
                         IdToken: AuthenticationResult?.IdToken,
                         RefreshToken: AuthenticationResult?.RefreshToken
-                    })
+                    }),
+                    headers: { 'Access-Control-Allow-Origin': '*' }
                 }
             }
             catch (error: any) {
@@ -63,7 +64,8 @@ export const handler = async (event: any) => {
                     statusCode: 403,
                     body: JSON.stringify({
                         errorMessage: 'Incorrect username or password.'
-                    })
+                    }),
+                    headers: { 'Access-Control-Allow-Origin': '*' }
                 }
             }
         }

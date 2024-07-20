@@ -23,8 +23,8 @@ type AnonymousAPIResultSignInFailure = {
 
 type AnonymousAPIResultSignIn = AnonymousAPIResultSignInSuccess | AnonymousAPIResultSignInFailure
 
-const isAnonymousAPIResultSignInSuccess = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInSuccess => ('AccessToken' in value)
-const isAnonymousAPIResultSignInFailure = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInFailure => ('errorMessage' in value)
+export const isAnonymousAPIResultSignInSuccess = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInSuccess => ('AccessToken' in value)
+export const isAnonymousAPIResultSignInFailure = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInFailure => ('errorMessage' in value)
 
 type AnonymousAPIRequest = AnonymousAPIRequestValidate | AnonymousAPIRequestSignIn
 
