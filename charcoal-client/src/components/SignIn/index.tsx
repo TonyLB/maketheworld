@@ -85,10 +85,8 @@ const SignIn = ({ value }: { value: number }) => {
                     }
                     if (isAnonymousAPIResultSignInFailure(results)) {
                         setError(results.errorMessage)
+                        setIsValidating(false)
                     }
-                })
-                .then(() => {
-                    setIsValidating(false)
                 })
         }
     }, [userName, password, isValidating, setIsValidating, setError, dispatch])
