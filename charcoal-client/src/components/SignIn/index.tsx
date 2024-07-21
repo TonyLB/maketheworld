@@ -7,8 +7,8 @@ import React, { useCallback, useState } from "react"
 import { Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
-import { useSelector } from "react-redux"
-import { getConfiguration } from "../../slices/configuration"
+import { useDispatch, useSelector } from "react-redux"
+import { getConfiguration, receiveRefreshToken } from "../../slices/configuration"
 import ScreenCenter from "../ScreenCenter"
 
 const TabItem = styled(Tab)(({
@@ -71,6 +71,7 @@ const SignIn = ({ value }: { value: number }) => {
     const [isValidating, setIsValidating] = useState(false)
     const [error, setError] = useState('')
     const { AnonymousAPIURI } = useSelector(getConfiguration)
+    const dispatch = useDispatch()
     const signIn = useCallback(() => {
         if (!isValidating) {
             setIsValidating(true)
@@ -78,6 +79,7 @@ const SignIn = ({ value }: { value: number }) => {
                 .then((results) => {
                     if (isAnonymousAPIResultSignInSuccess(results)) {
                         window.localStorage.setItem('RefreshToken', results.RefreshToken)
+                        dispatch(receiveRefreshToken(results.RefreshToken))
                     }
                     if (isAnonymousAPIResultSignInFailure(results)) {
                         setError(results.errorMessage)
@@ -87,7 +89,7 @@ const SignIn = ({ value }: { value: number }) => {
                     setIsValidating(false)
                 })
         }
-    }, [userName, password, isValidating, setIsValidating, setError])
+    }, [userName, password, isValidating, setIsValidating, setError, dispatch])
     return <Box
         hidden={value !== 0}
         sx={{

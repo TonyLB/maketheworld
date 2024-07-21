@@ -13,6 +13,7 @@ export interface LifeLineInternal {
 
 export interface LifeLinePublic {
     webSocket: WebSocket | null;
+    IDToken?: string;
 }
 
 export type LifeLineData = {
@@ -26,7 +27,7 @@ export type LifeLineAction = ISSMAction<LifeLineInternal, LifeLinePublic>
 export type LifeLineCondition = ISSMHoldCondition<LifeLineInternal, LifeLinePublic>
 
 export interface LifeLineNodes {
-    INITIAL: ISSMChoiceNode;
+    INITIAL: ISSMHoldNode<LifeLineInternal, LifeLinePublic>;
     SUBSCRIBE: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     CONNECT: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     CONNECTBACKOFF: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;

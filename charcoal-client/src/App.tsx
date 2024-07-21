@@ -23,6 +23,7 @@ import AppController from './components/AppController'
 import './App.css';
 import { getConfiguration, getConfigurationError, loadConfiguration } from './slices/configuration'
 import Spinner from './components/Spinner'
+import { SignInOrUp } from './components/SignIn'
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
@@ -141,31 +142,31 @@ const ConfiguredApp = () => {
   const dispatch = useDispatch()
   useEffect(() => {
     if (!error) {
-      if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI) {
-        Amplify.configure({
-          aws_project_region: "us-east-1",
-          aws_appsync_region: "us-east-1",
-          aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
-          Auth: {
-              // REQUIRED - Amazon Cognito Region
-              region: 'us-east-1',
+      if (!(configuration.WebSocketURI && configuration.AnonymousAPIURI)) {
+      //   Amplify.configure({
+      //     aws_project_region: "us-east-1",
+      //     aws_appsync_region: "us-east-1",
+      //     aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
+      //     Auth: {
+      //         // REQUIRED - Amazon Cognito Region
+      //         region: 'us-east-1',
       
-              // OPTIONAL - Amazon Cognito User Pool ID
-              userPoolId: configuration.UserPoolId,
+      //         // OPTIONAL - Amazon Cognito User Pool ID
+      //         userPoolId: configuration.UserPoolId,
       
-              // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
-              userPoolWebClientId: configuration.UserPoolClient,
+      //         // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
+      //         userPoolWebClientId: configuration.UserPoolClient,
       
-              // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
-              mandatorySignIn: true,
+      //         // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
+      //         mandatorySignIn: true,
       
-              // OPTIONAL - Manually set the authentication flow type. Default is 'USER_SRP_AUTH'
-              authenticationFlowType: 'USER_SRP_AUTH',
+      //         // OPTIONAL - Manually set the authentication flow type. Default is 'USER_SRP_AUTH'
+      //         authenticationFlowType: 'USER_SRP_AUTH',
       
-          }      
-        })
-      }
-      else {
+      //     }      
+      //   })
+      // }
+      // else {
         dispatch(loadConfiguration)
       }
     }
@@ -173,8 +174,11 @@ const ConfiguredApp = () => {
   if (error) {
     return <div>Error loading MTW configuration</div>
   }
-  else if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI && configuration.AnonymousAPIURI) {
-    return <AuthenticatedApp />
+  else if (!configuration.RefreshToken) {
+    return <SignInOrUp />
+  }
+  else if (configuration.WebSocketURI && configuration.AnonymousAPIURI) {
+    return <App signOut={() => {}}/>
   }
   else {
     return <Spinner size={150} border={10} />

@@ -26,13 +26,34 @@ type AnonymousAPIResultSignIn = AnonymousAPIResultSignInSuccess | AnonymousAPIRe
 export const isAnonymousAPIResultSignInSuccess = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInSuccess => ('AccessToken' in value)
 export const isAnonymousAPIResultSignInFailure = (value: AnonymousAPIResultSignIn): value is AnonymousAPIResultSignInFailure => ('errorMessage' in value)
 
-type AnonymousAPIRequest = AnonymousAPIRequestValidate | AnonymousAPIRequestSignIn
+type AnonymousAPIRequestAccessToken = {
+    path: 'accessToken';
+    RefreshToken: string;
+}
+
+type AnonymousAPIResultAccessTokenSuccess = {
+    AccessToken: string;
+    IdToken: string;
+}
+
+type AnonymousAPIResultAccessTokenFailure = {
+    errorMessage: string
+}
+
+type AnonymousAPIResultAccessToken = AnonymousAPIResultAccessTokenSuccess | AnonymousAPIResultAccessTokenFailure
+
+export const isAnonymousAPIResultAccessTokenSuccess = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultSignInSuccess => ('AccessToken' in value)
+export const isAnonymousAPIResultAccessTokenFailure = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultSignInFailure => ('errorMessage' in value)
+
+type AnonymousAPIRequest = AnonymousAPIRequestValidate | AnonymousAPIRequestSignIn | AnonymousAPIRequestAccessToken
 
 const isAnonymousAPIRequestValidate = (value: AnonymousAPIRequest): value is AnonymousAPIRequestValidate => (value.path === 'validateInvitation')
 const isAnonymousAPIRequestSignIn = (value: AnonymousAPIRequest): value is AnonymousAPIRequestSignIn => (value.path === 'signIn')
+const isAnonymousAPIRequestAccessToken = (value: AnonymousAPIRequest): value is AnonymousAPIRequestAccessToken => (value.path === 'accessToken')
 
-type AnonymousAPIResult = AnonymousAPIResultValidate | AnonymousAPIResultSignIn
+type AnonymousAPIResult = AnonymousAPIResultValidate | AnonymousAPIResultSignIn | AnonymousAPIResultAccessToken
 
+export async function anonymousAPIPromise (args: AnonymousAPIRequestAccessToken, AnonymousApiURI: string): Promise<AnonymousAPIResultAccessToken>
 export async function anonymousAPIPromise (args: AnonymousAPIRequestValidate, AnonymousApiURI: string): Promise<AnonymousAPIResultValidate>
 export async function anonymousAPIPromise (args: AnonymousAPIRequestSignIn, AnonymousApiURI: string): Promise<AnonymousAPIResultSignIn>
 export async function anonymousAPIPromise (args: AnonymousAPIRequest, AnonymousApiURI: string): Promise<AnonymousAPIResult> {
@@ -58,6 +79,23 @@ export async function anonymousAPIPromise (args: AnonymousAPIRequest, AnonymousA
         if (results.status === 200) {
             const { AccessToken, IdToken, RefreshToken } = await results.json()
             return { AccessToken, IdToken, RefreshToken }
+        }
+        else {
+            const { errorMessage } = await results.json()
+            return { errorMessage }
+        }
+    }
+    if (isAnonymousAPIRequestAccessToken(args)) {
+        const results = await fetch(
+            `${AnonymousApiURI}/${args.path}`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ RefreshToken: args.RefreshToken })
+            }
+        )
+        if (results.status === 200) {
+            const { AccessToken, IdToken } = await results.json()
+            return { AccessToken, IdToken }
         }
         else {
             const { errorMessage } = await results.json()

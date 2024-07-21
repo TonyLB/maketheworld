@@ -6,6 +6,7 @@ import { ThunkAction } from 'redux-thunk'
 import {
     LifeLineAction,
     LifeLineReturn,
+    LifeLineCondition,
     ParseCommandProps
 } from './baseClasses'
 import { AppDispatch, AppGetState, RootState } from '../../store'
@@ -22,14 +23,22 @@ import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfa
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
-import { getConfiguration } from '../configuration'
+import { getConfiguration, receiveRefreshToken } from '../configuration'
 import { cacheNotifications } from '../notifications'
 import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
 import { push } from '../UI/feedback'
 import { getPlayer } from '../player'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
+import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure } from '../../anonymousAPI'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
+
+export const refreshTokenCondition: LifeLineCondition = ({}, getState) => {
+    const state = getState()
+    const { RefreshToken } = getConfiguration(state)
+
+    return Boolean(RefreshToken)
+}
 
 export const unsubscribeMessages: LifeLineAction = ({ internalData: { messageSubscription } }) => async () => {
     if (messageSubscription) {
@@ -119,56 +128,74 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
     //
     // Pull a Cognito authentication token in order to connect to the webSocket
     //
-    const { publicData: { webSocket }, internalData, actions: { internalStateChange }} = arg
-    const { WebSocketURI } = getConfiguration(getState())
+    const { publicData: { webSocket, IDToken }, actions: { internalStateChange }} = arg
+    const { WebSocketURI, RefreshToken, AnonymousAPIURI } = getConfiguration(getState())
     const { SessionId } = getPlayer(getState())
-    return Auth.currentSession()
-        .then((session) => (session.getIdToken().getJwtToken()))
-        .then((token) => (new Promise<LifeLineReturn>((resolve, reject) => {
-            let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${token}${ SessionId ? `&SessionId=${SessionId}` : '' }`)
-            setupSocket.onopen = () => {
-                //
-                // Make sure that any previous websocket is disconnected.
-                //
-                // TODO: Provide appropriate internal state data to disconnectWebSocket dispatch
-                //
-                if (webSocket) {
-                    dispatch(disconnectWebSocket(arg))
-                }
-                const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
-                const refreshTimeout = setTimeout(() => {
-                    dispatch(internalStateChange({ newState: 'STALE' }))
-                    dispatch(heartbeat)
-                }, 3600000 )
-                resolve({
-                    internalData: {
-                        pingInterval,
-                        refreshTimeout,
-                        incrementalBackoff: 0.5
-                    },
-                    publicData: {
-                        webSocket: setupSocket
-                    }
-                })
+    //
+    // Use the RefreshToken to get an IDToken to pass to the websocket for authentication
+    //
+    if (!AnonymousAPIURI) {
+        return Promise.reject({})
+    }
+    let finalIDToken = IDToken
+    if (!finalIDToken) {
+        const result = await anonymousAPIPromise({
+            path: 'accessToken',
+            RefreshToken
+        }, AnonymousAPIURI)
+        if (isAnonymousAPIResultAccessTokenFailure(result)) {
+            dispatch(receiveRefreshToken(undefined))
+            return Promise.reject({})
+        }
+        finalIDToken = result.IdToken
+    }
+    return new Promise<LifeLineReturn>((resolve, reject) => {
+        let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${finalIDToken}${ SessionId ? `&SessionId=${SessionId}` : '' }`)
+        setupSocket.onopen = () => {
+            //
+            // Make sure that any previous websocket is disconnected.
+            //
+            if (webSocket) {
+                dispatch(disconnectWebSocket(arg))
             }
-            setupSocket.onmessage = (event) => {
-                const payload = JSON.parse(event.data || {})
-                const isEmptyClientMessage = (payload: any) => (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && 'RequestId' in payload))
-                const isPongMessage = (payload: any) => ('type' in payload && payload.type === 'pong')
-                if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload)) {
-                    LifeLinePubSub.publish(payload)
+            const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
+            const refreshTimeout = setTimeout(() => {
+                dispatch(internalStateChange({ newState: 'STALE' }))
+                dispatch(heartbeat)
+            }, 3600000 )
+            resolve({
+                internalData: {
+                    pingInterval,
+                    refreshTimeout,
+                    incrementalBackoff: 0.5
+                },
+                publicData: {
+                    webSocket: setupSocket,
+                    IDToken: ''
                 }
-                else {
-                    if (!(isEmptyClientMessage(payload) || isPongMessage(payload))) {
-                        console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
-                    }
+            })
+        }
+        setupSocket.onmessage = (event) => {
+            const payload = JSON.parse(event.data || {})
+            const isEmptyClientMessage = (payload: any) => (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && 'RequestId' in payload))
+            const isPongMessage = (payload: any) => ('type' in payload && payload.type === 'pong')
+            if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload)) {
+                LifeLinePubSub.publish(payload)
+            }
+            else {
+                if (!(isEmptyClientMessage(payload) || isPongMessage(payload))) {
+                    console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
                 }
             }
-            setupSocket.onerror = (event) => {
-                reject({})
-            }
-        })
-    ))
+        }
+        setupSocket.onerror = (event) => {
+            reject({
+                publicData: {
+                    IDToken: ''
+                }
+            })
+        }
+    })
 
 }
 
