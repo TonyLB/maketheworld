@@ -141,28 +141,24 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
 
     const { internalStateChange, setIntent, clearOnEnter } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
-        const sliceData = sliceSelector(getState())
-        const { currentState, desiredStates } = sliceData.meta
-        if (!desiredStates.includes(currentState)) {
-            const getSSMData = (state: any) => {
-                const currentData = sliceSelector(state)
-                const { currentState, desiredStates, inProgress, onEnterPromises } = currentData.meta
-                const { internalData, publicData } = currentData
-                return { currentState, desiredStates, internalData, publicData, inProgress, template, onEnterPromises }
-            }
-            dispatch(iterateOneSSM({
-                getSSMData,
-                internalStateChange: ({ newState, inProgress, data }: {
-                        newState: keyof Nodes,
-                        inProgress: keyof Nodes,
-                        data: InferredDataTypeAggregateFromNodes<Nodes>
-                    }) => (internalStateChange({ newState, inProgress, data })),
-                internalIntentChange: ({ newIntent }: { newIntent: (keyof Nodes)[] }) => (setIntent(newIntent)),
-                clearOnEnter: (key) => (clearOnEnter(key)),
-                actions: slice.actions,
-                promiseCache
-            }))
+        const getSSMData = (state: any) => {
+            const currentData = sliceSelector(state)
+            const { currentState, desiredStates, inProgress, onEnterPromises } = currentData.meta
+            const { internalData, publicData } = currentData
+            return { currentState, desiredStates, internalData, publicData, inProgress, template, onEnterPromises }
         }
+        dispatch(iterateOneSSM({
+            getSSMData,
+            internalStateChange: ({ newState, inProgress, data }: {
+                    newState: keyof Nodes,
+                    inProgress: keyof Nodes,
+                    data: InferredDataTypeAggregateFromNodes<Nodes>
+                }) => (internalStateChange({ newState, inProgress, data })),
+            internalIntentChange: ({ newIntent }: { newIntent: (keyof Nodes)[] }) => (setIntent(newIntent)),
+            clearOnEnter: (key) => (clearOnEnter(key)),
+            actions: slice.actions,
+            promiseCache
+        }))
     }
 
     const getStatus = (state: any): keyof Nodes => {
