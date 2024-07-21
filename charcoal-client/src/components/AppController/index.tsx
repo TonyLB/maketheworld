@@ -20,7 +20,6 @@ import AppLayout from '../AppLayout'
 import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
-import useStateSeekingMachines from '../useSSM'
 import Settings from '../Settings'
 import Onboarding from '../Onboarding'
 import { SignInOrUp } from '../SignIn'
@@ -30,7 +29,6 @@ type AppControllerProps = {
 }
 
 export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }) => {
-    useStateSeekingMachines()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines } = useSelector(getClientSettings)
     const dispatch = useDispatch()

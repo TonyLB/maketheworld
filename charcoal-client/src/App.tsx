@@ -21,6 +21,7 @@ import { clear as clearPerceptionCache } from './slices/perceptionCache'
 import { clear as clearActiveCharacters } from './slices/activeCharacters'
 import { clear as clearNavigationTabs } from './slices/UI/navigationTabs'
 import { heartbeat } from './slices/stateSeekingMachine/ssmHeartbeat'
+import useStateSeekingMachines from './components/useSSM';
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
@@ -51,6 +52,7 @@ export const App = ({ signOut }: { signOut: () => void }) => (
 )
 
 const ConfiguredApp = () => {
+  useStateSeekingMachines()
   const error = useSelector(getConfigurationError)
   const configuration = useSelector(getConfiguration)
   const dispatch = useDispatch()

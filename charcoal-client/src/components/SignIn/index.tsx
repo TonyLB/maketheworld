@@ -10,6 +10,7 @@ import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIR
 import { useDispatch, useSelector } from "react-redux"
 import { getConfiguration, receiveRefreshToken } from "../../slices/configuration"
 import ScreenCenter from "../ScreenCenter"
+import { heartbeat } from "../../slices/stateSeekingMachine/ssmHeartbeat"
 
 const TabItem = styled(Tab)(({
     theme
@@ -80,6 +81,7 @@ const SignIn = ({ value }: { value: number }) => {
                     if (isAnonymousAPIResultSignInSuccess(results)) {
                         window.localStorage.setItem('RefreshToken', results.RefreshToken)
                         dispatch(receiveRefreshToken(results.RefreshToken))
+                        dispatch(heartbeat)
                     }
                     if (isAnonymousAPIResultSignInFailure(results)) {
                         setError(results.errorMessage)
