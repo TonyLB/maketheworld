@@ -6,6 +6,7 @@ interface ConfigurationData {
     UserPoolId?: string;
     UserPoolClient?: string;
     WebSocketURI?: string;
+    RefreshToken?: string;
     error: boolean;
 }
 
@@ -23,7 +24,11 @@ const configurationSlice = createSlice({
             state.UserPoolClient = action.payload.UserPoolClient
             state.UserPoolId = action.payload.UserPoolId
             state.WebSocketURI = action.payload.WebSocketURI
+            state.RefreshToken = action.payload.RefreshToken
             state.error = action.payload.error
+        },
+        receiveRefreshToken(state, action: PayloadAction<string | undefined>) {
+            state.RefreshToken = action.payload
         },
         receiveConfigurationError(state) {
             state.error = true
@@ -35,6 +40,7 @@ export const getConfiguration = (state: any): Omit<ConfigurationData, 'error'> =
 export const getConfigurationError = (state: any): boolean => (state.configuration.error)
 
 export const loadConfiguration = async (dispatch: any) => {
+    const refreshToken = window.localStorage.getItem("RefreshToken")
     const jsonContents = await fetch('/config.json')
     const configurationRaw = await jsonContents.json()
     if (!Array.isArray(configurationRaw)) {
@@ -65,11 +71,12 @@ export const loadConfiguration = async (dispatch: any) => {
                 UserPoolId: configuration.UserPoolId,
                 UserPoolClient: configuration.UserPoolClient,
                 WebSocketURI: configuration.WebSocketURI,
+                RefreshToken: refreshToken ? refreshToken : undefined,
                 error: false
             }))
         }
     }
 }
 
-export const { receiveConfiguration, receiveConfigurationError } = configurationSlice.actions
+export const { receiveConfiguration, receiveConfigurationError, receiveRefreshToken } = configurationSlice.actions
 export default configurationSlice.reducer

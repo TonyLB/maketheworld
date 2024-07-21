@@ -5,9 +5,11 @@ import {
     establishWebSocket,
     disconnectWebSocket,
     backoffAction,
-    unsubscribeMessages
+    unsubscribeMessages,
+    refreshTokenCondition
 } from './index.api'
 import { PromiseCache } from '../promiseCache'
+import { PayloadAction } from '@reduxjs/toolkit'
 export {
     socketDispatch,
     socketDispatchPromise,
@@ -42,7 +44,11 @@ export const {
         }
     },
     sliceSelector: ({ lifeLine }) => (lifeLine),
-    publicReducers: {},
+    publicReducers: {
+        receiveIDToken: (state, action: PayloadAction<string | undefined>) => {
+            state.IDToken = action.payload
+        }
+    },
     publicSelectors: {},
     template: {
         initialState: 'INITIAL',
@@ -60,8 +66,9 @@ export const {
         },
         states: {
             INITIAL: {
-                stateType: 'CHOICE',
-                choices: ['SUBSCRIBE']
+                stateType: 'HOLD',
+                next: 'SUBSCRIBE',
+                condition: refreshTokenCondition
             },
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',
@@ -120,7 +127,8 @@ export const {
 } = selectors
 
 export const {
-    onEnter
+    onEnter,
+    receiveIDToken
 } = publicActions
 
 export default lifeLineSlice.reducer

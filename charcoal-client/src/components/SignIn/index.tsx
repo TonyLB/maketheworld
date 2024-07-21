@@ -7,8 +7,9 @@ import React, { useCallback, useState } from "react"
 import { Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
-import { useSelector } from "react-redux"
-import { getConfiguration } from "../../slices/configuration"
+import { useDispatch, useSelector } from "react-redux"
+import { getConfiguration, receiveRefreshToken } from "../../slices/configuration"
+import ScreenCenter from "../ScreenCenter"
 
 const TabItem = styled(Tab)(({
     theme
@@ -70,6 +71,7 @@ const SignIn = ({ value }: { value: number }) => {
     const [isValidating, setIsValidating] = useState(false)
     const [error, setError] = useState('')
     const { AnonymousAPIURI } = useSelector(getConfiguration)
+    const dispatch = useDispatch()
     const signIn = useCallback(() => {
         if (!isValidating) {
             setIsValidating(true)
@@ -77,6 +79,7 @@ const SignIn = ({ value }: { value: number }) => {
                 .then((results) => {
                     if (isAnonymousAPIResultSignInSuccess(results)) {
                         window.localStorage.setItem('RefreshToken', results.RefreshToken)
+                        dispatch(receiveRefreshToken(results.RefreshToken))
                     }
                     if (isAnonymousAPIResultSignInFailure(results)) {
                         setError(results.errorMessage)
@@ -86,7 +89,7 @@ const SignIn = ({ value }: { value: number }) => {
                     setIsValidating(false)
                 })
         }
-    }, [userName, password, isValidating, setIsValidating, setError])
+    }, [userName, password, isValidating, setIsValidating, setError, dispatch])
     return <Box
         hidden={value !== 0}
         sx={{
@@ -239,36 +242,23 @@ const a11yProps = (index: number) => ({
 
 export const SignInOrUp = () => {
     const [value, setValue] = useState(0)
-    return <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignContent: 'center',
-        height: "100%",
-    }}>
+    return <ScreenCenter>
         <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignContent: 'center',
-            width: "100%",
+            minWidth: '20em',
+            width: '40em',
+            maxWidth: "90%",
+            minHeight: "30em"
         }}>
-            <Box sx={{
-                minWidth: '20em',
-                width: '40em',
-                maxWidth: "90%",
-                minHeight: "30em"
-            }}>
-                <Tabs
-                    variant="fullWidth"
-                    value={value}
-                    onChange={(event, newValue) => { setValue(newValue) }}
-                >
-                    <TabItem label="Sign In" {...a11yProps(0)} />
-                    <TabItem label="New User" {...a11yProps(1)} />
-                </Tabs>
-                <SignIn value={value} />
-                <SignUp value={value} />
-            </Box>
+            <Tabs
+                variant="fullWidth"
+                value={value}
+                onChange={(event, newValue) => { setValue(newValue) }}
+            >
+                <TabItem label="Sign In" {...a11yProps(0)} />
+                <TabItem label="New User" {...a11yProps(1)} />
+            </Tabs>
+            <SignIn value={value} />
+            <SignUp value={value} />
         </Box>
-    </Box>
+    </ScreenCenter>
 }
