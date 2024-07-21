@@ -1,20 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Provider, useDispatch, useSelector } from 'react-redux'
-import { Amplify } from 'aws-amplify'
-import {
-  Authenticator,
-  withAuthenticator,
-  useAuthenticator,
-  CheckboxField,
-  TextField
-} from '@aws-amplify/ui-react'
-import '@aws-amplify/ui-react/styles.css'
 import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
 import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles'
-import Box from '@mui/material/Box'
-import { blue } from '@mui/material/colors'
-import CodeOfConductConsentDialog from './components/CodeOfConductConsent'
 
 import '@mui/styles'
 
@@ -46,95 +34,95 @@ export const App = ({ signOut }: { signOut: () => void }) => (
 // the wrapped component as default) in a Redux API request to secure the config
 // JSON by asynchronous fetch.
 //
-const AuthenticatedApp = (withAuthenticator as any)(App, {
-  signUpAttributes: [],
-  signUpConfig: {
-    hiddenDefaults: ['phone_number']
-  },
-  formFields: {
-    signUp: {
-      username: {
-        order: 1,
-      },
-      email: {
-        order: 2,
-        placeholder: 'Email (optional, for account recovery)',
-        isRequired: false
-      },
-      password: {
-        order: 3,
-      },
-      confirm_password: {
-        order: 4,
-      }
-    }
-  },
-  components: {
-    SignUp: {
-      FormFields() {
-        const { validationErrors } = useAuthenticator()
-        const [showingDialog, setShowingDialog] = useState(false)
-        const [inviteCode, setInviteCode] = useState('')
+// const AuthenticatedApp = (withAuthenticator as any)(App, {
+//   signUpAttributes: [],
+//   signUpConfig: {
+//     hiddenDefaults: ['phone_number']
+//   },
+//   formFields: {
+//     signUp: {
+//       username: {
+//         order: 1,
+//       },
+//       email: {
+//         order: 2,
+//         placeholder: 'Email (optional, for account recovery)',
+//         isRequired: false
+//       },
+//       password: {
+//         order: 3,
+//       },
+//       confirm_password: {
+//         order: 4,
+//       }
+//     }
+//   },
+//   components: {
+//     SignUp: {
+//       FormFields() {
+//         const { validationErrors } = useAuthenticator()
+//         const [showingDialog, setShowingDialog] = useState(false)
+//         const [inviteCode, setInviteCode] = useState('')
 
-        return (
-          <React.Fragment>
-            <CodeOfConductConsentDialog
-              open={showingDialog}
-              onClose={ () => { setShowingDialog(false) } }
-            />
-            <TextField
-              label=''
-              value={inviteCode}
-              onChange={(event) => { setInviteCode(event.target.value) }}
-              placeholder={`Enter Invitation Code here (example: '1AB23C')`}
-              name='invitation'
-              hasError={!!validationErrors.invitation}
-              errorMessage={validationErrors.invitation as string}
-            />
-            <Authenticator.SignUp.FormFields />
+//         return (
+//           <React.Fragment>
+//             <CodeOfConductConsentDialog
+//               open={showingDialog}
+//               onClose={ () => { setShowingDialog(false) } }
+//             />
+//             <TextField
+//               label=''
+//               value={inviteCode}
+//               onChange={(event) => { setInviteCode(event.target.value) }}
+//               placeholder={`Enter Invitation Code here (example: '1AB23C')`}
+//               name='invitation'
+//               hasError={!!validationErrors.invitation}
+//               errorMessage={validationErrors.invitation as string}
+//             />
+//             <Authenticator.SignUp.FormFields />
 
-            {/* Append & require Terms & Conditions field to sign up  */}
-            <CheckboxField
-              errorMessage={validationErrors.acknowledgement as string}
-              hasError={!!validationErrors.acknowledgement}
-              name="acknowledgement"
-              value="yes"
-              label={
-                <React.Fragment>
-                  I agree to abide by the&nbsp;
-                  <Box
-                    component='span'
-                    sx={{
-                      backgroundColor: blue[50]
-                    }}
-                    onClick={(event: any) => {
-                      event.preventDefault()
-                      setShowingDialog(true)
-                    }}
-                  >
-                    Code of Conduct
-                  </Box>
-                </React.Fragment>
-              }
-            />
-          </React.Fragment>
-        )
-      }
-    }
-  },
-  services: {
-    async validateCustomSignUp(formData: { acknowledgement: boolean; invitation: string }) {
-      let errors: Partial<{ acknowledgement: string; invitation: string }> = {}
-      if (!(formData.invitation && formData.invitation.match(/^\d[A-Z][A-Z]\d\d[A-Z]$/))) {
-        errors.invitation = `To sign up you need a six character invitation code from a current player.`
-      }
-      if (!formData.acknowledgement) {
-        errors.acknowledgement = 'You must agree to abide by the Code of Conduct'
-      }
-      return errors
-    },
-  }
-})
+//             {/* Append & require Terms & Conditions field to sign up  */}
+//             <CheckboxField
+//               errorMessage={validationErrors.acknowledgement as string}
+//               hasError={!!validationErrors.acknowledgement}
+//               name="acknowledgement"
+//               value="yes"
+//               label={
+//                 <React.Fragment>
+//                   I agree to abide by the&nbsp;
+//                   <Box
+//                     component='span'
+//                     sx={{
+//                       backgroundColor: blue[50]
+//                     }}
+//                     onClick={(event: any) => {
+//                       event.preventDefault()
+//                       setShowingDialog(true)
+//                     }}
+//                   >
+//                     Code of Conduct
+//                   </Box>
+//                 </React.Fragment>
+//               }
+//             />
+//           </React.Fragment>
+//         )
+//       }
+//     }
+//   },
+//   services: {
+//     async validateCustomSignUp(formData: { acknowledgement: boolean; invitation: string }) {
+//       let errors: Partial<{ acknowledgement: string; invitation: string }> = {}
+//       if (!(formData.invitation && formData.invitation.match(/^\d[A-Z][A-Z]\d\d[A-Z]$/))) {
+//         errors.invitation = `To sign up you need a six character invitation code from a current player.`
+//       }
+//       if (!formData.acknowledgement) {
+//         errors.acknowledgement = 'You must agree to abide by the Code of Conduct'
+//       }
+//       return errors
+//     },
+//   }
+// })
 
 const ConfiguredApp = () => {
   const error = useSelector(getConfigurationError)
