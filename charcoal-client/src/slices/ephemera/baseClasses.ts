@@ -1,6 +1,6 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateCharacterInPlayActive } from '@tonylb/mtw-interfaces/dist/ephemera';
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMRedirectNode } from '../stateSeekingMachine/baseClasses'
 
 export interface EphemeraInternal {
     subscription?: any;
@@ -39,6 +39,7 @@ export interface EphemeraNodes {
     SUBSCRIBE: ISSMAttemptNode<EphemeraInternal, EphemeraPublic>;
     SYNCHRONIZE: ISSMAttemptNode<EphemeraInternal, EphemeraPublic>;
     CONNECTED: ISSMChoiceNode;
+    SIGNOUT: ISSMRedirectNode;
     UNSUBSCRIBE: ISSMAttemptNode<EphemeraInternal, EphemeraPublic>;
     ERROR: ISSMChoiceNode;
 }

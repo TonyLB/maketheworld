@@ -139,6 +139,9 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     } as unknown as multipleSSMItem<Nodes>)
                 }
             },
+            clear(state) {
+                state.byId = {}
+            },
             internalStateChange(
                 state,
                 action: PayloadAction<{

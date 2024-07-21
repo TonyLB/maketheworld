@@ -67,9 +67,17 @@ export const fetchDraftAsset: PlayerAction = () => async (dispatch) => {
 
 export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async () => {
     if (subscription) {
-        await subscription.unsubscribe()
+        subscription.unsubscribe?.()
     }
-    return {}
+    return {
+        publicData: {
+            Assets: [],
+            Characters: [],
+            PlayerName: '',
+            Settings: { onboardCompleteTags: [] },
+            SessionId: ''
+        }
+    }
 }
 
 export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { addTags?: OnboardingKey[], removeTags?: OnboardingKey[] }) => async (dispatch) => {

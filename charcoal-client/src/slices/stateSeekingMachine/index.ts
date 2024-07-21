@@ -24,6 +24,7 @@ export const iterateOneSSM = ({
     const currentStep = focusSSM.template.states[focusSSM.currentState]
     if (currentStep.stateType === 'REDIRECT') {
         dispatch(internalIntentChange({ newIntent: currentStep.newIntent }))
+        dispatch(heartbeat)
     }
     const desiredStates = currentStep.stateType === 'REDIRECT' ? currentStep.newIntent : focusSSM.desiredStates
     if (focusSSM && !desiredStates.includes(focusSSM.currentState)) {
