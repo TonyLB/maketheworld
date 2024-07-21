@@ -13,19 +13,42 @@ import { getMySettings } from '../../slices/player'
 import { socketDispatch } from '../../slices/lifeLine'
 import { FormControlLabel, FormGroup, Switch } from '@mui/material'
 import { getClientSettings } from '../../slices/settings'
+import { receiveRefreshToken } from '../../slices/configuration'
+import { setIntent as setLifeLineIntent } from '../../slices/lifeLine'
+import { setIntent as setEphemeraIntent } from '../../slices/ephemera'
+import { setIntent as setPlayerIntent } from '../../slices/player'
+import { clear as clearPersonalAssets } from '../../slices/personalAssets'
+import { clear as clearMessages } from '../../slices/messages'
+import { clear as clearPerceptionCache } from '../../slices/perceptionCache'
+import { clear as clearActiveCharacters } from '../../slices/activeCharacters'
+import { clear as clearNavigationTabs } from '../../slices/UI/navigationTabs'
+import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
+import { useNavigate } from 'react-router-dom'
 
 type SettingsProps = {
     onAlwaysShowOnboardingChange: (value: boolean) => void;
-    signOut?: () => void;
 }
 
+const signOut = (dispatch) => {
+    dispatch(receiveRefreshToken(undefined))
+    dispatch(setLifeLineIntent(['SIGNOUT']))
+    dispatch(setEphemeraIntent(['SIGNOUT']))
+    dispatch(setPlayerIntent(['SIGNOUT']))
+    dispatch(clearPersonalAssets())
+    dispatch(clearMessages())
+    dispatch(clearPerceptionCache())
+    dispatch(clearActiveCharacters())
+    dispatch(clearNavigationTabs())
+    dispatch(heartbeat)
+  }
+  
 export const Settings: FunctionComponent<SettingsProps> = ({
-    signOut = () => {},
     onAlwaysShowOnboardingChange = () => {}
 }) => {
     const { onboardCompleteTags } = useSelector(getMySettings)
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
     const dispatch = useDispatch()
+    const navigate = useNavigate()
     const restartOnboarding = useCallback(() => {
         if (onboardCompleteTags.length) {
             dispatch(socketDispatch({
@@ -80,7 +103,10 @@ export const Settings: FunctionComponent<SettingsProps> = ({
             <Grid item xs={1} md={2} lg={3} />
             <Grid item xs={4} />
             <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                <Button variant='outlined' onClick={() => { signOut() }}>
+                <Button variant='outlined' onClick={() => {
+                    dispatch(signOut)
+                    navigate('/')
+                }}>
                     Sign Out
                 </Button>
             </Grid>
