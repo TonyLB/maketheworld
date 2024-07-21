@@ -32,6 +32,7 @@ export interface LifeLineNodes {
     CONNECT: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     CONNECTBACKOFF: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     CONNECTED: ISSMChoiceNode;
+    SIGNOUT: ISSMRedirectNode;
     DISCONNECT: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     UNSUBSCRIBE: ISSMAttemptNode<LifeLineInternal, LifeLinePublic>;
     STALE: ISSMRedirectNode;
