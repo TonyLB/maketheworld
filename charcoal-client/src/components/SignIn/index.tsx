@@ -3,8 +3,8 @@ import Tabs from "@mui/material/Tabs"
 import Tab, { tabClasses } from "@mui/material/Tab"
 import Box from "@mui/material/Box"
 import { blue } from '@mui/material/colors'
-import React, { useCallback, useState } from "react"
-import { Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material"
+import React, { useCallback, useMemo, useState } from "react"
+import { Button, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
 import { useDispatch, useSelector } from "react-redux"
@@ -140,6 +140,21 @@ const SignIn = ({ value }: { value: number }) => {
     </Box>
 }
 
+type SignUpErrors = {
+    inviteCode: string;
+    userName: string;
+    password: string;
+    acknowledge: string;
+}
+
+type SignUpData = {
+    inviteCode: string;
+    userName: string;
+    password: string;
+    confirmPassword: string;
+    acknowledge: boolean;
+}
+
 const SignUp = ({ value }: { value: number }) => {
     const [showingDialog, setShowingDialog] = useState(false)
     const [inviteCode, setInviteCode] = useState('')
@@ -147,6 +162,37 @@ const SignUp = ({ value }: { value: number }) => {
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [acknowledge, setAcknowledge] = useState(false)
+    const [errors, setErrors] = useState<Partial<SignUpErrors>>({})
+    const validate = useCallback(async (field: keyof SignUpErrors | 'ALL', data: SignUpData) => {
+        let returnErrors: Partial<SignUpErrors> = field === 'ALL' ? {} : { ...errors }
+        if (field != 'ALL') {
+            delete returnErrors[field]
+        }
+        if (['ALL', 'inviteCode'].includes(field) && !data.inviteCode.match(/\d[A-Z][A-Z]\d\d[A-Z]/)) {
+            returnErrors.inviteCode = 'Invite code must be a six character string (e.g. "1AB23C")'
+        }
+        if (['ALL', 'userName'].includes(field) && !data.userName || data.userName.length < 5) {
+            returnErrors.userName = 'User name must be at least five characters in length'
+        }
+        if (['ALL', 'password', 'confirmPassword'].includes(field) && !(data.password && data.confirmPassword)) {
+            returnErrors.password = 'You must enter and confirm your password'
+        }
+        else if (['ALL', 'password', 'confirmPassword'].includes(field) && data.password !== data.confirmPassword) {
+            returnErrors.password = 'Password and confirm password do not match'
+        }
+        if (['ALL', 'acknowledge'].includes(field) && !data.acknowledge) {
+            returnErrors.acknowledge = 'You must acknowledge and agree to the code of conduct'
+        }
+        setErrors(returnErrors)
+    }, [errors])
+    const data = useMemo<SignUpData>(() => ({
+        inviteCode,
+        userName,
+        password,
+        confirmPassword,
+        acknowledge
+    }), [inviteCode, userName, password, confirmPassword, acknowledge])
+    const [validating, setValidating] = useState(false)
     return <React.Fragment>
         <CodeOfConductConsentDialog
             open={showingDialog}
@@ -172,64 +218,104 @@ const SignUp = ({ value }: { value: number }) => {
             >
                 <TextField
                     value={inviteCode}
-                    onChange={(event) => { setInviteCode(event.target.value) }}
+                    onChange={(event) => {
+                        setInviteCode(event.target.value)
+                        validate('inviteCode', { ...data, inviteCode: event.target.value })
+                    }}
                     label="Invite Code"
                     name="Invite Code"
                     placeholder="Enter invite code"
+                    error={Boolean(errors.inviteCode)}
+                    helperText={errors.inviteCode}
                 />
                 <br />
                 <TextField
                     value={userName}
-                    onChange={(event) => { setUserName(event.target.value) }}
+                    onChange={(event) => {
+                        setUserName(event.target.value)
+                        validate('userName', { ...data, userName: event.target.value })
+                    }}
                     label="User Name"
                     name="User Name"
                     placeholder="Enter user name"
+                    error={Boolean(errors.userName)}
+                    helperText={errors.userName}
                 />
                 <TextField
                     value={password}
-                    onChange={(event) => { setPassword(event.target.value) }}
+                    onChange={(event) => {
+                        setPassword(event.target.value)
+                        validate('password', { ...data, password: event.target.value })
+                    }}
                     label="Password"
                     name="Password"
                     placeholder="Enter password"
                     type="password"
+                    error={Boolean(errors.password)}
                 />
                 <TextField
                     value={confirmPassword}
-                    onChange={(event) => { setConfirmPassword(event.target.value) }}
+                    onChange={(event) => {
+                        setConfirmPassword(event.target.value)
+                        validate('password', { ...data, confirmPassword: event.target.value })
+                    }}
                     label="Confirm password"
                     name="Confirm password"
                     placeholder="Confirm password"
                     type="password"
+                    error={Boolean(errors.password)}
+                    helperText={errors.password}
                 />
 
-                <FormControlLabel
-                    control={
-                        <Checkbox
-                            name="acknowledgement"
-                            value="yes"
-                            checked={acknowledge}
-                            onChange={(event) => { setAcknowledge(event.target.checked) }}
+                <FormControl
+                    error={Boolean(errors.acknowledge)}
+                    component="fieldset"
+                    sx={{ m: 3 }}
+                    variant="standard"
+                >
+                    <FormGroup>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    name="acknowledgement"
+                                    value="yes"
+                                    checked={acknowledge}
+                                    onChange={(event) => {
+                                        setAcknowledge(event.target.checked)
+                                        validate('acknowledge', { ...data, acknowledge: event.target.checked })
+                                    }}
+                                />
+                            }
+                            label={
+                                <React.Fragment>
+                                    I agree to abide by the&nbsp;
+                                    <Box
+                                        component='span'
+                                        sx={{
+                                        backgroundColor: blue[50]
+                                        }}
+                                        onClick={(event: any) => {
+                                            event.preventDefault()
+                                            setShowingDialog(true)
+                                        }}
+                                    >
+                                        Code of Conduct
+                                    </Box>
+                                </React.Fragment>
+                            }
                         />
-                    }
-                    label={
-                        <React.Fragment>
-                            I agree to abide by the&nbsp;
-                            <Box
-                                component='span'
-                                sx={{
-                                backgroundColor: blue[50]
-                                }}
-                                onClick={(event: any) => {
-                                    event.preventDefault()
-                                    setShowingDialog(true)
-                                }}
-                            >
-                                Code of Conduct
-                            </Box>
-                        </React.Fragment>
-                    }
-                />
-            <Button variant="contained">Sign Up</Button>
+                    </FormGroup>
+                    { errors.acknowledge ? <FormHelperText>{ errors.acknowledge }</FormHelperText> : null }
+                </FormControl>
+            <Button
+                variant="contained"
+                onClick={() => {
+                    setValidating(true)
+                    validate('ALL', data).then(() => { setValidating(false) })
+                }}
+            >
+                Sign Up
+            </Button>
             </Stack>
         </Box>
     </React.Fragment>
