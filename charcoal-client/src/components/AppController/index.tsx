@@ -24,11 +24,9 @@ import Settings from '../Settings'
 import Onboarding from '../Onboarding'
 import { SignInOrUp } from '../SignIn'
 
-type AppControllerProps = {
-    signOut: () => void;
-}
+type AppControllerProps = {}
 
-export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }) => {
+export const AppController: FunctionComponent<AppControllerProps> = ({}) => {
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines } = useSelector(getClientSettings)
     const dispatch = useDispatch()
@@ -55,7 +53,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
 
     return <AppLayout
         homePanel={<Home {...profileArgs} />}
-        settingsPanel={<Settings signOut={signOut} onAlwaysShowOnboardingChange={profileArgs.onAlwaysShowOnboardingChange} />}
+        settingsPanel={<Settings onAlwaysShowOnboardingChange={profileArgs.onAlwaysShowOnboardingChange} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
