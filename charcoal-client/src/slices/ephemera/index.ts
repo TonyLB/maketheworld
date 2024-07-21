@@ -65,6 +65,11 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
+                choices: ['SIGNOUT', 'UNSUBSCRIBE']
+            },
+            SIGNOUT: {
+                stateType: 'REDIRECT',
+                newIntent: ['CONNECTED'],
                 choices: ['UNSUBSCRIBE']
             },
             UNSUBSCRIBE: {
@@ -81,7 +86,7 @@ export const {
     }
 })
 
-// export const { } = publicActions
+export const { setIntent } = ephemeraSlice.actions
 export const {
     getActiveCharacterList,
     getCharactersInPlay

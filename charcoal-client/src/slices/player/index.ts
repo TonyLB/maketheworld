@@ -106,6 +106,11 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
+                choices: ['UNSUBSCRIBE', 'SIGNOUT']
+            },
+            SIGNOUT: {
+                stateType: 'REDIRECT',
+                newIntent: ['CONNECTED'],
                 choices: ['UNSUBSCRIBE']
             },
             UNSUBSCRIBE: {
@@ -130,6 +135,7 @@ export const {
     getMySettings,
     getStatus
 } = selectors
+export const { setIntent } = playerSlice.actions
 
 export const getActiveOnboardingChapter = createSelector(
     selectors.getMySettings,

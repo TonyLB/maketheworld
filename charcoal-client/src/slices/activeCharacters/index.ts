@@ -118,7 +118,7 @@ export const {
     }
 })
 
-export const { addItem, setIntent } = activeCharactersSlice.actions
+export const { addItem, setIntent, clear } = activeCharactersSlice.actions
 // export const { } = publicActions
 export const {
     getActiveCharacterMaps

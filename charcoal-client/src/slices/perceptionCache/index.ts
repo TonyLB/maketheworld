@@ -19,6 +19,9 @@ const perceptionCacheSlice = createSlice({
                         state[cacheKey] = rest
                     }
                 })
+        },
+        clear: (state: any) => {
+            state = {}
         }
     }
 })
@@ -26,5 +29,5 @@ const perceptionCacheSlice = createSlice({
 export {
     getCachedPerception
 } from './selectors'
-export const { receiveMessages } = perceptionCacheSlice.actions
+export const { receiveMessages, clear } = perceptionCacheSlice.actions
 export default perceptionCacheSlice.reducer

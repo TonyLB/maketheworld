@@ -27,9 +27,21 @@ const configurationSlice = createSlice({
             state.WebSocketURI = action.payload.WebSocketURI
             state.RefreshToken = action.payload.RefreshToken
             state.error = action.payload.error
+            if (action.payload.RefreshToken) {
+                window.localStorage.setItem('RefreshToken', action.payload.RefreshToken)
+            }
+            else {
+                window.localStorage.removeItem('RefreshToken')
+            }
         },
         receiveRefreshToken(state, action: PayloadAction<string | undefined>) {
             state.RefreshToken = action.payload
+            if (action.payload) {
+                window.localStorage.setItem('RefreshToken', action.payload)
+            }
+            else {
+                window.localStorage.removeItem('RefreshToken')
+            }
         },
         receiveConfigurationError(state) {
             state.error = true

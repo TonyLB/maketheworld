@@ -1,5 +1,5 @@
 import { AssetClientPlayerMessage } from '@tonylb/mtw-interfaces/dist/asset';
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMRedirectNode } from '../stateSeekingMachine/baseClasses'
 
 export interface PlayerInternal {
     subscription?: any;
@@ -25,6 +25,7 @@ export interface PlayerNodes {
     SYNCHRONIZE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     FETCHDRAFTASSET: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     CONNECTED: ISSMChoiceNode;
+    SIGNOUT: ISSMRedirectNode;
     UNSUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     ERROR: ISSMChoiceNode;
 }

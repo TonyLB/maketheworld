@@ -12,8 +12,15 @@ import './App.css';
 import { getConfiguration, getConfigurationError, loadConfiguration, receiveRefreshToken } from './slices/configuration'
 import Spinner from './components/Spinner'
 import { SignInOrUp } from './components/SignIn'
-import { setIntent } from './slices/lifeLine';
-import { heartbeat } from './slices/stateSeekingMachine/ssmHeartbeat';
+import { setIntent as setLifeLineIntent } from './slices/lifeLine'
+import { setIntent as setEphemeraIntent } from './slices/ephemera'
+import { setIntent as setPlayerIntent } from './slices/player'
+import { clear as clearPersonalAssets } from './slices/personalAssets'
+import { clear as clearMessages } from './slices/messages'
+import { clear as clearPerceptionCache } from './slices/perceptionCache'
+import { clear as clearActiveCharacters } from './slices/activeCharacters'
+import { clear as clearNavigationTabs } from './slices/UI/navigationTabs'
+import { heartbeat } from './slices/stateSeekingMachine/ssmHeartbeat'
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
@@ -21,9 +28,16 @@ declare module '@mui/styles' {
 
 const theme = createTheme();
 
-const signOut = (dispatch, getState) => {
+const signOut = (dispatch) => {
   dispatch(receiveRefreshToken(undefined))
-  dispatch(setIntent(['SIGNOUT']))
+  dispatch(setLifeLineIntent(['SIGNOUT']))
+  dispatch(setEphemeraIntent(['SIGNOUT']))
+  dispatch(setPlayerIntent(['SIGNOUT']))
+  dispatch(clearPersonalAssets())
+  dispatch(clearMessages())
+  dispatch(clearPerceptionCache())
+  dispatch(clearActiveCharacters())
+  dispatch(clearNavigationTabs())
   dispatch(heartbeat)
 }
 
@@ -50,11 +64,13 @@ const ConfiguredApp = () => {
   if (error) {
     return <div>Error loading MTW configuration</div>
   }
-  else if (!configuration.RefreshToken) {
-    return <SignInOrUp />
-  }
   else if (configuration.WebSocketURI && configuration.AnonymousAPIURI) {
-    return <App signOut={() => { dispatch(signOut) }}/>
+    if (!configuration.RefreshToken) {
+      return <SignInOrUp />
+    }
+    else {
+      return <App signOut={() => { dispatch(signOut) }}/>
+    }
   }
   else {
     return <Spinner size={150} border={10} />

@@ -210,7 +210,7 @@ export const {
     }
 })
 
-export const { addItem, setIntent } = personalAssetsSlice.actions
+export const { addItem, setIntent, clear } = personalAssetsSlice.actions
 export const {
     setCurrentWML,
     setDraftWML,

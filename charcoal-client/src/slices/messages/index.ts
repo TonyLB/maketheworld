@@ -66,11 +66,14 @@ const messagesSlice = createSlice({
                     state[message.Target] = [message]
                 }
             })
+        },
+        clear(state: any) {
+            state = {}
         }
     }
 })
 
-export const { receiveMessages } = messagesSlice.actions
+export const { receiveMessages, clear } = messagesSlice.actions
 
 export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => async (dispatch: any) => {
     //

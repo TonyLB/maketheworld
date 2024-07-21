@@ -183,6 +183,9 @@ const navigationSlice = createSlice({
                     current.componentId = action.payload.componentId
                 }
             }
+        },
+        clear(state) {
+            state = []
         }
     },
     extraReducers: (builder) => {
@@ -200,7 +203,7 @@ const navigationSlice = createSlice({
     }
 })
 
-export const { add, rename } = navigationSlice.actions
+export const { add, rename, clear } = navigationSlice.actions
 
 export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 
