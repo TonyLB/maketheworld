@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat';
 
 interface ConfigurationData {
     AppBaseURL?: string;
@@ -76,6 +77,7 @@ export const loadConfiguration = async (dispatch: any) => {
             }))
         }
     }
+    dispatch(heartbeat)
 }
 
 export const { receiveConfiguration, receiveConfigurationError, receiveRefreshToken } = configurationSlice.actions

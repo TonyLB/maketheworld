@@ -9,9 +9,11 @@ import '@mui/styles'
 import { store } from './store/index'
 import AppController from './components/AppController'
 import './App.css';
-import { getConfiguration, getConfigurationError, loadConfiguration } from './slices/configuration'
+import { getConfiguration, getConfigurationError, loadConfiguration, receiveRefreshToken } from './slices/configuration'
 import Spinner from './components/Spinner'
 import { SignInOrUp } from './components/SignIn'
+import { setIntent } from './slices/lifeLine';
+import { heartbeat } from './slices/stateSeekingMachine/ssmHeartbeat';
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
@@ -19,110 +21,20 @@ declare module '@mui/styles' {
 
 const theme = createTheme();
 
+const signOut = (dispatch, getState) => {
+  dispatch(receiveRefreshToken(undefined))
+  dispatch(setIntent(['SIGNOUT']))
+  dispatch(heartbeat)
+}
+
 export const App = ({ signOut }: { signOut: () => void }) => (
   <StyledEngineProvider injectFirst>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppController signOut={signOut} />
-      {/* <Chat /> */}
     </ThemeProvider>
   </StyledEngineProvider>
 )
-
-//
-// TODO: Refactor below as AuthenticatedApp, then wrap that further (and export
-// the wrapped component as default) in a Redux API request to secure the config
-// JSON by asynchronous fetch.
-//
-// const AuthenticatedApp = (withAuthenticator as any)(App, {
-//   signUpAttributes: [],
-//   signUpConfig: {
-//     hiddenDefaults: ['phone_number']
-//   },
-//   formFields: {
-//     signUp: {
-//       username: {
-//         order: 1,
-//       },
-//       email: {
-//         order: 2,
-//         placeholder: 'Email (optional, for account recovery)',
-//         isRequired: false
-//       },
-//       password: {
-//         order: 3,
-//       },
-//       confirm_password: {
-//         order: 4,
-//       }
-//     }
-//   },
-//   components: {
-//     SignUp: {
-//       FormFields() {
-//         const { validationErrors } = useAuthenticator()
-//         const [showingDialog, setShowingDialog] = useState(false)
-//         const [inviteCode, setInviteCode] = useState('')
-
-//         return (
-//           <React.Fragment>
-//             <CodeOfConductConsentDialog
-//               open={showingDialog}
-//               onClose={ () => { setShowingDialog(false) } }
-//             />
-//             <TextField
-//               label=''
-//               value={inviteCode}
-//               onChange={(event) => { setInviteCode(event.target.value) }}
-//               placeholder={`Enter Invitation Code here (example: '1AB23C')`}
-//               name='invitation'
-//               hasError={!!validationErrors.invitation}
-//               errorMessage={validationErrors.invitation as string}
-//             />
-//             <Authenticator.SignUp.FormFields />
-
-//             {/* Append & require Terms & Conditions field to sign up  */}
-//             <CheckboxField
-//               errorMessage={validationErrors.acknowledgement as string}
-//               hasError={!!validationErrors.acknowledgement}
-//               name="acknowledgement"
-//               value="yes"
-//               label={
-//                 <React.Fragment>
-//                   I agree to abide by the&nbsp;
-//                   <Box
-//                     component='span'
-//                     sx={{
-//                       backgroundColor: blue[50]
-//                     }}
-//                     onClick={(event: any) => {
-//                       event.preventDefault()
-//                       setShowingDialog(true)
-//                     }}
-//                   >
-//                     Code of Conduct
-//                   </Box>
-//                 </React.Fragment>
-//               }
-//             />
-//           </React.Fragment>
-//         )
-//       }
-//     }
-//   },
-//   services: {
-//     async validateCustomSignUp(formData: { acknowledgement: boolean; invitation: string }) {
-//       let errors: Partial<{ acknowledgement: string; invitation: string }> = {}
-//       if (!(formData.invitation && formData.invitation.match(/^\d[A-Z][A-Z]\d\d[A-Z]$/))) {
-//         errors.invitation = `To sign up you need a six character invitation code from a current player.`
-//       }
-//       if (!formData.acknowledgement) {
-//         errors.acknowledgement = 'You must agree to abide by the Code of Conduct'
-//       }
-//       return errors
-//     },
-//   }
-// })
 
 const ConfiguredApp = () => {
   const error = useSelector(getConfigurationError)
@@ -131,30 +43,6 @@ const ConfiguredApp = () => {
   useEffect(() => {
     if (!error) {
       if (!(configuration.WebSocketURI && configuration.AnonymousAPIURI)) {
-      //   Amplify.configure({
-      //     aws_project_region: "us-east-1",
-      //     aws_appsync_region: "us-east-1",
-      //     aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
-      //     Auth: {
-      //         // REQUIRED - Amazon Cognito Region
-      //         region: 'us-east-1',
-      
-      //         // OPTIONAL - Amazon Cognito User Pool ID
-      //         userPoolId: configuration.UserPoolId,
-      
-      //         // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
-      //         userPoolWebClientId: configuration.UserPoolClient,
-      
-      //         // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
-      //         mandatorySignIn: true,
-      
-      //         // OPTIONAL - Manually set the authentication flow type. Default is 'USER_SRP_AUTH'
-      //         authenticationFlowType: 'USER_SRP_AUTH',
-      
-      //     }      
-      //   })
-      // }
-      // else {
         dispatch(loadConfiguration)
       }
     }
@@ -166,7 +54,7 @@ const ConfiguredApp = () => {
     return <SignInOrUp />
   }
   else if (configuration.WebSocketURI && configuration.AnonymousAPIURI) {
-    return <App signOut={() => {}}/>
+    return <App signOut={() => { dispatch(signOut) }}/>
   }
   else {
     return <Spinner size={150} border={10} />

@@ -25,7 +25,7 @@ export const {
     slice: lifeLineSlice,
     selectors,
     publicActions,
-    iterateAllSSMs
+    iterateAllSSMs,
 } = singleSSM<LifeLineNodes, {}>({
     name: 'lifeLine',
     initialSSMState: 'INITIAL',
@@ -90,7 +90,12 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
-                choices: ['DISCONNECT', 'STALE']
+                choices: ['SIGNOUT', 'STALE']
+            },
+            SIGNOUT: {
+                stateType: 'REDIRECT',
+                newIntent: ['CONNECTED'],
+                choices: ['DISCONNECT']
             },
             DISCONNECT: {
                 stateType: 'ATTEMPT',
@@ -106,7 +111,7 @@ export const {
             },
             ERROR: {
                 stateType: 'CHOICE',
-                choices: []
+                choices: ['SIGNOUT']
             },
             STALE: {
                 stateType: 'REDIRECT',
@@ -121,7 +126,6 @@ export const {
     }
 })
 
-// export const { } = publicActions
 export const {
     getStatus
 } = selectors
@@ -130,5 +134,7 @@ export const {
     onEnter,
     receiveIDToken
 } = publicActions
+
+export const { setIntent } = lifeLineSlice.actions
 
 export default lifeLineSlice.reducer
