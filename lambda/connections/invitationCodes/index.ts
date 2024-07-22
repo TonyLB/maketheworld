@@ -27,12 +27,12 @@ export const generateInvitationCode = async (): Promise<string> => {
 }
 
 export const validateInvitationCode = async (invitationCode: string): Promise<boolean> => {
-    const { DataCategory } = (await connectionDB.getItem<{ DataCategory: string }>({
+    const { DataCategory, claimedBy } = (await connectionDB.getItem<{ DataCategory: string; claimedBy?: string }>({
         Key: {
             ConnectionId: `INVITATION#${invitationCode}`,
             DataCategory: 'Meta::Invitation',
         },
-        ProjectionFields: ['DataCategory']
+        ProjectionFields: ['DataCategory', 'claimedBy']
     })) || {}
-    return (DataCategory === 'Meta::Invitation')
+    return (DataCategory === 'Meta::Invitation' && !claimedBy)
 }
