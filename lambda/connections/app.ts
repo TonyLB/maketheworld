@@ -8,6 +8,7 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
 import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
 import { cognitoClient } from "./clients"
+import { createCognitoUser } from "./createUser"
 
 export const handler = async (event: any) => {
 
@@ -67,6 +68,12 @@ export const handler = async (event: any) => {
                     headers: { 'Access-Control-Allow-Origin': '*' }
                 }
             }
+        }
+    }
+    if (resourcePath === '/signUp') {
+        const json = JSON.parse(event.body)
+        if (typeof json === 'object' && 'userName' in json && 'inviteCode' in json && 'password' in json) {
+            return await createCognitoUser(json)
         }
     }
     if (resourcePath === '/accessToken') {

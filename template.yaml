@@ -192,6 +192,13 @@ Resources:
               Method: post
               RestApiId:
                 Ref: AnonymousAPI
+          SignUpEvent:
+            Type: Api
+            Properties:
+              Path: /signUp
+              Method: post
+              RestApiId:
+                Ref: AnonymousAPI
           AccessTokenEvent:
             Type: Api
             Properties:
