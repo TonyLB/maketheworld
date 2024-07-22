@@ -6,9 +6,9 @@ import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
-import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
-
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION })
+import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
+import { cognitoClient } from "./clients"
+import { createCognitoUser } from "./createUser"
 
 export const handler = async (event: any) => {
 
@@ -67,6 +67,17 @@ export const handler = async (event: any) => {
                     }),
                     headers: { 'Access-Control-Allow-Origin': '*' }
                 }
+            }
+        }
+    }
+    if (resourcePath === '/signUp') {
+        const json = JSON.parse(event.body)
+        if (typeof json === 'object' && 'userName' in json && 'inviteCode' in json && 'password' in json) {
+            const result = await createCognitoUser(json)
+            return {
+                statusCode: 200,
+                body: JSON.stringify(result),
+                headers: { 'Access-Control-Allow-Origin': '*' }
             }
         }
     }
