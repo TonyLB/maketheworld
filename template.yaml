@@ -165,7 +165,7 @@ Resources:
             Variables:
                 TABLE_PREFIX: !Ref TablePrefix
                 EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
-                COGNITO_POOL_ID: !Ref UserPool
+                COGNITO_USER_POOL_ID: !Ref UserPool
                 COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
         Policies:
           - DynamoDBCrudPolicy:
@@ -177,6 +177,19 @@ Resources:
               Resource: '*'
               Action:
                 - events:PutEvents
+          - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+              Resource: !GetAtt UserPool.Arn
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminSetUserPassword
+              Resource:
+                Fn::Sub:
+                  - "${UserPoolArn}/*"
+                  - UserPoolArn: !GetAtt UserPool.Arn
         Events:
           ValidateInvitationEvent:
             Type: Api

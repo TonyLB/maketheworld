@@ -80,6 +80,18 @@ export const createCognitoUser = async ({ inviteCode, userName, password }: Crea
         //
         // Process errors
         //
+        if (inviteCodeClaimed) {
+            await connectionDB.optimisticUpdate({
+                Key: {
+                    ConnectionId: `INVITATION#${inviteCode}`,
+                    DataCategory: 'Meta::Invitation'
+                },
+                updateKeys: ['claimedBy'],
+                updateReducer: (draft) => {
+                    draft.claimedBy = undefined
+                }
+            })
+        }
         throw err
     }
     //

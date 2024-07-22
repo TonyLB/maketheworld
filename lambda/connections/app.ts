@@ -73,7 +73,12 @@ export const handler = async (event: any) => {
     if (resourcePath === '/signUp') {
         const json = JSON.parse(event.body)
         if (typeof json === 'object' && 'userName' in json && 'inviteCode' in json && 'password' in json) {
-            return await createCognitoUser(json)
+            const result = await createCognitoUser(json)
+            return {
+                statusCode: 200,
+                body: JSON.stringify(result),
+                headers: { 'Access-Control-Allow-Origin': '*' }
+            }
         }
     }
     if (resourcePath === '/accessToken') {
