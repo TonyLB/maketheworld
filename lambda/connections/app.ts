@@ -6,9 +6,8 @@ import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
-import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
-
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION })
+import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
+import { cognitoClient } from "./clients"
 
 export const handler = async (event: any) => {
 
