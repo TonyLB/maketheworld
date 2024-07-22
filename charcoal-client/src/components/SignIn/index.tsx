@@ -1,9 +1,12 @@
+import React, { useCallback, useMemo, useState } from "react"
+
 import { styled } from "@mui/material/styles"
 import Tabs from "@mui/material/Tabs"
 import Tab, { tabClasses } from "@mui/material/Tab"
 import Box from "@mui/material/Box"
-import { blue } from '@mui/material/colors'
-import React, { useCallback, useMemo, useState } from "react"
+import { blue, green, red } from '@mui/material/colors'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 import { Button, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, Stack, TextField } from "@mui/material"
 import CodeOfConductConsentDialog from "../CodeOfConductConsent"
 import { anonymousAPIPromise, isAnonymousAPIResultSignInFailure, isAnonymousAPIResultSignInSuccess } from "../../anonymousAPI"
@@ -156,6 +159,7 @@ type SignUpData = {
 }
 
 const SignUp = ({ value }: { value: number }) => {
+    const { AnonymousAPIURI } = useSelector(getConfiguration)
     const [showingDialog, setShowingDialog] = useState(false)
     const [inviteCode, setInviteCode] = useState('')
     const [userName, setUserName] = useState('')
@@ -163,15 +167,34 @@ const SignUp = ({ value }: { value: number }) => {
     const [confirmPassword, setConfirmPassword] = useState('')
     const [acknowledge, setAcknowledge] = useState(false)
     const [errors, setErrors] = useState<Partial<SignUpErrors>>({})
+    const [validatingInvitation, setValidatingInvitation] = useState(false)
+    const [invitationValid, setInvitationValid] = useState<Boolean | undefined>(undefined)
     const validate = useCallback(async (field: keyof SignUpErrors | 'ALL', data: SignUpData) => {
         let returnErrors: Partial<SignUpErrors> = field === 'ALL' ? {} : { ...errors }
         if (field != 'ALL') {
             delete returnErrors[field]
         }
-        if (['ALL', 'inviteCode'].includes(field) && !data.inviteCode.match(/\d[A-Z][A-Z]\d\d[A-Z]/)) {
-            returnErrors.inviteCode = 'Invite code must be a six character string (e.g. "1AB23C")'
+        if (['ALL', 'inviteCode'].includes(field)) {
+            if (!data.inviteCode.match(/\d[A-Z][A-Z]\d\d[A-Z]/)) {
+                returnErrors.inviteCode = 'Invite code must be a six character string (e.g. "1AB23C")'
+                setInvitationValid(undefined)
+            }
+            else if (!validatingInvitation) {
+                if (AnonymousAPIURI) {
+                    setValidatingInvitation(false)
+                    setInvitationValid(undefined)
+                    anonymousAPIPromise({
+                        path: 'validateInvitation',
+                        inviteCode: data.inviteCode
+                    }, AnonymousAPIURI).then((result) => {
+                        setInvitationValid(result)
+                        setValidatingInvitation(false)
+                    })
+                }
+            }
+
         }
-        if (['ALL', 'userName'].includes(field) && !data.userName || data.userName.length < 5) {
+        if (['ALL', 'userName'].includes(field) && (!data.userName || data.userName.length < 5)) {
             returnErrors.userName = 'User name must be at least five characters in length'
         }
         if (['ALL', 'password', 'confirmPassword'].includes(field) && !(data.password && data.confirmPassword)) {
@@ -192,7 +215,6 @@ const SignUp = ({ value }: { value: number }) => {
         confirmPassword,
         acknowledge
     }), [inviteCode, userName, password, confirmPassword, acknowledge])
-    const [validating, setValidating] = useState(false)
     return <React.Fragment>
         <CodeOfConductConsentDialog
             open={showingDialog}
@@ -222,11 +244,20 @@ const SignUp = ({ value }: { value: number }) => {
                         setInviteCode(event.target.value)
                         validate('inviteCode', { ...data, inviteCode: event.target.value })
                     }}
+                    InputProps={{ readOnly: validatingInvitation }}
                     label="Invite Code"
                     name="Invite Code"
                     placeholder="Enter invite code"
                     error={Boolean(errors.inviteCode)}
-                    helperText={errors.inviteCode}
+                    helperText={
+                        validatingInvitation
+                            ? 'Validating invite code'
+                            : typeof invitationValid === 'undefined'
+                                ? errors.inviteCode
+                                : invitationValid
+                                    ? <React.Fragment><CheckCircleIcon fontSize="small" sx={{ color: green[300] }} />Invitation code is valid</React.Fragment>
+                                    : <React.Fragment><CancelIcon fontSize="small" sx={{ color: red[300] }} />Invite code is not valid, or has been used already</React.Fragment>
+                    }
                 />
                 <br />
                 <TextField
@@ -310,9 +341,9 @@ const SignUp = ({ value }: { value: number }) => {
             <Button
                 variant="contained"
                 onClick={() => {
-                    setValidating(true)
-                    validate('ALL', data).then(() => { setValidating(false) })
+                    validate('ALL', data)
                 }}
+                disabled={(invitationValid === false) || validatingInvitation || (Object.values(errors).filter((value) => (value)).length > 0)}
             >
                 Sign Up
             </Button>
