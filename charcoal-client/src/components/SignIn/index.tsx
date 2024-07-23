@@ -160,6 +160,7 @@ type SignUpData = {
 
 const SignUp = ({ value }: { value: number }) => {
     const { AnonymousAPIURI } = useSelector(getConfiguration)
+    const dispatch = useDispatch()
     const [showingDialog, setShowingDialog] = useState(false)
     const [inviteCode, setInviteCode] = useState('')
     const [userName, setUserName] = useState('')
@@ -169,6 +170,7 @@ const SignUp = ({ value }: { value: number }) => {
     const [errors, setErrors] = useState<Partial<SignUpErrors>>({})
     const [validatingInvitation, setValidatingInvitation] = useState(false)
     const [invitationValid, setInvitationValid] = useState<Boolean | undefined>(undefined)
+    const [creatingUser, setCreatingUser] = useState(false)
     const validate = useCallback(async (field: keyof SignUpErrors | 'ALL', data: SignUpData) => {
         let returnErrors: Partial<SignUpErrors> = field === 'ALL' ? {} : { ...errors }
         if (field != 'ALL') {
@@ -207,6 +209,7 @@ const SignUp = ({ value }: { value: number }) => {
             returnErrors.acknowledge = 'You must acknowledge and agree to the code of conduct'
         }
         setErrors(returnErrors)
+        return returnErrors
     }, [errors])
     const data = useMemo<SignUpData>(() => ({
         inviteCode,
@@ -341,9 +344,33 @@ const SignUp = ({ value }: { value: number }) => {
             <Button
                 variant="contained"
                 onClick={() => {
-                    validate('ALL', data)
+                    validate('ALL', data).then(async (errors) => {
+                        if (Object.values(errors).filter((value) => (value)).length) {
+
+                        }
+                        else {
+                            setCreatingUser(true)
+                            const results = await anonymousAPIPromise({
+                                path: 'signUp',
+                                inviteCode,
+                                userName,
+                                password
+                            }, AnonymousAPIURI)
+                            if (isAnonymousAPIResultSignInSuccess(results)) {
+                                window.localStorage.setItem('RefreshToken', results.RefreshToken)
+                                dispatch(receiveRefreshToken(results.RefreshToken))
+                                dispatch(heartbeat)
+                            }
+                            if (isAnonymousAPIResultSignInFailure(results)) {
+                                if (results.errorField) {
+                                    setErrors({ ...errors, [results.errorField]: results.errorMessage })
+                                }
+                                setCreatingUser(false)
+                            }
+                        }
+                    })
                 }}
-                disabled={(invitationValid === false) || validatingInvitation || (Object.values(errors).filter((value) => (value)).length > 0)}
+                disabled={creatingUser || (invitationValid === false) || validatingInvitation || (Object.values(errors).filter((value) => (value)).length > 0)}
             >
                 Sign Up
             </Button>

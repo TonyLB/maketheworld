@@ -28,7 +28,7 @@ import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/di
 import { push } from '../UI/feedback'
 import { getPlayer } from '../player'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
-import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure } from '../../anonymousAPI'
+import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure, isAnonymousAPIResultAccessTokenSuccess } from '../../anonymousAPI'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -146,7 +146,9 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
             dispatch(receiveRefreshToken(undefined))
             return Promise.reject({})
         }
-        finalIDToken = result.IdToken
+        if (isAnonymousAPIResultAccessTokenSuccess(result)) {
+            finalIDToken = result.IdToken
+        }
     }
     return new Promise<LifeLineReturn>((resolve, reject) => {
         let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${finalIDToken}${ SessionId ? `&SessionId=${SessionId}` : '' }`)
