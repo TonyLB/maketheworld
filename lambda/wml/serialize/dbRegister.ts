@@ -1,7 +1,7 @@
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphCache, graphStorageDB } from './graphCache'
-import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/ts/types'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 import { snsClient } from '../clients'
 import { PublishCommand } from '@aws-sdk/client-sns'
@@ -15,9 +15,10 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
     const standard = assetWorkspace.standard
     if (standard) {
         if (standard.tag === 'Asset') {
+            const assetKey = address.zone === 'Draft' ? `${standard.key}[${address.player}]` : standard.key
             const graphUpdate = new GraphUpdate({ internalCache: graphCache, dbHandler: graphStorageDB })
             graphUpdate.setEdges([{
-                itemId: AssetKey(standard.key),
+                itemId: AssetKey(assetKey),
                 edges: standard.metaData
                     .map(({ data }) => (data))
                     .filter(isSchemaImport)
@@ -27,13 +28,13 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
             await Promise.all([
                 graphUpdate.flush(),
                 assetDB.putItem({
-                    AssetId: AssetKey(standard.key),
+                    AssetId: AssetKey(assetKey),
                     DataCategory: `Meta::Asset`,
                     address,
                     Story: undefined,
                     instance: undefined,
                     zone: address.zone,
-                    ...(address.zone === 'Personal' ? { player: address.player } : {})
+                    ...((address.zone === 'Draft' || address.zone === 'Personal') ? { player: address.player } : {})
                 })
             ])
         }
