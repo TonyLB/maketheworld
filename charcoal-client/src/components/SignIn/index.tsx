@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { getConfiguration, receiveRefreshToken } from "../../slices/configuration"
 import ScreenCenter from "../ScreenCenter"
 import { heartbeat } from "../../slices/stateSeekingMachine/ssmHeartbeat"
+import { push } from "../../slices/UI/feedback"
 
 const TabItem = styled(Tab)(({
     theme
@@ -345,10 +346,7 @@ const SignUp = ({ value }: { value: number }) => {
                 variant="contained"
                 onClick={() => {
                     validate('ALL', data).then(async (errors) => {
-                        if (Object.values(errors).filter((value) => (value)).length) {
-
-                        }
-                        else {
+                        if (!(Object.values(errors).filter((value) => (value)).length)) {
                             setCreatingUser(true)
                             const results = await anonymousAPIPromise({
                                 path: 'signUp',
@@ -363,7 +361,12 @@ const SignUp = ({ value }: { value: number }) => {
                             }
                             if (isAnonymousAPIResultSignInFailure(results)) {
                                 if (results.errorField) {
-                                    setErrors({ ...errors, [results.errorField]: results.errorMessage })
+                                    if (results.errorField === 'system') {
+                                        dispatch(push(results.errorMessage))
+                                    }
+                                    else {
+                                        setErrors({ ...errors, [results.errorField]: results.errorMessage })
+                                    }
                                 }
                                 setCreatingUser(false)
                             }
