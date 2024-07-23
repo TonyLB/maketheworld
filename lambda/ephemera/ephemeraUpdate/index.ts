@@ -7,7 +7,6 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { objectMap } from "../lib/objects"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/ts/ephemera"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const characterIds = payloads.map(({ updates }) => (updates.map(({ connectionTargets, ...rest }) => (rest)).filter(isEphemeraCharacterArgument).map(({ CharacterId }) => (CharacterId)))).flat(1)
@@ -28,7 +27,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                 ...accumulator,
                 [characterId]: [
                     ...(accumulator[characterId] || []),
-                    sessionId
+                    `SESSION#${sessionId}`
                 ]
             }), previous
         )), {}
@@ -38,7 +37,8 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
         let returnValue: Record<PublishTargetSession, EphemeraCharacterId[]> = {}
         if (targets.includes('GLOBAL')) {
             const sessions = (await internalCache.Global.get("sessions")) || []
-            sessions.forEach((sessionId) => {
+            sessions.forEach((sessionKey) => {
+                const sessionId = `SESSION#${sessionKey}`
                 if (!(sessionId in returnValue)) {
                     returnValue[sessionId] = []
                 }
