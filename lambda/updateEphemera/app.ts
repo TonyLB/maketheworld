@@ -32,9 +32,24 @@ export const handler = async (event) => {
                         EphemeraId: `CHARACTER#${retrievedGuestId}`,
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['assets'],
+                    updateKeys: ['assets', 'Color', 'FirstImpression', 'Name', 'OneCoolThing', 'player', 'pronouns', 'RoomId'],
                     updateReducer: (draft) => {
                         draft.assets = event.Assets.map(({ AssetId }) => (AssetId))
+                        draft.Color = 'pink'
+                        draft.FirstImpression = 'Friendly Tourist'
+                        draft.Name = event.guestName
+                        draft.OneCoolThing = 'Enthusiastic Curiosity'
+                        draft.player = event.player
+                        draft.pronouns = {
+                            subject: 'they',
+                            object: 'them',
+                            adjective: 'theirs',
+                            possessive: 'their',
+                            reflexive: 'themself'
+                        }
+                        if (!draft.RoomId) {
+                            draft.RoomId = 'VORTEX'
+                        }
                     }
                 })
             }
