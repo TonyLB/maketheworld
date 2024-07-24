@@ -11,6 +11,7 @@ import CommandIcon from '@mui/icons-material/Code'
 import ExitIcon from '@mui/icons-material/ExitToApp'
 import RenameIcon from "../Maps/Edit/MapLayers/RenameIcon"
 import EditIcon from '@mui/icons-material/Edit'
+import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
 
 type DeepReadonly<T> =
     T extends (infer R)[] ? DeepReadonlyArray<R> :
@@ -228,48 +229,12 @@ const onboardingChaptersRaw = [
         pages: [
             {
                 pageKey: 'pageCreateAssetIntro',
-                text: `Plenty of people enjoy just playing roles in the story (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
-                subItems: []
-            },
-            {
-                pageKey: 'pageExplainAssets',
-                text: <React.Fragment>
-                    A little philosophy: Sharing stories within a community is complicated, for a lot of reasons. Think, for instance, about any popular, long-running, movie franchise: Some people will want to enjoy the main, famous, movies and not much
-                    else. Others will dig in to the details of every movie. Some will read the novelizations, the extended universe (or whatever) and every official source. Others will dive into fan-fiction worlds and the spin-offs
-                    that the fans create.
-                    <br /><br />
-                    The point here is that in a shared story-telling space, there isn't <em>one, uniquely authoritative</em> version of the world. Instead, there are at least as many viewpoints on the story as there are people to do the viewing.
-                    Make The World supports that by letting people make their own changes, and publish those for other people to share in (or not).
-                </React.Fragment>,
-                subItems: []
-            },
-            {
-                pageKey: 'pageExplainWorkshopping',
-                text: <React.Fragment>
-                    Giving everyone their own viewpoint provides a toolkit for players to start creating <em>bad first drafts</em> of their ideas, and then improve upon them. Everything that players create (and everything
-                    that you will create) is first stored as assets that only they can see. You'll work on those until you feel that they're ready to show them around, and then use Make The World's tools to invite people to make comments and suggestions, in a process
-                    called "Workshopping" (code still being very-actively developed). Through workshopping an asset can go from private, to something available in the library, and even to being included in the canon that everyone sees by default.
-                    <br /><br />
-                    Workshopping serves several purposes:
-                        <ul>
-                            <li>
-                                Some people (not you, you're awesome) are just jerks, and will turn a community storytelling tool toward deliberately offensive and hateful content. If the community doesn't have any way to defend itself,
-                                those people will take over. It stinks, but it's true.
-                            </li>
-                            <li>
-                                Even among people of good will, first drafts are mostly just awful. Getting those awful first drafts "on paper" is the only way to improve them, so it's vitally important that the system not encourage
-                                writer's block by saying "Well, you need to prove your draft is at least <em>this good</em> before we let you store it anywhere."
-                            </li>
-                            <li>
-                                Even people of good will and miraculous ability are not mind-readers. To share a story with a community, you need to check in with that community, plain and simple. They'll have ideas and concerns you didn't anticipate.
-                            </li>
-                        </ul>
-                </React.Fragment>,
+                text: `Plenty of people enjoy just playing roles in the story (and if that's you, you can skip this tutorial). Others enjoy adding to the world as well. This tutorial will introduce you to Make The World's tools for editing the world. Don't worry about what people think of your creations: All edits start out in a sandbox mode where only you can see or interact with them. Sharing them with others and publishing them broadly are beyond the scope of this tutorial.`,
                 subItems: []
             },
             {
                 pageKey: 'pageLibrary',
-                text: `Okay, that was probably more than just a little philosophy. Let's explore your options for expanding the world`,
+                text: `First you need to find a place to start making changes. One easy way to do that is to start from where one of your characters is standing`,
                 subItems: [
                     {
                         key: 'navigateHomeInPlay',
@@ -283,7 +248,7 @@ const onboardingChaptersRaw = [
             },
             {
                 pageKey: 'pageMapView',
-                text: `First, it helps to get a better sense of your surroundings before figuring out where to add a new place. Get to the map view in play`,
+                text: `It helps to get a better sense of your surroundings before figuring out where to add a new place. Get to the map view in play`,
                 subItems: [
                     {
                         key: 'openMap',
@@ -321,7 +286,8 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'selectExitToolbar',
-                        text: `Click the two-way exit icon in the map toolbar`
+                        text: `Click the two-way exit icon in the map toolbar`,
+                        icon: <Stack sx={{ alignItems: 'center' }}><TwoWayExitIcon /></Stack>
                     },
                     {
                         key: 'connectNewRoom',
