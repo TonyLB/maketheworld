@@ -1,14 +1,11 @@
 import { grey } from "@mui/material/colors"
-import Box from "@mui/material/Box"
 import MuiPopper from "@mui/material/Popper"
 import React, { FunctionComponent, useState } from "react"
 import { styled } from "@mui/styles"
 import { Paper } from "@mui/material"
-
-type TutorialPopoverProps = {
-    anchorEl: React.MutableRefObject<HTMLElement>;
-    placement: 'right';
-}
+import { useNextOnboarding } from "./useOnboarding"
+import { useSelector } from "react-redux"
+import { getNextOnboardingEntry } from "../../slices/player"
 
 const Popper = styled(MuiPopper)(({ theme }) => ({
     zIndex: 1,
@@ -71,36 +68,46 @@ const Arrow = styled("div")({
     }
 });
 
-export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ anchorEl, placement }) => {
+type TutorialPopoverProps = {
+    anchorEl: React.MutableRefObject<HTMLElement>;
+    placement: 'right';
+    condition?: boolean;
+    checkPoints: string[];
+}
+
+export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ anchorEl, placement, condition, checkPoints }) => {
     const [arrowRef, setArrowRef] = useState<HTMLSpanElement>(null)
-    return <React.Fragment>
-        { anchorEl.current
-            ? <Popper
-                open={true}
-                anchorEl={anchorEl.current}
-                placement={placement}
-                modifiers={[
-                    {
-                        name: 'offset',
-                        options: { offset: [0, 20] }
-                    },
-                    {
-                        name: 'arrow',
-                        enabled: true,
-                        options: {
-                            element: arrowRef
+    const nextOnboardingEntry = useSelector(getNextOnboardingEntry)
+    return (((condition ?? true) === false) || !(checkPoints.includes(nextOnboardingEntry?.key ?? '')))
+        ? null
+        : <React.Fragment>
+            { anchorEl.current
+                ? <Popper
+                    open={true}
+                    anchorEl={anchorEl.current}
+                    placement={placement}
+                    modifiers={[
+                        {
+                            name: 'offset',
+                            options: { offset: [0, 20] }
+                        },
+                        {
+                            name: 'arrow',
+                            enabled: true,
+                            options: {
+                                element: arrowRef
+                            }
                         }
-                    }
-                ]}
-            >
-                <Arrow ref={setArrowRef} className="MuiPopper-arrow" />
-                <Paper sx={{ background: grey[300], padding: '0.5em' }}>
-                    Test Popper<br/>Content
-                </Paper>
-            </Popper>
-            : null
-        }
-    </React.Fragment>
+                    ]}
+                >
+                    <Arrow ref={setArrowRef} className="MuiPopper-arrow" />
+                    <Paper sx={{ background: grey[300], padding: '0.5em' }}>
+                        Test Popper<br/>Content
+                    </Paper>
+                </Popper>
+                : null
+            }
+        </React.Fragment>
 }
 
 export default TutorialPopover

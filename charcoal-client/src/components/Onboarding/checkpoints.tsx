@@ -27,7 +27,7 @@ type DeepReadonlyObject<T> = {
 
 type OnboardingText = ReactElement | string | ((arg: OnboardingTextArgument) => ReactElement | string)
 
-type OnboardingSubItem = {
+export type OnboardingSubItem = {
     key: string;
     text?: OnboardingText;
     icon?: ReactElement;
