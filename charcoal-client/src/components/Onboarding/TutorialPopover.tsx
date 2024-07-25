@@ -82,7 +82,7 @@ const pulse = keyframes `
 
 type TutorialPopoverProps = {
     anchorEl: React.MutableRefObject<HTMLElement>;
-    placement: 'right' | 'top' | 'bottom';
+    placement: 'right' | 'top' | 'bottom' | 'left';
     condition?: boolean;
     checkPoints: string[];
 }
