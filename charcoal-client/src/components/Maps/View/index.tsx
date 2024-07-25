@@ -24,9 +24,10 @@ import { MapDisplayController } from '../Controller';
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
-import { addImport } from '../../../slices/personalAssets';
+import { addImport, getStandardForm } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
+import { getPlayer } from '../../../slices/player';
 
 type MapViewProps = {
 }
@@ -37,6 +38,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 50 : medium ? 40 : 30
     const { maps, CharacterId, scopedId, info: { Name = '???' } = {} } = useActiveCharacter()
+    const { PlayerName } = useSelector(getPlayer)
     useAutoPin({
         href: `/Character/${scopedId}/Map/`,
         label: `Map: ${Name}`,
@@ -62,6 +64,9 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const ref = useRef()
     const [open, setOpen] = useState<boolean>(false)
     const importOptions = useMemo(() => {
+        if (assets[`ASSET#draft[${PlayerName}]`]) {
+            return [{ asset: `ASSET#draft` as const, key: assets[`ASSET#draft[${PlayerName}]`] }]
+        }
         if (Object.entries(assets).length > 1) {
             return Object.entries(assets)
                 .filter(([asset]) => (asset !== 'ASSET#primitives'))
@@ -71,10 +76,12 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             return Object.entries(assets)
                 .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
         }
-    }, [assets])
+    }, [assets, PlayerName])
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
         // dispatch(addOnboardingComplete(['importRoom']))
-        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
+        if (asset !== 'ASSET#draft') {
+            dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
+        }
         navigate(`/Draft/Map/${key}`)
     }, [navigate])
     const onClick = useCallback(() => {
