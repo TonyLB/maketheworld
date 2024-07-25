@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from 'react'
+import React, { FunctionComponent, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
@@ -32,6 +32,7 @@ import { socketDispatchPromise } from '../../../../slices/lifeLine'
 import { v4 as uuidv4 } from 'uuid'
 import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import TutorialPopover from '../../../Onboarding/TutorialPopover'
 
 type MapLayersProps = {
     mapId: string;
@@ -84,6 +85,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
             }
         }
     }, [standardForm, updateSchema, roomId, name, dispatch, AssetId])
+    const renameRef = useRef<HTMLDivElement>(null)
     return <React.Fragment>
         <ListItemButton
             dense
@@ -112,36 +114,44 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                     : name
                 }
             />
-            {
-                renaming
-                    ? <React.Fragment>
-                        <IconButton
-                            onClick={() => {
-                                onRename(nameEdit)
-                                setRenaming(false)
-                                setNameEdit('')
-                            }}
-                        >
-                            <AcceptIcon />
-                        </IconButton>
-                        <IconButton
-                            onClick={() => {
-                                setRenaming(false)
-                                setNameEdit('')
-                            }}
-                        >
-                            <CancelIcon />
-                        </IconButton>
-                    </React.Fragment>
-                    : <IconButton
-                            onClick={() => {
-                                setNameEdit(name)
-                                setRenaming(true)
-                            }}
-                        >
+            <Box ref={renameRef}>
+                {
+                    renaming
+                        ? <React.Fragment>
+                            <IconButton
+                                onClick={() => {
+                                    onRename(nameEdit)
+                                    setRenaming(false)
+                                    setNameEdit('')
+                                }}
+                            >
+                                <AcceptIcon />
+                            </IconButton>
+                            <IconButton
+                                onClick={() => {
+                                    setRenaming(false)
+                                    setNameEdit('')
+                                }}
+                            >
+                                <CancelIcon />
+                            </IconButton>
+                        </React.Fragment>
+                        : <IconButton
+                                onClick={() => {
+                                    setNameEdit(name)
+                                    setRenaming(true)
+                                }}
+                            >
                                 <RenameIcon />
                         </IconButton>
-            }
+                }
+            </Box>
+            <TutorialPopover
+                anchorEl={renameRef}
+                placement='top'
+                checkPoints={['renameNewRoom']}
+                condition={Boolean(name.match(/^Room[\d]+$/))}
+            />
             <IconButton onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
             {
                 childrenPresent &&
