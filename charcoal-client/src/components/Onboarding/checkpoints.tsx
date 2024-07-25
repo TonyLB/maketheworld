@@ -30,6 +30,7 @@ type OnboardingText = ReactElement | string | ((arg: OnboardingTextArgument) => 
 export type OnboardingSubItem = {
     key: string;
     text?: OnboardingText;
+    popoverText?: OnboardingText;
     icon?: ReactElement;
 }
 
@@ -238,11 +239,13 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'navigateHomeInPlay',
-                        text: `Use the navigation tabs to return to the Home page.`
+                        text: `Use the navigation tabs to return to the Home page.`,
+                        popoverText: `Click here to return to the Home page.`
                     },
                     {
                         key: 'navigateInPlayEdit',
-                        text: 'On the Home tab, under the "Play" section, select a character in order to see their perspective in the virtual world.'
+                        text: 'On the Home tab, under the "Play" section, select a character in order to see their perspective in the virtual world.',
+                        popoverText: 'Select a character in order to see their perspective in the virtual world.'
                     }
                 ]
             },
@@ -252,12 +255,14 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'openMap',
-                        text: 'Either enter "map" in command mode, or click the "..." options button on bottom right and select the map icon.'
+                        text: 'Either enter "map" in command mode, or click the "..." options button on bottom right and select the map icon.',
+                        popoverText: `Type "map" here to show the map.`
                     },
                     {
                         key: 'editMap',
                         text: 'In the upper right corner, select the pencil button to edit this map and add your own ideas to it.',
-                        icon: <EditIcon />
+                        icon: <EditIcon />,
+                        popoverText: `Click here to edit this map and add your own ideas.`
                     }
                 ]
             },
@@ -267,16 +272,19 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'addNewRoom',
-                        text: 'Select the "New Room" item in the upper right, to create a new room to add into the map'
+                        text: 'Select the "New Room" item in the upper right, to create a new room to add into the map',
+                        popoverText: `Click here to create a new room.`
                     },
                     {
                         key: 'positionNewRoom',
-                        text: 'Click in the map area to position the new room'
+                        text: 'Click in the map area to position the new room',
+                        popoverText: `Click in the map area to position the room.`
                     },
                     {
                         key: 'renameNewRoom',
                         text: `Find the new room in the 'Layers' section at right, and click the rename icon to rename it to something descriptive`,
-                        icon: <Stack sx={{ alignItems: 'center' }}><RenameIcon /></Stack>
+                        icon: <Stack sx={{ alignItems: 'center' }}><RenameIcon /></Stack>,
+                        popoverText: `Click here to rename the room to something descriptive`,
                     }
                 ]
             },
@@ -287,11 +295,13 @@ const onboardingChaptersRaw = [
                     {
                         key: 'selectExitToolbar',
                         text: `Click the two-way exit icon in the map toolbar`,
-                        icon: <Stack sx={{ alignItems: 'center' }}><TwoWayExitIcon /></Stack>
+                        icon: <Stack sx={{ alignItems: 'center' }}><TwoWayExitIcon /></Stack>,
+                        popoverText: `Click here to switch to exit-drawing mode`
                     },
                     {
                         key: 'connectNewRoom',
-                        text: 'Drag from a canon room to the new room to create exits between the two'
+                        text: 'Drag from a canon room to the new room to create exits between the two',
+                        popoverText: `Drag from a canon room to the new room`
                     }
                 ]
             },
@@ -301,15 +311,18 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'navigateRoom',
-                        text: `In the map layers at right, click the edit button on your room to navigate to the room details.`
+                        text: `In the map layers at right, click the edit button on your room to navigate to the room details.`,
+                        popoverText: `Click here to edit room details`
                     },
                     {
                         key: 'summarizeRoom',
-                        text: 'Edit the summary of the room that is shown when people first arrive.'
+                        text: 'Edit the summary of the room that is shown when people first arrive.',
+                        popoverText: `Edit the summary that is shown when people first arrive.`
                     },
                     {
                         key: 'describeRoom',
-                        text: 'Edit the more detailed description that is shown if they look more closely.'
+                        text: 'Edit the more detailed description that is shown if they look more closely.',
+                        popoverText: 'Edit the more detailed description that is shown if they look more closely.'
                     }
                 ]
             },
@@ -318,16 +331,24 @@ const onboardingChaptersRaw = [
                 text: `You have a draft of a new creation for the shared world. Once you save it, you will be able to see the changes in-play`,
                 subItems: [
                     {
+                        key: 'navigateBackToDraft',
+                        text: `Close the detail editor and return to the Draft tab.`,
+                        popoverText: 'Click here to return to the Draft tab.'
+                    },
+                    {
                         key: 'saveAsset',
-                        text: `Close the detail editor and return to the Draft tab. Press the "Save" button at upper right to send your draft to the system.`
+                        text: `Press the "Save" button at upper right to send your draft to the system.`,
+                        popoverText: 'Click here to save your draft to the system.'
                     },
                     {
                         key: 'navigatePlayWithPersonalRoom',
-                        text: `Navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`
+                        text: `Navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`,
+                        popoverText: `Navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`
                     },
                     {
                         key: 'navigatePersonalRoom',
-                        text: 'Press that exit to travel to your new room.'
+                        text: 'Press that exit to travel to your new room.',
+                        popoverText: 'Press that exit to travel to your new room.'
                     }
                 ]
             },
