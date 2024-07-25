@@ -3,7 +3,7 @@
 //
 
 /** @jsxImportSource @emotion/react */
-import React, { FunctionComponent, useCallback, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useMemo, useRef } from 'react'
 import { css } from '@emotion/react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
@@ -55,6 +55,7 @@ import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings } from '../../slices/settings'
+import TutorialPopover from '../Onboarding/TutorialPopover'
 
 const a11yProps = (index: number) => {
     return {
@@ -121,18 +122,32 @@ type NavigationTabProps = {
     key: string;
     label: string;
     value: string;
-    icon: React.ReactElement<any, string | React.JSXElementConstructor<any>>
+    icon: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
+    checkPoints?: string[];
 }
-const NavigationTab: FunctionComponent<NavigationTabProps> = ({ index, key, label, value, icon }) => {
-    return <Tab
-        key={key}
-        label={label}
-        value={value}
-        {...a11yProps(index)}
-        icon={icon}
-        component={Link}
-        to={value === 'home' ? '/' : value}
-    />
+const NavigationTab: FunctionComponent<NavigationTabProps> = ({ index, key, label, value, icon, checkPoints = [] }) => {
+    const ref = useRef()
+    return <React.Fragment>
+        <Tab
+            key={key}
+            label={label}
+            value={value}
+            {...a11yProps(index)}
+            icon={icon}
+            component={Link}
+            to={value === 'home' ? '/' : value}
+            ref={ref}
+        />
+        {
+            checkPoints.length
+                ? <TutorialPopover
+                    anchorEl={ref}
+                    placement='right'
+                    checkPoints={checkPoints}
+                />
+                : null
+        }
+    </React.Fragment>
 }
 
 const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boolean; needsOnboarding: boolean; navigationTabs: any[] }) => ([
@@ -152,6 +167,7 @@ const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boole
         value="home"
         index={needsOnboarding ? 1 : 0}
         icon={<HomeIcon />}
+        checkPoints={['navigateHomeInPlay']}
     />,
     ...(navigationTabs.map(({ href, label, iconName, closable, assetId }, index) => (
         <NavigationTab
@@ -160,6 +176,7 @@ const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boole
             value={href}
             index={index + 1 + (needsOnboarding ? 1 : 0)}
             icon={<IconWrapper iconName={iconName} href={href} closable={closable} assetId={assetId} />}
+            checkPoints={href === '/Draft/' ? ['navigateBackToDraft'] : []}
         />
     ))),
     ...(large ? [] : [
