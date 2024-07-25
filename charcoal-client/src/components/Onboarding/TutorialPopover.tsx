@@ -122,9 +122,10 @@ export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ ancho
                     <Paper sx={{
                         background: grey[300],
                         padding: '0.5em',
+                        maxWidth: '20em',
                         animation: `${pulse} 2s infinite`
                     }}>
-                        Test Popper<br/>Content
+                        { nextOnboardingEntry.popoverText ?? nextOnboardingEntry.text ?? null }
                     </Paper>
                 </Popper>
                 : null
