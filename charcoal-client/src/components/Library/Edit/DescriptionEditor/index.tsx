@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
 
@@ -48,11 +48,13 @@ import { useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
+import TutorialPopover from '../../../Onboarding/TutorialPopover'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     fieldName?: string;
     toolbar?: boolean;
+    checkPoints?: string[]
 }
 
 const withInlines = (editor: Editor) => {
@@ -168,6 +170,7 @@ type DescriptionEditorSlateComponentProperties = {
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
+    checkPoints?: string[];
     // setValue?: (value: Descendant[]) => void;
     // saveToReduce?: (value: Descendant[]) => void;
 }
@@ -256,7 +259,8 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
     placeholder,
     fieldName,
     toolbar,
-    readonly
+    readonly,
+    checkPoints = []
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
@@ -264,6 +268,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(data, standard)
+    const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])
     return <Slate editor={editor} value={value} onChange={(value) => { setValue(value) }}>
@@ -281,7 +286,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
                 }} />
             </Toolbar>
         }
-        <Box sx={{ padding: '0.5em' }}>
+        <Box sx={{ padding: '0.5em' }} ref={ref}>
             <Editable
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
@@ -290,6 +295,11 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
                 placeholder={placeholder}
             />
         </Box>
+        <TutorialPopover
+            anchorEl={ref}
+            placement="top"
+            checkPoints={checkPoints}
+        />
     </Slate>
 }
 
@@ -319,6 +329,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
             data={field}
             standard={standardForm}
             readonly={readonly}
+            checkPoints={props.checkPoints}
         />
 
     </React.Fragment>
