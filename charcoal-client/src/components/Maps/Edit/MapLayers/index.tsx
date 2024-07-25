@@ -46,7 +46,7 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean }> = ({ id, roomId, name, inherited, children }) => {
+const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ id, roomId, name, inherited, children, newestRoom }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const navigate = useNavigate()
@@ -86,6 +86,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
         }
     }, [standardForm, updateSchema, roomId, name, dispatch, AssetId])
     const renameRef = useRef<HTMLDivElement>(null)
+    const editRef = useRef<HTMLButtonElement>(null)
     return <React.Fragment>
         <ListItemButton
             dense
@@ -152,7 +153,13 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
                 checkPoints={['renameNewRoom']}
                 condition={Boolean(name.match(/^Room[\d]+$/))}
             />
-            <IconButton onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
+            <IconButton ref={editRef} onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
+            <TutorialPopover
+                anchorEl={editRef}
+                placement='top'
+                checkPoints={['navigateRoom']}
+                condition={newestRoom}
+            />
             {
                 childrenPresent &&
                 (open
@@ -254,15 +261,34 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm, combinedStandardForm } = useLibraryAsset()
     const { data } = item
-    const { mapDispatch } = useMapContext()
+    const { tree, mapDispatch } = useMapContext()
     const onClick = useCallback((id: string) => {
         mapDispatch({ type: 'SelectItem', item: undefined })
         mapDispatch({ type: 'SelectParent', item: id })
     }, [mapDispatch])
+    const isNewestRoom = useMemo(() => {
+        const newRoomIndex = (data: SchemaTag): number => {
+            if (data.tag === 'Room' && Boolean(data.key.match(/^Room[\d]+$/))) {
+                const roomIndex = parseInt(data.key.slice(4))
+                return roomIndex
+            }
+            return -1    
+        }
+        const thisRoomIndex = newRoomIndex(data)
+        if (thisRoomIndex !== -1) {
+            return !tree.find(({ data }) => (newRoomIndex(data) > thisRoomIndex))
+        }
+        return false
+    }, [tree, data])
     switch(data.tag) {
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
-            return <RoomLayer id={item.id} roomId={data.key} name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) || data.key : data.key}>
+            return <RoomLayer
+                id={item.id}
+                roomId={data.key}
+                name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) || data.key : data.key}
+                newestRoom={isNewestRoom}
+            >
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Position':

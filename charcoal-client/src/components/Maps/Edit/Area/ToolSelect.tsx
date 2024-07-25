@@ -104,6 +104,7 @@ export const ToolSelect: FunctionComponent<{}> = () => {
             {
                 tools.map(({ key, icon }) => (
                     <ToolSelectIcon
+                        key={key}
                         toolKey={key}
                         icon={icon}
                         checkPoints={key === 'TwoWayExit' ? ['selectExitToolbar'] : []}
