@@ -127,7 +127,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                         </Avatar>
                         <React.Fragment>Guest</React.Fragment>
                     </Stack>
-                    <TutorialPopover anchorEl={guest} placement="right" />
+                    <TutorialPopover anchorEl={guest} placement="right" checkPoints={['navigateInPlayEdit']} />
                 </Grid>
             }
             { charactersUnlocked && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId }) => (

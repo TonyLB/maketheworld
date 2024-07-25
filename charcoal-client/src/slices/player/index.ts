@@ -21,7 +21,7 @@ import { receivePlayer } from './receivePlayer'
 import { addAsset as addAssetReducer } from './reducers'
 import { PromiseCache } from '../promiseCache'
 import { createSelector } from '@reduxjs/toolkit'
-import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
+import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 const playerPromiseCache = new PromiseCache<PlayerData>()
 
@@ -158,15 +158,21 @@ export const getOnboardingPage = createSelector(
     }
 )
 
-export const getNextOnboarding = createSelector(
+export const getNextOnboardingEntry = createSelector(
     selectors.getMySettings,
     getOnboardingPage,
-    ({ onboardCompleteTags }, page): OnboardingKey | undefined => {
+    ({ onboardCompleteTags }, page): OnboardingSubItem | undefined => {
         if (!page) {
             return undefined
         }
-        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey | undefined
+        return page.subItems.find(({ key }) => (!onboardCompleteTags.includes(key)))
     }
+)
+
+export const getNextOnboarding = createSelector(
+    getNextOnboardingEntry,
+    getOnboardingPage,
+    (entry): OnboardingKey | undefined => (entry?.key)
 )
 
 export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters, getMySettings)
