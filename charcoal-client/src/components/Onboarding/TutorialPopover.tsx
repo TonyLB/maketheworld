@@ -2,7 +2,7 @@ import { grey } from "@mui/material/colors"
 import MuiPopper from "@mui/material/Popper"
 import React, { FunctionComponent, useState } from "react"
 import { styled } from "@mui/styles"
-import { Paper } from "@mui/material"
+import { keyframes, Paper } from "@mui/material"
 import { useNextOnboarding } from "./useOnboarding"
 import { useSelector } from "react-redux"
 import { getNextOnboardingEntry } from "../../slices/player"
@@ -66,7 +66,25 @@ const Arrow = styled("div")({
         height: 0,
         borderStyle: "solid"
     }
-});
+})
+
+const pulse = keyframes `
+    25% {
+      background: ${grey[300]}
+    }
+    50% {
+      background: ${grey[400]}
+    }
+    75% {
+      background: ${grey[300]}
+    }
+`
+
+const PulsingPaper = styled(Paper)({
+    background: grey[300],
+    padding: '0.5em',
+    animation: `${pulse} 2s infinite`
+})
 
 type TutorialPopoverProps = {
     anchorEl: React.MutableRefObject<HTMLElement>;
@@ -101,7 +119,11 @@ export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ ancho
                     ]}
                 >
                     <Arrow ref={setArrowRef} className="MuiPopper-arrow" />
-                    <Paper sx={{ background: grey[300], padding: '0.5em' }}>
+                    <Paper sx={{
+                        background: grey[300],
+                        padding: '0.5em',
+                        animation: `${pulse} 2s infinite`
+                    }}>
                         Test Popper<br/>Content
                     </Paper>
                 </Popper>
