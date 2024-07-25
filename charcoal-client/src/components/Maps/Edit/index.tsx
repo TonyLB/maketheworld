@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo } from 'react'
+import { FunctionComponent, useMemo, useRef } from 'react'
 
 import {
     useParams
@@ -14,6 +14,7 @@ import MapController from '../Controller'
 import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardMap, isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import TutorialPopover from '../../Onboarding/TutorialPopover'
 
 type MapEditProps = {
 }
@@ -43,10 +44,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     // TODO: Figure out how to extract fileURL from defaultAppearances
     //
     const mapImages = useMemo<string[]>(() => (mapComponent ? mapComponent.images.map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1) : []), [mapComponent])
+    const mapAreaRef = useRef<HTMLDivElement>(null)
 
     return <MapController mapId={mapId}>
         <div className={localClasses.grid}>
-            <div className={localClasses.content} >
+            <div className={localClasses.content} ref={mapAreaRef} >
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect />
                 </div>
@@ -59,6 +61,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <MapLayers mapId={mapId} />
             </div>
         </div>
+        <TutorialPopover
+            anchorEl={mapAreaRef}
+            placement='right'
+            checkPoints={['positionNewRoom', 'connectNewRoom']}
+        />
     </MapController>
 }
 
