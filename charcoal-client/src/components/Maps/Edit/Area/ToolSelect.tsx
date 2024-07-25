@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react'
+import React, { FunctionComponent, ReactElement, useRef } from 'react'
 import IconButton from '@mui/material/IconButton'
 import ButtonGroup from '@mui/material/ButtonGroup'
 import makeStyles from '@mui/styles/makeStyles'
@@ -12,6 +12,7 @@ import MoveIcon from '@mui/icons-material/OpenWith'
 import { useMapContext } from '../../Controller'
 import { ToolSelected } from '../../Controller/baseClasses'
 import useOnboarding, { useNextOnboarding } from '../../../Onboarding/useOnboarding'
+import TutorialPopover from '../../../Onboarding/TutorialPopover'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {
@@ -30,16 +31,52 @@ export const localStyles = makeStyles((theme: Theme) => ({
     }
 }))
 
+type ToolSelectIconProps = {
+    toolKey: ToolSelected;
+    icon: ReactElement<any, any>;
+    checkPoints?: string[];
+}
+
+const ToolSelectIcon: FunctionComponent<ToolSelectIconProps> = ({ toolKey, icon, checkPoints = [] }) => {
+    const { UI: { toolSelected }, mapDispatch } = useMapContext()
+    const classes = localStyles()
+    const nextOnboarding = useNextOnboarding()
+    const [_, addOnboarding] = useOnboarding('selectExitToolbar')
+    const ref = useRef<HTMLButtonElement>(null)
+
+    return <React.Fragment>
+        <IconButton
+            key={toolKey}
+            ref={ref}
+            color={ toolSelected === toolKey ? 'primary' : 'default' }
+            classes={{
+                root: classes.normal,
+                colorPrimary: classes['normal.selected']
+            }}
+            onClick={() => {
+                if (nextOnboarding === 'selectExitToolbar' && toolKey === 'TwoWayExit') {
+                    addOnboarding()
+                }
+                mapDispatch({ type: 'SetToolSelected', value: toolKey })
+            }}
+            size="large">
+            {icon}
+        </IconButton>
+        <TutorialPopover
+            anchorEl={ref}
+            placement='right'
+            checkPoints={checkPoints}
+        />
+    </React.Fragment>
+}
+
+
 interface ToolSelectGroups {
     key: ToolSelected,
     icon: ReactElement<any, any>
 }
 
 export const ToolSelect: FunctionComponent<{}> = () => {
-    const { UI: { toolSelected }, mapDispatch } = useMapContext()
-    const classes = localStyles()
-    const nextOnboarding = useNextOnboarding()
-    const [_, addOnboarding] = useOnboarding('selectExitToolbar')
     const tools: ToolSelectGroups[] = [
         {
             key: 'Select',
@@ -66,22 +103,11 @@ export const ToolSelect: FunctionComponent<{}> = () => {
         <ButtonGroup orientation="vertical" aria-label="vertical outlined primary button group">
             {
                 tools.map(({ key, icon }) => (
-                    <IconButton
-                        key={key}
-                        color={ toolSelected === key ? 'primary' : 'default' }
-                        classes={{
-                            root: classes.normal,
-                            colorPrimary: classes['normal.selected']
-                        }}
-                        onClick={() => {
-                            if (nextOnboarding === 'selectExitToolbar' && key === 'TwoWayExit') {
-                                addOnboarding()
-                            }
-                            mapDispatch({ type: 'SetToolSelected', value: key })
-                        }}
-                        size="large">
-                        {icon}
-                    </IconButton>
+                    <ToolSelectIcon
+                        toolKey={key}
+                        icon={icon}
+                        checkPoints={key === 'TwoWayExit' ? ['selectExitToolbar'] : []}
+                    />
                 ))
             }
         </ButtonGroup>
