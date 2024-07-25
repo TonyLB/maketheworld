@@ -107,13 +107,18 @@ export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboar
     // A local duplication of the functionality abstracted in getNextOnboarding ... should
     // really figure out how to not repeat, but Redux and SSM makes that complicated
     //
-    const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigate`))
+    const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigation`))
     const index = firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))
     const currentChapter = index === -1 ? undefined : onboardingChapters[index]
     const currentPage = currentChapter ? currentChapter.pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined
-    const next = currentPage ? currentPage.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey : undefined
+    const nextIndex = currentPage ? currentPage.subItems.findIndex(({ key }) => (!onboardCompleteTags.includes(key))) : -1
+    const next = (nextIndex === -1) ? undefined : currentPage.subItems[nextIndex].key as OnboardingKey
 
-    const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
+    const updateTags = [
+        ...tags,
+        ...((currentPage && currentPage.subItems.length && (nextIndex === currentPage.subItems.length - 1)) ? [currentPage.pageKey] : [])
+    ].filter((tag) => (!onboardCompleteTags.includes(tag)))
+    
     if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
         await dispatch(updateOnboardingComplete({ addTags: updateTags }))
     }
