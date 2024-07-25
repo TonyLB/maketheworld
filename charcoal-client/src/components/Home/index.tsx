@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 
@@ -23,6 +23,7 @@ import { useSelector } from 'react-redux'
 import { Typography } from '@mui/material'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { getMySettings } from '../../slices/player'
+import TutorialPopover from '../Onboarding/TutorialPopover'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -53,6 +54,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const [knowledgeUnlocked] = useOnboarding('navigateHome')
     const [charactersUnlocked] = useOnboarding('closeTab')
     const [libraryUnlocked] = useOnboarding('closeTab')
+    const guest = useRef<HTMLDivElement>()
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
@@ -119,11 +121,13 @@ export const Home: FunctionComponent<HomeProps> = ({
                         <Avatar
                             sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                             alt='Guest'
+                            ref={guest}
                         >
                             <GuestIcon fontSize="large" />
                         </Avatar>
                         <React.Fragment>Guest</React.Fragment>
                     </Stack>
+                    <TutorialPopover anchorEl={guest} placement="right" />
                 </Grid>
             }
             { charactersUnlocked && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId }) => (
