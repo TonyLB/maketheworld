@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
 import { addImport } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
+import TutorialPopover from '../../Onboarding/TutorialPopover';
 
 type MapViewProps = {
 }
@@ -126,6 +127,11 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             >
                 <EditIcon sx={{ fontSize: iconSize * 0.6 }} />
             </Avatar>
+            <TutorialPopover
+                anchorEl={ref}
+                placement='left'
+                checkPoints={['editMap']}
+            />
             <AssetPicker
                 anchorRef={ref}
                 open={open}
