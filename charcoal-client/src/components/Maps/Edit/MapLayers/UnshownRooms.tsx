@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo, useRef } from "react"
 import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
 import { useMapContext } from "../../Controller"
 import {
@@ -15,6 +15,7 @@ import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOu
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
+import TutorialPopover from "../../../Onboarding/TutorialPopover"
 
 type UnshownRoomsProps = {
 
@@ -35,40 +36,49 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
         }
         return 'Untitled'
     }, [combinedStandardForm])
-    return <List>
-        {
-            unshownRoomItems.map(({ key }) => (
-                <ListItemButton
-                    key={key}
-                    dense
-                    sx={{ width: '100%' }}
-                    selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
-                    onClick={() => { 
-                        mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})
-                        mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
-                    }}
-                >
-                    <ListItemAvatar>
-                        <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
-                    </ListItemAvatar>
-                    <ListItemText primary={ nameFromKey(key) } />
-                </ListItemButton>
-            ))
-        }
-        <ListItemButton
-            dense
-            sx={{ width: '100%' }}
-            selected={itemSelected?.type === 'UnshownRoomNew'}
-            onClick={() => {
-                dispatch(addOnboardingComplete(['addNewRoom']))
-                mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})
-                mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
-            }}
-        >
-            <ListItemAvatar>
-                <AddIcon sx={{ fontSize: "15px", color: grey[500] }} />
-            </ListItemAvatar>
-            <ListItemText primary="Add New Room" />
-        </ListItemButton>
-    </List>
+    const addNewRoomRef = useRef(null)
+    return <React.Fragment>
+        <List>
+            {
+                unshownRoomItems.map(({ key }) => (
+                    <ListItemButton
+                        key={key}
+                        dense
+                        sx={{ width: '100%' }}
+                        selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
+                        onClick={() => { 
+                            mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})
+                            mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
+                        }}
+                    >
+                        <ListItemAvatar>
+                            <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
+                        </ListItemAvatar>
+                        <ListItemText primary={ nameFromKey(key) } />
+                    </ListItemButton>
+                ))
+            }
+            <ListItemButton
+                dense
+                sx={{ width: '100%' }}
+                selected={itemSelected?.type === 'UnshownRoomNew'}
+                onClick={() => {
+                    dispatch(addOnboardingComplete(['addNewRoom']))
+                    mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})
+                    mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
+                }}
+                ref={addNewRoomRef}
+            >
+                <ListItemAvatar>
+                    <AddIcon sx={{ fontSize: "15px", color: grey[500] }} />
+                </ListItemAvatar>
+                <ListItemText primary="Add New Room" />
+            </ListItemButton>
+        </List>
+        <TutorialPopover
+            anchorEl={addNewRoomRef}
+            placement="bottom"
+            checkPoints={['addNewRoom']}
+        />
+    </React.Fragment>
 }
