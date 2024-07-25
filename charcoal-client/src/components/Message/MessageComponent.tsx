@@ -16,7 +16,7 @@ interface MessageComponentProps {
     rightGutter?: Number;
     toolActions?: ReactElement;
     sx?: SxProps<Theme>;
-    children?: ReactChild | ReactChildren;
+    children?: ReactChild | ReactChild[] | ReactChildren;
 }
 
 export const MessageComponent: FunctionComponent<MessageComponentProps> = ({

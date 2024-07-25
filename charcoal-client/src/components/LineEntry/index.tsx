@@ -25,6 +25,7 @@ import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import EntryModeRoller from './EntryModeRoller'
+import TutorialPopover from '../Onboarding/TutorialPopover'
 
 interface EntryFieldProps {
     placeholder?: string;
@@ -192,6 +193,11 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
                 <EntryModeDispatcher
                     ref={ref}
                     callback={callback}
+                />
+                <TutorialPopover
+                    anchorEl={ref}
+                    placement='top'
+                    checkPoints={['openMap']}
                 />
             </MessageComponent>
         </CharacterColorWrapper>
