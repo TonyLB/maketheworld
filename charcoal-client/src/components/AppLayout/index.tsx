@@ -112,58 +112,71 @@ const IconWrapper = ({ iconName = 'Forum', href, closable=true, assetId }: { ico
     </Box>
 }
 
+//
+// TODO: Create NavigationTab component that wraps <Tab> and adds a checkpoints argument and
+// a TutorialPopover
+//
+type NavigationTabProps = {
+    index: number;
+    key: string;
+    label: string;
+    value: string;
+    icon: React.ReactElement<any, string | React.JSXElementConstructor<any>>
+}
+const NavigationTab: FunctionComponent<NavigationTabProps> = ({ index, key, label, value, icon }) => {
+    return <Tab
+        key={key}
+        label={label}
+        value={value}
+        {...a11yProps(index)}
+        icon={icon}
+        component={Link}
+        to={value === 'home' ? '/' : value}
+    />
+}
+
 const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boolean; needsOnboarding: boolean; navigationTabs: any[] }) => ([
     ...(needsOnboarding
-        ? [<Tab
+        ? [<NavigationTab
             key="Onboarding"
             label="Tutorials"
             value="/Onboarding/"
-            {...a11yProps(0)}
+            index={0}
             icon={<OnboardingIcon />}
-            component={Link}
-            to="/Onboarding/"
         />]
         : []
     ),
-    <Tab
+    <NavigationTab
         key="Home"
         label="Home"
         value="home"
-        {...a11yProps(needsOnboarding ? 1 : 0)}
+        index={needsOnboarding ? 1 : 0}
         icon={<HomeIcon />}
-        component={Link}
-        to="/"
     />,
     ...(navigationTabs.map(({ href, label, iconName, closable, assetId }, index) => (
-        <Tab
+        <NavigationTab
             key={href}
             label={label}
             value={href}
-            {...a11yProps(index + 1 + (needsOnboarding ? 1 : 0))}
+            index={index + 1 + (needsOnboarding ? 1 : 0)}
             icon={<IconWrapper iconName={iconName} href={href} closable={closable} assetId={assetId} />}
-            component={Link}
-            to={href}
         />
     ))),
     ...(large ? [] : [
-        <Tab
+        <NavigationTab
             key="Who"
             label="Who is on"
             value="/Who/"
-            {...a11yProps(2 + navigationTabs.length + (needsOnboarding ? 1 : 0))}
+            index={2 + navigationTabs.length + (needsOnboarding ? 1 : 0)}
             icon={<PeopleAltIcon />}
-            component={Link}
-            to="/Who/"
         />
     ]),
-    <Tab
+    <NavigationTab
         key="Settings"
         label="Settings"
         value="/Settings/"
-        {...a11yProps(3 + navigationTabs.length + (needsOnboarding ? 1 : 0))}
+        index={3 + navigationTabs.length + (needsOnboarding ? 1 : 0)}
         icon={<SettingsIcon />}
-        component={Link}
-        to="/Settings/"
     />
 ])
 
