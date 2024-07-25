@@ -80,15 +80,9 @@ const pulse = keyframes `
     }
 `
 
-const PulsingPaper = styled(Paper)({
-    background: grey[300],
-    padding: '0.5em',
-    animation: `${pulse} 2s infinite`
-})
-
 type TutorialPopoverProps = {
     anchorEl: React.MutableRefObject<HTMLElement>;
-    placement: 'right';
+    placement: 'right' | 'top';
     condition?: boolean;
     checkPoints: string[];
 }
