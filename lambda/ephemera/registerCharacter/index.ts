@@ -8,7 +8,7 @@ import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const [connectionId, sessionId] = await Promise.all([internalCache.Global.get('ConnectionId'), internalCache.Global.get('SessionId')])
+    const sessionId = await internalCache.Global.get('SessionId')
 
     if (sessionId) {
         const RequestId = await internalCache.Global.get('RequestId')
@@ -42,32 +42,31 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         },
                         successCallback: ({ sessions }) => {
                             internalCache.CharacterSessions.set(CharacterId, sessions)
-                            if (sessions.length <= 1) {
-                                messageBus.send({
-                                    type: 'CheckLocation',
-                                    characterId: CharacterId,
-                                    forceMove: true,
-                                    arriveMessage: ' has connected.'
-                                })
-                                //
-                                // TODO: Create a path to checking character assets are cached as part of first registry
-                                // of a character as being in-play
-                                //
+                            messageBus.send({
+                                type: 'CheckLocation',
+                                characterId: CharacterId,
+                                forceMove: true,
+                                arriveMessage: ' has connected.',
+                                suppressArrival: sessions.length > 1
+                            })
+                            //
+                            // TODO: Create a path to checking character assets are cached as part of first registry
+                            // of a character as being in-play
+                            //
 
-                                // messageBus.send({
-                                //     type: 'CacheCharacterAssets',
-                                //     characterId: CharacterId
-                                // })
-                                messageBus.send({
-                                    type: 'EphemeraUpdate',
-                                    updates: [{
-                                        type: 'CharacterInPlay',
-                                        CharacterId,
-                                        Connected: true,
-                                        connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
-                                    }]
-                                })
-                            }        
+                            // messageBus.send({
+                            //     type: 'CacheCharacterAssets',
+                            //     characterId: CharacterId
+                            // })
+                            messageBus.send({
+                                type: 'EphemeraUpdate',
+                                updates: [{
+                                    type: 'CharacterInPlay',
+                                    CharacterId,
+                                    Connected: true,
+                                    connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
+                                }]
+                            })
                         }
                     }}
                 ])
