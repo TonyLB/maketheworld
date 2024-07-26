@@ -147,6 +147,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     toolbar
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                     fieldName="description"
+                    checkPoints={isStandardRoom(component) ? ['describeRoom'] : undefined}
                 />
             </TitledBox>
         </EditSchema>

@@ -60,6 +60,7 @@ import ThemeEditor from './ThemeEditor'
 import { StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
@@ -366,6 +367,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])
+    useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true })
 
     const currentStatus = useSelector(getStatus(AssetId))
     const [assignDialogShown, setAssignDialogShown] = useState<boolean>(false)
