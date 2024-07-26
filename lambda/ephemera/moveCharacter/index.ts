@@ -29,6 +29,19 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             if (payload.roomId === characterMeta.RoomId) {
                 const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
                 if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: payload.characterId,
+                        ephemeraId: payload.roomId,
+                        header: true,
+                        messageGroupId
+                    })
+                    messageBus.send({
+                        type: 'MapUpdate',
+                        characterId: payload.characterId,
+                        previousRoomId: characterMeta.RoomId,
+                        roomId: payload.roomId
+                    })
                     return
                 }
             }
@@ -77,7 +90,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     Connected: true,
                                     RoomId: RoomKey(RoomId) || characterMeta.HomeId,
                                     connectionTargets: ['GLOBAL', `SESSION#${sessionId}`]
-                                }]        
+                                }]
                             })
                         }
                     }
@@ -136,13 +149,6 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         successCallback: ({ activeCharacters }) => {
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
-                            messageBus.send({
-                                type: 'Perception',
-                                characterId: payload.characterId,
-                                ephemeraId: payload.roomId,
-                                header: true,
-                                messageGroupId
-                            })
                 
                             if (!payload.suppressDeparture) {
                                 messageBus.send({
@@ -156,20 +162,27 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId)
                                 })
                             }
-                            messageBus.send({
-                                type: 'RoomUpdate',
-                                roomId: payload.roomId
-                            })
-                            messageBus.send({
-                                type: 'MapUpdate',
-                                characterId: payload.characterId,
-                                previousRoomId: characterMeta.RoomId,
-                                roomId: payload.roomId
-                            })
                         }
                     }
                 }
             ])
+            messageBus.send({
+                type: 'RoomUpdate',
+                roomId: payload.roomId
+            })
+            messageBus.send({
+                type: 'Perception',
+                characterId: payload.characterId,
+                ephemeraId: payload.roomId,
+                header: true,
+                messageGroupId
+            })
+            messageBus.send({
+                type: 'MapUpdate',
+                characterId: payload.characterId,
+                previousRoomId: characterMeta.RoomId,
+                roomId: payload.roomId
+            })
     
         }, { retryErrors: ['TransactionCanceledException']})
     }))
