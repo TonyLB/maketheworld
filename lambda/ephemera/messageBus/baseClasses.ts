@@ -228,7 +228,9 @@ export type MoveCharacterMessage = {
     type: 'MoveCharacter';
     characterId: EphemeraCharacterId;
     roomId: EphemeraRoomId;
+    suppressArrival?: boolean;
     arriveMessage?: string;
+    suppressDeparture?: boolean;
     leaveMessage?: string;
     suppressSelfMessage?: boolean;
 }
@@ -237,7 +239,9 @@ export type CheckLocationMessageInvariantPayload = {
     type: 'CheckLocation';
     forceMove?: boolean;
     forceRender?: boolean;
+    suppressArrival?: boolean;
     arriveMessage?: string;
+    suppressDeparture?: boolean;
     leaveMessage?: string;
 }
 
