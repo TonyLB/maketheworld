@@ -1255,6 +1255,8 @@ Resources:
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_connections'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
   DiagnosticsFunction:
       Type: AWS::Serverless::Function
       Properties:

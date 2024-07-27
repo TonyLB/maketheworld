@@ -108,7 +108,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         successCallback: ({ activeCharacters }: any, { activeCharacters: priorActiveCharacters }: any) => {
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
-                                if (!payload.suppressArrival) {
+                                if (!payload.suppressDeparture) {
                                     messageBus.send({
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
