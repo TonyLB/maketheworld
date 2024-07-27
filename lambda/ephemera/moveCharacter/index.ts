@@ -2,7 +2,7 @@ import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
-import { roomCharacterListReducer } from "../internalCache/baseClasses"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 
 export type RoomStackItem = {
     asset: string;
@@ -26,25 +26,25 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 internalCache.RoomAssets.get(payload.roomId),
                 internalCache.Global.get('assets')
             ])
-            if (payload.roomId === characterMeta.RoomId) {
-                const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
-                if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {
-                    messageBus.send({
-                        type: 'Perception',
-                        characterId: payload.characterId,
-                        ephemeraId: payload.roomId,
-                        header: true,
-                        messageGroupId
-                    })
-                    messageBus.send({
-                        type: 'MapUpdate',
-                        characterId: payload.characterId,
-                        previousRoomId: characterMeta.RoomId,
-                        roomId: payload.roomId
-                    })
-                    return
-                }
-            }
+            // if (payload.roomId === characterMeta.RoomId) {
+            //     const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
+            //     if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {
+            //         messageBus.send({
+            //             type: 'Perception',
+            //             characterId: payload.characterId,
+            //             ephemeraId: payload.roomId,
+            //             header: true,
+            //             messageGroupId
+            //         })
+            //         messageBus.send({
+            //             type: 'MapUpdate',
+            //             characterId: payload.characterId,
+            //             previousRoomId: characterMeta.RoomId,
+            //             roomId: payload.roomId
+            //         })
+            //         return
+            //     }
+            // }
             const orderIndexByAsset = Object.assign({}, ...([...canonAssets, ...characterMeta.assets || []].map((asset, index) => ({ [asset]: index })))) as Record<string, number>
             const { targetAsset, minIndex: targetAssetListIndex } = roomAssets.reduce<{ targetAsset?: string, minIndex?: number }>((previous, asset) => {
                 const assetIndex = orderIndexByAsset[asset.split('#')[1]]
@@ -108,7 +108,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         successCallback: ({ activeCharacters }: any, { activeCharacters: priorActiveCharacters }: any) => {
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
-                                if (!payload.suppressArrival) {
+                                if (!payload.suppressDeparture) {
                                     messageBus.send({
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
@@ -136,21 +136,22 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         updateKeys: ['activeCharacters'],
                         updateReducer: (draft) => {
-                            draft.activeCharacters = roomCharacterListReducer(
-                                draft.activeCharacters ?? [],
+                            const findMatch = (draft.activeCharacters || []).find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))
+                            draft.activeCharacters = [
+                                ...(draft.activeCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
                                 {
                                     EphemeraId: characterMeta.EphemeraId,
                                     Name: characterMeta.Name,
                                     fileURL: characterMeta.fileURL,
                                     Color: characterMeta.Color,
-                                    SessionIds: sessions || []
+                                    SessionIds: unique(findMatch?.sessions ?? [], sessions ?? [])
                                 }
-                            )
+                            ]
                         },
                         successCallback: ({ activeCharacters }) => {
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
                 
-                            if (!payload.suppressDeparture) {
+                            if (!payload.suppressArrival && (payload.roomId !== characterMeta.RoomId)) {
                                 messageBus.send({
                                     type: 'PublishMessage',
                                     targets: [payload.roomId, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],
