@@ -148,7 +148,8 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm, readonly } = useLibraryAsset()
+    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm, readonly, assetKey } = useLibraryAsset()
+    useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
 
     //
@@ -367,7 +368,6 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])
-    useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true })
 
     const currentStatus = useSelector(getStatus(AssetId))
     const [assignDialogShown, setAssignDialogShown] = useState<boolean>(false)
