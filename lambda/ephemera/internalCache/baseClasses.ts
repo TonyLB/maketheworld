@@ -52,12 +52,6 @@ export type RoomCharacterListItem = {
     Name: string;
 }
 
-export const roomCharacterListReducer = (previous: RoomCharacterListItem[], entry: RoomCharacterListItem): RoomCharacterListItem[] => ([
-    ...previous
-        .filter(({ EphemeraId }) => (EphemeraId !== entry.EphemeraId)),
-    entry
-])
-
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Bookmark' | 'Map'
 export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Bookmark', 'Map'].includes(tag))
 
