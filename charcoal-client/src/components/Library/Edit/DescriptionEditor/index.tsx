@@ -49,6 +49,7 @@ import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
+import { deepEqual } from '../../../../lib/objects'
 
 interface DescriptionEditorProps {
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
@@ -232,8 +233,10 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
     })
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender(data.children)((value || []).filter(isCustomBlock))
-        onChange(maybeGenericIDFromTree(newRender))
+        const newRender = maybeGenericIDFromTree(descendantsToRender(data.children)((value || []).filter(isCustomBlock)))
+        if (!deepEqual(newRender, data.children)) {
+            onChange(newRender)
+        }
     }, [onChange, value, data])
 
     useDebouncedOnChange({
