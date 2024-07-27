@@ -116,7 +116,7 @@ export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboar
 
     const updateTags = [
         ...tags,
-        ...((currentPage && currentPage.subItems.length && (nextIndex === currentPage.subItems.length - 1)) ? [currentPage.pageKey] : [])
+        ...((currentPage && currentPage.subItems.length && (nextIndex === currentPage.subItems.length - 1) && tags.includes(next)) ? [currentPage.pageKey] : [])
     ].filter((tag) => (!onboardCompleteTags.includes(tag)))
     
     if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
