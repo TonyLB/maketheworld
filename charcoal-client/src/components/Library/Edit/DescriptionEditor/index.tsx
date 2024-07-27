@@ -187,8 +187,6 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
                     dispatch(addOnboardingComplete(['summarizeRoom']))
                 }
                 if (isSchemaDescription(data.data)) {
-                    console.log(`data: ${JSON.stringify(data, null, 4)}`)
-                    console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
                     dispatch(addOnboardingComplete(['describeRoom']))
                 }
                 updateSchema({
