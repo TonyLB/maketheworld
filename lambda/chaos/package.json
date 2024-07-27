@@ -17,8 +17,8 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "uuid": "^10.0.0",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
-    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "uuid": "^10.0.0"
   }
 }
