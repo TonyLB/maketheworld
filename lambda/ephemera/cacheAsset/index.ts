@@ -1,6 +1,3 @@
-import {
-    isNormalRoom,
-} from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import {
     EphemeraCharacter,
@@ -36,15 +33,15 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { SchemaTag, isSchemaExit, isSchemaImage, isSchemaImport, isSchemaLink, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/schema/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/schema/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { SerializableStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardComponent, SerializableStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { serializedStandardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: SerializableStandardComponent): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
@@ -363,8 +360,8 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         // TODO: Optimize RoomHeader messages to only deliver to characters who have
         // the asset that is being cached
         //
-        Object.values(assetWorkspace.normal || {})
-            .filter(isNormalRoom)
+        Object.values(assetWorkspace.standard?.byId || {})
+            .filter((item): item is SerializableStandardRoom => (item.tag === 'Room'))
             .map(({ key }) => (assetWorkspace.universalKey(key)))
             .filter((value): value is string => (Boolean(value)))
             .filter(isEphemeraRoomId)

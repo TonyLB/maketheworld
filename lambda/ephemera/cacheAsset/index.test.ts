@@ -68,7 +68,7 @@ jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
 const evaluateCodeMock = evaluateCode as jest.Mock
 
 describe('cacheAsset', () => {
-    const messageBusMock = { send: jest.fn() } as unknown as MessageBus
+    const messageBusMock = { send: jest.fn() } as unknown as jest.Mocked<MessageBus>
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
@@ -84,6 +84,7 @@ describe('cacheAsset', () => {
             true
         ))
         GraphUpdateMock.mockClear()
+        messageBusMock.send.mockClear()
     })
 
     it('should skip processing when check option and already present', async () => {
@@ -231,6 +232,11 @@ describe('cacheAsset', () => {
             edges: [],
             options: { direction: 'back' }
         }])
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            ephemeraId: 'ROOM#DEF',
+            header: true
+        })
     })
 
     it('should correctly look up fileURLs for map', async () => {
