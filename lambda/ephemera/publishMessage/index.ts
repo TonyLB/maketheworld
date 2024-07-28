@@ -202,7 +202,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         // CharacterMessage, and pull it instead from the internalCache along with fileURL
         //
         if (isCharacterMessage(payload)) {
-            console.log(`pushing message: ${JSON.stringify(payload, null, 4)}`)
             const { fileURL } = await internalCache.CharacterMeta.get(payload.characterId)
             await pushToQueues({
                 Targets: payload.targets,
@@ -281,8 +280,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         }
     }))
 
-    console.log(`payloads: ${JSON.stringify(payloads, null, 4)}`)
-    console.log(`messagesByConnectionId: ${JSON.stringify(messagesByConnectionId, null, 4)}`)
     await Promise.all([
         ...dbPromises,
         ...(Object.entries(messagesByConnectionId)
