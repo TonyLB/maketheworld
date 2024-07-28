@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
 import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
-import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"

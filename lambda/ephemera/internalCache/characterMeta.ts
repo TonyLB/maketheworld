@@ -1,8 +1,8 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { NormalCharacterPronouns } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 import { RoomStackItem } from '../moveCharacter';
+import { SchemaPronouns } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
@@ -13,7 +13,7 @@ export type CharacterMetaItem = {
     fileURL?: string;
     HomeId: EphemeraRoomId;
     assets: string[];
-    Pronouns: NormalCharacterPronouns;
+    Pronouns: SchemaPronouns;
     player?: string;
 }
 

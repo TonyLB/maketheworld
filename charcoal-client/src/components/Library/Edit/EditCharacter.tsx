@@ -35,7 +35,6 @@ import {
     setLoadedImage,
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -43,7 +42,7 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaPronouns, SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
@@ -128,7 +127,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
             <MenuItem key='pronoun-custom' value='custom'>custom</MenuItem>
         ]
     ), [])
-    const onChangeFactory = (tag: keyof NormalCharacterPronouns) => (event: { target: { value: string }}) => {
+    const onChangeFactory = (tag: keyof SchemaPronouns) => (event: { target: { value: string }}) => {
         onChange({ ...pronouns, [tag]: event.target.value })
     }
     return <Box sx={{ paddingTop: '1em' }}>

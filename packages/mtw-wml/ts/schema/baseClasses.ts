@@ -45,7 +45,7 @@ export type SchemaImageTag = {
     fileURL?: string;
 } & SchemaImportableBase
 
-type SchemaPronouns = {
+export type SchemaPronouns = {
     subject: string;
     object: string;
     possessive: string;
