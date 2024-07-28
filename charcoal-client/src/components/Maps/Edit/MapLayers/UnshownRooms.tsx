@@ -10,7 +10,7 @@ import {
 import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
-import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
+import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { useDispatch } from "react-redux"
