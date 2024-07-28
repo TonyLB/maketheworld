@@ -6,7 +6,7 @@ import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBu
 import internalCache from "../internalCache"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/readOnly"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
-import { isNormalAsset, isNormalCharacter } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { SerializableStandardAsset, SerializableStandardCharacter } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 
 const { S3_BUCKET } = process.env;
 
@@ -58,8 +58,8 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         if (from.zone === 'Library') {
                             const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.Library.set({
-                                Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
-                                Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Assets: rootNodes.filter((value): value is SerializableStandardAsset => (value.tag === 'Asset')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: rootNodes.filter((value): value is SerializableStandardCharacter => (value.tag === 'Character')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
                             })
                         }
                         messageBus.send({ type: 'LibraryUpdate' })
@@ -68,8 +68,8 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         if (from.zone === 'Personal') {
                             const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.PlayerLibrary.set(from.player, {
-                                Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
-                                Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Assets: rootNodes.filter((value): value is SerializableStandardAsset => (value.tag === 'Asset')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: rootNodes.filter((value): value is SerializableStandardCharacter => (value.tag === 'Character')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
                             })
                             messageBus.send({
                                 type: 'PlayerInfo',

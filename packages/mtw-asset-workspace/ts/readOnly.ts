@@ -1,7 +1,7 @@
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
-import { SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardAsset, SerializableStandardCharacter, SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -253,10 +253,20 @@ export class ReadOnlyAssetWorkspace {
         this.status.json = 'Clean'
     }
 
-    get rootNodes(): (NormalAsset | NormalCharacter)[] {
-        return Object.values(this.normal || {})
-            .filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node)))
-            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
+    get rootNodes(): (SerializableStandardAsset | SerializableStandardCharacter)[] {
+        const { tag, key } = this.standard ?? {}
+        switch(tag) {
+            case 'Asset':
+                return key
+                    ? [{ tag, key }]
+                    : []
+            case 'Character':
+                const character = this.standard?.byId[key ?? '']
+                if (character && character.tag === 'Character') {
+                    return [character]
+                }
+        }
+        return []
     }
 
 }
