@@ -5,7 +5,6 @@ jest.mock('../serialize/dbRegister')
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 import copyWML from '.'
-import { NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
@@ -24,13 +23,9 @@ describe('copyWML', () => {
                 <Room key=(TestRoom)><Name>Test Name</Name></Room>
             </Asset>
         `))
-        const testJSON: { assetId: string; namespaceIdToDB: any[], normal: NormalForm; standard: SerializableStandardForm; properties: any } = {
+        const testJSON: { assetId: string; namespaceIdToDB: any[], standard: SerializableStandardForm; properties: any } = {
             assetId: "ASSET#draft[Test]",
             namespaceIdToDB: [{ internalKey: 'TestRoom', universalKey: 'ROOM#UUID' }],
-            normal: {
-                testCopy: { tag: 'Asset', key: 'draft[Test]', appearances: [] },
-                TestRoom: { tag: 'Room', key: 'TestRoom', appearances: [] }
-            },
             standard: {
                 key: 'testCopy',
                 tag: 'Asset',
@@ -79,8 +74,7 @@ describe('copyWML', () => {
         expect(jsonIndex).not.toEqual(-1)
         expect(JSON.parse(s3ClientMock.put.mock.calls[jsonIndex][0].Body)).toEqual({
             ...testJSON,
-            assetId: 'ASSET#testCopy',
-            normal: expect.any(Object)
+            assetId: 'ASSET#testCopy'
         })        
 
     })
