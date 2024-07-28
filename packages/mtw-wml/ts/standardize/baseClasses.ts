@@ -177,6 +177,10 @@ type SerializableStandardBase = {
     update?: boolean;
 }
 
+export type SerializableStandardAsset = {
+    tag: 'Asset';
+} & SerializableStandardBase
+
 export type SerializableStandardCharacter = {
     tag: 'Character';
     name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;

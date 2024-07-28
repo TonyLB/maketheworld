@@ -1,6 +1,6 @@
-import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/readOnly"
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
 
 //
 // TODO: Strongly type AssetId as EphemeraCharacterId | EphemeraAssetId
