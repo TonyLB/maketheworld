@@ -2,26 +2,10 @@
 
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
-  "Test": Object {
-    "Story": false,
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [],
-        "data": Object {
-          "Story": undefined,
-          "key": "Test",
-          "tag": "Asset",
-        },
-        "id": "Test",
-      },
-    ],
-    "fileName": undefined,
-    "instance": false,
-    "key": "Test",
-    "tag": "Asset",
-    "zone": undefined,
-  },
+  "byId": Object {},
+  "key": "Test",
+  "metaData": Array [],
+  "tag": "Asset",
 }
 `;
 
@@ -36,127 +20,107 @@ Array [
 
 exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
 Object {
-  "Test": Object {
-    "Story": false,
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "a123",
-              "tag": "Room",
-            },
-            "id": "UUID-2",
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "b456",
-              "tag": "Room",
-            },
-            "id": "UUID-5",
-          },
-        ],
-        "contextStack": Array [],
+  "byId": Object {
+    "a123": Object {
+      "description": Object {
+        "children": Array [],
         "data": Object {
-          "Story": undefined,
-          "key": "Test",
-          "tag": "Asset",
+          "tag": "Description",
         },
-        "id": "UUID-6",
       },
-    ],
-    "fileName": undefined,
-    "instance": false,
-    "key": "Test",
-    "tag": "Asset",
-    "zone": undefined,
-  },
-  "a123": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [
-              Object {
-                "children": Array [],
-                "data": Object {
-                  "tag": "String",
-                  "value": "welcome",
-                },
-                "id": "UUID-0",
+      "exits": Array [
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "welcome",
               },
-            ],
-            "data": Object {
-              "from": "a123",
-              "key": "a123#b456",
-              "tag": "Exit",
-              "to": "b456",
             },
-            "id": "UUID-1",
+          ],
+          "data": Object {
+            "from": "a123",
+            "key": "a123#b456",
+            "tag": "Exit",
+            "to": "b456",
           },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "a123",
-          "tag": "Room",
         },
-        "id": "UUID-2",
+      ],
+      "key": "a123",
+      "name": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Name",
+        },
       },
-    ],
-    "key": "a123",
-    "tag": "Room",
-  },
-  "b456": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [
-              Object {
-                "children": Array [],
-                "data": Object {
-                  "tag": "String",
-                  "value": "vortex",
-                },
-                "id": "UUID-3",
+      "shortName": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "ShortName",
+        },
+      },
+      "summary": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Summary",
+        },
+      },
+      "tag": "Room",
+      "themes": Array [],
+    },
+    "b456": Object {
+      "description": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Description",
+        },
+      },
+      "exits": Array [
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "vortex",
               },
-            ],
-            "data": Object {
-              "from": "b456",
-              "key": "b456#a123",
-              "tag": "Exit",
-              "to": "a123",
             },
-            "id": "UUID-4",
+          ],
+          "data": Object {
+            "from": "b456",
+            "key": "b456#a123",
+            "tag": "Exit",
+            "to": "a123",
           },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "b456",
-          "tag": "Room",
         },
-        "id": "UUID-5",
+      ],
+      "key": "b456",
+      "name": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Name",
+        },
       },
-    ],
-    "key": "b456",
-    "tag": "Room",
+      "shortName": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "ShortName",
+        },
+      },
+      "summary": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Summary",
+        },
+      },
+      "tag": "Room",
+      "themes": Array [],
+    },
   },
+  "key": "Test",
+  "metaData": Array [],
+  "tag": "Asset",
 }
 `;
 

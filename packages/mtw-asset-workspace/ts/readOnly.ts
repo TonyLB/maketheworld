@@ -1,12 +1,10 @@
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
-import { SerializableStandardAsset, SerializableStandardCharacter, SerializableStandardForm, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardAsset, SerializableStandardCharacter, SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import Normalizer from "@tonylb/mtw-wml/ts/normalize"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 
 const { S3_BUCKET = 'Test' } = process.env;
@@ -127,7 +125,6 @@ export class ReadOnlyAssetWorkspace {
         json: 'Initial',
         wml: 'Initial'
     };
-    normal?: NormalForm;
     standard?: SerializableStandardForm;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
@@ -222,7 +219,6 @@ export class ReadOnlyAssetWorkspace {
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
-                this.normal = {}
                 this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
                 this.namespaceIdToDB = []
                 this.properties = {}
@@ -234,7 +230,6 @@ export class ReadOnlyAssetWorkspace {
         
         const { assetId = '', namespaceIdToDB = [], standard = {}, properties = {} } = JSON.parse(contents)
         if (!assetId) {
-            this.normal = {}
             this.standard = { key: assetId.split('#').slice(1)[0] ?? '', tag: 'Asset', byId: {}, metaData: [] }
             this.namespaceIdToDB = []
             this.properties = {}
@@ -242,12 +237,9 @@ export class ReadOnlyAssetWorkspace {
             return
         }
 
-        const normalizer = new Normalizer()
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standard)
         this.standard = standardizer.stripped
-        normalizer.loadSchema(standardizer.schema)
-        this.normal = normalizer.normal
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'

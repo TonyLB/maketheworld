@@ -1,11 +1,9 @@
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
-import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { formatImage } from "./formatImage"
 import { s3Client, sfnClient, snsClient } from "./clients"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/ts/asset"
 import { extractDependenciesFromJS } from "./utilities/extractDependencies"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
@@ -32,7 +30,7 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         await assetWorkspace.loadJSON()
 
         assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
-        const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
+        const fileType = assetWorkspace.standard?.tag ?? 'Asset'
         const imageFiles = (await Promise.all([
             uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
             ...((images || []).map(async ({ key, fileName }) => {
@@ -54,9 +52,6 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
             standardizer.deserialize(assetWorkspace.standard)
             standardizer.assignDependencies(extractDependenciesFromJS)
             assetWorkspace.standard = standardizer.stripped
-            const normalizer = new Normalizer()
-            normalizer.loadSchema(standardizer.schema)
-            assetWorkspace.normal = normalizer.normal
             await Promise.all([
                 assetWorkspace.pushJSON(),
                 assetWorkspace.pushWML(),

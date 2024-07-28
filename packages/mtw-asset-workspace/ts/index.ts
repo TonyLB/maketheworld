@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
 import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 
@@ -8,7 +7,6 @@ import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
@@ -31,12 +29,21 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         if (!(this.standard && deepEqual(standardizer.stripped, this.standard))) {
             this.status.json = 'Dirty'
             this.standard = standardizer.stripped
-            const normalizer = new Normalizer()
-            normalizer.loadSchema(standardizer.schema)
-            this.normal = normalizer.normal
         }
 
         if (this._workspaceFromKey) {
+            const exportMapping = standardizer.metaData
+                .filter(treeNodeTypeguard(isSchemaExport))
+                .reduce((previous, { children }) => {
+                    return Object.assign(previous,
+                        ...children
+                            .filter(treeNodeTypeguard(isImportable))
+                            .map(({ data }) => (data))
+                            .map(({ key, as }) => {
+                                as ? { [key]: as } : {}
+                            })
+                    )
+                }, {})
             await Promise.all(standardizer.metaData
                 .filter(treeNodeTypeguard(isSchemaImport))
                 .map(async (node) => {
@@ -50,7 +57,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                             .map(({ data }) => (data))
                             .filter(isImportable)
                             .forEach(({ key, from }) => {
-                                const exportAs = (this.normal ?? {})[key]?.exportAs
+                                const exportAs = exportMapping[key]
                                 if (importNamespaceIdToDB[from ?? key]) {
                                     this.namespaceIdToDB = [
                                         ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== key)),
@@ -77,13 +84,11 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 ]
             })
 
-        const asset = Object.values(this.normal || {}).find(isNormalAsset)
-        if (asset && asset.key) {
-            this.assetId = `ASSET#${asset.key}`
+        if (this.standard?.tag === 'Asset') {
+            this.assetId = `ASSET#${this.standard?.key}`
         }
-        const character = Object.values(this.normal || {}).find(isNormalCharacter)
-        if (character && character.key) {
-            this.assetId = this.universalKey(character.key) as `CHARACTER#${string}`
+        if (this.standard?.tag === 'Character') {
+            this.assetId = this.universalKey(this.standard?.key) as `CHARACTER#${string}`
         }
 
         //
@@ -135,9 +140,8 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
             namespaceIdToDB: this.namespaceIdToDB,
-            normal: this.normal || {},
             standard: this.standard || { key: this.assetId?.split('#')?.slice(1)?.[0] || '', tag: 'Asset', byId: {}, metaData: [] },
-            properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
+            properties: objectFilterEntries(this.properties, ([key]) => ((key in (this.standard?.byId || {})) || (key === this.standard?.key)))
         })
         await s3Client.put({
             Key: filePath,
