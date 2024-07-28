@@ -30,7 +30,17 @@ describe("registerCharacter", () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.Global.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('TestSession').mockResolvedValueOnce('Request123')
+        internalCacheMock.Global.get
+            .mockImplementation(async (arg) => {
+                switch(arg) {
+                    case 'SessionId':
+                        return 'TestSession'
+                    case 'RequestId':
+                        return 'Request123'
+                    default:
+                        return ''
+                }
+            })
         internalCacheMock.SessionConnections.get.mockResolvedValue(['TestConnection'])
     })
 
@@ -76,7 +86,8 @@ describe("registerCharacter", () => {
             type: 'CheckLocation',
             characterId: 'CHARACTER#ABC',
             forceMove: true,
-            arriveMessage: ' has connected.'
+            arriveMessage: ' has connected.',
+            suppressArrival: false
         })
         // expect(messageBusMock.send).toHaveBeenCalledWith({
         //     type: 'CacheCharacterAssets',
@@ -107,7 +118,7 @@ describe("registerCharacter", () => {
         })
         connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection'], sessions: ['previous', 'TestSession'] }))
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
-        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
+        expect(messageBusMock.send).toHaveBeenCalledTimes(3)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
@@ -115,6 +126,22 @@ describe("registerCharacter", () => {
                 CharacterId: 'CHARACTER#ABC',
                 RequestId: 'Request123'
             }
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'CheckLocation',
+            characterId: 'CHARACTER#ABC',
+            forceMove: true,
+            arriveMessage: ' has connected.',
+            suppressArrival: true
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'CHARACTER#ABC',
+                Connected: true,
+                connectionTargets: ['GLOBAL', 'SESSION#TestSession']
+            }]
         })
         expect(internalCacheMock.CharacterSessions.set).toHaveBeenCalledWith('CHARACTER#ABC', ['previous', 'TestSession'])
     })
