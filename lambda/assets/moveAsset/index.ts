@@ -107,19 +107,22 @@ export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads:
         payloads.map(async ({ toZone, player, AssetId }) => {
             const assetWorkspace: ReadOnlyAssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
             if (assetWorkspace) {
-                const fileName = assetWorkspace.fileName
+                const { address, fileName } = assetWorkspace
+                if (address.zone === 'Draft') {
+                    return
+                }
                 if (fileName) {
                     messageBus.send({
                         type: 'MoveAsset',
-                        from: assetWorkspace.address,
+                        from: address,
                         to: (toZone === 'Personal') ? {
-                            fileName: assetWorkspace.address.fileName,
-                            subFolder: assetWorkspace.address.subFolder,
+                            fileName: address.fileName,
+                            subFolder: address.subFolder,
                             zone: toZone,
                             player: player || ''
                         } : {
-                            fileName: assetWorkspace.address.fileName,
-                            subFolder: assetWorkspace.address.subFolder,
+                            fileName: address.fileName,
+                            subFolder: address.subFolder,
                             zone: toZone
                         }
                     })

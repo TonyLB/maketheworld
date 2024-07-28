@@ -3,7 +3,6 @@ import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"
 import CachePlayerLibrary from './playerLibrary'
-import JSONFile from './jsonFile'
 import Meta from './meta'
 import CachePlayerSettings from './playerSettings'
 import CacheGraph from './graph'
@@ -103,6 +102,6 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = JSONFile(Meta(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CachePlayerSessions(CacheSessionConnections(CacheConnection(CacheGraph(CacheBase)))))))))
+const InternalCache = Meta(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CachePlayerSessions(CacheSessionConnections(CacheConnection(CacheGraph(CacheBase))))))))
 export const internalCache = new InternalCache()
 export default internalCache
