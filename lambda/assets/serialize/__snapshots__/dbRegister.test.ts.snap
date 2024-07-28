@@ -21,40 +21,10 @@ exports[`dbRegister should save meta for Asset type 1`] = `
 Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
-  "Story": undefined,
   "address": Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta for Story type 1`] = `
-Object {
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": true,
-  "address": Object {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta for instanced Story type 1`] = `
-Object {
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": true,
-  "address": Object {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": true,
   "zone": "Library",
 }
 `;
