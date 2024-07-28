@@ -6,7 +6,7 @@ import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inhe
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
 import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
-import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
+import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'

@@ -20,7 +20,7 @@ import {
 } from 'slate'
 import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
-import { selectById } from '@tonylb/mtw-wml/dist/normalize/selectors/byId'
+import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
 import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
 

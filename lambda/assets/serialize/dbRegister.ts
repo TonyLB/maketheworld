@@ -9,7 +9,7 @@ import { graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 import Normalizer from '@tonylb/mtw-wml/ts/normalize'
-import { selectNameAsString } from '@tonylb/mtw-wml/ts/normalize/selectors/name'
+import { selectNameAsString } from '@tonylb/mtw-wml/ts/schema/selectors/name'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
