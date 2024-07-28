@@ -1,4 +1,3 @@
-import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { fetchImports } from '.'
 
 jest.mock('../clients')

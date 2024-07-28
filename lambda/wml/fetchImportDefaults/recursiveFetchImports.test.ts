@@ -1,7 +1,6 @@
 import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
 
 import { FetchImportsJSONHelper } from './baseClasses'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
