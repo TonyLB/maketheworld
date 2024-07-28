@@ -1,35 +1,34 @@
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { isNormalAsset, NormalForm, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
-import Normalizer from '@tonylb/mtw-wml/ts/normalize'
-import { selectNameAsString } from '@tonylb/mtw-wml/ts/schema/selectors/name'
+import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
-    const assets: NormalForm = assetWorkspace.normal || {}
-    const asset = Object.values(assets).find(isNormalAsset)
-    if (asset && asset.key) {
+    const standardForm = assetWorkspace.standard
+    if (!standardForm) {
+        return
+    }
+    if (standardForm.tag === 'Asset') {
+        const { key } = standardForm
         const updatedLibraryAssets = {
-            [AssetKey(asset.key)]: {
-                AssetId: AssetKey(asset.key),
-                scopedId: asset.key,
-                Story: asset.Story,
-                instance: asset.instance,
+            [AssetKey(key)]: {
+                AssetId: AssetKey(key),
+                scopedId: key
             }
         }
         const updatedPlayerAssets = {
-            [asset.key]: {
-                AssetId: asset.key,
-                scopedId: asset.key,
-                Story: asset.Story,
-                instance: asset.instance,
+            [key]: {
+                AssetId: key,
+                scopedId: key
             }
         }
         const updateLibraryPromise = address.zone === 'Personal'
@@ -45,37 +44,36 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
                 : Promise.resolve({})
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
         graphUpdate.setEdges([{
-            itemId: AssetKey(asset.key),
-            edges: Object.values(assets)
-                .filter(isNormalImport)
-                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            itemId: AssetKey(key),
+            edges: standardForm.metaData
+                .filter(treeNodeTypeguard(isSchemaImport))
+                .map(({ data }) => ({ target: AssetKey(data.from), context: '' })),
             options: { direction: 'back' }
         }])
         await Promise.all([
             graphUpdate.flush(),
             assetDB.putItem({
-                AssetId: AssetKey(asset.key),
+                AssetId: AssetKey(key),
                 DataCategory: `Meta::Asset`,
                 address,
-                Story: asset.Story,
-                instance: asset.instance,
                 zone: address.zone,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),
             updateLibraryPromise
         ])
     }
-    const character = Object.values(assets).find(isNormalCharacter)
-    if (character && character.key) {
-        const normalizer = new Normalizer()
-        normalizer.loadNormal(assets)
-        const Name = normalizer.select({ key: character.key, selector: selectNameAsString })
+    if (standardForm.tag === 'Character') {
+        const character = standardForm.byId[standardForm.key]
+        if (!(character && character.tag === 'Character')) {
+            return
+        }
+        const Name = schemaOutputToString(character.name.children)
         const universalKey = assetWorkspace.universalKey(character.key) as EphemeraCharacterId
         if (!universalKey) {
             return
         }
-        const images = (character.images || [])
-            .map((image) => (assetWorkspace.properties[image]?.fileName))
+        const images = [character.image]
+            .map((image) => (assetWorkspace.properties[image.data.key]?.fileName))
             .filter((image) => (image))
         const updatedCharacters = {
             [universalKey]: {
@@ -100,9 +98,9 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
         graphUpdate.setEdges([{
             itemId: CharacterKey(character.key),
-            edges: Object.values(assets)
-                .filter(isNormalImport)
-                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            edges: standardForm.metaData
+                .filter(treeNodeTypeguard(isSchemaImport))
+                .map(({ data }) => ({ target: AssetKey(data.from), context: '' })),
             options: { direction: 'back' }
         }])
         await Promise.all([

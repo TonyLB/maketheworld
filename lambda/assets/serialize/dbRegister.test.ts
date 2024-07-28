@@ -42,47 +42,29 @@ describe('dbRegister', () => {
             properties: {
                 TESSIcon: { fileName: 'IMAGE-123' }
             },
-            normal: {
-                TESS: {
-                    tag: 'Character',
-                    key: 'TESS',
-                    fileURL: 'testIcon.png',
-                    images: ['TESSIcon'],
-                    appearances: [{
-                        contextStack: [],
-                        data: { tag: 'Character', key: 'TESS' },
-                        children: [
-                            { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-                            {
-                                data: {
-                                    tag: 'Pronouns',
-                                    subject: 'she',
-                                    object: 'her',
-                                    possessive: 'her',
-                                    adjective: 'hers',
-                                    reflexive: 'herself'
-                                },
-                                children: []
+            standard: {
+                tag: 'Character',
+                key: 'TESS',
+                byId: {
+                    TESS: {
+                        tag: 'Character',
+                        key: 'TESS',
+                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+                        pronouns: {
+                            data: {
+                                tag: 'Pronouns',
+                                subject: 'she',
+                                object: 'her',
+                                possessive: 'her',
+                                adjective: 'hers',
+                                reflexive: 'herself'
                             },
-                            { data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }
-                        ]
-                    }]
+                            children: []
+                        },
+                        image: { data: { tag: 'Image', key: 'TESSIcon' }, children: [] }
+                    }
                 },
-                TESSIcon: {
-                    tag: 'Image',
-                    key: 'TESSIcon',
-                    appearances: []
-                },
-                'Import-0': {
-                    tag: 'Import',
-                    key: 'Import-0',
-                    appearances: [{
-                        contextStack: [{ key: 'TESS', tag: 'Character', index: 0 }],
-                        data: { tag: 'Import', key: 'Import-0', from: 'primitives' },
-                        children: []
-                    }],
-                    from: 'primitives',
-                }
+                metaData: [{ data: { tag: 'Import', from: 'primitives' }, children: [] }]
             }
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
@@ -107,226 +89,46 @@ describe('dbRegister', () => {
                 { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
             ],
             universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
-            normal: {
-                TEST: {
-                    tag: 'Asset',
-                    key: 'TEST',
-                    name: 'Test',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Map',
-                            key: 'Village',
-                            index: 0
-                        },
-                        {
-                            tag: 'Room',
-                            key: 'Welcome',
-                            index: 0
-                        },
-                        {
-                            tag: 'Feature',
-                            key: 'clockTower',
-                            index: 0
-                        },
-                        {
-                            tag: 'Variable',
-                            key: 'power',
-                            index: 0
-                        },
-                        {
-                            tag: 'Action',
-                            key: 'togglePower',
-                            index: 0
-                        }]
-                    }]
-                },
-                Village: {
-                    tag: 'Map',
-                    key: 'Village',
-                    appearances: [{
-                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
+            standard: {
+                tag: 'Asset',
+                key: 'TEST',
+                byId: {
+                    Village: {
+                        tag: 'Map',
+                        key: 'Village',
+                        name: { data: { tag: 'Name' }, children: [] },
                         rooms: [
-                            { key: 'Welcome', x: 0, y: 100 }
+                            { data: { tag: 'Room', key: 'Welcome' }, children: [{ data: { tag: 'Position', x: 0, y: 100 }, children: [] }]}
                         ]
-                    }]
+                    },
+                    Welcome: {
+                        tag: 'Room',
+                        key: 'Welcome',
+                        name: { data: { tag: 'Name' }, children: [{ tag: 'String', value: 'Welcome' }] },
+                        shortName: { data: { tag: 'ShortName' }, children: [] },
+                        summary: { data: { tag: 'Summary' }, children: [] },
+                        description: { data: { tag: 'Description' }, children:[] },
+                        exits: [],
+                        themes: []
+                    },
+                    clockTower: {
+                        tag: 'Feature',
+                        key: 'clockTower',
+                        name: { data: { tag: 'Name' }, children: [] },
+                        description: { data: { tag: 'Description' }, children:[] }
+                    },
+                    power: {
+                        tag: 'Variable',
+                        key: 'power',
+                        default: 'true'
+                    },
+                    togglePower: {
+                        tag: 'Action',
+                        key: 'togglePower',
+                        src: 'power = !power'
+                    }
                 },
-                Welcome: {
-                    tag: 'Room',
-                    key: 'Welcome',
-                    appearances: [{
-                        name: [{ tag: 'String', value: 'Welcome' }],
-                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
-                    }]
-                },
-                clockTower: {
-                    tag: 'Feature',
-                    key: 'clockTower',
-                    appearances: [{
-                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
-                    }]
-                },
-                power: {
-                    tag: 'Variable',
-                    key: 'power',
-                    default: true,
-                    appearances: [{
-                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
-                    }]
-                },
-                togglePower: {
-                    tag: 'Action',
-                    key: 'togglePower',
-                    src: 'power = !power',
-                    appearances: [{
-                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
-                    }]
-                }
-            }
-        } as any)
-        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-    })
-
-    it('should save meta for Story type', async () => {
-        await dbRegister({
-            address: {
-                fileName: 'test',
-                zone: 'Library'
-            },
-            status: {
-                json: 'Clean'
-            },
-            namespaceIdToDB: [
-                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
-            ],
-            universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
-            normal: {
-                TEST: {
-                    tag: 'Asset',
-                    Story: true,
-                    key: 'TEST',
-                    name: 'Test',
-                    zone: 'Library',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Room',
-                            key: 'Welcome',
-                            index: 0
-                        },
-                        {
-                            tag: 'Variable',
-                            key: 'power',
-                            index: 0
-                        },
-                        {
-                            tag: 'Action',
-                            key: 'togglePower',
-                            index: 0
-                        }]
-                    }]
-                },
-                Welcome: {
-                    tag: 'Room',
-                    key: 'Welcome',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                power: {
-                    tag: 'Variable',
-                    key: 'power',
-                    default: true,
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                togglePower: {
-                    tag: 'Action',
-                    key: 'togglePower',
-                    src: 'power = !power',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                }
-            }
-        } as any)
-        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-    })
-
-    it('should save meta for instanced Story type', async () => {
-        await dbRegister({
-            address: {
-                fileName: 'test',
-                zone: 'Library'
-            },
-            status: {
-                json: 'Clean'
-            },
-            namespaceIdToDB: [
-                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
-            ],
-            universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
-            normal: {
-                TEST: {
-                    tag: 'Asset',
-                    Story: true,
-                    instance: true,
-                    key: 'TEST',
-                    name: 'Test',
-                    zone: 'Library',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Room',
-                            key: 'Welcome',
-                            index: 0
-                        },
-                        {
-                            tag: 'Variable',
-                            key: 'power',
-                            index: 0
-                        },
-                        {
-                            tag: 'Action',
-                            key: 'togglePower',
-                            index: 0
-                        }]
-                    }]
-                },
-                Welcome: {
-                    tag: 'Room',
-                    key: 'Welcome',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                power: {
-                    tag: 'Variable',
-                    key: 'power',
-                    default: true,
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                },
-                togglePower: {
-                    tag: 'Action',
-                    key: 'togglePower',
-                    src: 'power = !power',
-                    appearances: [{
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
-                        contents: [],
-                    }]
-                }
+                metaData: []
             }
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
@@ -343,59 +145,22 @@ describe('dbRegister', () => {
             },
             namespaceIdToDB: [],
             universalKey: jest.fn().mockReturnValue(undefined),
-            normal: {
-                test: {
-                    tag: 'Asset',
-                    key: 'test',
-                    name: 'test',
-                    zone: 'Library',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            tag: 'Import',
-                            key: 'Import-0',
-                            index: 0
-                        },
-                        {
-                            tag: 'Room',
-                            key: 'VORTEX',
-                            index: 1
-                        }]
-                    }]
+            standard: {
+                tag: 'Asset',
+                key: 'test',
+                byId: {
+                    VORTEX: {
+                        tag: 'Room',
+                        key: 'VORTEX',
+                        name: { data: { tag: 'Name' }, children: [] },
+                        shortName: { data: { tag: 'ShortName' }, children: [] },
+                        summary: { data: { tag: 'Summary' }, children: [] },
+                        description: { data: { tag: 'Description' }, children:[] },
+                        exits: [],
+                        themes: []
+                    }
                 },
-                'Import-0': {
-                    tag: 'Import',
-                    key: 'Import-0',
-                    appearances: [{
-                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-                        contents: [{
-                            key: 'VORTEX',
-                            tag: 'Room',
-                            index: 0
-                        }]
-                    }],
-                    from: 'primitives',
-                    mapping: { VORTEX: { key: 'VORTEX', type: 'Room' } }
-                },
-                VORTEX: {
-                    tag: 'Room',
-                    key: 'VORTEX',
-                    appearances: [{
-                        contextStack: [
-                            { key: 'test', tag: 'Asset', index: 0 },
-                            { key: 'Import-0', tag: 'Import', index: 0 }
-                        ],
-                        contents: [],
-                        render: [],
-                        name: []
-                    },
-                    {
-                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-                        contents: [],
-                        render: [],
-                        name: []
-                    }]
-                }
+                metaData: [{ data: { tag: 'Import', from: 'primitives' }, children: [{ data: { tag: 'Room', key: 'VORTEX' }, children: [] }]}]
             }
         } as any)
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
