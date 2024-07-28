@@ -1,10 +1,12 @@
-import Normalizer from "../../normalize"
+import { Schema } from ".."
 import { selectDependencies } from './dependencies'
+import { selectItemsByKey } from './itemsByKey'
+import { Standardizer } from '../../standardize'
 
 describe('dependencies selector', () => {
     it('should select dependencies from a room', () => {
-        const testOne = new Normalizer()
-        testOne.loadWML(`
+        const testSchema = new Schema()
+        testSchema.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1)>
                     <Name>Test room</Name>
@@ -22,12 +24,7 @@ describe('dependencies selector', () => {
                 <Variable key=(power) default={true} />
             </Asset>
         `)
-        // const setDependencies = (key: string, dependencies: string[]): void => {
-        //     const findConditionDependencies = testOne._normalForm[key]?.appearances?.[0].data
-        //     if (findConditionDependencies && isSchemaCondition(findConditionDependencies)) {
-        //         findConditionDependencies.conditions[0].dependencies = dependencies
-        //     }    
-        // }
+        const testOne = new Standardizer(testSchema.schema)
         testOne.assignDependencies((src: string) => {
             switch(src) {
                 case '!lights': return ['lights']
@@ -36,7 +33,7 @@ describe('dependencies selector', () => {
                 default: return []
             }
         })
-        expect(testOne.select({ key: 'room1', selector: selectDependencies })).toEqual(['lights', 'power'])
+        expect(selectDependencies(selectItemsByKey('room1')(testOne.schema))).toEqual(['lights', 'power'])
     })
 
 })

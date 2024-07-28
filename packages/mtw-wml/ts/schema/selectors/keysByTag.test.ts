@@ -1,9 +1,9 @@
-import Normalizer from "../../normalize"
+import { Schema } from '..'
 import { selectKeysByTag } from './keysByTag'
 
 describe('keysByTag selector', () => {
     it('should select keys by tag even nested deeply', () => {
-        const testOne = new Normalizer()
+        const testOne = new Schema()
         testOne.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1)>

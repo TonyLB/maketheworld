@@ -1,9 +1,10 @@
-import Normalizer from "../../normalize"
+import { Schema } from '..'
 import { selectKeysReferenced } from './keysReferenced'
+import { selectItemsByKey } from './itemsByKey'
 
 describe('keyReferenced selector', () => {
     it('should select keys referenced from a room', () => {
-        const testOne = new Normalizer()
+        const testOne = new Schema()
         testOne.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1)>
@@ -20,11 +21,11 @@ describe('keyReferenced selector', () => {
                 <Bookmark key=(bookmark1) />
             </Asset>
         `)
-        expect(testOne.select({ key: 'room1', selector: selectKeysReferenced })).toEqual(['feature1', 'bookmark1', 'room2', 'room1'])
+        expect(selectKeysReferenced(selectItemsByKey('room1')(testOne.schema))).toEqual(['feature1', 'bookmark1', 'room2', 'room1'])
     })
 
     it('should select keys referenced in a map', () => {
-        const testOne = new Normalizer()
+        const testOne = new Schema()
         testOne.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1) />
@@ -35,7 +36,7 @@ describe('keyReferenced selector', () => {
                 </Map>
             </Asset>
         `)
-        expect(testOne.select({ key: 'map1', selector: selectKeysReferenced })).toEqual(['room1', 'room2'])
+        expect(selectKeysReferenced(selectItemsByKey('map1')(testOne.schema))).toEqual(['room1', 'room2'])
     })
 
 })

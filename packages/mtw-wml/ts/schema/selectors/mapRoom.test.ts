@@ -1,12 +1,11 @@
-import Normalizer from "../../normalize"
-import { schemaToWML } from ".."
+import { Schema, schemaToWML } from ".."
 import { deIndentWML } from "../utils"
 import { selectMapRooms } from './mapRooms'
 
 describe('render selector', () => {
     it('should select a rooms from a map', () => {
-        const testOne = new Normalizer()
-        testOne.loadWML(`
+        const testSchema = new Schema()
+        testSchema.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1)>
                     <Name>Test room</Name>
@@ -26,7 +25,7 @@ describe('render selector', () => {
                 </If>
             </Asset>
         `)
-        expect(schemaToWML(testOne.select({ key: 'testMap', selector: selectMapRooms }))).toEqual(deIndentWML(`
+        expect(schemaToWML(selectMapRooms(testSchema.schema, { tag: 'Map', key: 'testMap' }))).toEqual(deIndentWML(`
             <Room key=(room1)><Position x="0" y="0" /></Room>
             <If {true}><Room key=(room2)><Position x="100" y="0" /></Room></If>
         `))

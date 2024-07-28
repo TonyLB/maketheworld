@@ -1,12 +1,12 @@
-import Normalizer from "../../normalize"
-import { schemaToWML } from ".."
+import { Standardizer } from '../../standardize'
+import { schemaToWML, Schema } from ".."
 import { deIndentWML } from "../utils"
 import { selectRender } from './render'
 
 describe('render selector', () => {
     it('should select a single key from a normalForm', () => {
-        const testOne = new Normalizer()
-        testOne.loadWML(`
+        const testSchema = new Schema()
+        testSchema.loadWML(`
             <Asset key=(testOne)>
                 <Room key=(room1)>
                     <Name>Test room</Name>
@@ -26,15 +26,16 @@ describe('render selector', () => {
                 <Variable key=(testVar) default={false} />
             </Asset>
         `)
-        expect(schemaToWML(testOne.select({ key: 'room1', selector: selectRender }))).toEqual(deIndentWML(`
+        const testOne = new Standardizer(testSchema.schema)
+        expect(schemaToWML(selectRender(testOne.schema, { tag: 'Room', key: 'room1' }))).toEqual(deIndentWML(`
             TestZero
             <If {true}>: Addendum</If>
         `))
     })
 
     it(`should correctly ignore wrappers that don't impact render`, () => {
-        const testOne = new Normalizer()
-        testOne.loadWML(`
+        const testSchema = new Schema()
+        testSchema.loadWML(`
             <Asset key=(testAsset)>
                 <Room key=(test)>
                     <Description>
@@ -57,7 +58,8 @@ describe('render selector', () => {
                 </Room>
             </Asset>
         `)
-        expect(schemaToWML(testOne.select({ key: 'test', selector: selectRender }))).toEqual(deIndentWML(`
+        const testOne = new Standardizer(testSchema.schema)
+        expect(schemaToWML(selectRender(testOne.schema, { tag: 'Room', key: 'test' }))).toEqual(deIndentWML(`
             One
             <br />
             Two
@@ -65,15 +67,16 @@ describe('render selector', () => {
     })
 
     it(`should correctly extract render from nested bookmarks`, () => {
-        const testOne = new Normalizer()
-        testOne.loadWML(`
+        const testSchema = new Schema()
+        testSchema.loadWML(`
             <Asset key=(testAsset)>
                 <Bookmark key=(testOne)>
                     Test<Bookmark key=(testTwo)>Red herring</Bookmark>
                 </Bookmark>
             </Asset>
         `)
-        expect(schemaToWML(testOne.select({ key: 'testOne', selector: selectRender }))).toEqual(deIndentWML(`
+        const testOne = new Standardizer(testSchema.schema)
+        expect(schemaToWML(selectRender(testOne.schema, { tag: 'Bookmark', key: 'testOne' }))).toEqual(deIndentWML(`
             Test
             <Bookmark key=(testTwo) />
         `))
