@@ -263,6 +263,7 @@ export type SerializableStandardAction = {
 
 export type SerializableStandardImage = {
     tag: 'Image';
+    fileURL?: string;
 } & SerializableStandardBase
 
 export type SerializableStandardComponent =
@@ -286,4 +287,13 @@ export type SerializableStandardForm = {
     byId: Record<string, SerializableStandardComponent>;
     metaData: GenericTree<SchemaTag>;
 }
-    
+
+export type SerializeNDJSONMixin = {
+    from?: {
+        assetId: `ASSET#${string}`;
+        key: string;
+    };
+    exportAs?: string;
+}
+
+export type StandardNDJSON = (SerializableStandardAsset | (SerializableStandardComponent & SerializeNDJSONMixin))[]
