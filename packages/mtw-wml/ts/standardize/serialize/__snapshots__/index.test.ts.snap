@@ -1,0 +1,185 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`standard form serialize should serialize all component types 1`] = `
+Array [
+  Object {
+    "key": "test",
+    "tag": "Asset",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex Desc",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "exits": Array [],
+    "key": "testRoom",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "shortName": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "ShortName",
+      },
+    },
+    "summary": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Summary",
+      },
+    },
+    "tag": "Room",
+    "themes": Array [],
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "A tower built of white sandstone blocks, with an ornate clock set on the northern face.",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "key": "testFeature",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Clocktower",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "tag": "Feature",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "There is so much to know!",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "key": "testKnowledge",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Learn",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "tag": "Knowledge",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "The door opens!",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "key": "openDoor",
+    "rooms": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "testRoom",
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+      },
+    ],
+    "tag": "Message",
+  },
+  Object {
+    "key": "openDoorMoment",
+    "messages": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "openDoor",
+          "tag": "Message",
+        },
+      },
+    ],
+    "tag": "Moment",
+  },
+  Object {
+    "default": "false",
+    "key": "open",
+    "tag": "Variable",
+  },
+  Object {
+    "key": "closed",
+    "src": "!open",
+    "tag": "Computed",
+  },
+  Object {
+    "key": "toggleOpen",
+    "src": "open = !open",
+    "tag": "Action",
+  },
+]
+`;
