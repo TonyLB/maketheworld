@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable } from "../schema/baseClasses"
 import { markInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -267,7 +267,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
     }
 }
 
-const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>): StandardComponent | undefined => {
+const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>, imported: boolean): StandardComponent | undefined => {
     if (isSchemaRoom(data)) {
         const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
@@ -279,7 +279,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaRoom(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Room' }, { match: 'Theme' }] } })
         return {
             tag: 'Room',
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             shortName: outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaOutputTag, { tag: 'ShortName' }),
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
@@ -294,7 +294,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
         return {
             tag: data.tag,
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
@@ -303,7 +303,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     if (isSchemaBookmark(data)) {
         return {
             tag: data.tag,
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' })
         }
@@ -312,7 +312,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const roomsTagTree = new SchemaTagTree(children).filter({ match: 'Room' })
         return {
             tag: data.tag,
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' }),
             rooms: maybeGenericIDFromTree(roomsTagTree.tree)
@@ -322,7 +322,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const messagesTagTree = new SchemaTagTree(children).filter({ match: 'Message' })
         return {
             tag: data.tag,
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             messages: maybeGenericIDFromTree(messagesTagTree.tree)
         }
@@ -340,7 +340,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const themeTagTree = new SchemaTagTree(fullSchema).filter({ and: [{ match: 'Theme' }, { match: ({ data: check }) => (isSchemaMap(check) && check.key === data.key)}] }).prune({ not: { or: [{ match: 'Map' }, { match: 'Theme' }] } })
         return {
             tag: 'Map',
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             images: defaultSelected(maybeGenericIDFromTree(imagesTagTree.tree)),
@@ -355,7 +355,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         const mapsTagTree = new SchemaTagTree(children).filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
         return {
             tag: 'Theme',
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
             prompts: maybeGenericIDFromTree(promptTagTree.tree).filter(treeNodeTypeguard(isSchemaPrompt)),
@@ -366,7 +366,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     if (isSchemaVariable(data)) {
         return {
             tag: 'Variable',
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             default: data.default ?? ''
         }
@@ -374,7 +374,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
     if (isSchemaComputed(data) || isSchemaAction(data)) {
         return {
             tag: data.tag,
-            key: data.key,
+            key: imported ? data.as ?? data.key : data.key,
             id,
             src: data.src ?? ''
         }
@@ -655,22 +655,27 @@ export class StandardizerAbstract {
                 ]})
             const importItems = importTagTree.tree.filter(({ children }) => (children.length))
         
-            this.metaData = [...this.metaData, ...importItems.filter((node): node is GenericTreeNodeFiltered<SchemaImportTag, SchemaTag, TreeId> => (isSchemaImport(node.data)))]
+            this.metaData = [...this.metaData, ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag, TreeId>]
         
-            const keysByComponentType = (tag: SchemaWithKey["tag"]) => (
-                unique(tagTree
-                    .filter({ match: tag })
-                    .prune({ after: { match: tag } })
-                    .prune({ before: { match: tag } })
-                    .tree
-                    .map(({ data }) => {
-                        if (data.tag !== tag) {
-                            throw new Error('standardizeSchema tag mismatch')
-                        }
-                        return data.key
-                    })
-                ).sort()
-            )
+            const keysByComponentType = (tag: SchemaWithKey["tag"]) => {
+                const keysExtract = (imported: boolean) => (
+                    tagTree
+                        .filter({ and: [{ match: tag }, imported ? { match: 'Import' } : { not: { match: 'Import' } }] })
+                        .prune({ after: { match: tag } })
+                        .prune({ before: { match: tag } })
+                        .tree
+                        .map(({ data }) => {
+                            if (data.tag !== tag) {
+                                throw new Error('standardizeSchema tag mismatch')
+                            }
+                            if (imported && isImportable(data)) {
+                                return data.as ?? data.key
+                            }
+                            return data.key
+                        })
+                )
+                return unique(keysExtract(true), keysExtract(false)).sort()
+            }
 
             //
             // Loop through each tag in standard order
@@ -684,12 +689,14 @@ export class StandardizerAbstract {
                     //
                     // Aggregate and reorder all top-level information
                     //
-                    const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }) => (data.tag === tag && data.key === key) }
-                    const adjustTagTree = (tagTree: SchemaTagTree): SchemaTagTree => {
+                    const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (data.key === key)) }
+                    const nodeMatchImport: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (((Boolean(stack.find(isSchemaImport)) && isImportable(data)) ? data.as ?? data.key : data.key) === key)) }
+                    const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                         const prunedTagTree = tagTree
-                            .prune({ or: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { match: 'Import' }, { match: 'Export' }] })
+                            .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
                             .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                             .prune({ before: nodeMatch })
+                            .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
                         switch(tag) {
                             case 'Room':
                                 return prunedTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
@@ -702,14 +709,19 @@ export class StandardizerAbstract {
                         }
                         return prunedTagTree
                     }
-                    const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }))
-                    const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { match: 'Import' }] }))
+                    const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }), nodeMatch)
+                    const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatchImport, { match: 'Import' }] }), nodeMatchImport)
 
-                    //
-                    // TODO: Make sure that import items don't supplant the ID of non-imported items
-                    //
-                    maybeGenericIDFromTree([...filteredTagTree.tree, ...markInherited(maybeGenericIDFromTree(importedTagTree.tree))]).forEach((item) => {
-                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree))
+                    maybeGenericIDFromTree(filteredTagTree.tree).forEach((item) => {
+                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree), false)
+                        if (standardItem) {
+                            this._byId[key] = key in this._byId
+                                ? mergeStandardComponents(this._byId[key], standardItem)
+                                : standardItem
+                        }
+                    })
+                    maybeGenericIDFromTree(markInherited(maybeGenericIDFromTree(importedTagTree.tree))).forEach((item) => {
+                        const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree), true)
                         if (standardItem) {
                             this._byId[key] = key in this._byId
                                 ? mergeStandardComponents(this._byId[key], standardItem)
@@ -778,7 +790,7 @@ export class StandardizerAbstract {
             // item which is already represented in import (and exclude if so)
             //
             const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
-            const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isSchemaWithKey).map(({ key }) => (key)))).flat(1))
+            const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = [
                 ...imports,
@@ -787,7 +799,7 @@ export class StandardizerAbstract {
                         Object.values(this._byId)
                             .filter(({ tag }) => (tag === tagToList))
                             .map(standardItemToSchemaItem)
-                            .filter(({ data, children }) => (children.length || !(isSchemaWithKey(data) && importKeys.includes(data.key))))
+                            .filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key))))
                     ))
                     .flat(1),
                 ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))
