@@ -75,4 +75,31 @@ describe('standard form serialize' ,() => {
         ])
     })
 
+    it('should serialize exports', () => {
+        const schema = new Schema()
+        schema.loadWML(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoom)>
+                    <ShortName>Test</ShortName>
+                </Room>
+                <Export><Room key=(testRoom) as=(Room3) /></Export>
+            </Asset>
+        `))
+        const standard = new Standardizer(schema.schema)
+        expect(serialize(standard.stripped)).toEqual([
+            { tag: 'Asset', key: 'test' },
+            {
+                tag: 'Room',
+                key: 'testRoom',
+                exportAs: 'Room3',
+                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
+                name: { data: { tag: 'Name' }, children: [] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
+                exits: [],
+                themes: []
+            }
+        ])
+    })
+
 })

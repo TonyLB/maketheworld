@@ -1,6 +1,6 @@
 import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
-import { isImportable, isSchemaImport, SchemaWithKey } from "../../schema/baseClasses"
+import { isImportable, isSchemaExport, isSchemaImport, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { SerializableStandardForm, StandardNDJSON } from "../baseClasses"
 
@@ -24,6 +24,18 @@ export const serialize = (standardForm: SerializableStandardForm): StandardNDJSO
         ))
         .flat(1)
     ) as Record<string, { assetId: string, key: string }>
+    const exportByKey = Object.assign({}, ...standardForm.metaData
+        .filter(treeNodeTypeguard(isSchemaExport))
+        .map(({ children }) => (
+            children
+                .map(({ data }) => (data))
+                .filter(isImportable)
+                .map(({ as, key }) => ({
+                    [key]: as
+                }))
+        ))
+        .flat(1)
+    ) as Record<string, string>
     return [
         { tag: 'Asset', key: standardForm.key },
         ...(componentTags
@@ -33,10 +45,11 @@ export const serialize = (standardForm: SerializableStandardForm): StandardNDJSO
                     .map((key) => (standardForm.byId[key]))
                     .filter(excludeUndefined)
                     .map((standardComponent) => (standardComponent.key in importByKey
-                        ? {
-                            ...standardComponent,
-                            from: importByKey[standardComponent.key]
-                        }
+                        ? { ...standardComponent, from: importByKey[standardComponent.key] }
+                        : standardComponent
+                    ))
+                    .map((standardComponent) => (standardComponent.key in exportByKey
+                        ? { ...standardComponent, exportAs: exportByKey[standardComponent.key] }
                         : standardComponent
                     ))
             }).flat(1)
