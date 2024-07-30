@@ -624,6 +624,24 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should render renamed imports correctly', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Room key=(testRoomOne) as=(testRoomTwo)>
+                    <ShortName>Test</ShortName>
+                </Room>
+            </Import>
+        </Asset>`)
+        expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(vanishingPoint)>
+                    <Room key=(testRoomOne) as=(testRoomTwo) />
+                </Import>
+                <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
+            </Asset>
+        `))
+    })
+
     it('should render exports correctly', () => {
         const testSource = deIndentWML(`
             <Asset key=(Test)>
@@ -632,6 +650,7 @@ describe('standardizeSchema', () => {
             </Asset>
         `)
         const test = schemaTestStandarized(testSource)
+        console.log(`standard: ${JSON.stringify(test._byId, null, 4)}`)
         expect(schemaToWML(test.schema)).toEqual(testSource)
     })
 

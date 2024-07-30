@@ -16,7 +16,7 @@ type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
 type TagTreeMatchOperand<NodeData extends {}, Extra extends {} = {}> = 
     string |
     ({ data: NodeData } & Extra) |
-    { (value: { data: NodeData } & Extra): boolean }
+    { (value: { data: NodeData } & Extra, stack: NodeData[]): boolean }
 
 type TagTreeMatchSequence<NodeData extends {}, Extra extends {} = {}> = {
     sequence: TagTreeMatchOperation<NodeData, Extra>[]
@@ -491,11 +491,17 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
 
     _tagMatchOperationIndices(tags: TagListItem<NodeData, Extra>[], operation: TagTreeMatchOperation<NodeData, Extra>, recurse?: (operation: TagTreeMatchOperation<NodeData, Extra>) => number[]): number[] {
         const indicesMatching = (operand: TagTreeMatchOperand<NodeData, Extra>): number[] => {
+            if (typeof operand === 'function') {
+                const { output } = tags.reduce<{ output: number[], stack: NodeData[] }>((previous, node, index) => {
+                    return {
+                        output: (operand as (value: { data: NodeData } & Extra, stack: NodeData[]) => boolean)(node, previous.stack) ? [...previous.output, index] : previous.output,
+                        stack: [...previous.stack, node.data]
+                    }
+                }, { output: [], stack: [] })
+                return output
+            }
             return tags.map((node, index) => {
                 if (typeof operand === 'string' && this._classifier(node.data) === operand) {
-                    return [index]
-                }
-                else if (typeof operand === 'function' && (operand as (value: { data: NodeData } & Extra) => boolean)(node)) {
                     return [index]
                 }
                 else if (typeof operand === 'object' && this._compare(operand, node)) {
