@@ -650,7 +650,6 @@ describe('standardizeSchema', () => {
             </Asset>
         `)
         const test = schemaTestStandarized(testSource)
-        console.log(`standard: ${JSON.stringify(test._byId, null, 4)}`)
         expect(schemaToWML(test.schema)).toEqual(testSource)
     })
 
