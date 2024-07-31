@@ -1,14 +1,15 @@
+import { Standardizer } from ".."
 import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
-import { SerializableStandardForm, StandardNDJSON } from "../baseClasses"
+import { SerializableStandardAsset, SerializableStandardComponent, SerializableStandardForm, SerializeNDJSONMixin, StandardNDJSON } from "../baseClasses"
 
 export const serialize = (standardForm: SerializableStandardForm): StandardNDJSON => {
     if (standardForm.tag === 'Character') {
         return []
     }
-    const componentTags: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentTags: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const importByKey = Object.assign({}, ...standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
         .map(({ data, children }) => (
@@ -55,4 +56,16 @@ export const serialize = (standardForm: SerializableStandardForm): StandardNDJSO
             }).flat(1)
         )
     ]
+}
+
+export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  => {
+    const asset = ndjson.find((data): data is SerializableStandardAsset => (data.tag === 'Asset'))
+    if (!asset) {
+        throw new Error('No asset line found in deserialize')
+    }
+    const standardizer = new Standardizer([{ data: { tag: 'Asset', key: asset.key, Story: undefined }, children: [] }])
+    let standardForm = standardizer.stripped
+    ndjson.filter((data): data is SerializableStandardComponent & SerializeNDJSONMixin => (data.tag !== 'Asset'))
+        .forEach((component) => (standardForm.byId[component.key] = component))
+    return standardForm
 }

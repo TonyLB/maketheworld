@@ -1,7 +1,7 @@
-import { Schema } from '../../schema'
+import { Schema, schemaToWML } from '../../schema'
 import { Standardizer } from '..'
 import { deIndentWML } from '../../schema/utils'
-import { serialize } from '.'
+import { serialize, deserialize } from '.'
 
 describe('standard form serialize' ,() => {
     it('should return single line on empty asset', () => {
@@ -17,7 +17,7 @@ describe('standard form serialize' ,() => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(`
             <Asset key=(test)>
-                <Image key=(testIcon) />
+                <Image key=(testBackground) />
                 <Variable key=(open) default={false} />
                 <Action key=(toggleOpen) src={open = !open} />
                 <Computed key=(closed) src={!open} />
@@ -36,6 +36,10 @@ describe('standard form serialize' ,() => {
                         There is so much to know!
                     </Description>
                 </Knowledge>
+                <Map key=(testMap)>
+                    <Image key=(testBackground) />
+                    <Room key=(testRoom)><Position x="0" y="100" /></Room>
+                </Map>
                 <Moment key=(openDoorMoment)>
                     <Message key=(openDoor)>
                         The door opens!
@@ -101,5 +105,111 @@ describe('standard form serialize' ,() => {
             }
         ])
     })
+
+})
+
+describe('standard form deserialize' ,() => {
+    it('should return empty asset from single line', () => {
+        expect(deserialize([{ tag: 'Asset', key: 'Test' }])).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            byId: {},
+            metaData: []
+        })
+    })
+
+    it('should round-trip all component types', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Image key=(testBackground) />
+                <Room key=(testRoom)>
+                    <ShortName>Vortex</ShortName>
+                    <Name>Vortex</Name>
+                    <Description>Vortex Desc</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Name>Clocktower</Name>
+                    <Description>
+                        A tower built of white sandstone blocks, with an ornate clock set on
+                        the northern face.
+                    </Description>
+                </Feature>
+                <Knowledge key=(testKnowledge)>
+                    <Name>Learn</Name>
+                    <Description>There is so much to know!</Description>
+                </Knowledge>
+                <Map key=(testMap)>
+                    <Image key=(testBackground) />
+                    <Room key=(testRoom)><Position x="0" y="100" /></Room>
+                </Map>
+                <Message key=(openDoor)><Room key=(testRoom) />The door opens!</Message>
+                <Moment key=(openDoorMoment)><Message key=(openDoor) /></Moment>
+                <Variable key=(open) default={false} />
+                <Computed key=(closed) src={!open} />
+                <Action key=(toggleOpen) src={open = !open} />
+            </Asset>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testWML)
+        const standard = new Standardizer(schema.schema)
+        const ndjson = serialize(standard.stripped)
+        const deserialized = new Standardizer()
+        deserialized.deserialize(deserialize(ndjson))
+        expect(schemaToWML(deserialized.schema)).toEqual(testWML)
+    })
+
+    // it('should serialize imports', () => {
+    //     const schema = new Schema()
+    //     schema.loadWML(deIndentWML(`
+    //         <Asset key=(test)>
+    //             <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
+    //             <Room key=(testRoom)>
+    //                 <ShortName>Test</ShortName>
+    //             </Room>
+    //         </Asset>
+    //     `))
+    //     const standard = new Standardizer(schema.schema)
+    //     expect(serialize(standard.stripped)).toEqual([
+    //         { tag: 'Asset', key: 'test' },
+    //         {
+    //             tag: 'Room',
+    //             from: { assetId: 'testImport', key: 'testIn' },
+    //             key: 'testRoom',
+    //             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
+    //             name: { data: { tag: 'Name' }, children: [] },
+    //             summary: { data: { tag: 'Summary' }, children: [] },
+    //             description: { data: { tag: 'Description' }, children: [] },
+    //             exits: [],
+    //             themes: []
+    //         }
+    //     ])
+    // })
+
+    // it('should serialize exports', () => {
+    //     const schema = new Schema()
+    //     schema.loadWML(deIndentWML(`
+    //         <Asset key=(test)>
+    //             <Room key=(testRoom)>
+    //                 <ShortName>Test</ShortName>
+    //             </Room>
+    //             <Export><Room key=(testRoom) as=(Room3) /></Export>
+    //         </Asset>
+    //     `))
+    //     const standard = new Standardizer(schema.schema)
+    //     expect(serialize(standard.stripped)).toEqual([
+    //         { tag: 'Asset', key: 'test' },
+    //         {
+    //             tag: 'Room',
+    //             key: 'testRoom',
+    //             exportAs: 'Room3',
+    //             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
+    //             name: { data: { tag: 'Name' }, children: [] },
+    //             summary: { data: { tag: 'Summary' }, children: [] },
+    //             description: { data: { tag: 'Description' }, children: [] },
+    //             exits: [],
+    //             themes: []
+    //         }
+    //     ])
+    // })
 
 })

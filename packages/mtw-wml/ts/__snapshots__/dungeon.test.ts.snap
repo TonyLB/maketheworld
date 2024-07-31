@@ -8326,6 +8326,10 @@ trapDoorOpen = false
     "key": "determinedStatueRightArm",
     "tag": "Variable",
   },
+  "dungeonImage": Object {
+    "key": "dungeonImage",
+    "tag": "Image",
+  },
   "dungeonMap": Object {
     "images": Array [
       Object {

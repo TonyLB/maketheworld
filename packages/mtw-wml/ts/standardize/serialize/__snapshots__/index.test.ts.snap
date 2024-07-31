@@ -7,6 +7,10 @@ Array [
     "tag": "Asset",
   },
   Object {
+    "key": "testBackground",
+    "tag": "Image",
+  },
+  Object {
     "description": Object {
       "children": Array [
         Object {
@@ -123,6 +127,46 @@ Array [
       },
     },
     "tag": "Knowledge",
+  },
+  Object {
+    "images": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "testBackground",
+          "tag": "Image",
+        },
+      },
+    ],
+    "key": "testMap",
+    "name": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "positions": Array [
+      Object {
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "Position",
+              "x": 0,
+              "y": 100,
+            },
+          },
+        ],
+        "data": Object {
+          "key": "testRoom",
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+      },
+    ],
+    "tag": "Map",
+    "themes": Array [],
   },
   Object {
     "description": Object {
