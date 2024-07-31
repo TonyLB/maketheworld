@@ -52,6 +52,25 @@ describe('standard form serialize' ,() => {
         expect(serialize(standard.stripped)).toMatchSnapshot()
     })
 
+    it('should serialize universal keys', () => {
+        const schema = new Schema()
+        schema.loadWML(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoom)>
+                    <ShortName>Vortex</ShortName>
+                    <Name>Vortex</Name>
+                    <Description>Vortex Desc</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Name>Clocktower</Name>
+                    <Description>A tower built of white sandstone blocks, with an ornate clock set on the northern face.</Description>
+                </Feature>
+            </Asset>
+        `))
+        const standard = new Standardizer(schema.schema)
+        expect(serialize(standard.stripped, (key, tag) => (`${tag.toUpperCase()}#UUID`))).toMatchSnapshot()
+    })
+
     it('should serialize imports', () => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(`
@@ -174,7 +193,7 @@ describe('standard form deserialize' ,() => {
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
 
-    it('should serialize exports', () => {
+    it('should deserialize exports', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Room key=(testRoom)><ShortName>Test</ShortName></Room>
