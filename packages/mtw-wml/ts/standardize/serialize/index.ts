@@ -62,6 +62,7 @@ export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  
     let assetKey: string | undefined
     let byId: Record<string, SerializableStandardComponent> = {}
     let importsBySource: Record<string, { key: string; as?: string }[]> = {}
+    let exports: Record<string, string> = {}
     ndjson.forEach((component) => {
         if (component.tag === 'Asset') {
             assetKey = component.key
@@ -73,6 +74,9 @@ export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  
                     ...(importsBySource[component.from.assetId] || []),
                     { key: component.from.key, as: component.from.key !== component.key ? component.key : undefined }
                 ]
+            }
+            if (component.exportAs) {
+                exports[component.key] = component.exportAs
             }
         }
     })
@@ -97,7 +101,23 @@ export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  
                     }
                     return { data: { tag: lookupComponent.tag, key, as } as SchemaTag, children: [] }
                 })
-            }))
+            })),
+        ...(Object.entries(exports).length
+            ? [{
+                data: { tag: 'Export' as const, mapping: {} },
+                children: Object.entries(exports).map(([key, as]) => {
+                    const lookupComponent = byId[key]
+                    if (!lookupComponent) {
+                        throw new Error('Export not represented in byId in deserialize')
+                    }
+                    if (lookupComponent.tag === 'Character') {
+                        throw new Error('Export cannot accept character components')
+                    }
+                    return { data: { tag: lookupComponent.tag, key, as: as !== key ? as : undefined } as SchemaTag, children: [] }
+                })
+            }]
+            : []
+        )
     ]
     return standardForm
 }

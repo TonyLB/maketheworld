@@ -174,31 +174,20 @@ describe('standard form deserialize' ,() => {
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
 
-    // it('should serialize exports', () => {
-    //     const schema = new Schema()
-    //     schema.loadWML(deIndentWML(`
-    //         <Asset key=(test)>
-    //             <Room key=(testRoom)>
-    //                 <ShortName>Test</ShortName>
-    //             </Room>
-    //             <Export><Room key=(testRoom) as=(Room3) /></Export>
-    //         </Asset>
-    //     `))
-    //     const standard = new Standardizer(schema.schema)
-    //     expect(serialize(standard.stripped)).toEqual([
-    //         { tag: 'Asset', key: 'test' },
-    //         {
-    //             tag: 'Room',
-    //             key: 'testRoom',
-    //             exportAs: 'Room3',
-    //             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: { data: { tag: 'Description' }, children: [] },
-    //             exits: [],
-    //             themes: []
-    //         }
-    //     ])
-    // })
+    it('should serialize exports', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoom)><ShortName>Test</ShortName></Room>
+                <Export><Room key=(testRoom) as=(Room3) /></Export>
+            </Asset>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testWML)
+        const standard = new Standardizer(schema.schema)
+        const ndjson = serialize(standard.stripped)
+        const deserialized = new Standardizer()
+        deserialized.deserialize(deserialize(ndjson))
+        expect(schemaToWML(deserialized.schema)).toEqual(testWML)
+    })
 
 })
