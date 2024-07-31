@@ -9,6 +9,7 @@ Array [
   Object {
     "key": "testBackground",
     "tag": "Image",
+    "universalKey": undefined,
   },
   Object {
     "description": Object {
@@ -63,6 +64,7 @@ Array [
     },
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   Object {
     "description": Object {
@@ -95,6 +97,7 @@ Array [
       },
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   Object {
     "description": Object {
@@ -127,6 +130,7 @@ Array [
       },
     },
     "tag": "Knowledge",
+    "universalKey": undefined,
   },
   Object {
     "images": Array [
@@ -167,6 +171,7 @@ Array [
     ],
     "tag": "Map",
     "themes": Array [],
+    "universalKey": undefined,
   },
   Object {
     "description": Object {
@@ -196,6 +201,7 @@ Array [
       },
     ],
     "tag": "Message",
+    "universalKey": undefined,
   },
   Object {
     "key": "openDoorMoment",
@@ -209,21 +215,122 @@ Array [
       },
     ],
     "tag": "Moment",
+    "universalKey": undefined,
   },
   Object {
     "default": "false",
     "key": "open",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   Object {
     "key": "closed",
     "src": "!open",
     "tag": "Computed",
+    "universalKey": undefined,
   },
   Object {
     "key": "toggleOpen",
     "src": "open = !open",
     "tag": "Action",
+    "universalKey": undefined,
+  },
+]
+`;
+
+exports[`standard form serialize should serialize universal keys 1`] = `
+Array [
+  Object {
+    "key": "test",
+    "tag": "Asset",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex Desc",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "exits": Array [],
+    "key": "testRoom",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "shortName": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "ShortName",
+      },
+    },
+    "summary": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Summary",
+      },
+    },
+    "tag": "Room",
+    "themes": Array [],
+    "universalKey": "ROOM#UUID",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "A tower built of white sandstone blocks, with an ornate clock set on the northern face.",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "key": "testFeature",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Clocktower",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "tag": "Feature",
+    "universalKey": "FEATURE#UUID",
   },
 ]
 `;

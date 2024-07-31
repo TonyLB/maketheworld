@@ -3,9 +3,9 @@ import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
-import { SerializableStandardAsset, SerializableStandardComponent, SerializableStandardForm, SerializeNDJSONMixin, StandardNDJSON } from "../baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardNDJSON } from "../baseClasses"
 
-export const serialize = (standardForm: SerializableStandardForm): StandardNDJSON => {
+export const serialize = (standardForm: SerializableStandardForm, universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined)): StandardNDJSON => {
     if (standardForm.tag === 'Character') {
         return []
     }
@@ -53,6 +53,10 @@ export const serialize = (standardForm: SerializableStandardForm): StandardNDJSO
                         ? { ...standardComponent, exportAs: exportByKey[standardComponent.key] }
                         : standardComponent
                     ))
+                    .map((standardComponent) => ({
+                        ...standardComponent,
+                        universalKey: universalKey(standardComponent.key, standardComponent.tag)
+                    }))
             }).flat(1)
         )
     ]
