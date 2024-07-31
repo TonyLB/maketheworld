@@ -379,6 +379,13 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             src: data.src ?? ''
         }
     }
+    if (isSchemaImage(data)) {
+        return {
+            tag: data.tag,
+            key: imported ? data.as ?? data.key : data.key,
+            id
+        }
+    }
     return undefined
 }
 
@@ -581,7 +588,7 @@ export class StandardizerAbstract {
             this._assetTag = 'Asset'
             return
         }
-        const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+        const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
         const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
         const allCharacterKeys = unique(...schemata.map((tree) => (selectKeysByTag('Character')(tree))))
@@ -791,7 +798,7 @@ export class StandardizerAbstract {
             //
             const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
-            const componentKeys: SchemaWithKey["tag"][] = ['Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+            const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = [
                 ...imports,
                 ...componentKeys

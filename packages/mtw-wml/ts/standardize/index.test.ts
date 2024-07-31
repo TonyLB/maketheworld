@@ -375,6 +375,7 @@ describe('standardizeSchema', () => {
         </Asset>`)
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
+                <Image key=(mapBackground) />
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
