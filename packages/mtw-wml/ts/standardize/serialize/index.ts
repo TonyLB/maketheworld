@@ -1,7 +1,7 @@
 import { Standardizer } from ".."
 import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
-import { isImportable, isSchemaExport, isSchemaImport, SchemaWithKey } from "../../schema/baseClasses"
+import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { SerializableStandardAsset, SerializableStandardComponent, SerializableStandardForm, SerializeNDJSONMixin, StandardNDJSON } from "../baseClasses"
 
@@ -59,13 +59,45 @@ export const serialize = (standardForm: SerializableStandardForm): StandardNDJSO
 }
 
 export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  => {
-    const asset = ndjson.find((data): data is SerializableStandardAsset => (data.tag === 'Asset'))
-    if (!asset) {
+    let assetKey: string | undefined
+    let byId: Record<string, SerializableStandardComponent> = {}
+    let importsBySource: Record<string, { key: string; as?: string }[]> = {}
+    ndjson.forEach((component) => {
+        if (component.tag === 'Asset') {
+            assetKey = component.key
+        }
+        else {
+            byId[component.key] = component
+            if (component.from) {
+                importsBySource[component.from.assetId] = [
+                    ...(importsBySource[component.from.assetId] || []),
+                    { key: component.from.key, as: component.from.key !== component.key ? component.key : undefined }
+                ]
+            }
+        }
+    })
+    if (!assetKey) {
         throw new Error('No asset line found in deserialize')
     }
-    const standardizer = new Standardizer([{ data: { tag: 'Asset', key: asset.key, Story: undefined }, children: [] }])
+    const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetKey, Story: undefined }, children: [] }])
     let standardForm = standardizer.stripped
-    ndjson.filter((data): data is SerializableStandardComponent & SerializeNDJSONMixin => (data.tag !== 'Asset'))
-        .forEach((component) => (standardForm.byId[component.key] = component))
+    standardForm.byId = byId
+    standardForm.metaData = [
+        ...Object.entries(importsBySource)
+            .map(([assetId, imports]) => ({
+                data: { tag: 'Import' as const, from: assetId, mapping: {} },
+                children: imports.map(({ key, as }) => {
+                    const lookupKey = as ?? key
+                    const lookupComponent = byId[lookupKey]
+                    if (!lookupComponent) {
+                        throw new Error('Import not represented in byId in deserialize')
+                    }
+                    if (lookupComponent.tag === 'Character') {
+                        throw new Error('Import cannot accept character components')
+                    }
+                    return { data: { tag: lookupComponent.tag, key, as } as SchemaTag, children: [] }
+                })
+            }))
+    ]
     return standardForm
 }

@@ -290,7 +290,7 @@ export type SerializableStandardForm = {
 
 export type SerializeNDJSONMixin = {
     from?: {
-        assetId: `ASSET#${string}`;
+        assetId: string;
         key: string;
     };
     exportAs?: string;

@@ -158,32 +158,21 @@ describe('standard form deserialize' ,() => {
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
 
-    // it('should serialize imports', () => {
-    //     const schema = new Schema()
-    //     schema.loadWML(deIndentWML(`
-    //         <Asset key=(test)>
-    //             <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
-    //             <Room key=(testRoom)>
-    //                 <ShortName>Test</ShortName>
-    //             </Room>
-    //         </Asset>
-    //     `))
-    //     const standard = new Standardizer(schema.schema)
-    //     expect(serialize(standard.stripped)).toEqual([
-    //         { tag: 'Asset', key: 'test' },
-    //         {
-    //             tag: 'Room',
-    //             from: { assetId: 'testImport', key: 'testIn' },
-    //             key: 'testRoom',
-    //             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: { data: { tag: 'Description' }, children: [] },
-    //             exits: [],
-    //             themes: []
-    //         }
-    //     ])
-    // })
+    it('should deserialize imports', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
+                <Room key=(testRoom)><ShortName>Test</ShortName></Room>
+            </Asset>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testWML)
+        const standard = new Standardizer(schema.schema)
+        const ndjson = serialize(standard.stripped)
+        const deserialized = new Standardizer()
+        deserialized.deserialize(deserialize(ndjson))
+        expect(schemaToWML(deserialized.schema)).toEqual(testWML)
+    })
 
     // it('should serialize exports', () => {
     //     const schema = new Schema()
