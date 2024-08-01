@@ -48,8 +48,32 @@ describe('standard form serialize' ,() => {
                 </Moment>
             </Asset>
         `))
+        const universalKeys = {
+            testBackground: 'IMAGE#001',
+            testRoom: 'ROOM#002',
+            testFeature: 'FEATURE#003',
+            testKnowledge: 'KNOWLEDGE#004',
+            testMap: 'MAP#005',
+            openDoor: 'MESSAGE#006',
+            openDoorMoment: 'MOMENT#007',
+            open: 'VARIABLE#008',
+            closed: 'COMPUTED#009',
+            toggleOpen: 'ACTION#010'
+        }
+        const universalKey = (key: string): string => {
+            if (!(key in universalKeys)) {
+                throw new Error('Key not in mock universalKeys')
+            }
+            return universalKeys[key]
+        }
+        const fileAssociations = {
+            testBackground: 'IMAGE-001'
+        }
+        const fileAssociation = (key: string): string => {
+            return fileAssociations[key]
+        }
         const standard = new Standardizer(schema.schema)
-        expect(serialize(standard.stripped)).toMatchSnapshot()
+        expect(serialize(standard.stripped, universalKey, fileAssociation)).toMatchSnapshot()
     })
 
     it('should serialize universal keys', () => {
