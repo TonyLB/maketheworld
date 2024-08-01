@@ -5,7 +5,11 @@ import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey 
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { SerializableStandardComponent, SerializableStandardForm, StandardNDJSON } from "../baseClasses"
 
-export const serialize = (standardForm: SerializableStandardForm, universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined)): StandardNDJSON => {
+export const serialize = (
+    standardForm: SerializableStandardForm,
+    universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined),
+    fileAssociation: (searchKey: string) => string | undefined = () => (undefined)
+): StandardNDJSON => {
     if (standardForm.tag === 'Character') {
         return []
     }
@@ -55,7 +59,8 @@ export const serialize = (standardForm: SerializableStandardForm, universalKey: 
                     ))
                     .map((standardComponent) => ({
                         ...standardComponent,
-                        universalKey: universalKey(standardComponent.key, standardComponent.tag)
+                        universalKey: universalKey(standardComponent.key, standardComponent.tag),
+                        fileName: fileAssociation(standardComponent.key)
                     }))
             }).flat(1)
         )

@@ -295,6 +295,7 @@ export type SerializeNDJSONMixin = {
     };
     exportAs?: string;
     universalKey?: string;
+    fileName?: string;
 }
 
 export type StandardNDJSON = (SerializableStandardAsset | (SerializableStandardComponent & SerializeNDJSONMixin))[]

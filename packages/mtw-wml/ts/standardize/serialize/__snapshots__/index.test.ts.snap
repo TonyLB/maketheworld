@@ -7,9 +7,10 @@ Array [
     "tag": "Asset",
   },
   Object {
+    "fileName": "IMAGE-001",
     "key": "testBackground",
     "tag": "Image",
-    "universalKey": undefined,
+    "universalKey": "IMAGE#001",
   },
   Object {
     "description": Object {
@@ -27,6 +28,7 @@ Array [
       },
     },
     "exits": Array [],
+    "fileName": undefined,
     "key": "testRoom",
     "name": Object {
       "children": Array [
@@ -64,7 +66,7 @@ Array [
     },
     "tag": "Room",
     "themes": Array [],
-    "universalKey": undefined,
+    "universalKey": "ROOM#002",
   },
   Object {
     "description": Object {
@@ -81,6 +83,7 @@ Array [
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "testFeature",
     "name": Object {
       "children": Array [
@@ -97,7 +100,7 @@ Array [
       },
     },
     "tag": "Feature",
-    "universalKey": undefined,
+    "universalKey": "FEATURE#003",
   },
   Object {
     "description": Object {
@@ -114,6 +117,7 @@ Array [
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "testKnowledge",
     "name": Object {
       "children": Array [
@@ -130,9 +134,10 @@ Array [
       },
     },
     "tag": "Knowledge",
-    "universalKey": undefined,
+    "universalKey": "KNOWLEDGE#004",
   },
   Object {
+    "fileName": undefined,
     "images": Array [
       Object {
         "children": Array [],
@@ -171,7 +176,7 @@ Array [
     ],
     "tag": "Map",
     "themes": Array [],
-    "universalKey": undefined,
+    "universalKey": "MAP#005",
   },
   Object {
     "description": Object {
@@ -188,6 +193,7 @@ Array [
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "openDoor",
     "rooms": Array [
       Object {
@@ -201,9 +207,10 @@ Array [
       },
     ],
     "tag": "Message",
-    "universalKey": undefined,
+    "universalKey": "MESSAGE#006",
   },
   Object {
+    "fileName": undefined,
     "key": "openDoorMoment",
     "messages": Array [
       Object {
@@ -215,25 +222,28 @@ Array [
       },
     ],
     "tag": "Moment",
-    "universalKey": undefined,
+    "universalKey": "MOMENT#007",
   },
   Object {
     "default": "false",
+    "fileName": undefined,
     "key": "open",
     "tag": "Variable",
-    "universalKey": undefined,
+    "universalKey": "VARIABLE#008",
   },
   Object {
+    "fileName": undefined,
     "key": "closed",
     "src": "!open",
     "tag": "Computed",
-    "universalKey": undefined,
+    "universalKey": "COMPUTED#009",
   },
   Object {
+    "fileName": undefined,
     "key": "toggleOpen",
     "src": "open = !open",
     "tag": "Action",
-    "universalKey": undefined,
+    "universalKey": "ACTION#010",
   },
 ]
 `;
@@ -260,6 +270,7 @@ Array [
       },
     },
     "exits": Array [],
+    "fileName": undefined,
     "key": "testRoom",
     "name": Object {
       "children": Array [
@@ -314,6 +325,7 @@ Array [
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "testFeature",
     "name": Object {
       "children": Array [
