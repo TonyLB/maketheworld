@@ -212,13 +212,20 @@ describe('standard form deserialize' ,() => {
             }
             return universalKeys[key]
         }
+        const fileAssociations = {
+            testBackground: 'IMAGE-001'
+        }
+        const fileAssociation = (key: string): string => {
+            return fileAssociations[key]
+        }
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped, universalKey)
+        const ndjson = serialize(standard.stripped, universalKey, fileAssociation)
         const deserialized = new Standardizer()
         const results = deserialize(ndjson)
         deserialized.deserialize(results.standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
         expect(results.universalKeys).toEqual(universalKeys)
+        expect(results.fileAssociations).toEqual(fileAssociations)
     })
 
     it('should deserialize imports', () => {
