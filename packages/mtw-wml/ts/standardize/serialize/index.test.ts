@@ -129,7 +129,7 @@ describe('standard form serialize' ,() => {
 
 describe('standard form deserialize' ,() => {
     it('should return empty asset from single line', () => {
-        expect(deserialize([{ tag: 'Asset', key: 'Test' }])).toEqual({
+        expect(deserialize([{ tag: 'Asset', key: 'Test' }]).standardForm).toEqual({
             tag: 'Asset',
             key: 'Test',
             byId: {},
@@ -170,11 +170,31 @@ describe('standard form deserialize' ,() => {
         `)
         const schema = new Schema()
         schema.loadWML(testWML)
+        const universalKeys = {
+            testBackground: 'IMAGE#001',
+            testRoom: 'ROOM#002',
+            testFeature: 'FEATURE#003',
+            testKnowledge: 'KNOWLEDGE#004',
+            testMap: 'MAP#005',
+            openDoor: 'MESSAGE#006',
+            openDoorMoment: 'MOMENT#007',
+            open: 'VARIABLE#008',
+            closed: 'COMPUTED#009',
+            toggleOpen: 'ACTION#010'
+        }
+        const universalKey = (key: string): string => {
+            if (!(key in universalKeys)) {
+                throw new Error('Key not in mock universalKeys')
+            }
+            return universalKeys[key]
+        }
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped)
+        const ndjson = serialize(standard.stripped, universalKey)
         const deserialized = new Standardizer()
-        deserialized.deserialize(deserialize(ndjson))
+        const results = deserialize(ndjson)
+        deserialized.deserialize(results.standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
+        expect(results.universalKeys).toEqual(universalKeys)
     })
 
     it('should deserialize imports', () => {
@@ -189,7 +209,7 @@ describe('standard form deserialize' ,() => {
         const standard = new Standardizer(schema.schema)
         const ndjson = serialize(standard.stripped)
         const deserialized = new Standardizer()
-        deserialized.deserialize(deserialize(ndjson))
+        deserialized.deserialize(deserialize(ndjson).standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
 
@@ -205,7 +225,7 @@ describe('standard form deserialize' ,() => {
         const standard = new Standardizer(schema.schema)
         const ndjson = serialize(standard.stripped)
         const deserialized = new Standardizer()
-        deserialized.deserialize(deserialize(ndjson))
+        deserialized.deserialize(deserialize(ndjson).standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
 

@@ -62,11 +62,12 @@ export const serialize = (standardForm: SerializableStandardForm, universalKey: 
     ]
 }
 
-export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  => {
+export const deserialize = (ndjson: StandardNDJSON ): { standardForm: SerializableStandardForm, universalKeys: Record<string, string> }  => {
     let assetKey: string | undefined
     let byId: Record<string, SerializableStandardComponent> = {}
     let importsBySource: Record<string, { key: string; as?: string }[]> = {}
     let exports: Record<string, string> = {}
+    let universalKeys: Record<string, string> = {}
     ndjson.forEach((component) => {
         if (component.tag === 'Asset') {
             assetKey = component.key
@@ -81,6 +82,9 @@ export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  
             }
             if (component.exportAs) {
                 exports[component.key] = component.exportAs
+            }
+            if (component.universalKey) {
+                universalKeys[component.key] = component.universalKey
             }
         }
     })
@@ -123,5 +127,5 @@ export const deserialize = (ndjson: StandardNDJSON ): SerializableStandardForm  
             : []
         )
     ]
-    return standardForm
+    return { standardForm, universalKeys }
 }
