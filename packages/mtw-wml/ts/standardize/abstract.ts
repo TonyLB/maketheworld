@@ -580,118 +580,35 @@ export class StandardizerAbstract {
     _byId: StandardForm["byId"];
     metaData: StandardForm["metaData"];
     constructor(...schemata: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>[]) {
-        this._byId = {}
-        this.metaData = []
-        if (!schemata.length) {
-            this._assetId = 'Test'
-            this._assetKey = 'Test'
-            this._assetTag = 'Asset'
-            return
+        const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
+            const keysExtract = (imported: boolean) => (
+                tagTree
+                    .filter({ and: [{ match: tag }, imported ? { match: 'Import' } : { not: { match: 'Import' } }] })
+                    .prune({ after: { match: tag } })
+                    .prune({ before: { match: tag } })
+                    .tree
+                    .map(({ data }) => {
+                        if (data.tag !== tag) {
+                            throw new Error('standardizeSchema tag mismatch')
+                        }
+                        if (imported && isImportable(data)) {
+                            return data.as ?? data.key
+                        }
+                        return data.key
+                    })
+            )
+            return unique(keysExtract(true), keysExtract(false)).sort()
         }
-        const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-        const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
-        const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
-        const allCharacterKeys = unique(...schemata.map((tree) => (selectKeysByTag('Character')(tree))))
-        const allStandardCharacters = allCharacterKeys.map((characterKey) => {
-            this._assetTag = 'Character'
-            const tagTree = new SchemaTagTree(schemata.map((tree) => {
-                const characterNode = tree.find(({ data }) => (isSchemaCharacter(data) && data.key === characterKey))
-                return characterNode ? [characterNode] : []
-            }).flat(1))
-            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
-                inheritedA && !inheritedB
-                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
-                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
-            )
-            const characterTree = tagTree.tree
-            if (characterTree.length !== 1) {
-                throw new Error('Too many characters in Standarizer')
-            }
-            const character = maybeGenericIDFromTree(characterTree)[0]
-            const pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId> = (character.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }, id: '' })
-            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag, TreeId>): GenericTreeNodeFiltered<InputNode, SchemaOutputTag, TreeId> => ({ data: node.data, id: node.id, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })})
-            const name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId> = confirmOutputChildren(character.children.find(treeNodeTypeguard(isSchemaName)) ?? { children: [], data: { tag: 'Name' }, id: '' })
-            const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaFirstImpression)) ?? { children: [], data: { tag: 'FirstImpression', value: '' }, id: '' }
-            const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing)) ?? { children: [], data: { tag: 'OneCoolThing', value: '' }, id: '' }
-            const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOutfit)) ?? { children: [], data: { tag: 'Outfit', value: '' }, id: '' }
-            const image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaImage)) ?? { children: [], data: { tag: 'Image', key: '' }, id: '' }
-            this._byId[characterKey] = {
-                tag: 'Character',
-                key: characterKey,
-                id: character.id,
-                pronouns,
-                name,
-                firstImpression,
-                oneCoolThing,
-                outfit,
-                image
-            }
-            this.metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
-            return character
-        })
-        const allStandardAssets = allAssetKeys.map((assetKey) => {
-            const tagTree = new SchemaTagTree(schemata.map((tree) => {
-                const assetNode = tree.find(({ data }) => (isSchemaAsset(data) && data.key === assetKey))
-                return assetNode ? [assetNode] : []
-            }).flat(1))
-            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
-                inheritedA && !inheritedB
-                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
-                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
-            )
-
-            //
-            // Add standardized view of all Imports to the results
-            //
-            const importTagTree = tagTree
-                .filter({ match: 'Import' })
-                .prune({ or: [
-                    { before: { match: 'Import' } },
-                    { after: { or: [
-                        { match: 'Room' },
-                        { match: 'Feature' },
-                        { match: 'Knowledge' },
-                        { match: 'Bookmark' },
-                        { match: 'Map' },
-                        { match: 'Message' },
-                        { match: 'Moment' },
-                        { match: 'Variable' },
-                        { match: 'Computed' },
-                        { match: 'Action' }
-                    ]}}
-                ]})
-            const importItems = importTagTree.tree.filter(({ children }) => (children.length))
-        
-            this.metaData = [...this.metaData, ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag, TreeId>]
-        
-            const keysByComponentType = (tag: SchemaWithKey["tag"]) => {
-                const keysExtract = (imported: boolean) => (
-                    tagTree
-                        .filter({ and: [{ match: tag }, imported ? { match: 'Import' } : { not: { match: 'Import' } }] })
-                        .prune({ after: { match: tag } })
-                        .prune({ before: { match: tag } })
-                        .tree
-                        .map(({ data }) => {
-                            if (data.tag !== tag) {
-                                throw new Error('standardizeSchema tag mismatch')
-                            }
-                            if (imported && isImportable(data)) {
-                                return data.as ?? data.key
-                            }
-                            return data.key
-                        })
-                )
-                return unique(keysExtract(true), keysExtract(false)).sort()
-            }
-
+        const standardizeComponentTagType = (componentKeys: SchemaWithKey["tag"][], tagTree: SchemaTagTree): void => {
             //
             // Loop through each tag in standard order
             //
+            const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
             componentKeys.forEach((tag) => {
                 //
                 // Loop through each key present for that tag
                 //
-                const keys = keysByComponentType(tag)
+                const keys = keysByComponentTypeFactory(tagTree)(tag)
                 keys.forEach((key) => {
                     //
                     // Aggregate and reorder all top-level information
@@ -737,6 +654,94 @@ export class StandardizerAbstract {
                     })
                 })
             })
+        }
+        this._byId = {}
+        this.metaData = []
+        if (!schemata.length) {
+            this._assetId = 'Test'
+            this._assetKey = 'Test'
+            this._assetTag = 'Asset'
+            return
+        }
+        const allAssetKeys = unique(...schemata.map((tree) => (selectKeysByTag('Asset')(tree))))
+        const allCharacterKeys = unique(...schemata.map((tree) => (selectKeysByTag('Character')(tree))))
+        const allStandardCharacters = allCharacterKeys.map((characterKey) => {
+            this._assetTag = 'Character'
+            const tagTree = new SchemaTagTree(schemata.map((tree) => {
+                const characterNode = tree.find(({ data }) => (isSchemaCharacter(data) && data.key === characterKey))
+                return characterNode ? [characterNode] : []
+            }).flat(1))
+            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
+                inheritedA && !inheritedB
+                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
+                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
+            )
+            const characterTree = tagTree.tree
+            if (characterTree.length !== 1) {
+                throw new Error('Too many characters in Standarizer')
+            }
+            const character = maybeGenericIDFromTree(characterTree)[0]
+            const pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId> = (character.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }, id: '' })
+            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag, TreeId>): GenericTreeNodeFiltered<InputNode, SchemaOutputTag, TreeId> => ({ data: node.data, id: node.id, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })})
+            const name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId> = confirmOutputChildren(character.children.find(treeNodeTypeguard(isSchemaName)) ?? { children: [], data: { tag: 'Name' }, id: '' })
+            const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaFirstImpression)) ?? { children: [], data: { tag: 'FirstImpression', value: '' }, id: '' }
+            const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing)) ?? { children: [], data: { tag: 'OneCoolThing', value: '' }, id: '' }
+            const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaOutfit)) ?? { children: [], data: { tag: 'Outfit', value: '' }, id: '' }
+            const image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId> = character.children.find(treeNodeTypeguard(isSchemaImage)) ?? { children: [], data: { tag: 'Image', key: '' }, id: '' }
+            this._byId[characterKey] = {
+                tag: 'Character',
+                key: characterKey,
+                id: character.id,
+                pronouns,
+                name,
+                firstImpression,
+                oneCoolThing,
+                outfit,
+                image
+            }
+            this.metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
+            standardizeComponentTagType(['Image'], tagTree)
+            return character
+        })
+        const allStandardAssets = allAssetKeys.map((assetKey) => {
+            const tagTree = new SchemaTagTree(schemata.map((tree) => {
+                const assetNode = tree.find(({ data }) => (isSchemaAsset(data) && data.key === assetKey))
+                return assetNode ? [assetNode] : []
+            }).flat(1))
+            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
+                inheritedA && !inheritedB
+                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
+                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
+            )
+
+            //
+            // Add standardized view of all Imports to the results
+            //
+            const importTagTree = tagTree
+                .filter({ match: 'Import' })
+                .prune({ or: [
+                    { before: { match: 'Import' } },
+                    { after: { or: [
+                        { match: 'Room' },
+                        { match: 'Feature' },
+                        { match: 'Knowledge' },
+                        { match: 'Bookmark' },
+                        { match: 'Map' },
+                        { match: 'Message' },
+                        { match: 'Moment' },
+                        { match: 'Variable' },
+                        { match: 'Computed' },
+                        { match: 'Action' }
+                    ]}}
+                ]})
+            const importItems = importTagTree.tree.filter(({ children }) => (children.length))
+        
+            this.metaData = [...this.metaData, ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag, TreeId>]
+
+            const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+            const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
+    
+            standardizeComponentTagType(['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'], tagTree)
 
             //
             // Add standardized view of all Exports to the results
