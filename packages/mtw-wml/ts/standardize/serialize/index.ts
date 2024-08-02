@@ -64,6 +64,7 @@ export const serialize = (
 
 export const deserialize = (ndjson: StandardNDJSON ): { standardForm: SerializableStandardForm, universalKeys: Record<string, string>, fileAssociations: Record<string, string> }  => {
     let assetKey: string | undefined
+    let characterKey: string | undefined
     let byId: Record<string, SerializableStandardComponent> = {}
     let importsBySource: Record<string, { key: string; as?: string }[]> = {}
     let exports: Record<string, string> = {}
@@ -74,6 +75,9 @@ export const deserialize = (ndjson: StandardNDJSON ): { standardForm: Serializab
             assetKey = component.key
         }
         else {
+            if (component.tag === 'Character') {
+                characterKey = component.key
+            }
             byId[component.key] = component
             if (component.from) {
                 importsBySource[component.from.assetId] = [
@@ -92,10 +96,23 @@ export const deserialize = (ndjson: StandardNDJSON ): { standardForm: Serializab
             }
         }
     })
-    if (!assetKey) {
+    const tempKey = assetKey || characterKey
+    if (!tempKey) {
         throw new Error('No asset line found in deserialize')
     }
-    const standardizer = new Standardizer([{ data: { tag: 'Asset', key: assetKey, Story: undefined }, children: [] }])
+    //
+    // TODO: Figure out a better way to create base standardizer from NDJSON
+    //
+    const standardizer = new Standardizer([{
+        data: { tag: 'Asset', key: tempKey, Story: undefined },
+        children: []
+    }])
+    standardizer.deserialize({
+        key: tempKey,
+        tag: assetKey ? 'Asset' : 'Character',
+        byId,
+        metaData: []
+    })
     let standardForm = standardizer.stripped
     standardForm.byId = byId
     standardForm.metaData = [
