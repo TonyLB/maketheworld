@@ -61,6 +61,12 @@ Array [
     "tag": "Character",
     "universalKey": "CHARACTER#001",
   },
+  Object {
+    "fileName": "IMAGE-002",
+    "key": "TessIcon",
+    "tag": "Image",
+    "universalKey": "IMAGE#002",
+  },
 ]
 `;
 

@@ -292,7 +292,7 @@ describe('standard form deserialize' ,() => {
         schema.loadWML(testWML)
         const universalKeys = {
             Tess: 'CHARACTER#001',
-            // TessIcon: 'IMAGE#002'
+            TessIcon: 'IMAGE#002'
         }
         const universalKey = (key: string): string => {
             if (!(key in universalKeys)) {
@@ -301,19 +301,16 @@ describe('standard form deserialize' ,() => {
             return universalKeys[key]
         }
         const fileAssociations = {
-            // TessIcon: 'IMAGE-002'
+            TessIcon: 'IMAGE-002'
         }
         const fileAssociation = (key: string): string => {
             return fileAssociations[key]
         }
         const standard = new Standardizer(schema.schema)
         const ndjson = serialize(standard.stripped, universalKey, fileAssociation)
-        console.log(`ndjson: ${JSON.stringify(ndjson, null, 4)}`)
         const deserialized = new Standardizer()
         const results = deserialize(ndjson)
-        console.log(`standardForm: ${JSON.stringify(results.standardForm, null, 4)}`)
         deserialized.deserialize(results.standardForm)
-        console.log(`deserialized: ${JSON.stringify(deserialized, null, 4)}`)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
         expect(results.universalKeys).toEqual(universalKeys)
         expect(results.fileAssociations).toEqual(fileAssociations)
