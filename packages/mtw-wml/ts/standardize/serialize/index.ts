@@ -3,17 +3,14 @@ import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
-import { SerializableStandardComponent, SerializableStandardForm, StandardNDJSON } from "../baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, SerializeNDJSONMixin, StandardNDJSON } from "../baseClasses"
 
 export const serialize = (
     standardForm: SerializableStandardForm,
     universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined),
     fileAssociation: (searchKey: string) => string | undefined = () => (undefined)
 ): StandardNDJSON => {
-    if (standardForm.tag === 'Character') {
-        return []
-    }
-    const componentTags: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentTags: SchemaWithKey["tag"][] = standardForm.tag === 'Character' ? ['Image'] : ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const importByKey = Object.assign({}, ...standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
         .map(({ data, children }) => (
@@ -41,27 +38,25 @@ export const serialize = (
         ))
         .flat(1)
     ) as Record<string, string>
+    const addNDJSONSerializeKeys = (standardComponent: SerializableStandardComponent): SerializableStandardComponent & SerializeNDJSONMixin => ({
+        ...standardComponent,
+        ...(standardComponent.key in importByKey ? { from: importByKey[standardComponent.key]} : {}),
+        ...(standardComponent.key in exportByKey ? { exportAs: exportByKey[standardComponent.key]} : {}),
+        universalKey: universalKey(standardComponent.key, standardComponent.tag),
+        fileName: fileAssociation(standardComponent.key)
+    })
+    const baseItem = standardForm.tag === 'Character'
+        ? addNDJSONSerializeKeys(standardForm.byId[standardForm.key])
+        : { tag: 'Asset' as const, key: standardForm.key }
     return [
-        { tag: 'Asset', key: standardForm.key },
+        baseItem,
         ...(componentTags
             .map((tag) => {
                 const keys = Object.keys(objectFilter(standardForm.byId, ({ tag: checkTag }) => (checkTag === tag)))
                 return keys
                     .map((key) => (standardForm.byId[key]))
                     .filter(excludeUndefined)
-                    .map((standardComponent) => (standardComponent.key in importByKey
-                        ? { ...standardComponent, from: importByKey[standardComponent.key] }
-                        : standardComponent
-                    ))
-                    .map((standardComponent) => (standardComponent.key in exportByKey
-                        ? { ...standardComponent, exportAs: exportByKey[standardComponent.key] }
-                        : standardComponent
-                    ))
-                    .map((standardComponent) => ({
-                        ...standardComponent,
-                        universalKey: universalKey(standardComponent.key, standardComponent.tag),
-                        fileName: fileAssociation(standardComponent.key)
-                    }))
+                    .map(addNDJSONSerializeKeys)
             }).flat(1)
         )
     ]

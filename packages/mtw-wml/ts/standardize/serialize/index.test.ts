@@ -76,6 +76,48 @@ describe('standard form serialize' ,() => {
         expect(serialize(standard.stripped, universalKey, fileAssociation)).toMatchSnapshot()
     })
 
+
+    it('should serialize all component types', () => {
+        const schema = new Schema()
+        schema.loadWML(deIndentWML(`
+            <Character key=(Tess)>
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <FirstImpression>Frumpy Goth</FirstImpression>
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>
+                    A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
+                </Outfit>
+                <Image key=(TessIcon) />
+                <Import from=(primitives) />
+            </Character>
+        `))
+        const universalKeys = {
+            Tess: 'CHARACTER#001',
+            TessIcon: 'IMAGE#002'
+        }
+        const universalKey = (key: string): string => {
+            if (!(key in universalKeys)) {
+                throw new Error('Key not in mock universalKeys')
+            }
+            return universalKeys[key]
+        }
+        const fileAssociations = {
+            TessIcon: 'IMAGE-002'
+        }
+        const fileAssociation = (key: string): string => {
+            return fileAssociations[key]
+        }
+        const standard = new Standardizer(schema.schema)
+        expect(serialize(standard.stripped, universalKey, fileAssociation)).toMatchSnapshot()
+    })
+
     it('should serialize universal keys', () => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(`
