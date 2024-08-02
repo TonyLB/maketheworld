@@ -300,7 +300,7 @@ export class Standardizer extends StandardizerAbstract {
             if (isStandardCharacter(value)) {
                 return {
                     ...stripId(value),
-                    pronouns: value.pronouns ?? { data: { tag: 'Pronouns', subject: '', object: '', adjective: '', possessive: '', reflexive: '' }, children: [], id: '' },
+                    pronouns: stripValue(value, 'pronouns')  ?? { data: { tag: 'Pronouns', subject: '', object: '', adjective: '', possessive: '', reflexive: '' }, children: [] },
                     name: stripValue(value ?? { data: { tag: 'Name' }, children: [], id: '' }, 'name'),
                     firstImpression: stripValue(value ?? { data: { tag: 'FirstImpression' }, children: [], id: '' }, 'firstImpression'),
                     outfit: stripValue(value ?? { data: { tag: 'Outfit' }, children: [], id: '' }, 'outfit'),

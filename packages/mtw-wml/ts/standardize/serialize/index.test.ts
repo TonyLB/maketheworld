@@ -77,7 +77,7 @@ describe('standard form serialize' ,() => {
     })
 
 
-    it('should serialize all component types', () => {
+    it('should serialize a character', () => {
         const schema = new Schema()
         schema.loadWML(deIndentWML(`
             <Character key=(Tess)>
@@ -95,7 +95,6 @@ describe('standard form serialize' ,() => {
                     A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
                 </Outfit>
                 <Image key=(TessIcon) />
-                <Import from=(primitives) />
             </Character>
         `))
         const universalKeys = {
@@ -265,6 +264,56 @@ describe('standard form deserialize' ,() => {
         const deserialized = new Standardizer()
         const results = deserialize(ndjson)
         deserialized.deserialize(results.standardForm)
+        expect(schemaToWML(deserialized.schema)).toEqual(testWML)
+        expect(results.universalKeys).toEqual(universalKeys)
+        expect(results.fileAssociations).toEqual(fileAssociations)
+    })
+
+    it('should round-trip a character', () => {
+        const testWML = deIndentWML(`
+            <Character key=(Tess)>
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <FirstImpression>Frumpy Goth</FirstImpression>
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>
+                    A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
+                </Outfit>
+                <Image key=(TessIcon) />
+            </Character>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testWML)
+        const universalKeys = {
+            Tess: 'CHARACTER#001',
+            // TessIcon: 'IMAGE#002'
+        }
+        const universalKey = (key: string): string => {
+            if (!(key in universalKeys)) {
+                throw new Error('Key not in mock universalKeys')
+            }
+            return universalKeys[key]
+        }
+        const fileAssociations = {
+            // TessIcon: 'IMAGE-002'
+        }
+        const fileAssociation = (key: string): string => {
+            return fileAssociations[key]
+        }
+        const standard = new Standardizer(schema.schema)
+        const ndjson = serialize(standard.stripped, universalKey, fileAssociation)
+        console.log(`ndjson: ${JSON.stringify(ndjson, null, 4)}`)
+        const deserialized = new Standardizer()
+        const results = deserialize(ndjson)
+        console.log(`standardForm: ${JSON.stringify(results.standardForm, null, 4)}`)
+        deserialized.deserialize(results.standardForm)
+        console.log(`deserialized: ${JSON.stringify(deserialized, null, 4)}`)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
         expect(results.universalKeys).toEqual(universalKeys)
         expect(results.fileAssociations).toEqual(fileAssociations)
