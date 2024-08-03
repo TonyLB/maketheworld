@@ -151,7 +151,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 const namespaceEntry = this.namespaceIdToDB.find(({ internalKey }) => (key === internalKey))
                 return namespaceEntry?.universalKey
             },
-            (key) => (this.properties[key].fileName)
+            (key) => (this.properties[key]?.fileName)
         )
         await Promise.all([
             s3Client.put({

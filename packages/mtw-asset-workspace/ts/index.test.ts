@@ -200,6 +200,10 @@ describe('AssetWorkspace', () => {
                 Key: 'Library/Test.json',
                 Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{}}`
             })
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Library/Test.ndjson',
+                Body: `{"tag":"Asset","key":"Test"}`
+            })
         })
 
         it('should correctly trim properties to those represented in standardForm', async () => {
@@ -221,6 +225,10 @@ describe('AssetWorkspace', () => {
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
                 Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{"Test":{"fileName":"test"}}}`
+            })
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Personal/Test/Test.ndjson',
+                Body: `{"tag":"Asset","key":"Test"}`
             })
         })
     })
