@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
+import { serialize } from '@tonylb/mtw-wml/ts/standardize/serialize'
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
@@ -137,16 +138,31 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
     async pushJSON(): Promise<void> {
         const filePath = `${this.fileNameBase}.json`
+        const standardForm = this.standard || { key: this.assetId?.split('#')?.slice(1)?.[0] || '', tag: 'Asset', byId: {}, metaData: [] }
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
             namespaceIdToDB: this.namespaceIdToDB,
-            standard: this.standard || { key: this.assetId?.split('#')?.slice(1)?.[0] || '', tag: 'Asset', byId: {}, metaData: [] },
+            standard: standardForm,
             properties: objectFilterEntries(this.properties, ([key]) => ((key in (this.standard?.byId || {})) || (key === this.standard?.key)))
         })
-        await s3Client.put({
-            Key: filePath,
-            Body: contents
-        })
+        const serializedOutput = serialize(
+            standardForm,
+            (key) => {
+                const namespaceEntry = this.namespaceIdToDB.find(({ internalKey }) => (key === internalKey))
+                return namespaceEntry?.universalKey
+            },
+            (key) => (this.properties[key]?.fileName)
+        )
+        await Promise.all([
+            s3Client.put({
+                Key: filePath,
+                Body: contents
+            }),
+            s3Client.put({
+                Key: `${this.fileNameBase}.ndjson`,
+                Body: serializedOutput.map((line) => (JSON.stringify(line))).join('\n')
+            })
+        ])
         this.status.json = 'Clean'
     }
 

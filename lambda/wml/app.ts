@@ -1,4 +1,4 @@
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/'
+import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 import { PublishCommand } from '@aws-sdk/client-sns'
 import { snsClient } from './clients';
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
@@ -44,9 +44,28 @@ const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
     }
 }
 
+//
+// TEMPORARY
+//
+// The migrate handler is a temporary utility function to migrate obsolete single-JSON S3 objects to new version NDJSON
+// S3 objects. Once the migration of the development system is done, the function can (and should) be removed.
+//
+type MigrateHandlerArguments = {
+    message: 'migrateJSON';
+    address: AssetWorkspaceAddress;
+}
+
+const migrateHandler = async (event: MigrateHandlerArguments) => {
+    const assetWorkspace = new AssetWorkspace(event.address)
+    await assetWorkspace.loadJSON()
+    await assetWorkspace.pushJSON()
+}
+
 export const handler = async (event: any) => {
 
     switch(event.message) {
+        case 'migrateJSON':
+            return await migrateHandler(event)
         case 'parseWML':
             return await parseWMLHandler(event)
         case 'copyWML':
