@@ -212,7 +212,7 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadJSON() {
-        const filePath = `${this.fileNameBase}.json`
+        const filePath = `${this.fileNameBase}.ndjson`
         
         let contents = ''
         try {
