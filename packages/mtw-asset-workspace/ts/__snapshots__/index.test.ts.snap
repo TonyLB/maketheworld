@@ -2,7 +2,39 @@
 
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
-  "byId": Object {},
+  "byId": Object {
+    "testRoom": Object {
+      "description": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Description",
+        },
+      },
+      "exits": Array [],
+      "key": "testRoom",
+      "name": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Name",
+        },
+      },
+      "shortName": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "ShortName",
+        },
+      },
+      "summary": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Summary",
+        },
+      },
+      "tag": "Room",
+      "themes": Array [],
+      "universalKey": "ROOM#001",
+    },
+  },
   "key": "Test",
   "metaData": Array [],
   "tag": "Asset",
@@ -12,8 +44,8 @@ Object {
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 2`] = `
 Array [
   Object {
-    "internalKey": "a123",
-    "universalKey": "Test",
+    "internalKey": "testRoom",
+    "universalKey": "ROOM#001",
   },
 ]
 `;

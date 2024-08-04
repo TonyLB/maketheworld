@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { AssetWorkspaceException } from './errors'
 
 import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
+import { SerializableStandardAsset, SerializableStandardComponent, StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -77,11 +78,21 @@ describe('AssetWorkspace', () => {
 
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
-            s3ClientMock.get.mockResolvedValue(`{
-                "assetId": "ASSET#Test",
-                "namespaceIdToDB": [{ "internalKey": "a123", "universalKey": "Test" }],
-                "standard": { "key": "Test", "tag": "Asset", "byId": {}, "metaData": [] }
-            }`)
+            const lines: StandardNDJSON = [
+                { tag: "Asset", key: 'Test' },
+                {
+                    tag: 'Room',
+                    key: 'testRoom',
+                    universalKey: 'ROOM#001',
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    name: { data: { tag: 'Name' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
+                    exits: [],
+                    themes: []
+                }
+            ]
+            s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
     
             const testWorkspace = new AssetWorkspace({
                 fileName: 'Test',

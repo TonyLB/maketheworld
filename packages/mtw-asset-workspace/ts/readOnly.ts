@@ -5,7 +5,8 @@ import { SerializableStandardAsset, SerializableStandardCharacter, SerializableS
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { deserialize } from "@tonylb/mtw-wml/ts/standardize/serialize"
+import { objectMap } from "./objects"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -211,7 +212,7 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadJSON() {
-        const filePath = `${this.fileNameBase}.json`
+        const filePath = `${this.fileNameBase}.ndjson`
         
         let contents = ''
         try {
@@ -228,20 +229,19 @@ export class ReadOnlyAssetWorkspace {
             throw err
         }
         
-        const { assetId = '', namespaceIdToDB = [], standard = {}, properties = {} } = JSON.parse(contents)
-        if (!assetId) {
-            this.standard = { key: assetId.split('#').slice(1)[0] ?? '', tag: 'Asset', byId: {}, metaData: [] }
+        const lines = contents.split('\n').map((line) => (JSON.parse(line)))
+        const results = deserialize(lines)
+        if (!results.standardForm.key) {
+            this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
             this.namespaceIdToDB = []
             this.properties = {}
             this.status.json = 'Clean'
             return
         }
 
-        const standardizer = new Standardizer()
-        standardizer.loadStandardForm(standard)
-        this.standard = standardizer.stripped
-        this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
-        this.properties = properties as WorkspaceProperties
+        this.standard = results.standardForm
+        this.namespaceIdToDB = Object.entries(results.universalKeys).map(([key, value]) => ({ internalKey: key, universalKey: value })) as NamespaceMapping
+        this.properties = objectMap(results.fileAssociations, (value) => ({ fileName: value })) as WorkspaceProperties
         this.status.json = 'Clean'
     }
 
