@@ -7,6 +7,7 @@ import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { convertSelectDataToJson } from "../utilities/stream"
+import { assetWorkspaceFromAssetId } from "../utilities/assets"
 
 const { S3_BUCKET } = process.env;
 
@@ -73,48 +74,16 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
     // return presignedOutput
 }
 
-const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ AssetId }: { AssetId: string | undefined }): Promise<Record<string, { fileName: string }>> => {
-    let derivedFileName: string | undefined
-    if (AssetId) {
-        const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
-        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress; }>({
-            Key: {
-                AssetId,
-                DataCategory
-            },
-            ProjectionFields: ['address']
-        })) || {}
-        if (address) {
-            const assetWorkspace = new ReadOnlyAssetWorkspace(address)
-            derivedFileName = `${assetWorkspace.fileNameBase}.json`
-        }
-    }
-    if (!derivedFileName) {
+const fetchAssetProperties = async ({ AssetId }: { AssetId: string | undefined }): Promise<Record<string, { fileName: string }>> => {
+    if (!AssetId) {
         return {}
     }
-    const params = {
-        Bucket: S3_BUCKET,
-        Key: derivedFileName,
-        ExpressionType: 'SQL',
-        Expression: `SELECT r.properties FROM s3object[*] r`,
-        InputSerialization: {
-            JSON: { Type: 'Document' }
-        },
-        OutputSerialization: {
-            JSON: { RecordDelimiter: ',' }
-        }
-    }
-    const s3SelectResponse = await s3Client.send(new SelectObjectContentCommand(params))
-    //
-    // TODO: Better error handling
-    //
-    if (s3SelectResponse.$metadata.httpStatusCode === 200 && s3SelectResponse.Payload) {
-        const convertedData = await convertSelectDataToJson(s3SelectResponse.Payload)
-        return convertedData.properties as Record<string, { fileName: string }>    
-    }
-    else {
+    const assetWorkspace = await assetWorkspaceFromAssetId(AssetId)
+    if (!assetWorkspace) {
         return {}
     }
+    await assetWorkspace.loadJSON()
+    return assetWorkspace.properties
 }
 
 export const fetchAssetMessage = async ({ payloads, messageBus }: { payloads: FetchAssetMessage[], messageBus: MessageBus }): Promise<void> => {
@@ -128,7 +97,7 @@ export const fetchAssetMessage = async ({ payloads, messageBus }: { payloads: Fe
                     fileName: payload.fileName,
                     AssetId: payload.AssetId
                 }),
-                fetchAssetProperties({ s3Client })({ AssetId: payload.AssetId })
+                fetchAssetProperties({ AssetId: payload.AssetId })
             ])
             messageBus.send({
                 type: 'ReturnValue',
