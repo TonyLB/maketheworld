@@ -7,6 +7,7 @@ import { fetchImports } from './fetchImportDefaults';
 import { parseWMLHandler } from './parseWML'
 import copyWML from './copyWML';
 import { resetWML } from './resetWML';
+import backupWML from "./backupWML";
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -70,6 +71,8 @@ export const handler = async (event: any) => {
             return await parseWMLHandler(event)
         case 'copyWML':
             return await copyWML(event)
+        case 'backupWML':
+            return await backupWML(event)
         case 'resetWML':
             if (event.address.zone === 'Draft') {
                 return await resetWML({
