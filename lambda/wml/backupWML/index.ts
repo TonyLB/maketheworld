@@ -2,7 +2,8 @@ import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspa
 import { s3Client } from "../clients"
 import { Upload } from "@aws-sdk/lib-storage"
 import { GetObjectCommand } from "@aws-sdk/client-s3"
-import { Readable, PassThrough } from "node:stream"
+import { Readable, PassThrough, pipeline } from "node:stream"
+import { createGzip } from "node:zlib"
 import tar from "tar-stream"
 
 export type BackupWMLArguments = {
@@ -63,22 +64,25 @@ export const backupWML = async (args: BackupWMLArguments) => {
         })
 
     //
-    // TODO: Pipe resulting tar-stream through zlib
-    //
-
-    //
-    // TODO: Pipe resulting tar.gz stream to S3 Upload
+    // Pipe resulting tar-stream through zlib
     //
     const dataPassThrough = new PassThrough()
+    const gzip = createGzip()
+    pipeline(pack, gzip, dataPassThrough, () => {
+        console.log(`Pipeline error in backupWML`)
+    })
+
+    //
+    // Pipe resulting tar.gz stream to S3 Upload
+    //
     const upload = new Upload({
         client: s3Client,
         params: {
             Bucket: process.env.S3_BUCKET,
-            Key: 'test.tar',
+            Key: 'test.tar.gz',
             Body: dataPassThrough
         }
     })
-    pack.pipe(dataPassThrough)
     await upload.done()
 }
 
