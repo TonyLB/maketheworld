@@ -1,8 +1,9 @@
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
-import { isSchemaAsset, isSchemaCharacter } from "@tonylb/mtw-wml/ts/schema/baseClasses"
-import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema";
-import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
-import { dbRegister } from "../serialize/dbRegister";
+import { s3Client } from "../clients"
+import { Upload } from "@aws-sdk/lib-storage"
+import { GetObjectCommand } from "@aws-sdk/client-s3"
+import { Readable, PassThrough } from "node:stream"
+import tar from "tar-stream"
 
 export type BackupWMLArguments = {
     from: AssetWorkspaceAddress;
@@ -20,15 +21,46 @@ export const backupWML = async (args: BackupWMLArguments) => {
 
     await fromWorkspace.loadJSON()
 
-    console.log(`File associations: ${JSON.stringify(fromWorkspace.properties, null, 4)}`)
+    //
+    // Open streams for WML and file associations
+    //
+    const [wml, ...images] = await Promise.all([
+        s3Client.send(new GetObjectCommand({
+            Bucket: process.env.S3_BUCKET,
+            Key: `${fromWorkspace.filePath}${fromWorkspace.fileName}.wml`
+        })),
+        ...Object.entries(fromWorkspace.properties)
+            .map(async ([key, { fileName }]) => {
+                    const { Body, ContentLength } = await s3Client.send(new GetObjectCommand({
+                        Bucket: process.env.IMAGES_BUCKET,
+                        Key: fileName
+                    }))
+                    return { key, Body, ContentLength }
+            })
+    ])
 
     //
-    // TODO: Open streams for WML and file associations
+    // Pipe streams into tar-stream
     //
-
-    //
-    // TODO: Pipe streams into tar-stream
-    //
+    const pack = tar.pack()
+    const { Body: wmlBody } = wml
+    if (wmlBody && wmlBody instanceof Readable) {
+        wmlBody.pipe(pack.entry({ name: `${fromWorkspace.fileName}.wml`, size: wml.ContentLength }))
+    }
+    const filteredImages = images
+        .filter(({ Body }) => (Body && Body instanceof Readable))
+    filteredImages
+        .forEach(({ key, Body, ContentLength }, index) => {
+            const stream = Body as unknown as Readable
+            if (index === filteredImages.length - 1) {
+                stream.pipe(pack.entry({ name: `${key}.png`, size: ContentLength }, () => {
+                    pack.finalize()
+                }))
+            }
+            else {
+                stream.pipe(pack.entry({ name: `${key}.png`, size: ContentLength }))
+            }
+        })
 
     //
     // TODO: Pipe resulting tar-stream through zlib
@@ -37,6 +69,17 @@ export const backupWML = async (args: BackupWMLArguments) => {
     //
     // TODO: Pipe resulting tar.gz stream to S3 Upload
     //
+    const dataPassThrough = new PassThrough()
+    const upload = new Upload({
+        client: s3Client,
+        params: {
+            Bucket: process.env.S3_BUCKET,
+            Key: 'test.tar',
+            Body: dataPassThrough
+        }
+    })
+    pack.pipe(dataPassThrough)
+    await upload.done()
 }
 
 export default backupWML

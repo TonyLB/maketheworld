@@ -1225,16 +1225,17 @@ Resources:
                 - s3:DeleteObject
               Resource:
                 Fn::Sub:
-                    - "arn:aws:s3:::${AssetBucket}/*"
-                    - AssetBucket: !Sub '${TablePrefix}-uploads'
+                    - "arn:aws:s3:::${UploadBucket}/*"
+                    - UploadBucket: !Sub '${TablePrefix}-uploads'
           - Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
+                - s3:GetObject
               Resource:
                 Fn::Sub:
                     - "arn:aws:s3:::${ImageBucket}/*"
-                    - AssetBucket: !Sub '${TablePrefix}-images'
+                    - ImageBucket: !Sub '${TablePrefix}-images'
           - Statement:
             - Effect: Allow
               Resource: '*'

@@ -16,12 +16,14 @@
     "@aws-sdk/client-s3": "^3.425.0",
     "@aws-sdk/client-sfn": "^3.425.0",
     "@aws-sdk/client-sns": "^3.428.0",
+    "@aws-sdk/lib-storage": "^3.624.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "acorn": "^8.11.3",
     "acorn-walk": "^8.3.1",
     "aws-xray-sdk": "^3.5.1",
-    "jimp": "^0.22.10"
+    "jimp": "^0.22.10",
+    "tar-stream": "^3.1.7"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",
