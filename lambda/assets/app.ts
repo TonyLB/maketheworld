@@ -66,7 +66,7 @@ export const handler = async (event, context) => {
                     })
                 )
             case 'createBackupEntry':
-                await createBackupEntry({})
+                await createBackupEntry({ AssetId: event.AssetId })
                 return {
                     statusCode: 200,
                     body: JSON.stringify({ messageType: 'Success' })
