@@ -29,6 +29,7 @@ import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { healGlobalValues } from "./selfHealing/globalValues"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
+import { createBackupEntry } from "./backups"
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
@@ -64,6 +65,12 @@ export const handler = async (event, context) => {
                         return assetWorkspace?.address
                     })
                 )
+            case 'createBackupEntry':
+                await createBackupEntry({ AssetId: event.AssetId })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: 'Success' })
+                }
         }
     }
 
