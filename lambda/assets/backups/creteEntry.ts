@@ -1,12 +1,13 @@
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { getCurrentDateString } from "./utils";
 
 type CreateEntryArgs = {
     AssetId: EphemeraAssetId;
 }
 
 export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<string> => {
-    const datePrefix: string = new Date().toISOString().split('T')[0]
+    const datePrefix = getCurrentDateString()
     const todaysBackups = await assetDB.query({
         Key: { AssetId },
         KeyConditionExpression: 'begins_with(DataCategory, :dc)',
