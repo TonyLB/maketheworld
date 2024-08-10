@@ -33,7 +33,12 @@ type AssetWorkspaceConstructorDraft = {
     player: string;
 }
 
-export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft
+type AssetWorkspaceConstructorArchive = {
+    zone: 'Archive';
+    backupId: `BACKUP#${string}`;
+}
+
+export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft | AssetWorkspaceConstructorArchive
 
 export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
     if (!item) {
@@ -132,7 +137,7 @@ export class ReadOnlyAssetWorkspace {
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
-        if (!(args.zone === 'Draft' || args.fileName)) {
+        if (!(args.zone === 'Draft' || args.zone === 'Archive' || args.fileName)) {
             throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
         }
         this.address = args
@@ -145,6 +150,9 @@ export class ReadOnlyAssetWorkspace {
     get filePath(): string {
         if (this.address.zone === 'Draft') {
             return `Personal/${this.address.player}/Assets/`
+        }
+        if (this.address.zone === 'Archive') {
+            return ''
         }
         const subFolderElements = (this.address.subFolder || '').split('/').filter((value) => (value))
         const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
@@ -160,7 +168,7 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get fileName(): string {
-        return this.address.zone === 'Draft' ? 'draft' : this.address.fileName
+        return this.address.zone === 'Archive' ? '' : this.address.zone === 'Draft' ? 'draft' : this.address.fileName
     }
 
     universalKey(searchKey: string): string | undefined {
@@ -212,6 +220,13 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadJSON() {
+        if (this.address.zone === 'Archive') {
+            this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
+            this.namespaceIdToDB = []
+            this.properties = {}
+            this.status.json = 'Clean'
+            return
+        }
         const filePath = `${this.fileNameBase}.ndjson`
         
         let contents = ''
