@@ -1582,14 +1582,17 @@ Resources:
         IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
-        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
+        AssetsFunctionArn: !GetAtt AssetsFunction.Arn
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+        WMLFunctionArn: !GetAtt WMLFunction.Arn
         TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref AddressLookupFunction
+            FunctionName: !Ref AssetsFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref WMLFunction
         - CloudWatchLogsFullAccess
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt MTWFeedbackTopic.TopicName

@@ -11,17 +11,18 @@ States:
             requestId: ""
     "Apply Defaults":
         Type: Pass
-        Next: Assign Address
+        Next: Assign Backup Entry
         ResultPath: "$"
         Parameters:
             "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
-    "Assign Address":
+    "Assign Backup Entry":
         Type: Task
         Next: Check Address
-        Resource: "${AddressLookupFunctionArn}"
+        Resource: "${AssetsFunctionArn}"
         Parameters:
-            "assetIds.$": "States.Array($.args.assetId)"
-        ResultPath: "$.addressList"
+            "message": "createBackupEntry"
+            "AssetId.$": "$.args.assetId"
+        ResultPath: "$.results"
         Retry:
             -
                 ErrorEquals:
@@ -38,22 +39,39 @@ States:
         Type: Choice
         Choices:
             -
-                Variable: "$.addressList[0]"
+                Variable: "$.results.suffix"
                 IsPresent: false
                 Next: Notify of Failure
-        Default: Extract First Address
-    "Extract First Address":
-        Type: Pass
-        Parameters:
-            "address.$": "$.addressList[0].address"
-        ResultPath: "$.toMerge"
-        Next: Merge Address
-    "Merge Address":
-        Type: Pass
-        Parameters:
-            "args.$": "States.JsonMerge($.args, $.toMerge, false)"
-        ResultPath: "$"
+            -
+                Variable: "$.results.fileName"
+                IsPresent: false
+                Next: Notify of Failure
+            -
+                Variable: "$.results.address"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Backup WML
+    "Backup WML":
+        Type: Task
         Next: Done
+        Resource: "${WMLFunctionArn}"
+        Parameters:
+            "message": "backupWML"
+            "from.$": "$.results.address"
+            "to.$": "$.results.fileName"
+        ResultPath: "$.backupResults"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 2
+                BackoffRate: 1
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
     "Notify of Failure":
         Type: Task
         Next: Failure
