@@ -30,6 +30,7 @@ import { healGlobalValues } from "./selfHealing/globalValues"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
+import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
@@ -67,6 +68,18 @@ export const handler = async (event, context) => {
                 )
             case 'createBackupEntry':
                 return await createBackupEntry({ AssetId: event.AssetId })
+            case 'moveAsset':
+                const { AssetId, zone } = event
+                if (!isEphemeraAssetId(AssetId) || !event.zone) {
+                    throw new Error('Incorrect arguments on moveAsset')
+                }
+                messageBus.send({
+                    type: 'MoveByAssetId',
+                    AssetId: event.AssetId,
+                    toZone: zone
+                })
+                await messageBus.flush()
+                return {}
         }
     }
 
