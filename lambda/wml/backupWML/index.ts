@@ -8,6 +8,7 @@ import tar from "tar-stream"
 
 export type BackupWMLArguments = {
     from: AssetWorkspaceAddress;
+    to: string;
 }
 
 //
@@ -79,7 +80,7 @@ export const backupWML = async (args: BackupWMLArguments) => {
         client: s3Client,
         params: {
             Bucket: process.env.S3_BUCKET,
-            Key: 'test.tar.gz',
+            Key: args.to,
             Body: dataPassThrough
         }
     })
