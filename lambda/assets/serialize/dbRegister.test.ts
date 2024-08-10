@@ -1,7 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
@@ -12,8 +12,8 @@ jest.mock('../internalCache', () => ({
     }
 }))
 
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
+jest.mock('@tonylb/mtw-utilities/ts/graphStorage/update')
+import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 
 import { dbRegister } from './dbRegister'
 

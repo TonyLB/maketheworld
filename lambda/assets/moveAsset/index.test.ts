@@ -8,7 +8,7 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
-jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
@@ -42,7 +42,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
         }
     })
 })
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import AssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
 import { moveAssetMessage } from '.'
 
@@ -83,8 +83,8 @@ describe('moveAsset', () => {
             fileName: 'Test'
         })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
-            CopySource: 'undefined/Personal/Test/Test.json',
-            Key: 'Library/Test.json'
+            CopySource: 'undefined/Personal/Test/Test.ndjson',
+            Key: 'Library/Test.ndjson'
         })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
             CopySource: 'undefined/Personal/Test/Test.wml',
@@ -114,7 +114,7 @@ describe('moveAsset', () => {
             Key: 'Personal/Test/Test.wml'
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
-            Key: 'Personal/Test/Test.json'
+            Key: 'Personal/Test/Test.ndjson'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',

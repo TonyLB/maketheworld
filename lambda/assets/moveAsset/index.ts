@@ -1,10 +1,10 @@
 import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 import { dbRegister } from '../serialize/dbRegister'
-import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/readOnly"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { SerializableStandardAsset, SerializableStandardCharacter } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 
@@ -25,20 +25,22 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         return
                     }
                     fromAssetWorkspace.address = toAssetWorkspace.address
-                    const finalKey = toAssetWorkspace.fileNameBase
-                    await Promise.all([
-                        s3Client.send(new CopyObjectCommand({
-                            Bucket: S3_BUCKET,
-                            CopySource: `${S3_BUCKET}/${fileNameBase}.json`,
-                            Key: `${finalKey}.json`
-                        })),
-                        s3Client.send(new CopyObjectCommand({
-                            Bucket: S3_BUCKET,
-                            CopySource: `${S3_BUCKET}/${fileNameBase}.wml`,
-                            Key: `${finalKey}.wml`
-                        })),
-                        dbRegister(fromAssetWorkspace)
-                    ])
+                    if (toAssetWorkspace.address.zone !== 'Archive') {
+                        const finalKey = toAssetWorkspace.fileNameBase
+                        await Promise.all([
+                            s3Client.send(new CopyObjectCommand({
+                                Bucket: S3_BUCKET,
+                                CopySource: `${S3_BUCKET}/${fileNameBase}.ndjson`,
+                                Key: `${finalKey}.ndjson`
+                            })),
+                            s3Client.send(new CopyObjectCommand({
+                                Bucket: S3_BUCKET,
+                                CopySource: `${S3_BUCKET}/${fileNameBase}.wml`,
+                                Key: `${finalKey}.wml`
+                            })),
+                            dbRegister(fromAssetWorkspace)
+                        ])
+                    }
                     await Promise.all([
                         s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,
@@ -46,7 +48,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         })),
                         s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,
-                            Key: `${fileNameBase}.json`,
+                            Key: `${fileNameBase}.ndjson`,
                         }))
                     ])
             
@@ -104,14 +106,28 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
 
 export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads: MoveByAssetIdMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
-        payloads.map(async ({ toZone, player, AssetId }) => {
+        payloads.map(async ({ toZone, player, backupId, AssetId }) => {
             const assetWorkspace: ReadOnlyAssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
             if (assetWorkspace) {
                 const { address, fileName } = assetWorkspace
                 if (address.zone === 'Draft') {
                     return
                 }
-                if (fileName) {
+                if (toZone === 'Archive') {
+                    if (!backupId) {
+                        return
+                    }
+                    messageBus.send({
+                        type: 'MoveAsset',
+                        from: address,
+                        to: {
+                            zone: toZone,
+                            backupId: backupId || ''
+                        }
+                    })
+
+                }
+                else if (fileName && address.zone !== 'Archive') {
                     messageBus.send({
                         type: 'MoveAsset',
                         from: address,

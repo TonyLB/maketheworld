@@ -1,6 +1,6 @@
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { AssetPlayerSettingsAPIMessage, ParseWMLAPIImage } from '@tonylb/mtw-interfaces/ts/asset';
+import { InternalMessageBus } from '@tonylb/mtw-internal-bus/ts'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
+import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -47,8 +47,9 @@ export type MoveAssetMessage = {
 export type MoveByAssetIdMessage = {
     type: 'MoveByAssetId',
     AssetId: string;
-    toZone: 'Canon' | 'Library' | 'Personal';
+    toZone: 'Canon' | 'Library' | 'Personal' | 'Archive';
     player?: string;
+    backupId?: `BACKUP#${string}`;
 }
 
 export type LibrarySubscribeMessage = {
