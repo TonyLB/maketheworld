@@ -9,6 +9,7 @@ States:
         Parameters:
             connectionId: ""
             requestId: ""
+            archive: false
     "Apply Defaults":
         Type: Pass
         Next: Assign Backup Entry
@@ -53,7 +54,7 @@ States:
         Default: Backup WML
     "Backup WML":
         Type: Task
-        Next: Done
+        Next: Maybe Archive
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "backupWML"
@@ -72,6 +73,14 @@ States:
                 ErrorEquals:
                     - States.ALL
                 Next: Notify of Failure
+    "Maybe Archive":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.args.archive"
+                BooleanEquals: true
+                Next: Done
+        Default: Done
     "Notify of Failure":
         Type: Task
         Next: Failure
