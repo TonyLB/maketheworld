@@ -46,7 +46,32 @@ States:
                 Variable: "$.results.fileName"
                 IsPresent: false
                 Next: Notify of Failure
-        Default: Done
+            -
+                Variable: "$.results.address"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Backup WML
+    "Backup WML":
+        Type: Task
+        Next: Done
+        Resource: "${WMLFunctionArn}"
+        Parameters:
+            "message": "backupWML"
+            "from.$": "$.results.address"
+            "to.$": "$.results.fileName"
+        ResultPath: "$.backupResults"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 2
+                BackoffRate: 1
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
     "Notify of Failure":
         Type: Task
         Next: Failure
