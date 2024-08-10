@@ -79,8 +79,22 @@ States:
             -
                 Variable: "$.args.archive"
                 BooleanEquals: true
-                Next: Done
+                Next: Archive Asset
         Default: Done
+    "Archive Asset":
+        Type: Task
+        Next: Done
+        Resource: "${AssetsFunctionArn}"
+        Parameters:
+            "message": "moveAsset"
+            "zone": "Archive"
+            "AssetId.$": "$.args.assetId"
+        ResultPath: "$.moveResults"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
     "Notify of Failure":
         Type: Task
         Next: Failure
