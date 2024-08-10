@@ -89,6 +89,7 @@ States:
             "message": "moveAsset"
             "zone": "Archive"
             "AssetId.$": "$.args.assetId"
+            "backupId.$": "$.results.backupId"
         ResultPath: "$.moveResults"
         Catch:
             -

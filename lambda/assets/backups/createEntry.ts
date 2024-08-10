@@ -8,7 +8,7 @@ type CreateEntryArgs = {
     AssetId: EphemeraAssetId;
 }
 
-export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffix: string; address: AssetWorkspaceAddress, fileName: string }> => {
+export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffix: string; address: AssetWorkspaceAddress, backupId: `BACKUP#${string}`, fileName: string }> => {
     const datePrefix = getCurrentDateString()
     const [todaysBackups, assetMetas] = await Promise.all([
         assetDB.query({
@@ -43,15 +43,17 @@ export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffi
             break
     }
     const fileName = `${fileFolder}${fileSuffix}.tar.gz`
+    const backupId = `BACKUP#${fileSuffix}` as const
     await assetDB.putItem({
         AssetId,
-        DataCategory: `BACKUP#${fileSuffix}`,
+        DataCategory: backupId,
         fileName
     })
     return {
         suffix: fileSuffix,
         address,
-        fileName
+        fileName,
+        backupId
     }
 }
 
