@@ -11,17 +11,18 @@ States:
             requestId: ""
     "Apply Defaults":
         Type: Pass
-        Next: Assign Address
+        Next: Assign Backup Entry
         ResultPath: "$"
         Parameters:
             "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
-    "Assign Address":
+    "Assign Backup Entry":
         Type: Task
         Next: Check Address
-        Resource: "${AddressLookupFunctionArn}"
+        Resource: "${AssetsFunctionArn}"
         Parameters:
-            "assetIds.$": "States.Array($.args.assetId)"
-        ResultPath: "$.addressList"
+            "message": "createBackupEntry"
+            "AssetId.$": "$.args.assetId"
+        ResultPath: "$.results"
         Retry:
             -
                 ErrorEquals:
@@ -38,22 +39,14 @@ States:
         Type: Choice
         Choices:
             -
-                Variable: "$.addressList[0]"
+                Variable: "$.results.suffix"
                 IsPresent: false
                 Next: Notify of Failure
-        Default: Extract First Address
-    "Extract First Address":
-        Type: Pass
-        Parameters:
-            "address.$": "$.addressList[0].address"
-        ResultPath: "$.toMerge"
-        Next: Merge Address
-    "Merge Address":
-        Type: Pass
-        Parameters:
-            "args.$": "States.JsonMerge($.args, $.toMerge, false)"
-        ResultPath: "$"
-        Next: Done
+            -
+                Variable: "$.results.fileName"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Done
     "Notify of Failure":
         Type: Task
         Next: Failure

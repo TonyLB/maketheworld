@@ -2,12 +2,13 @@ import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { getCurrentDateString } from "./utils";
 import internalCache from "../internalCache";
+import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
 
 type CreateEntryArgs = {
     AssetId: EphemeraAssetId;
 }
 
-export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffix: string; fileName: string }> => {
+export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffix: string; address: AssetWorkspaceAddress, fileName: string }> => {
     const datePrefix = getCurrentDateString()
     const [todaysBackups, assetMetas] = await Promise.all([
         assetDB.query({
@@ -49,6 +50,7 @@ export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffi
     })
     return {
         suffix: fileSuffix,
+        address,
         fileName
     }
 }
