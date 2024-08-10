@@ -1,0 +1,80 @@
+---
+Comment: Command step-function to execute backup of an Asset
+StartAt: Define Defaults
+States:
+    "Define Defaults":
+        Type: Pass
+        Next: Apply Defaults
+        ResultPath: "$.inputDefaults"
+        Parameters:
+            connectionId: ""
+            requestId: ""
+    "Apply Defaults":
+        Type: Pass
+        Next: Assign Address
+        ResultPath: "$"
+        Parameters:
+            "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
+    "Assign Address":
+        Type: Task
+        Next: Check Address
+        Resource: "${AddressLookupFunctionArn}"
+        Parameters:
+            "assetIds.$": "States.Array($.args.assetId)"
+        ResultPath: "$.addressList"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Notify of Failure
+    "Check Address":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.addressList[0]"
+                IsPresent: false
+                Next: Notify of Failure
+        Default: Extract First Address
+    "Extract First Address":
+        Type: Pass
+        Parameters:
+            "address.$": "$.addressList[0].address"
+        ResultPath: "$.toMerge"
+        Next: Merge Address
+    "Merge Address":
+        Type: Pass
+        Parameters:
+            "args.$": "States.JsonMerge($.args, $.toMerge, false)"
+        ResultPath: "$"
+        Next: Done
+    "Notify of Failure":
+        Type: Task
+        Next: Failure
+        Resource: "arn:aws:states:::sns:publish"
+        Parameters:
+            TopicArn: "${TopicArn}"
+            Message: "{}"
+            MessageAttributes:
+                Type:
+                    DataType: String
+                    StringValue: Error
+                RequestId:
+                    DataType: String
+                    "StringValue.$": "$.args.requestId"
+                ConnectionIds:
+                    DataType: String.Array
+                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
+                Error:
+                    DataType: String
+                    StringValue: "Error while caching assets"
+    Failure:
+        Type: Fail
+    Done:
+        Type: Succeed
