@@ -40,6 +40,8 @@ export const backupWML = async (args: BackupWMLArguments) => {
                     return { key, Body, ContentLength }
             })
     ])
+    const filteredImages = images
+        .filter(({ Body }) => (Body && Body instanceof Readable))
 
     //
     // Pipe streams into tar-stream
@@ -47,10 +49,18 @@ export const backupWML = async (args: BackupWMLArguments) => {
     const pack = tar.pack()
     const { Body: wmlBody } = wml
     if (wmlBody && wmlBody instanceof Readable) {
-        wmlBody.pipe(pack.entry({ name: `${fromWorkspace.fileName}.wml`, size: wml.ContentLength }))
+        if (filteredImages.length) {
+            wmlBody.pipe(pack.entry({ name: `${fromWorkspace.fileName}.wml`, size: wml.ContentLength }))
+        }
+        else {
+            wmlBody.pipe(pack.entry({ name: `${fromWorkspace.fileName}.wml`, size: wml.ContentLength }, () => {
+                pack.finalize()
+            }))
+        }
     }
-    const filteredImages = images
-        .filter(({ Body }) => (Body && Body instanceof Readable))
+    else {
+        throw new Error('No WML file found')
+    }
     filteredImages
         .forEach(({ key, Body, ContentLength }, index) => {
             const stream = Body as unknown as Readable
