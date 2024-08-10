@@ -62,6 +62,9 @@ export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddres
     if (item.zone === 'Personal' && !(item.player && typeof item.player === 'string')) {
         return false
     }
+    if (item.zone === 'Archive' && !(item.backupId && typeof item.backupId === 'string' && item.backupId.startsWith('BACKUP#'))) {
+        return false
+    }
     return true
 }
 
