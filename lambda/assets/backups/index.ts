@@ -1,1 +1,1 @@
-export { createEntry as createBackupEntry } from './creteEntry'
+export { createEntry as createBackupEntry } from './createEntry'
