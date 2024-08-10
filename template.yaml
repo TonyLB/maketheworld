@@ -1565,7 +1565,34 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref ConnectionFunction
         - CloudWatchLogsFullAccess
-
+  BackupAssetStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  BackupAssetStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_backup_asset_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/backupAsset.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt BackupAssetStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
+        EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AddressLookupFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EphemeraFunction
+        - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MTWFeedbackTopic.TopicName
 Outputs:
   UserPoolClient:
       Description: The client ID for the player user pool
