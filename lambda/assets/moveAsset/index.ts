@@ -41,6 +41,9 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                             dbRegister(fromAssetWorkspace)
                         ])
                     }
+                    else {
+                        await dbRegister(fromAssetWorkspace)
+                    }
                     await Promise.all([
                         s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,

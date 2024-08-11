@@ -1043,7 +1043,7 @@ Resources:
                   FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine
                   LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
-                  DECACHE_SFN: !Ref LargeLanguageModelStateMachine
+                  DECACHE_SFN: !Ref DecacheAssetsStateMachine
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -1061,6 +1061,8 @@ Resources:
                 StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_llm_generate_step_function'
+            - StepFunctionsExecutionPolicy:
+                StateMachineName: !Sub '${TablePrefix}_decache_assets_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'
