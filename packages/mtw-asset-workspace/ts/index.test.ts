@@ -103,7 +103,34 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.standard).toMatchSnapshot()
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
+
+        it('should correctly parse a character', async () => {
+            const lines: StandardNDJSON = [
+                {
+                    tag: "Character",
+                    key: 'Tess',
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }]},
+                    firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy goth' }, children: [] },
+                    oneCoolThing: { data: { tag: 'OneCoolThing', value: '' }, children: [] },
+                    outfit: { data: { tag: 'Outfit', value: '' }, children: [] },
+                    pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'hers', adjective: 'her', reflexive: 'herself' }, children: [] },
+                    image: { data: { tag: 'Image', key: 'TessIcon' }, children: [] },
+                    universalKey: 'CHARACTER#ABCDEF'
+                },
+                { tag: 'Image', key: 'TessIon', universalKey: 'IMAGE#123456', fileURL: 'abcdef.png' }
+            ]
+            s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
     
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadJSON()
+            expect(testWorkspace.standard).toMatchSnapshot()
+            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+        })
+
         it('should return empty on no JSON file', async () => {
             s3ClientMock.get.mockImplementation(() => {
                 const error = new (class NoSuchKey extends Error {

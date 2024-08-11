@@ -1,5 +1,92 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`AssetWorkspace loadJSON should correctly parse a character 1`] = `
+Object {
+  "byId": Object {
+    "Tess": Object {
+      "firstImpression": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "FirstImpression",
+          "value": "Frumpy goth",
+        },
+      },
+      "image": Object {
+        "children": Array [],
+        "data": Object {
+          "key": "TessIcon",
+          "tag": "Image",
+        },
+      },
+      "key": "Tess",
+      "name": Object {
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "Tess",
+            },
+          },
+        ],
+        "data": Object {
+          "tag": "Name",
+        },
+      },
+      "oneCoolThing": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "OneCoolThing",
+          "value": "",
+        },
+      },
+      "outfit": Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Outfit",
+          "value": "",
+        },
+      },
+      "pronouns": Object {
+        "children": Array [],
+        "data": Object {
+          "adjective": "her",
+          "object": "her",
+          "possessive": "hers",
+          "reflexive": "herself",
+          "subject": "she",
+          "tag": "Pronouns",
+        },
+      },
+      "tag": "Character",
+      "universalKey": "CHARACTER#ABCDEF",
+    },
+    "TessIon": Object {
+      "fileURL": "abcdef.png",
+      "key": "TessIon",
+      "tag": "Image",
+      "universalKey": "IMAGE#123456",
+    },
+  },
+  "key": "Tess",
+  "metaData": Array [],
+  "tag": "Character",
+}
+`;
+
+exports[`AssetWorkspace loadJSON should correctly parse a character 2`] = `
+Array [
+  Object {
+    "internalKey": "Tess",
+    "universalKey": "CHARACTER#ABCDEF",
+  },
+  Object {
+    "internalKey": "TessIon",
+    "universalKey": "IMAGE#123456",
+  },
+]
+`;
+
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
   "byId": Object {
