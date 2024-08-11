@@ -196,12 +196,8 @@ export class ReadOnlyAssetWorkspace {
                     Body: `<Asset key=(draft) />`
                 }),
                 s3Client.put({
-                    Key: `${this.fileNameBase}.json`,
-                    Body: JSON.stringify({
-                        assetId: "ASSET#draft",
-                        namespaceIdToDB: [],
-                        standard: { key: "draft", tag: "Asset", byId: {}, metaData: [] }
-                    }, null, 4)
+                    Key: `${this.fileNameBase}.ndjson`,
+                    Body: `{"tag":"Asset","key":"draft"}`
                 })
             ])
         }
