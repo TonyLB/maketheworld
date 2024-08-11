@@ -15,7 +15,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
     if (s3Client) {
         await Promise.all(
             payloads.map(async (payload) => {
-                const { from, to } = payload
+                const { from, to, AssetId } = payload
                 await asyncSuppressExceptions(async () => {
                     const fromAssetWorkspace = new ReadOnlyAssetWorkspace(from)
                     const fileNameBase = fromAssetWorkspace.fileNameBase
@@ -42,6 +42,12 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         ])
                     }
                     else {
+                        fromAssetWorkspace.standard = {
+                            key: AssetId.split('#').slice(-1)[0],
+                            tag: AssetId.split('#')[0] === 'CHARACTER' ? 'Character' : 'Asset',
+                            byId: {},
+                            metaData: []
+                        }
                         await dbRegister(fromAssetWorkspace)
                     }
                     await Promise.all([
@@ -122,6 +128,7 @@ export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads:
                     }
                     messageBus.send({
                         type: 'MoveAsset',
+                        AssetId,
                         from: address,
                         to: {
                             zone: toZone,
@@ -133,6 +140,7 @@ export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads:
                 else if (fileName && address.zone !== 'Archive') {
                     messageBus.send({
                         type: 'MoveAsset',
+                        AssetId,
                         from: address,
                         to: (toZone === 'Personal') ? {
                             fileName: address.fileName,
