@@ -10,17 +10,19 @@ export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMe
     const ConnectionId = await internalCache.Connection.get('connectionId')
     const RequestId = await internalCache.Connection.get('RequestId')
 
-    await Promise.all(payloads.map((payload) => (
-        snsClient.send(new PublishCommand({
-            TopicArn: FEEDBACK_TOPIC,
-            Message: JSON.stringify(payload.body),
-            MessageAttributes: {
-                RequestId: { DataType: 'String', StringValue: RequestId },
-                ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
-                Type: { DataType: 'String', StringValue: 'Success' }
-            }
-        }))
-    )))
+    if (ConnectionId) {
+        await Promise.all(payloads.map((payload) => (
+            snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify(payload.body),
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: RequestId || '' },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
+        )))
+    }
 }
 
 export default returnValueMessage

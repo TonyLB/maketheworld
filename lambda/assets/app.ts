@@ -69,16 +69,23 @@ export const handler = async (event, context) => {
             case 'createBackupEntry':
                 return await createBackupEntry({ AssetId: event.AssetId })
             case 'moveAsset':
-                const { AssetId, zone } = event
+                const { AssetId, zone, backupId } = event
                 if (!isEphemeraAssetId(AssetId) || !event.zone) {
                     throw new Error('Incorrect arguments on moveAsset')
                 }
                 messageBus.send({
                     type: 'MoveByAssetId',
-                    AssetId: event.AssetId,
-                    toZone: zone
+                    AssetId,
+                    toZone: zone,
+                    backupId
                 })
                 await messageBus.flush()
+                if (zone === 'Archive') {
+                    await sfnClient.send(new StartExecutionCommand({
+                        stateMachineArn: process.env.DECACHE_SFN,
+                        input: JSON.stringify({ assetIds: [AssetId] })
+                    }))        
+                }
                 return {}
         }
     }

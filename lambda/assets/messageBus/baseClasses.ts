@@ -40,6 +40,7 @@ export type UploadURLMessage = {
 
 export type MoveAssetMessage = {
     type: 'MoveAsset';
+    AssetId: string;
     from: AssetWorkspaceAddress;
     to: AssetWorkspaceAddress;
 }
