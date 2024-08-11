@@ -3,6 +3,7 @@ import { Standardizer, defaultSelected } from '.'
 import { deIndentWML } from '../schema/utils'
 import { GenericTree, TreeId } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
+import { StandardizerAbstract } from './abstract'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
@@ -755,6 +756,49 @@ describe('standardizeSchema', () => {
                 </Room>
                 <Room key=(testRoomTwo)><Name><Inherited>Test Two</Inherited></Name></Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `))
+    })
+
+    it('should merge multiple serializable standardComponents correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Inherited>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                    <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+                </Inherited>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testStandard = new StandardizerAbstract()
+        testStandard.loadStandardForm({
+            key: 'Test',
+            tag: 'Asset',
+            byId: {
+                testRoomOne: {
+                    tag: 'Room',
+                    key: 'testRoomOne',
+                    id: '',
+                    exits: [],
+                    themes: [],
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: ': Night' }, children: [], id: '' }], id: '' }
+                }
+            },
+            metaData: []
+        })
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Inherited>Lobby</Inherited>: Night</Name>
+                    <Description><Inherited>A plain lobby.</Inherited></Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name><Inherited>Test Two</Inherited></Name></Room>
             </Asset>
         `))
     })
