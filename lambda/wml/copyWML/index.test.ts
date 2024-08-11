@@ -5,7 +5,6 @@ jest.mock('../serialize/dbRegister')
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 import copyWML from '.'
-import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 
@@ -23,29 +22,23 @@ describe('copyWML', () => {
                 <Room key=(TestRoom)><Name>Test Name</Name></Room>
             </Asset>
         `))
-        const testJSON: { assetId: string; namespaceIdToDB: any[], standard: SerializableStandardForm; properties: any } = {
-            assetId: "ASSET#draft[Test]",
-            namespaceIdToDB: [{ internalKey: 'TestRoom', universalKey: 'ROOM#UUID' }],
-            standard: {
-                key: 'testCopy',
-                tag: 'Asset',
-                byId: {
-                    TestRoom: {
-                        tag: 'Room',
-                        key: 'TestRoom',
-                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Name'}, children: [] }] },
-                        shortName: { data: { tag: 'ShortName' }, children: [] },
-                        summary: { data: { tag: 'Summary' }, children: [] },
-                        description: { data: { tag: 'Description' }, children: [] },
-                        exits: [],
-                        themes: []
-                    }
-                },
-                metaData: []
-            },
-            properties: {}
+        const testRoom = {
+            tag: 'Room',
+            key: 'TestRoom',
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Name'}, children: [] }] },
+            shortName: { data: { tag: 'ShortName' }, children: [] },
+            summary: { data: { tag: 'Summary' }, children: [] },
+            description: { data: { tag: 'Description' }, children: [] },
+            exits: [],
+            themes: [],
+            universalKey: 'ROOM#ABCDEF'
         }
-        s3ClientMock.get.mockResolvedValueOnce(JSON.stringify(testJSON))
+        const testNDJSON = [
+            { tag: 'Asset', key: 'draft', universalId: 'ASSET#draft[Test]' },
+            testRoom
+        ]
+        const ndjsonTransform = (lines) => (lines.map((line) => (JSON.stringify(line))).join('\n'))
+        s3ClientMock.get.mockResolvedValueOnce(ndjsonTransform(testNDJSON))
 
         await copyWML({
             key: 'testCopy',
@@ -70,12 +63,12 @@ describe('copyWML', () => {
             `)
         })
 
-        const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.json'))
+        const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.ndjson'))
         expect(jsonIndex).not.toEqual(-1)
-        expect(JSON.parse(s3ClientMock.put.mock.calls[jsonIndex][0].Body)).toEqual({
-            ...testJSON,
-            assetId: 'ASSET#testCopy'
-        })        
+        expect(s3ClientMock.put.mock.calls[jsonIndex][0].Body.split('\n').map((line) => (JSON.parse(line)))).toEqual([
+            { tag: 'Asset', key: 'testCopy', universalId: 'ASSET#testCopy' },
+            testRoom
+        ])
 
     })
 
