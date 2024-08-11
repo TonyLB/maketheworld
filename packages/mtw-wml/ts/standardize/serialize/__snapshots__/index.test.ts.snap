@@ -75,6 +75,7 @@ Array [
   Object {
     "key": "test",
     "tag": "Asset",
+    "universalId": "ASSET#test",
   },
   Object {
     "fileName": "IMAGE-001",
@@ -323,6 +324,7 @@ Array [
   Object {
     "key": "test",
     "tag": "Asset",
+    "universalId": "ASSET#test",
   },
   Object {
     "description": Object {

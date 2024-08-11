@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { AssetWorkspaceException } from './errors'
 
 import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
-import { SerializableStandardAsset, SerializableStandardComponent, StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -221,6 +221,10 @@ describe('AssetWorkspace', () => {
                 Key: 'Personal/Test/Test.json',
                 Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{}}`
             })
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Personal/Test/Test.ndjson',
+                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
+            })
         })
 
         it('should correctly push JSON content to library zone', async () => {
@@ -240,7 +244,7 @@ describe('AssetWorkspace', () => {
             })
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test"}`
+                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
             })
         })
 
@@ -266,7 +270,7 @@ describe('AssetWorkspace', () => {
             })
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test"}`
+                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
             })
         })
     })

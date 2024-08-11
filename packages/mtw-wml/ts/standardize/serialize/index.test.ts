@@ -10,7 +10,7 @@ describe('standard form serialize' ,() => {
             key: 'Test',
             byId: {},
             metaData: []
-        })).toEqual([{ tag: 'Asset', key: 'Test' }])
+        })).toEqual([{ tag: 'Asset', key: 'Test', universalId: 'ASSET#Test' }])
     })
 
     it('should serialize all component types', () => {
@@ -148,7 +148,7 @@ describe('standard form serialize' ,() => {
         `))
         const standard = new Standardizer(schema.schema)
         expect(serialize(standard.stripped)).toEqual([
-            { tag: 'Asset', key: 'test' },
+            { tag: 'Asset', key: 'test', universalId: 'ASSET#test' },
             {
                 tag: 'Room',
                 from: { assetId: 'testImport', key: 'testIn' },
@@ -175,7 +175,7 @@ describe('standard form serialize' ,() => {
         `))
         const standard = new Standardizer(schema.schema)
         expect(serialize(standard.stripped)).toEqual([
-            { tag: 'Asset', key: 'test' },
+            { tag: 'Asset', key: 'test', universalId: 'ASSET#test' },
             {
                 tag: 'Room',
                 key: 'testRoom',
