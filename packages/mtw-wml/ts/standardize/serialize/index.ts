@@ -47,7 +47,7 @@ export const serialize = (
     })
     const baseItem = standardForm.tag === 'Character'
         ? addNDJSONSerializeKeys(standardForm.byId[standardForm.key])
-        : { tag: 'Asset' as const, key: standardForm.key }
+        : { tag: 'Asset' as const, key: standardForm.key, universalId: `ASSET#${standardForm.key}` }
     return [
         baseItem,
         ...(componentTags
