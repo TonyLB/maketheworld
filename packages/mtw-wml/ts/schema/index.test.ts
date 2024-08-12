@@ -452,6 +452,32 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should correctly parse remove tags', () => {
+        const testWML = `
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Remove><Exit to=(room2)>out</Exit></Remove>
+                </Room>
+            </Asset>
+        `
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "test"
+            },
+            children: [
+                {
+                    data: { tag: 'Room', key: 'room1' },
+                    children: [{
+                        data: { tag: 'Remove' },
+                        children: [{ data: { tag: 'Exit', from: 'room1', key: 'room1#room2', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                    }]
+                }
+            ]
+        }])
+    })
+
     it('should make a schema for a character correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
@@ -708,11 +734,12 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip complicated rooms', () => {
+    it('should correctly round-trip edit tags', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Replace><Name>Lobby</Name></Replace><With><Name>Foyer</Name></With>
+                    <Remove><Exit to=(room2)>out</Exit></Remove>
                 </Room>
             </Asset>
         `)
