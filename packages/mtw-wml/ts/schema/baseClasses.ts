@@ -194,6 +194,10 @@ export type SchemaReplacePayloadTag = {
     tag: 'ReplacePayload';
 } & SchemaBase
 
+export type SchemaRemoveTag = {
+    tag: 'Remove';
+} & SchemaBase
+
 export type SchemaBookmarkTag = {
     tag: 'Bookmark';
     key: string;
@@ -320,7 +324,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaMomentTag |
     SchemaReplaceTag |
     SchemaReplaceMatchTag |
-    SchemaReplacePayloadTag
+    SchemaReplacePayloadTag |
+    SchemaRemoveTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -348,6 +353,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaReplaceTag |
     SchemaReplaceMatchTag |
     SchemaReplacePayloadTag |
+    SchemaRemoveTag |
     SchemaInheritedTag
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
@@ -358,6 +364,7 @@ export const isSchemaSummary = (value: SchemaTag): value is SchemaSummaryTag => 
 export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => (value.tag === 'Replace')
 export const isSchemaReplaceMatch = (value: SchemaTag): value is SchemaReplaceMatchTag => (value.tag === 'ReplaceMatch')
 export const isSchemaReplacePayload = (value: SchemaTag): value is SchemaReplacePayloadTag => (value.tag === 'ReplacePayload')
+export const isSchemaRemove = (value: SchemaTag): value is SchemaRemoveTag => (value.tag === 'Remove')
 export const isSchemaBookmark = (value: SchemaTag): value is SchemaBookmarkTag => (value.tag === 'Bookmark')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')

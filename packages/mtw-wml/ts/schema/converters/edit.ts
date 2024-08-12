@@ -1,16 +1,25 @@
 import { GenericTree } from "../../tree/baseClasses"
-import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../baseClasses"
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { wrapperCombine } from "./quantumRender/combine"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const editTemplates = {
+    Remove: {},
     Replace: {},
     With: {}
 } as const
 
 export const editConverters: Record<string, ConverterMapEntry> = {
+    Remove: {
+        initialize: ({ parseOpen }): SchemaRemoveTag => {
+            return {
+                tag: 'Remove',
+                ...validateProperties(editTemplates.Remove)(parseOpen)
+            }
+        }
+    },
     Replace: {
         initialize: ({ parseOpen }): SchemaReplaceMatchTag => {
             return {
@@ -84,6 +93,14 @@ export const editConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const editPrintMap: Record<string, PrintMapEntry> = {
+    Remove: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+        tagRender({
+            ...args,
+            tag: 'Remove',
+            properties: [],
+            node: { data, children }
+        })
+    ),
     ReplaceMatch: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
