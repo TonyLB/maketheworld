@@ -45,7 +45,7 @@ export type ConverterMapEntry = {
     // already exist on contextStack, and the aggregate function is used to turn that wrapper object (together with
     // its current children) into the new wrapper object (with, presumably, updated children)
     //
-    wrapper?: 'If';
+    wrapper?: 'If' | 'Replace';
     aggregate?: (previous: GenericTreeNode<SchemaTag>, node: GenericTreeNode<SchemaTag>) => GenericTreeNode<SchemaTag>;
 }
 

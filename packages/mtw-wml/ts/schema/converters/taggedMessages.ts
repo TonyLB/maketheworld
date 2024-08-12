@@ -8,7 +8,6 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const taggedMessageTemplates = {
-    Replace: {},
     br: {},
     Space: {},
     Link: {
@@ -17,22 +16,6 @@ const taggedMessageTemplates = {
 } as const
 
 export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
-    Replace: {
-        initialize: ({ parseOpen }): SchemaReplaceTag => ({
-            tag: 'Replace',
-            ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
-        }),
-        typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => {
-            if (!isSchemaReplace(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
     br: {
         initialize: ({ parseOpen }): SchemaLineBreakTag => ({
             tag: 'br',
@@ -68,16 +51,6 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
-    Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
-        isSchemaReplace(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Replace',
-                properties: [],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
     String: ({ tag: { data: tag } }: PrintMapEntryArguments) => (
         isSchemaString(tag)
             ? [{ printMode: PrintMode.naive, tag: 'String' as const, output: escapeWMLCharacters(tag.value) }]

@@ -120,8 +120,14 @@ class SchemaAggregator {
             throw new Error(`Mismatched tag closure ('${tag}' matches nothing)`)
         }
         const closingItem = this.contextStack.slice(-1)[0]
-        if (closingItem.data.tag !== tag && !((['If', 'ElseIf'].includes(tag) && closingItem.data.tag === 'Statement') || (tag === 'Else' && closingItem.data.tag === 'Fallthrough'))) {
-            throw new Error(`Mismatched tag closure ('${tag}') does not match '${closingItem.data.tag}'`)
+        if (closingItem.data.tag !== tag) {
+            if (!(
+                (['If', 'ElseIf'].includes(tag) && closingItem.data.tag === 'Statement') ||
+                (tag === 'Else' && closingItem.data.tag === 'Fallthrough') ||
+                (tag === 'Replace' && closingItem.data.tag === 'ReplaceMatch')
+            )) {
+                throw new Error(`Mismatched tag closure ('${tag}') does not match '${closingItem.data.tag}'`)
+            }
         }
     }
 
