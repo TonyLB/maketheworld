@@ -1,5 +1,5 @@
 import { GenericTree } from "../../tree/baseClasses"
-import { isSchemaReplace, isSchemaReplaceMatch, SchemaReplaceMatchTag, SchemaReplaceTag, SchemaTag } from "../baseClasses"
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { wrapperCombine } from "./quantumRender/combine"
 import { tagRender } from "./tagRender"
@@ -7,7 +7,7 @@ import { validateProperties } from "./utils"
 
 const editTemplates = {
     Replace: {},
-    ReplaceMatch: {}
+    With: {}
 } as const
 
 export const editConverters: Record<string, ConverterMapEntry> = {
@@ -24,7 +24,7 @@ export const editConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaReplaceMatchTag => {
             return {
                 tag: 'ReplaceMatch',
-                ...validateProperties(editTemplates.ReplaceMatch)(parseOpen)
+                ...validateProperties(editTemplates.Replace)(parseOpen)
             }
         },
         aggregate: (previous, node) => {
@@ -32,6 +32,49 @@ export const editConverters: Record<string, ConverterMapEntry> = {
             // if (nearestSibling && isSchemaConditionFallthrough(nearestSibling)) {
             //     throw new Error(`Replace must precede With`)
             // }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
+    },
+    With: {
+        initialize: ({ parseOpen }): SchemaReplacePayloadTag => {
+            return {
+                tag: 'ReplacePayload',
+                ...validateProperties(editTemplates.With)(parseOpen)
+            }
+        },
+        wrapper: 'Replace',
+        aggregate: (previous, node) => {
+            if (previous.children.length === 0) {
+                throw new Error(`With must be part of a "Replace" grouping`)
+            }
+            const nearestSibling = previous.children.length ? previous.children.slice(-1)[0].data : undefined
+            if (nearestSibling && !isSchemaReplaceMatch(nearestSibling)) {
+                throw new Error(`With must follow Replace`)
+            }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
+    },
+    ReplacePayload: {
+        initialize: ({ parseOpen }): SchemaReplacePayloadTag => {
+            return {
+                tag: 'ReplacePayload',
+                ...validateProperties(editTemplates.With)(parseOpen)
+            }
+        },
+        aggregate: (previous, node) => {
+            if (previous.children.length === 0) {
+                throw new Error(`With must be part of a "Replace" grouping`)
+            }
+            const nearestSibling = previous.children.length ? previous.children.slice(-1)[0].data : undefined
+            if (nearestSibling && !isSchemaReplaceMatch(nearestSibling)) {
+                throw new Error(`With must follow Replace`)
+            }
             return {
                 ...previous,
                 children: [...previous.children, node]
@@ -45,6 +88,14 @@ export const editPrintMap: Record<string, PrintMapEntry> = {
         tagRender({
             ...args,
             tag: 'Replace',
+            properties: [],
+            node: { data, children }
+        })
+    ),
+    ReplacePayload: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+        tagRender({
+            ...args,
+            tag: 'With',
             properties: [],
             node: { data, children }
         })
