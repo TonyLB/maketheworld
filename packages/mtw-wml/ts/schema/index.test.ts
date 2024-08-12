@@ -421,6 +421,7 @@ describe('schemaFromParse', () => {
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Replace><Name>Lobby</Name></Replace>
+                    <With><Name>Foyer</Name></With>
                 </Room>
             </Asset>
         `
@@ -435,10 +436,16 @@ describe('schemaFromParse', () => {
                     data: { tag: 'Room', key: 'room1' },
                     children: [{
                         data: { tag: 'Replace' },
-                        children: [{
-                            data: { tag: 'ReplaceMatch' },
-                            children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
-                        }]
+                        children: [
+                            {
+                                data: { tag: 'ReplaceMatch' },
+                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                            },
+                            {
+                                data: { tag: 'ReplacePayload' },
+                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
+                            }
+                        ]
                     }]
                 }
             ]
@@ -696,6 +703,17 @@ describe('schemaToWML', () => {
                     <Exit to=(VORTEX)>vortex</Exit>
                 </Room>
                 <Variable key=(lights) default={true} />
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip complicated rooms', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Replace><Name>Lobby</Name></Replace><With><Name>Foyer</Name></With>
+                </Room>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)

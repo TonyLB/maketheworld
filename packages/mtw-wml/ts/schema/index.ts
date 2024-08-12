@@ -124,7 +124,8 @@ class SchemaAggregator {
             if (!(
                 (['If', 'ElseIf'].includes(tag) && closingItem.data.tag === 'Statement') ||
                 (tag === 'Else' && closingItem.data.tag === 'Fallthrough') ||
-                (tag === 'Replace' && closingItem.data.tag === 'ReplaceMatch')
+                (tag === 'Replace' && closingItem.data.tag === 'ReplaceMatch') ||
+                (tag === 'With' && closingItem.data.tag === 'ReplacePayload')
             )) {
                 throw new Error(`Mismatched tag closure ('${tag}') does not match '${closingItem.data.tag}'`)
             }
