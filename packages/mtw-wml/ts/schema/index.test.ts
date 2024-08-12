@@ -416,6 +416,35 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should correctly parse replace tags', () => {
+        const testWML = `
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Replace><Name>Lobby</Name></Replace>
+                </Room>
+            </Asset>
+        `
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "test"
+            },
+            children: [
+                {
+                    data: { tag: 'Room', key: 'room1' },
+                    children: [{
+                        data: { tag: 'Replace' },
+                        children: [{
+                            data: { tag: 'ReplaceMatch' },
+                            children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                        }]
+                    }]
+                }
+            ]
+        }])
+    })
+
     it('should make a schema for a character correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
@@ -864,18 +893,6 @@ describe('schemaToWML', () => {
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip display tags', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Description><Replace>Clean portals</Replace></Description>
-                </Feature>
-            </Asset>
-        `)
-        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
-        expect(schemaToWML(schema)).toEqual(testWML)
     })
 
     it('should correctly round-trip space tags in connected conditionals', () => {

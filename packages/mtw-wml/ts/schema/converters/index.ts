@@ -11,6 +11,7 @@ import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
 import { computationConverters, computationPrintMap } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
+import { editConverters, editPrintMap } from './edit'
 import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
@@ -48,6 +49,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...componentConverters,
     ...computationConverters,
     ...conditionalConverters,
+    ...editConverters,
     ...importExportConverters,
     ...messagingConverters,
     ...taggedMessageConverters,
@@ -73,6 +75,7 @@ export const printMap: Record<string, PrintMapEntry> = {
     ...componentPrintMap,
     ...computationPrintMap,
     ...conditionalPrintMap,
+    ...editPrintMap,
     ...importExportPrintMap,
     ...messagingPrintMap,
     ...taggedMessagePrintMap,
