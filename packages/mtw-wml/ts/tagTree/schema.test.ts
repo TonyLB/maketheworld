@@ -40,6 +40,40 @@ describe('SchemaTagTree', () => {
         `))
     })
 
+    it('should group edit tags with similar fields', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>Test description</Description>
+                    <Name>Test room</Name>
+                    <Exit to=(room2) />
+                </Room>
+                <Room key=(room2) />
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Replace><Description>description</Description></Replace>
+                        <With><Description>appearance</Description></With>
+                        <Position x="0" y="0" />
+                    </Room>
+                </Map>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' }).reorderedSiblings([['Description'], ['Name']])
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>Test description</Description>
+                    <Replace><Description>description</Description></Replace>
+                    <With><Description>appearance</Description></With>
+                    <Name>Test room</Name>
+                    <Exit to=(room2) />
+                    <Position x="0" y="0" />
+                </Room>
+                <Room key=(room2) />
+            </Asset>
+        `))
+    })
+
     it('should preserve ids where possible on merger', () => {
         const testTree: GenericTree<SchemaTag, TreeId> = [
             {

@@ -634,7 +634,7 @@ export class StandardizerAbstract {
                             .reordered([{ or: [{ sequence: [{ match: 'Replace'}, { or: [{ match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] }]}, { match: 'Remove' }]}, { match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
                             .prune({ and: [{ before: nodeMatch }, { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove'} ]} }] })
                             .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
-                        console.log(`prunedTagTree: ${JSON.stringify(prunedTagTree, null, 4)}`)
+                        // console.log(`prunedTagTree: ${JSON.stringify(prunedTagTree, null, 4)}`)
                         switch(tag) {
                             case 'Room':
                                 return prunedTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
