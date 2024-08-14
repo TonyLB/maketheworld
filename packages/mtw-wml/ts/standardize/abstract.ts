@@ -268,6 +268,19 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
 }
 
 const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>, imported: boolean): StandardComponent | undefined => {
+    //
+    // TODO: schemaItemToStandardItem does not capture items that are wrapped inside of edit tags. Fix by:
+    //    - Update the tagTree merge function so that it is conscious of edit tags, and can merge them:
+    //       > Multiple adds should still aggregate as previously
+    //       > Adds followed by a Remove should de-aggregate some content
+    //       > Adds followed by a Replace With should edit
+    //       > Remove or Replace-With that goes deeper than the aggregate so far should flip into a Remove or Replace-With
+    //       > Adds after a Replace-With should extend the With
+    //       > Adds after a Remove should create a Replace-With
+    //   - After this. it should be guaranteed that replacing the "find" selection of elements from below with
+    //     a tagTree filter will still only return a single element (the aggregate merged output). Make those
+    //     edits
+    //
     if (isSchemaRoom(data)) {
         const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
         const nameItem = children.find(treeNodeTypeguard(isSchemaName))
@@ -618,9 +631,10 @@ export class StandardizerAbstract {
                     const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                         const prunedTagTree = tagTree
                             .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
-                            .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
-                            .prune({ before: nodeMatch })
+                            .reordered([{ or: [{ sequence: [{ match: 'Replace'}, { or: [{ match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] }]}, { match: 'Remove' }]}, { match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                            .prune({ and: [{ before: nodeMatch }, { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove'} ]} }] })
                             .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
+                        console.log(`prunedTagTree: ${JSON.stringify(prunedTagTree, null, 4)}`)
                         switch(tag) {
                             case 'Room':
                                 return prunedTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
