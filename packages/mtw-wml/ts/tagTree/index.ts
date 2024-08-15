@@ -366,6 +366,10 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     }
 
     get tree() {
+        //
+        // TODO: Create applyEdits recursive aggregator in schema, and apply it here as an outer wrapper on
+        // the tree getter function.
+        //
         return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({
             classify: this._classifier,
             compare: this._compare,
