@@ -53,7 +53,7 @@ describe('applyEdits', () => {
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(testRoomOne)>
-                    <Replace><Description>Test<space /></Description></Replace>
+                    <Replace><Description>Test<Space /></Description></Replace>
                     <With><Description>New test</Description></With>
                 </Room>
             </Asset>
