@@ -2,12 +2,13 @@ import { schemaFromParse, schemaToWML } from '..'
 import tokenizer from '../../parser/tokenizer'
 import SourceStream from '../../parser/tokenizer/sourceStream'
 import parse from '../../simpleParser'
+import { maybeGenericIDFromTree } from '../../tree/genericIDTree'
 import { deIndentWML } from '../utils'
 
 import applyEdits from './applyEdits'
 
 describe('applyEdits', () => {
-    const schemaTest = (wml: string) => (schemaFromParse(parse(tokenizer(new SourceStream(wml)))))
+    const schemaTest = (wml: string) => (maybeGenericIDFromTree(schemaFromParse(parse(tokenizer(new SourceStream(wml))))))
 
     it('should leave non-edit syntax untouched', () => {
         const testOne = schemaTest(`
@@ -34,9 +35,7 @@ describe('applyEdits', () => {
         `)
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
             <Asset key=(test)>
-                <Room key=(testRoomOne)>
-                    <Description>New test</Description>
-                </Room>
+                <Room key=(testRoomOne)><Description>New test</Description></Room>
             </Asset>
         `))
     })
@@ -55,9 +54,24 @@ describe('applyEdits', () => {
             <Asset key=(test)>
                 <Room key=(testRoomOne)>
                     <Replace><Description>Test<space /></Description></Replace>
-                    </With><Description>New test</Description></With>
+                    <With><Description>New test</Description></With>
                 </Room>
             </Asset>
         `))
     })
+
+    it('should no-op an add combined with a matching remove', () => {
+        const test = schemaTest(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne)>
+                    <Description>Test description</Description>
+                    <Remove><Description>Test description</Description></Remove>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
+            <Asset key=(test)><Room key=(testRoomOne) /></Asset>
+        `))
+    })
+
 })
