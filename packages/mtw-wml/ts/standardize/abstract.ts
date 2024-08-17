@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns } from "../schema/baseClasses"
 import { markInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -10,9 +10,11 @@ import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNode
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree } from "../tree/genericIDTree"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
+import applyEdits from '../schema/treeManipulation/applyEdits'
+import { unwrapSubject, wrappedNodeTypeGuard } from '../schema/utils'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -54,14 +56,49 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
     })
 )
 
-const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
+const outputNodeUnedited = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined,
     typeGuard: (value: SchemaTag) => value is ChildType,
     defaultValue: T
-): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
+): EditInternalStandardNode<T, ChildType> => {
     return node
         ? { ...node, children: treeTypeGuard({ tree: defaultSelected(node.children), typeGuard }) }
         : { data: defaultValue, id: '', children: [] }
+}
+
+const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
+    node: GenericTreeNode<SchemaTag, TreeId> | undefined,
+    typeGuard: (value: SchemaTag) => value is T,
+    childTypeGuard: (value: SchemaTag) => value is ChildType,
+    defaultValue: T
+): EditWrappedStandardNode<T, ChildType> => {
+    if (node) {
+        if (treeNodeTypeguard(isSchemaRemove)(node)) {
+            return {
+                ...node,
+                children: node.children
+                    .filter(treeNodeTypeguard(typeGuard))
+                    .map((child) => (outputNodeUnedited<T, ChildType>(child, childTypeGuard, defaultValue)))
+            }
+        }
+        if (treeNodeTypeguard(isSchemaReplace)(node)) {
+            return {
+                ...node,
+                children: node.children
+                    .filter((child): child is GenericTreeNodeFiltered<SchemaReplaceMatchTag | SchemaReplacePayloadTag, SchemaTag, TreeId> => (treeNodeTypeguard(isSchemaReplaceMatch)(child) || treeNodeTypeguard(isSchemaReplacePayload)(child)))
+                    .map((child) => ({
+                        ...child,
+                        children: child.children
+                            .filter(treeNodeTypeguard(typeGuard))
+                            .map((innerChild) => (outputNodeUnedited(innerChild, childTypeGuard, defaultValue)))
+                    }))
+            }
+        }
+        if (treeNodeTypeguard(typeGuard)(node)) {
+            return outputNodeUnedited<T, ChildType>(node, childTypeGuard, defaultValue)
+        }
+    }
+    return { data: defaultValue, id: '', children: [] }
 }
 
 const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
@@ -69,7 +106,7 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     typeGuard: (value: SchemaTag) => value is T,
     childTypeGuard: (value: SchemaTag) => value is ChildType,
     defaultValue: T
-) => (node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
+) => (node: EditWrappedStandardNode<T, SchemaTag, TreeId> | undefined): EditWrappedStandardNode<T, ChildType, TreeId> => {
     const transformedTree = node ? callback([node]) : []
     if (transformedTree.length === 0) {
         return { data: defaultValue, id: '', children: [] }
@@ -269,10 +306,11 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
 
 const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>, imported: boolean): StandardComponent | undefined => {
     if (isSchemaRoom(data)) {
-        const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
-        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
-        const summaryItem = children.find(treeNodeTypeguard(isSchemaSummary))
-        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
+        const tagTree = new SchemaTagTree(children)
+        const shortNameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'ShortName' }).tree).find(wrappedNodeTypeGuard(isSchemaShortName))
+        const nameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Name' }).tree).find(wrappedNodeTypeGuard(isSchemaName))
+        const summaryItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Summary' }).tree).find(wrappedNodeTypeGuard(isSchemaSummary))
+        const descriptionItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Description' }).tree).find(wrappedNodeTypeGuard(isSchemaDescription))
         const exitTagTree = new SchemaTagTree(children)
             .filter({ match: 'Exit' })
             .reorderedSiblings([['Room', 'Exit'], ['If']])
@@ -281,23 +319,27 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: 'Room',
             key: imported ? data.as ?? data.key : data.key,
             id,
-            shortName: outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaOutputTag, { tag: 'ShortName' }),
-            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
-            summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaOutputTag, { tag: 'Summary' }),
-            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
+            //
+            // TODO: Refactor outputNodeToStandardItem to gracefully handle when the incoming item is wrapped in edit tags
+            //
+            shortName: outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
+            summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }),
             exits: defaultSelected(maybeGenericIDFromTree(exitTagTree.tree)),
             themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
         }
     }
     if (isSchemaFeature(data) || isSchemaKnowledge(data)) {
-        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
-        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
+        const tagTree = new SchemaTagTree(children)
+        const nameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Name' }).tree).find(wrappedNodeTypeGuard(isSchemaName))
+        const descriptionItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Description' }).tree).find(wrappedNodeTypeGuard(isSchemaDescription))
         return {
             tag: data.tag,
             key: imported ? data.as ?? data.key : data.key,
             id,
-            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
-            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaOutputTag, { tag: 'Description' }),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }),
         }
     }
     if (isSchemaBookmark(data)) {
@@ -305,7 +347,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: data.tag,
             key: imported ? data.as ?? data.key : data.key,
             id,
-            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' })
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
         }
     }
     if (isSchemaMessage(data)) {
@@ -314,7 +356,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: data.tag,
             key: imported ? data.as ?? data.key : data.key,
             id,
-            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaOutputTag, { tag: 'Description' }),
+            description: outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children, id }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }),
             rooms: maybeGenericIDFromTree(roomsTagTree.tree)
         }
     }
@@ -342,7 +384,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: 'Map',
             key: imported ? data.as ?? data.key : data.key,
             id,
-            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
             images: defaultSelected(maybeGenericIDFromTree(imagesTagTree.tree)),
             positions: defaultSelected(maybeGenericIDFromTree(positionsTagTree.tree)),
             themes: maybeGenericIDFromTree(themeTagTree.tree).filter(treeNodeTypeguard(isSchemaTheme))
@@ -357,7 +399,7 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
             tag: 'Theme',
             key: imported ? data.as ?? data.key : data.key,
             id,
-            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaOutputTag, { tag: 'Name' }),
+            name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
             prompts: maybeGenericIDFromTree(promptTagTree.tree).filter(treeNodeTypeguard(isSchemaPrompt)),
             rooms: maybeGenericIDFromTree(roomTagTree.tree),
             maps: maybeGenericIDFromTree(mapsTagTree.tree)
@@ -398,7 +440,7 @@ const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<Sche
         case 'Character':
             const { tag, ...pronouns } = (item.pronouns ?? { data: { tag: 'Pronouns', subject: '', object: '', possessive: '', adjective: '', reflexive: '' }}).data
             return {
-                data: { tag: 'Character', key: item.key, Pronouns: pronouns },
+                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
                 id: item.id,
                 children: [
                     ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit, item.image].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1),
@@ -494,7 +536,7 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Character':
             const { tag, ...pronouns } = item.pronouns.data
             return {
-                data: { tag: 'Character', key: item.key, Pronouns: pronouns },
+                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
                 children: [
                     ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit],
                 ]
@@ -618,8 +660,8 @@ export class StandardizerAbstract {
                     const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                         const prunedTagTree = tagTree
                             .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
-                            .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
-                            .prune({ before: nodeMatch })
+                            .reordered([{ match: tag }, { connected: [{ match: 'Replace'}, { or: [{ match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] }]}, { match: 'Remove' }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                            .prune({ and: [{ before: nodeMatch }, { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove'} ]} }] })
                             .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
                         switch(tag) {
                             case 'Room':
@@ -636,7 +678,7 @@ export class StandardizerAbstract {
                     const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }), nodeMatch)
                     const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatchImport, { match: 'Import' }] }), nodeMatchImport)
 
-                    maybeGenericIDFromTree(filteredTagTree.tree).forEach((item) => {
+                    applyEdits(maybeGenericIDFromTree(filteredTagTree.tree)).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree), false)
                         if (standardItem) {
                             this._byId[key] = key in this._byId
@@ -644,7 +686,7 @@ export class StandardizerAbstract {
                                 : standardItem
                         }
                     })
-                    maybeGenericIDFromTree(markInherited(maybeGenericIDFromTree(importedTagTree.tree))).forEach((item) => {
+                    applyEdits(maybeGenericIDFromTree(markInherited(maybeGenericIDFromTree(importedTagTree.tree)))).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, maybeGenericIDFromTree(tagTree.tree), true)
                         if (standardItem) {
                             this._byId[key] = key in this._byId
@@ -881,10 +923,10 @@ export class StandardizerAbstract {
     }
 
     deserialize(standard: SerializableStandardForm): void {
-        const byId: StandardForm["byId"] = objectMap(standard.byId, (value) => {
-            const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never => {
-                const subItem = item[key] as GenericTreeNodeFiltered<FilterType, InnerType>
-                return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: maybeGenericIDFromTree(subItem.children) } as T[K] extends GenericTreeNodeFiltered<FilterType, InnerType> ? GenericTreeNodeFiltered<FilterType, InnerType, TreeId> : never
+        const byId: StandardForm["byId"] = objectMap(standard.byId, (value): StandardComponent => {
+            const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType, TreeId> : never => {
+                const subItem = item[key] as EditWrappedStandardNode<FilterType, InnerType, {}>
+                return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: maybeGenericIDFromTree(subItem.children as any) as unknown as EditWrappedStandardNode<FilterType, InnerType> } as unknown as T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never
             }
             if (value.tag === 'Bookmark') {
                 return {
@@ -949,15 +991,16 @@ export class StandardizerAbstract {
                 }
             }
             if (value.tag === 'Character') {
+                const image = unwrapSubject(value.image)
                 return {
                     ...value,
                     id: uuidv4(),
                     name: deserializeValue(value, 'name'),
-                    firstImpression: { ...value.firstImpression, id: uuidv4(), children: maybeGenericIDFromTree(value.firstImpression.children) },
-                    oneCoolThing: { ...value.oneCoolThing, id: uuidv4(), children: maybeGenericIDFromTree(value.oneCoolThing.children) },
-                    outfit: { ...value.outfit, id: uuidv4(), children: maybeGenericIDFromTree(value.outfit.children) },
-                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) },
-                    image: { ...value.image, id: value.image.data.key ? uuidv4() : '', children: maybeGenericIDFromTree(value.image.children) }
+                    firstImpression: { ...value.firstImpression, id: uuidv4(), children: maybeGenericIDFromTree(value.firstImpression.children) } as EditWrappedStandardNode<SchemaFirstImpressionTag, SchemaTag>,
+                    oneCoolThing: { ...value.oneCoolThing, id: uuidv4(), children: maybeGenericIDFromTree(value.oneCoolThing.children) } as EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>,
+                    outfit: { ...value.outfit, id: uuidv4(), children: maybeGenericIDFromTree(value.outfit.children) } as EditWrappedStandardNode<SchemaOutfitTag, SchemaTag>,
+                    pronouns: { ...value.pronouns, id: uuidv4(), children: maybeGenericIDFromTree(value.pronouns.children) } as EditWrappedStandardNode<SchemaPronounsTag, SchemaTag>,
+                    image: { ...value.image, id: image ? uuidv4() : '', children: maybeGenericIDFromTree(value.image.children) } as EditWrappedStandardNode<SchemaImageTag, SchemaTag>
                 }
             }
             return { ...value, id: uuidv4() }

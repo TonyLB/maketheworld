@@ -3,7 +3,7 @@ import { SchemaTag, isSchemaTheme, isSchemaConditionStatement, isSchemaDescripti
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../tree/genericIDTree"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardCharacter, isStandardAction, isStandardComputed, isStandardVariable, isStandardImage } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardCharacter, isStandardAction, isStandardComputed, isStandardVariable, isStandardImage, EditWrappedStandardNode } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
@@ -61,7 +61,7 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     typeGuard: (value: SchemaTag) => value is T,
     childTypeGuard: (value: SchemaTag) => value is ChildType,
     defaultValue: T
-) => (node: GenericTreeNodeFiltered<T, SchemaTag, TreeId> | undefined): GenericTreeNodeFiltered<T, ChildType, TreeId> => {
+) => (node: EditWrappedStandardNode<T, SchemaTag> | undefined): EditWrappedStandardNode<T, ChildType> => {
     const transformedTree = node ? callback([node]) : []
     if (transformedTree.length === 0) {
         return { data: defaultValue, id: '', children: [] }
@@ -152,7 +152,7 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Character':
             const { tag, ...pronouns } = item.pronouns.data
             return {
-                data: { tag: 'Character', key: item.key, Pronouns: pronouns },
+                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
                 children: [
                     ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit],
                 ]
@@ -233,14 +233,14 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
 export class Standardizer extends StandardizerAbstract {
 
     get stripped(): SerializableStandardForm {
-        const byId: SerializableStandardForm["byId"] = objectMap(this._byId, (value) => {
+        const byId: SerializableStandardForm["byId"] = objectMap(this._byId, (value): SerializableStandardComponent => {
             const stripId = <T extends StandardComponent>(value: T): Omit<T, 'id'> => {
                 const { id, ...rest } = value
                 return rest
             }
-            const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): NonNullable<T[K]> extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never => {
+            const stripValue = <T extends StandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): NonNullable<T[K]> extends EditWrappedStandardNode<FilterType, InnerType> ? EditWrappedStandardNode<FilterType, InnerType, {}> : never => {
                 const { id, ...subItem } = item[key] as GenericTreeNodeFiltered<FilterType, InnerType, TreeId>
-                return { ...subItem, children: stripIDFromTree(subItem.children) } as NonNullable<T[K]> extends GenericTreeNodeFiltered<FilterType, InnerType, TreeId> ? GenericTreeNodeFiltered<FilterType, InnerType> : never
+                return { ...subItem, children: stripIDFromTree(subItem.children) } as NonNullable<T[K]> extends EditWrappedStandardNode<FilterType, InnerType> ? EditWrappedStandardNode<FilterType, InnerType, {}> : never
             }
             if (isStandardBookmark(value)) {
                 return {

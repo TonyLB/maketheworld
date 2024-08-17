@@ -1,4 +1,5 @@
-import { GenericTree, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
+import { EditWrappedStandardNode } from "../../standardize/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../../tree/baseClasses"
 import {
     isSchemaCondition,
     isSchemaDescription,
@@ -7,7 +8,11 @@ import {
     SchemaTaggedMessageLegalContents,
     isSchemaTaggedMessageLegalContents,
     isSchemaConditionStatement,
-    isSchemaConditionFallthrough
+    isSchemaConditionFallthrough,
+    isSchemaRemove,
+    isSchemaReplace,
+    isSchemaReplaceMatch,
+    isSchemaReplacePayload
 } from "../baseClasses"
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
@@ -69,4 +74,38 @@ export const deIndentWML = (wml: string): string => {
         .filter((line) => (Boolean(line.trim())))
         .map((line) => (line.slice(deIndentAmount)))
         .join('\n')
+}
+
+//
+// unwrapSubject takes a schema node that might be a replace or remove, and returns the first tag in the tree hierarchy
+// that is *not* an edit tag (i.e., the subject content being edited)
+//
+export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag, Extra>): GenericTreeNode<SchemaTag, Extra> | undefined => {
+    if (
+        treeNodeTypeguard(isSchemaRemove)(node) ||
+        treeNodeTypeguard(isSchemaReplace)(node) ||
+        treeNodeTypeguard(isSchemaReplaceMatch)(node) ||
+        treeNodeTypeguard(isSchemaReplacePayload)(node)
+    ) {
+        return unwrapSubject<Extra>(node.children[0])
+    }
+    return node
+}
+
+//
+// unwrapSubject takes a schema node that might be a replace or remove, and returns the first tag in the tree hierarchy
+// that is *not* an edit tag (i.e., the subject content being edited)
+//
+export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (value: SchemaTag) => value is SubType) => (node: GenericTreeNode<SchemaTag, TreeId>): node is EditWrappedStandardNode<SchemaTag, SubType> => {
+    if (
+        treeNodeTypeguard(isSchemaRemove)(node) ||
+        treeNodeTypeguard(isSchemaReplace)(node) ||
+        treeNodeTypeguard(isSchemaReplaceMatch)(node) ||
+        treeNodeTypeguard(isSchemaReplacePayload)(node)
+    ) {
+        return node.children.reduce((previous, child) => (previous && wrappedNodeTypeGuard<SubType>(typeGuard)(child)), true)
+    }
+    else {
+        return typeGuard(node.data)
+    }
 }

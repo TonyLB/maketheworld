@@ -117,46 +117,86 @@ describe('standardizeSchema', () => {
         })
     })
 
-    it('should prefer non-import IDs to import IDs', () => {
+    it('should accept edit tags', () => {
         const test: GenericTree<SchemaTag, TreeId> = [{
             data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
+            id: '',
             children: [
                 {
-                    data: { tag: 'Import', from: 'primitives', mapping: {} },
-                    id: 'DEF',
+                    data: { tag: 'Room', key: 'testRoom' },
+                    id: '',
                     children: [{
-                        data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                        id: 'ImportId',
-                        children: [{ data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] }]
+                        data: { tag: 'Replace' },
+                        id: '',
+                        children: [{
+                            data: { tag: 'ReplaceMatch' },
+                            id: '',
+                            children: [{
+                                data: { tag: 'Name' },
+                                id: '',
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, id: '', children: [] }]
+                            }]
+                        },
+                        {
+                            data: { tag: 'ReplacePayload' },
+                            id: '',
+                            children: [{
+                                data: { tag: 'Name' },
+                                id: '',
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, id: '', children: [] }]
+                            }]
+                        }],
+                        
+                    },
+                    {
+                        data: { tag: 'Remove' },
+                        id: '',
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
                     }]
-                },
-                {
-                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                    id: 'NonImportId',
-                    children: []
                 }
             ]
         }]
+
         const standardizer = new Standardizer(test)
         expect(standardizer.standardForm).toEqual({
             tag: 'Asset',
             key: 'Test',
-            metaData: [{
-                data: { tag: 'Import', from: 'primitives', mapping: {} },
-                id: 'DEF',
-                children: [{
-                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                    id: 'ImportId',
-                    children: []
-                }]
-            }],
+            metaData: [],
             byId: {
-                knowledgeRoot: {
-                    tag: 'Knowledge',
-                    key: 'knowledgeRoot',
-                    id: 'NonImportId',
-                    name: { data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] },
+                testRoom: {
+                    tag: 'Room',
+                    key: 'testRoom',
+                    id: '',
+                    name: {
+                        data: { tag: 'Replace' },
+                        id: '',
+                        children: [{
+                            data: { tag: 'ReplaceMatch' },
+                            id: '',
+                            children: [{
+                                data: { tag: 'Name' },
+                                id: '',
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, id: '', children: [] }]
+                            }]
+                        },
+                        {
+                            data: { tag: 'ReplacePayload' },
+                            id: '',
+                            children: [{
+                                data: { tag: 'Name' },
+                                id: '',
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, id: '', children: [] }]
+                            }]
+                        }]
+                    },
+                    exits: [{
+                        data: { tag: 'Remove' },
+                        id: '',
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
+                    }],
+                    themes: [],
+                    shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+                    summary: { data: { tag: 'Summary' }, id: '', children: [] },
                     description: { data: { tag: 'Description' }, id: '', children: [] },
                 }
             }
