@@ -8548,6 +8548,337 @@ trapDoorOpen = false
             "tag": "Space",
           },
         },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "pool of water blocking the entire bottom passage, and covering a blocked ",
+                  },
+                },
+                Object {
+                  "children": Array [
+                    Object {
+                      "children": Array [],
+                      "data": Object {
+                        "tag": "String",
+                        "value": "grated opening",
+                      },
+                    },
+                  ],
+                  "data": Object {
+                    "tag": "Link",
+                    "text": "grated opening",
+                    "to": "gratingDetail",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": ".",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "waterLevel >= 4",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "shallow pool of water draining slowly into a ",
+                  },
+                },
+                Object {
+                  "children": Array [
+                    Object {
+                      "children": Array [],
+                      "data": Object {
+                        "tag": "String",
+                        "value": "grated opening",
+                      },
+                    },
+                  ],
+                  "data": Object {
+                    "tag": "Link",
+                    "text": "grated opening",
+                    "to": "gratingDetail",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": ".",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "waterLevel < 4 && waterLevel >= 2",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+                Object {
+                  "children": Array [
+                    Object {
+                      "children": Array [],
+                      "data": Object {
+                        "tag": "String",
+                        "value": "grated opening",
+                      },
+                    },
+                  ],
+                  "data": Object {
+                    "tag": "Link",
+                    "text": "grated opening",
+                    "to": "gratingDetail",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "at the low opening from the bottom of this cave to the next deeper one.",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "Space",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "waterLevel < 2",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "Space",
+          },
+        },
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "At the top of the room, a raised area has a clay wall, with several holes dug into it.",
+          },
+        },
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "Space",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss and the sound of birdsong echo through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "The sound of birdsong echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss winds through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && !birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
       ],
       "data": Object {
         "tag": "Description",
@@ -8723,6 +9054,151 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss and the sound of birdsong echo through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "The sound of birdsong echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss winds through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && !birdsInOrchard",
                 "selected": false,
                 "tag": "Statement",
               },
@@ -8953,6 +9429,151 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss and the sound of birdsong echo through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "The sound of birdsong echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A loud hiss winds through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+                "selected": false,
+                "tag": "Statement",
+              },
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "br",
+                  },
+                },
+                Object {
+                  "children": Array [],
+                  "data": Object {
+                    "tag": "String",
+                    "value": "A low purring sound echoes through the caverns.",
+                  },
+                },
+              ],
+              "data": Object {
+                "if": "hearthActive && !birdsInOrchard",
                 "selected": false,
                 "tag": "Statement",
               },
