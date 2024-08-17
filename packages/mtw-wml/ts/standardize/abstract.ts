@@ -14,7 +14,7 @@ import { SerializableStandardComponent, SerializableStandardForm, StandardCompon
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
-import { unwrapSubject } from '../schema/utils'
+import { unwrapSubject, wrappedNodeTypeGuard } from '../schema/utils'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -307,10 +307,10 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
 const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>, fullSchema: GenericTree<SchemaTag, TreeId>, imported: boolean): StandardComponent | undefined => {
     if (isSchemaRoom(data)) {
         const tagTree = new SchemaTagTree(children)
-        const shortNameItem = children.find(treeNodeTypeguard(isSchemaShortName))
-        const nameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Name' }).tree).find(treeNodeTypeguard(isSchemaName))
-        const summaryItem = children.find(treeNodeTypeguard(isSchemaSummary))
-        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
+        const shortNameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'ShortName' }).tree).find(wrappedNodeTypeGuard(isSchemaShortName))
+        const nameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Name' }).tree).find(wrappedNodeTypeGuard(isSchemaName))
+        const summaryItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Summary' }).tree).find(wrappedNodeTypeGuard(isSchemaSummary))
+        const descriptionItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Description' }).tree).find(wrappedNodeTypeGuard(isSchemaDescription))
         const exitTagTree = new SchemaTagTree(children)
             .filter({ match: 'Exit' })
             .reorderedSiblings([['Room', 'Exit'], ['If']])
@@ -331,8 +331,9 @@ const schemaItemToStandardItem = ({ data, children, id }: GenericTreeNode<Schema
         }
     }
     if (isSchemaFeature(data) || isSchemaKnowledge(data)) {
-        const nameItem = children.find(treeNodeTypeguard(isSchemaName))
-        const descriptionItem = children.find(treeNodeTypeguard(isSchemaDescription))
+        const tagTree = new SchemaTagTree(children)
+        const nameItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Name' }).tree).find(wrappedNodeTypeGuard(isSchemaName))
+        const descriptionItem = maybeGenericIDFromTree(tagTree.filter({ match: 'Description' }).tree).find(wrappedNodeTypeGuard(isSchemaDescription))
         return {
             tag: data.tag,
             key: imported ? data.as ?? data.key : data.key,
