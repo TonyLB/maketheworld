@@ -365,6 +365,7 @@ export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => 
 export const isSchemaReplaceMatch = (value: SchemaTag): value is SchemaReplaceMatchTag => (value.tag === 'ReplaceMatch')
 export const isSchemaReplacePayload = (value: SchemaTag): value is SchemaReplacePayloadTag => (value.tag === 'ReplacePayload')
 export const isSchemaRemove = (value: SchemaTag): value is SchemaRemoveTag => (value.tag === 'Remove')
+export const isSchemaEdit = (value: SchemaTag): value is SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag => (['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag))
 export const isSchemaBookmark = (value: SchemaTag): value is SchemaBookmarkTag => (value.tag === 'Bookmark')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')

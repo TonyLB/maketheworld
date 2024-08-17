@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
+import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
 import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
 
 type StandardBase = {
@@ -25,22 +25,22 @@ type StandardUpdateItem <T extends StandardBase> = {
 
 export type StandardCharacter = {
     tag: 'Character';
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    firstImpression?: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag, TreeId>;
-    oneCoolThing?: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag, TreeId>;
-    outfit?: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag, TreeId>;
-    pronouns?: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag, TreeId>;
-    image?: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    firstImpression?: EditWrappedStandardNode<SchemaFirstImpressionTag, SchemaTag>;
+    oneCoolThing?: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>;
+    outfit?: EditWrappedStandardNode<SchemaOutfitTag, SchemaTag>;
+    pronouns?: EditWrappedStandardNode<SchemaPronounsTag, SchemaTag>;
+    image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
 } & StandardBase
 
 export type StandardCharacterUpdate = StandardUpdateItem<StandardCharacter>
 
 export type StandardRoom = {
     tag: 'Room';
-    shortName?: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag, TreeId>;
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    summary?: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag, TreeId>;
-    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     exits: GenericTree<SchemaTag, TreeId>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
 } & StandardBase
@@ -49,30 +49,30 @@ export type StandardRoomUpdate = StandardUpdateItem<StandardRoom>
 
 export type StandardFeature = {
     tag: 'Feature';
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardFeatureUpdate = StandardUpdateItem<StandardFeature>
 
 export type StandardKnowledge = {
     tag: 'Knowledge';
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardKnowledgeUpdate = StandardUpdateItem<StandardKnowledge>
 
 export type StandardBookmark = {
     tag: 'Bookmark';
-    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
 } & StandardBase
 
 export type StandardBookmarkUpdate = StandardUpdateItem<StandardBookmark>
 
 export type StandardMap = {
     tag: 'Map';
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
     images: GenericTree<SchemaTag, TreeId>;
     positions: GenericTree<SchemaTag, TreeId>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
@@ -82,7 +82,7 @@ export type StandardMapUpdate = StandardUpdateItem<StandardMap>
 
 export type StandardTheme = {
     tag: 'Theme';
-    name?: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
     prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
     maps: GenericTree<SchemaTag, TreeId>;
@@ -92,7 +92,7 @@ export type StandardThemeUpdate = StandardUpdateItem<StandardTheme>
 
 export type StandardMessage = {
     tag: 'Message';
-    description?: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
     rooms: GenericTree<SchemaTag, TreeId>;
 } & StandardBase
 
@@ -164,6 +164,19 @@ export const isStandardVariable = isStandardFactory<StandardVariable>("Variable"
 export const isStandardComputed = isStandardFactory<StandardComputed>("Computed")
 export const isStandardImage = isStandardFactory<StandardImage>("Image")
 
+export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = TreeId> = GenericTreeNodeFiltered<T, ChildType, Extra>
+
+export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = TreeId> = {
+    data: SchemaRemoveTag;
+    children: EditInternalStandardNode<T, ChildType, Extra>[];
+    id: string;
+} | {
+    data: SchemaReplaceTag;
+    children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[], id: string }[];
+    id: string;
+} | EditInternalStandardNode<T, ChildType, Extra>
+
+
 export type StandardForm = {
     key: string;
     tag: 'Asset' | 'Character';
@@ -183,44 +196,44 @@ export type SerializableStandardAsset = {
 
 export type SerializableStandardCharacter = {
     tag: 'Character';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
-    firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag>;
-    oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag>;
-    outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag>;
-    pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag>;
-    image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
+    firstImpression: EditWrappedStandardNode<SchemaFirstImpressionTag, SchemaTag, {}>;
+    oneCoolThing: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag, {}>;
+    outfit: EditWrappedStandardNode<SchemaOutfitTag, SchemaTag, {}>;
+    pronouns: EditWrappedStandardNode<SchemaPronounsTag, SchemaTag, {}>;
+    image: EditWrappedStandardNode<SchemaImageTag, SchemaTag, {}>;
 } & SerializableStandardBase
 
 export type SerializableStandardRoom = {
     tag: 'Room';
-    shortName: GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag>;
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
-    summary: GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    shortName: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag, {}>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
+    summary: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag, {}>;
+    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, {}>;
     exits: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & SerializableStandardBase
 
 export type SerializableStandardFeature = {
     tag: 'Feature';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
+    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, {}>;
 } & SerializableStandardBase
 
 export type SerializableStandardKnowledge = {
     tag: 'Knowledge';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
+    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, {}>;
 } & SerializableStandardBase
 
 export type SerializableStandardBookmark = {
     tag: 'Bookmark';
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, {}>;
 } & SerializableStandardBase
 
 export type SerializableStandardMap = {
     tag: 'Map';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
     images: GenericTree<SchemaTag>;
     positions: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
@@ -228,7 +241,7 @@ export type SerializableStandardMap = {
 
 export type SerializableStandardTheme = {
     tag: 'Theme';
-    name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag>;
+    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, {}>;
     prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
     rooms: GenericTree<SchemaTag>;
     maps: GenericTree<SchemaTag>;
@@ -236,7 +249,7 @@ export type SerializableStandardTheme = {
 
 export type SerializableStandardMessage = {
     tag: 'Message';
-    description: GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag>;
+    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, {}>;
     rooms: GenericTree<SchemaTag>;
 } & SerializableStandardBase
 

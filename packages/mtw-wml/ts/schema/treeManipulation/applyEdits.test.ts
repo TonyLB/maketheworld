@@ -74,4 +74,17 @@ describe('applyEdits', () => {
         `))
     })
 
+    it('should leave edit syntax with no preceding referent untouched', () => {
+        const testOne = schemaTest(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne)>
+                    <Replace><Description>Test description</Description></Replace>
+                    <With><Description>New description</Description></With>
+                    <Remove><Exit to=(testRoomTwo)>out</Exit></Remove>
+                </Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        expect(applyEdits(testOne)).toEqual(testOne)
+    })
 })

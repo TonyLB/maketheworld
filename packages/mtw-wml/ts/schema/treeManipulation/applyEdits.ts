@@ -1,8 +1,9 @@
 import { deepEqual } from "../../lib/objects"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, TreeId, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard } from "../../tree/baseClasses"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../../tree/genericIDTree";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaString, SchemaSpacerTag, SchemaStringTag, SchemaTag } from "../baseClasses"
+import { isSchemaOutputTag, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaString, isSchemaWithKey, SchemaSpacerTag, SchemaStringTag, SchemaTag } from "../baseClasses"
+import { unwrapSubject } from "../utils";
 
 type SchemaTree = GenericTree<SchemaTag, TreeId>
 
@@ -203,98 +204,113 @@ export const applyEdits = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<Sc
         if (previous.length) {
             const siblingNode = previous.slice(-1)[0]
             //
-            // Three possibilities for siblingNode: add, replace, or remove
+            // Three possibilities for siblingNode: add, replace, or remove. Replace and remove only need
+            // to be processed if they have the same underlying subject as the siblingNode (since standardize
+            // will have already reordered subject nodes next to each other)
             //
-            let removeTags: GenericTree<SchemaTag, TreeId> = []
-            let addTags: GenericTree<SchemaTag, TreeId> = []
-            if (treeNodeTypeguard(isSchemaRemove)(siblingNode)) {
-                removeTags = siblingNode.children
-            }
-            else if (treeNodeTypeguard(isSchemaReplace)(siblingNode)) {
-                removeTags = siblingNode.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children ?? []
-                addTags = siblingNode.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children ?? []
-            }
-            else {
-                addTags = [siblingNode]
-            }
-            //
-            // Three possibilities for incoming node: add, replace, or remove
-            //
-            if (treeNodeTypeguard(isSchemaRemove)(recursedNode)) {
-                const compareResult = compareEditTrees(addTags, recursedNode.children)
-                switch(compareResult.type) {
-                    case 'Merge Conflict': throw new Error('Apply Edits merge conflict')
-                    case 'Equal':
-                        addTags = []
-                        break
-                    case 'A Longer':
-                        addTags = compareResult.remainder
-                        break
-                    case 'B Longer':
-                        addTags = []
-                        removeTags = [...compareResult.remainder, ...removeTags]
+            const nodeSubject = unwrapSubject(node)
+            const siblingSubject = unwrapSubject(siblingNode)
+            if (
+                (treeNodeTypeguard(isSchemaRemove)(node) || treeNodeTypeguard(isSchemaReplace)(node)) &&
+                nodeSubject &&
+                siblingSubject &&
+                (
+                    (treeNodeTypeguard(isSchemaOutputTag)(nodeSubject) || treeNodeTypeguard(isSchemaOutputTag)(siblingSubject)) ||
+                    ((!treeNodeTypeguard(isSchemaWithKey)(nodeSubject)) && (nodeSubject.data.tag === siblingSubject.data.tag)) ||
+                    (treeNodeTypeguard(isSchemaWithKey)(nodeSubject) && treeNodeTypeguard(isSchemaWithKey)(siblingSubject) && nodeSubject.data.key === siblingSubject.data.key)
+                )
+            ) {
+                let removeTags: GenericTree<SchemaTag, TreeId> = []
+                let addTags: GenericTree<SchemaTag, TreeId> = []
+                if (treeNodeTypeguard(isSchemaRemove)(siblingNode)) {
+                    removeTags = siblingNode.children
                 }
-            }
-            else if (treeNodeTypeguard(isSchemaReplace)(recursedNode)) {
-                const replaceMatch = recursedNode.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children ?? []
-                const replacePayload = recursedNode.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children ?? []
-                const compareResult = compareEditTrees(addTags, replaceMatch)
-                switch(compareResult.type) {
-                    case 'Merge Conflict': throw new Error('Apply Edits merge conflict')
-                    case 'Equal':
-                        addTags = replacePayload
-                        break
-                    case 'A Longer':
-                        addTags = [...compareResult.remainder, ...replacePayload]
-                        break
-                    case 'B Longer':
-                        addTags = replacePayload
-                        removeTags = [...compareResult.remainder, ...removeTags]
-                }
-            }
-            else {
-                addTags = [...addTags, recursedNode]
-            }
-            //
-            // Now that the incoming change has been aggregated with the pre-existing sibling, the results will
-            // generate either:
-            //    - An add of nodes
-            //    - A removal of nodes
-            //    - A replacement of nodes
-            //    - Or a no-op
-            //
-            if (addTags.length) {
-                if (removeTags.length) {
-                    return maybeGenericIDFromTree([
-                        ...previous.slice(0, -1),
-                        {
-                            data: { tag: 'Replace' },
-                            children: [
-                                { data: { tag: 'ReplaceMatch' }, children: removeTags },
-                                { data: { tag: 'ReplacePayload' }, children: addTags }
-                            ]
-                        }
-                    ])
+                else if (treeNodeTypeguard(isSchemaReplace)(siblingNode)) {
+                    removeTags = siblingNode.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children ?? []
+                    addTags = siblingNode.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children ?? []
                 }
                 else {
-                    return maybeGenericIDFromTree([
-                        ...previous.slice(0, -1),
-                        ...addTags
-                    ])
+                    addTags = [siblingNode]
                 }
-            }
-            else {
-                if (removeTags.length) {
-                    return maybeGenericIDFromTree([
-                        ...previous.slice(0, -1),
-                        {
-                            data: { tag: 'Remove' },
-                            children: removeTags
-                        }
-                    ])
+                //
+                // Three possibilities for incoming node: add, replace, or remove
+                //
+                if (treeNodeTypeguard(isSchemaRemove)(recursedNode)) {
+                    const compareResult = compareEditTrees(addTags, recursedNode.children)
+                    switch(compareResult.type) {
+                        case 'Merge Conflict': throw new Error('Apply Edits merge conflict')
+                        case 'Equal':
+                            addTags = []
+                            break
+                        case 'A Longer':
+                            addTags = compareResult.remainder
+                            break
+                        case 'B Longer':
+                            addTags = []
+                            removeTags = [...compareResult.remainder, ...removeTags]
+                    }
+                }
+                else if (treeNodeTypeguard(isSchemaReplace)(recursedNode)) {
+                    const replaceMatch = recursedNode.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children ?? []
+                    const replacePayload = recursedNode.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children ?? []
+                    const compareResult = compareEditTrees(addTags, replaceMatch)
+                    switch(compareResult.type) {
+                        case 'Merge Conflict': throw new Error('Apply Edits merge conflict')
+                        case 'Equal':
+                            addTags = replacePayload
+                            break
+                        case 'A Longer':
+                            addTags = [...compareResult.remainder, ...replacePayload]
+                            break
+                        case 'B Longer':
+                            addTags = replacePayload
+                            removeTags = [...compareResult.remainder, ...removeTags]
+                    }
                 }
                 else {
-                    return previous.slice(0, -1)
+                    addTags = [...addTags, recursedNode]
+                }
+                //
+                // Now that the incoming change has been aggregated with the pre-existing sibling, the results will
+                // generate either:
+                //    - An add of nodes
+                //    - A removal of nodes
+                //    - A replacement of nodes
+                //    - Or a no-op
+                //
+                if (addTags.length) {
+                    if (removeTags.length) {
+                        return maybeGenericIDFromTree([
+                            ...previous.slice(0, -1),
+                            {
+                                data: { tag: 'Replace' },
+                                children: [
+                                    { data: { tag: 'ReplaceMatch' }, children: removeTags },
+                                    { data: { tag: 'ReplacePayload' }, children: addTags }
+                                ]
+                            }
+                        ])
+                    }
+                    else {
+                        return maybeGenericIDFromTree([
+                            ...previous.slice(0, -1),
+                            ...addTags
+                        ])
+                    }
+                }
+                else {
+                    if (removeTags.length) {
+                        return maybeGenericIDFromTree([
+                            ...previous.slice(0, -1),
+                            {
+                                data: { tag: 'Remove' },
+                                children: removeTags
+                            }
+                        ])
+                    }
+                    else {
+                        return previous.slice(0, -1)
+                    }
                 }
             }
         }

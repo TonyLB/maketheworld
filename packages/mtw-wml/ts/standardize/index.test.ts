@@ -145,13 +145,14 @@ describe('standardizeSchema', () => {
                                 id: '',
                                 children: [{ data: { tag: 'String', value: 'Foyer' }, id: '', children: [] }]
                             }]
-                        }]
+                        }],
+                        
+                    },
+                    {
+                        data: { tag: 'Remove' },
+                        id: '',
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
                     }]
-                },
-                {
-                    data: { tag: 'Remove' },
-                    id: '',
-                    children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
                 }
             ]
         }]
