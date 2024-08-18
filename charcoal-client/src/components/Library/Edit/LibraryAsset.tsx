@@ -23,6 +23,7 @@ import {
     setIntent,
     getProperties,
     updateSchema as updateSchemaAction,
+    updateStandard as updateStandardAction,
     getDraftWML,
     getStatus,
     getSerialized,
@@ -54,6 +55,7 @@ type LibraryAssetContextType = {
     inheritedStandardForm: StandardForm;
     inheritedByAssetId: { assetId: string; standardForm: StandardForm }[];
     updateSchema: (action: UpdateSchemaPayload) => void;
+    updateStandard: (action: {}) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
     save: () => void;
@@ -75,6 +77,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedByAssetId: [],
     updateSchema: () => {},
+    updateStandard: () => {},
     properties: {},
     loadedImages: {},
     save: () => {},
@@ -117,6 +120,11 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+    const updateStandard = useCallback((updateAction: {}) => {
+        dispatch(updateStandardAction(AssetId)(updateAction))
+        dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
+        dispatch(heartbeat)
+    }, [dispatch, AssetId])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
@@ -136,6 +144,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             inheritedStandardForm,
             inheritedByAssetId,
             updateSchema,
+            updateStandard,
             properties,
             loadedImages,
             save,
