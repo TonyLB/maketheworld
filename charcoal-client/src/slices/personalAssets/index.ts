@@ -16,14 +16,21 @@ import {
     fetchImportsStateAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
+import {
+    setCurrentWML as setCurrentWMLReducer,
+    setDraftWML as setDraftWMLReducer,
+    revertDraftWML as revertDraftWMLReducer,
+    setLoadedImage as setLoadedImageReducer,
+    updateSchema as updateSchemaReducer,
+    updateStandard as updateStandardReducer,
+    setImport as setImportReducer
+} from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { SchemaImportMapping, SchemaImportTag, SchemaStringTag, SchemaTag, SchemaWithKey, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaImportMapping, SchemaImportTag, SchemaStringTag, SchemaTag, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
-import { v4 as uuidv4 } from 'uuid'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
@@ -61,6 +68,7 @@ export const {
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateSchema: updateSchemaReducer,
+        updateStandard: updateStandardReducer,
         setImport: setImportReducer,
     },
     publicSelectors,
@@ -217,6 +225,7 @@ export const {
     revertDraftWML,
     setLoadedImage,
     updateSchema,
+    updateStandard,
     setImport,
     onEnter
 } = publicActions

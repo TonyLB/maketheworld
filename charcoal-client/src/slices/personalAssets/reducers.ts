@@ -250,6 +250,10 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
     state.schema = combinedStandardizer.schema
 }
 
+export const updateStandard = (state: PersonalAssetsPublic, actions: PayloadAction<{}>) => {
+    
+}
+
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
     const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
