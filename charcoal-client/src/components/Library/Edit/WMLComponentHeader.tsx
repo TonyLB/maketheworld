@@ -8,6 +8,7 @@ import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import MiniChip from '../../MiniChip'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 interface WMLComponentHeaderProps {
     ItemId: string;
@@ -25,13 +26,13 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
     }
     if (isStandardRoom(component)) {
         return <React.Fragment>
-            { schemaOutputToString(component.shortName?.children ?? []) || 'Untitled' }
+            { schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
     if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
         return <React.Fragment>
-            { schemaOutputToString(component.name?.children ?? []) || 'Untitled' }
+            { schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }

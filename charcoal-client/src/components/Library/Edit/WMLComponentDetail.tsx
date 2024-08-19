@@ -25,6 +25,7 @@ import ConnectionTable from './ConnectionTable'
 import { GenericTree, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
@@ -181,10 +182,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         const component = combinedStandardForm.byId[ComponentId]
         if (component) {
             if (isStandardRoom(component)) {
-                return schemaOutputToString(component.shortName?.children ?? [])
+                return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? [])
             }
             else if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
-                return schemaOutputToString(component.name?.children ?? [])
+                return schemaOutputToString(ignoreWrapped(component.name)?.children ?? [])
             }
         }
         return ''

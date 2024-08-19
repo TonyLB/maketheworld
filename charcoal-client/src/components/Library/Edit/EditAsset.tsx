@@ -50,7 +50,6 @@ import ImageHeader from './ImageHeader'
 import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag, isSchemaAction, isSchemaAsset, isSchemaComputed, isSchemaVariable, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
-import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -61,6 +60,7 @@ import { StandardFeature, StandardImage, StandardKnowledge, StandardMap, Standar
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
@@ -229,7 +229,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                                     <ListItemIcon>
                                         <ThemeIcon />
                                     </ListItemIcon>
-                                    <ListItemText primary={schemaOutputToString(themeItem.name?.children ?? []) || 'Untitled'} secondary={themeItem.key} />
+                                    <ListItemText primary={schemaOutputToString(ignoreWrapped(themeItem.name)?.children ?? []) || 'Untitled'} secondary={themeItem.key} />
                                 </ListItemButton>
                             ))}
                         </React.Fragment>
@@ -317,8 +317,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                             schema={(key, value) => ({
                                 key,
                                 tag: 'Computed',
-                                src: value,
-                                dependencies: extractDependenciesFromJS(value)
+                                src: value
                             })}
                             maxHeight="8em"
                         />))

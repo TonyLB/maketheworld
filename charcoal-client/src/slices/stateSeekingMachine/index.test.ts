@@ -266,7 +266,7 @@ describe('iterateOneSSM', () => {
             actions: {},
             promiseCache: mockPromiseCache
         })(dispatch, getState)
-        expect(dispatch).toHaveBeenCalledTimes(3)
+        expect(dispatch).toHaveBeenCalledTimes(4)
         expect(dispatch).toHaveBeenCalledWith({ newIntent: ['LANDING', 'ERROR']})
         expect(dispatch).toHaveBeenCalledWith({ newState: 'REATTEMPT' })
         expect(dispatch).toHaveBeenCalledWith(heartbeat)

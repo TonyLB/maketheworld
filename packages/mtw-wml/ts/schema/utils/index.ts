@@ -109,3 +109,16 @@ export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (valu
         return typeGuard(node.data)
     }
 }
+
+type IgnoreWrappedReturn<WrapType extends EditWrappedStandardNode<SchemaTag, SchemaTag> | undefined> = WrapType extends undefined ? undefined: WrapType extends EditWrappedStandardNode<infer SubType, infer ChildType> ? GenericTreeNodeFiltered<SubType, ChildType, TreeId> : never
+export const ignoreWrapped = <WrapType extends EditWrappedStandardNode<SchemaTag, SchemaTag> | undefined>(node: WrapType): IgnoreWrappedReturn<WrapType> => {
+    if (!node) { return undefined as IgnoreWrappedReturn<WrapType> }
+    if (treeNodeTypeguard(isSchemaReplace)(node) || treeNodeTypeguard(isSchemaRemove)(node)) {
+        const subject = unwrapSubject(node)
+        if (!subject) {
+            throw new Error('No subject in ignoreWrapped')
+        }
+        return { data: subject.data, children: [] } as unknown as IgnoreWrappedReturn<WrapType>
+    }
+    return node as unknown as IgnoreWrappedReturn<WrapType>
+}

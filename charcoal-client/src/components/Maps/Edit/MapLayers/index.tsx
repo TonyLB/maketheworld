@@ -33,6 +33,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 type MapLayersProps = {
     mapId: string;
@@ -62,7 +63,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
             return
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
-        if (value !== schemaOutputToString(roomComponent.shortName?.children ?? []) ?? roomId) {
+        if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) ?? roomId) {
             if (roomComponent.shortName?.id) {
                 updateSchema({
                     type: 'replaceChildren',
@@ -286,7 +287,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             return <RoomLayer
                 id={item.id}
                 roomId={data.key}
-                name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) || data.key : data.key}
+                name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || data.key : data.key}
                 newestRoom={isNewestRoom}
             >
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
@@ -295,7 +296,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
             const destinationComponent = combinedStandardForm.byId[data.to]
-            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(destinationComponent.shortName?.children ?? []) : ''
+            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema tag="If" field={item} parentId="">

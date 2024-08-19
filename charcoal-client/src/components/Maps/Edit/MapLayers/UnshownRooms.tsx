@@ -16,6 +16,7 @@ import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import TutorialPopover from "../../../Onboarding/TutorialPopover"
+import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
 type UnshownRoomsProps = {
 
@@ -32,7 +33,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const nameFromKey = useCallback((key: string): string => {
         const component = combinedStandardForm.byId[key]
         if (component && isStandardRoom(component)) {
-            return schemaOutputToString(component.shortName?.children ?? []) || 'Untitled'
+            return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled'
         }
         return 'Untitled'
     }, [combinedStandardForm])

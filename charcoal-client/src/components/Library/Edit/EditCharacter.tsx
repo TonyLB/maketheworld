@@ -54,6 +54,7 @@ import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { deepEqual } from '../../../lib/objects'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -236,7 +237,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const { updateSchema } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return character[tag]?.data?.value || ''
+        return ignoreWrapped(character[tag])?.data?.value || ''
     })
 
     const id = useMemo(() => (character[tag].id), [character])
@@ -268,7 +269,7 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     const { updateSchema } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
-        return schemaOutputToString(character.name?.children ?? []) || ''
+        return schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || ''
     })
 
     const id = useMemo(() => (character.name?.id), [character])
@@ -276,7 +277,7 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
 
     useEffect(() => {
         const children = [{ data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }]
-        if (!deepEqual(stripIDFromTree(character.name?.children ?? []), children)) {
+        if (!deepEqual(stripIDFromTree(ignoreWrapped(character.name)?.children ?? []), children)) {
             updateSchema({
                 type: 'replaceChildren',
                 id,
@@ -426,7 +427,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [standardForm])
 
     const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
-        const { tag, ...rest } = character.pronouns.data
+        const { tag, ...rest } = ignoreWrapped(character.pronouns).data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
         return rest
     }, [character])
     const selectValue = useMemo(() => {
@@ -460,8 +461,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             // If an Image exist, but not by the characterIcon default key, use it
             //
             let SCHEMADIRTY = false
-            if (character.image.data.key) {
-                dispatch(setLoadedImage(AssetId)({ itemId: character.image.data.key, file }))
+            if (ignoreWrapped(character.image).data.key) {
+                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped(character.image).data.key, file }))
             }
             //
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary
@@ -489,7 +490,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
-            primary={schemaOutputToString(character?.name?.children ?? []) || 'Unnamed'}
+            primary={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) || 'Unnamed'}
             secondary={character?.key || ''}
             commands={
                 <React.Fragment>
@@ -504,7 +505,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: schemaOutputToString(character?.name?.children ?? []) || 'Unnamed'
+                    label: schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) || 'Unnamed'
                 }
             ]}
         />
@@ -514,7 +515,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(character?.name?.children ?? []) ?? ''} />
+                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralNameField character={character} />

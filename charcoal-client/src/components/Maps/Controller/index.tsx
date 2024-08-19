@@ -20,6 +20,7 @@ import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tony
 import { assertTypeguard } from "../../../lib/types"
 import { addImport, getInherited } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
+import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -134,7 +135,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = combinedStandardForm.byId[data.key]
-            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(roomComponent.shortName?.children ?? []) : data.key
+            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
             return children.reduce(extractRoomsHelper(parentId, { ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {

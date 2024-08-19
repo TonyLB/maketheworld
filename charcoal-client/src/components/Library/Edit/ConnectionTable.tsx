@@ -6,6 +6,7 @@ import { isSchemaMap, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClass
 import { useLibraryAsset } from "./LibraryAsset";
 import { StandardMap, StandardRoom, StandardTheme, isStandardMap, isStandardRoom, isStandardTheme } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString";
+import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils";
 
 type ConnectionTablePossibleConnection = {
     id: string;
@@ -51,7 +52,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
                         .map(({ originalId, key }) => ({ originalId, component: standardForm.byId[key] }))
                         .filter(({ component }) => (component))
                         .filter((data): data is { originalId: string, component: StandardRoom } => (isStandardRoom(data.component)))
-                        .map(({ originalId, component }) => ({ id: originalId, deleteId: originalId, name: schemaOutputToString(component.shortName?.children ?? []) || 'Untitled', key: component.key, selected: true }))
+                        .map(({ originalId, component }) => ({ id: originalId, deleteId: originalId, name: schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled', key: component.key, selected: true }))
                 }
                 if (tag === 'Map') {
                     return component.maps
@@ -60,7 +61,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
                         .map(({ originalId, key }) => ({ originalId, component: standardForm.byId[key] }))
                         .filter(({ component }) => (component))
                         .filter((data): data is { originalId: string, component: StandardMap } => (isStandardMap(data.component)))
-                        .map(({ originalId, component }) => ({ id: originalId, deleteId: originalId, name: schemaOutputToString(component.name?.children ?? []) || 'Untitled', key: component.key, selected: true }))
+                        .map(({ originalId, component }) => ({ id: originalId, deleteId: originalId, name: schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled', key: component.key, selected: true }))
                 }
             }
             return []
@@ -75,7 +76,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
                             .filter(treeNodeTypeguard(isSchemaRoom))
                             .find(({ data }) => (data.key === component.key))
                         if (lookup) {
-                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(connection.name?.children ?? []) || 'Untitled', key: connection.key, selected: true }]
+                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(ignoreWrapped(connection.name)?.children ?? []) || 'Untitled', key: connection.key, selected: true }]
                         }
                     }
                     if (isStandardMap(component)) {
@@ -83,7 +84,7 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
                             .filter(treeNodeTypeguard(isSchemaMap))
                             .find(({ data }) => (data.key === component.key))
                         if (lookup) {
-                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(connection.name?.children ?? []) || 'Untitled', key: connection.key, selected: true }]
+                            return [{ id: connection.id, deleteId: lookup.id, name: schemaOutputToString(ignoreWrapped(connection.name)?.children ?? []) || 'Untitled', key: connection.key, selected: true }]
                         }
                     }
                     return []
@@ -98,10 +99,10 @@ export const ConnectionTable: FunctionComponent<ConnectionTableProps> = ({ label
             .filter((component) => (!currentConnections.find(({ key }) => (component.key === key))))
             .map((component) => {
                 if (isStandardRoom(component)) {
-                    return { id: component.id, name: schemaOutputToString(component.shortName?.children ?? []) || 'Untitled', key: component.key, selected: false }
+                    return { id: component.id, name: schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled', key: component.key, selected: false }
                 }
                 else {
-                    return { id: component.id, name: schemaOutputToString(component.name?.children ?? []) || 'Untitled', key: component.key, selected: false }
+                    return { id: component.id, name: schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled', key: component.key, selected: false }
                 }
             })
     }, [standardForm, tag, currentConnections])
