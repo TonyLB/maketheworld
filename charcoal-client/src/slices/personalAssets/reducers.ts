@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
@@ -10,6 +10,8 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
+import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
+import { EditWrappedStandardNode } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -93,6 +95,15 @@ type UpdateSchemaPayloadDelete = {
 }
 
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadReplaceChildren | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
+
+type UpdateStandardPayloadReplaceItem = {
+    type: 'replaceItem';
+    key: string;
+    itemKey: string; // Needs to restrict to possible itemKeys
+    item: GenericTreeNode<SchemaTag>
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -250,8 +261,68 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
     state.schema = combinedStandardizer.schema
 }
 
-export const updateStandard = (state: PersonalAssetsPublic, actions: PayloadAction<{}>) => {
-    
+export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
+    const { payload } = action
+    const component = (payload.type === 'replaceItem') ? state.standard.byId[payload.key] : undefined
+    if (payload.type === 'replaceItem') {
+        const item = maybeGenericIDFromTree([payload.item])[0]
+        switch(component.tag) {
+            case 'Room':
+                switch(payload.itemKey) {
+                    case 'shortName':
+                        if (wrappedNodeTypeGuard(isSchemaShortName)(item)) {
+                            component.shortName = item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>
+                        }
+                        break
+                    case 'name':
+                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                        }
+                        break
+                    case 'summary':
+                        if (wrappedNodeTypeGuard(isSchemaSummary)(item)) {
+                            component.summary = item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>
+                        }
+                        break
+                    case 'description':
+                        if (wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+                        }
+                        break
+                }
+                break
+            case 'Feature':
+            case 'Knowledge':
+                switch(payload.itemKey) {
+                    case 'name':
+                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                        }
+                        break
+                    case 'description':
+                        if (wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+                        }
+                        break
+                }
+                break
+            case 'Map':
+                switch(payload.itemKey) {
+                    case 'name':
+                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                        }
+                        break
+                }
+                break
+        }
+    }
+    const inheritedStandardizer = new Standardizer()
+    inheritedStandardizer.loadStandardForm(state.inherited)
+    const standardizer = new Standardizer()
+    standardizer.loadStandardForm(state.standard)
+    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
+    state.schema = combinedStandardizer.schema
 }
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
