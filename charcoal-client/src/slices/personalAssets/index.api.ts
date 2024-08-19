@@ -6,7 +6,6 @@ import {
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
-import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -46,9 +45,6 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         catch (err) {
             if (err instanceof TokenizeException) {
                 console.log(`Token: Error message: ${err.message}`)
-            }
-            if (err instanceof ParseException) {
-                console.log(`Parse: Error message: ${err.message}`)
             }
             throw err
         }
@@ -265,13 +261,6 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
                 error: err.message,
                 errorStart: err.startIdx,
                 errorEnd: err.endIdx
-            }
-        }
-        else if (err instanceof ParseException) {
-            throw {
-                error: err.message,
-                errorStart: tokens[err.startToken].startIdx,
-                errorEnd: tokens[err.endToken].endIdx
             }
         }
         else {
