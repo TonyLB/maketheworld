@@ -34,6 +34,7 @@ import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -371,7 +372,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
     const roomComponent = standard.byId[roomId]
 
     if (roomComponent && isStandardRoom(roomComponent)) {
-        const name = schemaOutputToString(roomComponent.name?.children ?? []) || schemaOutputToString(roomComponent.shortName?.children ?? [])
+        const name = schemaOutputToString(ignoreWrapped(roomComponent.name)?.children ?? []) || schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? [])
         if (name) {
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',

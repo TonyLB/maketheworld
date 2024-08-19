@@ -22,6 +22,7 @@ import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import AddRoomExit from "../AddRoomExit"
 import IfElseTree from "../IfElseTree"
+import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -44,7 +45,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
                     if (!(component && isStandardRoom(component))) {
                         return []
                     }
-                    return [{ [key]: schemaOutputToString(component.shortName?.children ?? []) || key }]
+                    return [{ [key]: schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || key }]
                 }).flat(1)
         )
         return roomNamesInScope
@@ -98,7 +99,7 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, a
         if (!(targetComponent && isStandardRoom(targetComponent))) {
             return ''
         }
-        return schemaOutputToString(targetComponent.shortName?.children ?? []) ?? targetComponent.key
+        return schemaOutputToString(ignoreWrapped(targetComponent.shortName)?.children ?? []) ?? targetComponent.key
     }, [data, inherited, standardForm, inheritedStandardForm, inherited])
     useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
     useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && data.from !== RoomId && name)})

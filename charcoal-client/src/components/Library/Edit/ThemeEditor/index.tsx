@@ -22,6 +22,7 @@ import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, Sc
 import SidebarTitle from "../SidebarTitle"
 import ConnectionTable from "../ConnectionTable"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
+import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
 const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
     const { updateSchema } = useLibraryAsset()
@@ -63,7 +64,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         }
     }, [ComponentId, standardForm])
     const componentName = useMemo(() => {
-        return schemaOutputToString(component.name?.children ?? [])
+        return schemaOutputToString(ignoreWrapped(component.name)?.children ?? [])
     }, [component])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/Theme/${ComponentId}`,
