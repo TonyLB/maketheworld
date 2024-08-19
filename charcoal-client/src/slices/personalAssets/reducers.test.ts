@@ -406,41 +406,50 @@ describe('personalAsset slice reducers', () => {
         //     }])
         // })
 
-        // it('should delete schema content', () => {
-        //     const testSchema = [{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: '',
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'testRoom' },
-        //                 id: 'ABC',
-        //                 children: [
-        //                     { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-        //                     { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-        //                 ]
-        //             }
-        //         ]
-        //     }]
-        //     expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
-        //         type: 'updateSchema',
-        //         payload: {
-        //             type: 'delete',
-        //             id: 'DEF'
-        //         }
-        //     })).baseSchema).toEqual([{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: expect.any(String),
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'testRoom' },
-        //                 id: expect.any(String),
-        //                 children: [
-        //                     { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
-        //                 ]
-        //             }
-        //         ]
-        //     }])
-        // })
+        it('should delete schema content', () => {
+            const testSchema = [{
+                data: { tag: 'Asset' as const, key: 'testAsset', Story: undefined },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'Room' as const, key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' as const }, id: 'DEF', children: [{ data: { tag: 'String' as const, value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' as const }, id: 'JKL', children: [{ data: { tag: 'String' as const, value: 'Test Description' }, id: '', children: [] }]}
+                        ]
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'replaceItem',
+                        key: 'testRoom',
+                        itemKey: 'name',
+                        item: undefined
+                    }
+            })).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
+                        ]
+                    }
+                ]
+            }])
+        })
 
         // it('should update a schemaTag without changing its children', () => {
         //     const testSchema = [{
