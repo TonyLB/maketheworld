@@ -265,28 +265,28 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const component = (payload.type === 'replaceItem') ? state.standard.byId[payload.key] : undefined
     if (payload.type === 'replaceItem') {
-        const item = maybeGenericIDFromTree([payload.item])[0]
+        const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
         switch(component.tag) {
             case 'Room':
                 switch(payload.itemKey) {
                     case 'shortName':
-                        if (wrappedNodeTypeGuard(isSchemaShortName)(item)) {
-                            component.shortName = item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaShortName)(item)) {
+                            component.shortName = item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'name':
-                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
-                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'summary':
-                        if (wrappedNodeTypeGuard(isSchemaSummary)(item)) {
-                            component.summary = item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaSummary)(item)) {
+                            component.summary = item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'description':
-                        if (wrappedNodeTypeGuard(isSchemaDescription)(item)) {
-                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
                         }
                         break
                 }
@@ -295,13 +295,13 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             case 'Knowledge':
                 switch(payload.itemKey) {
                     case 'name':
-                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
-                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'description':
-                        if (wrappedNodeTypeGuard(isSchemaDescription)(item)) {
-                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+                        if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                            component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
                         }
                         break
                 }
@@ -310,7 +310,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 switch(payload.itemKey) {
                     case 'name':
                         if (wrappedNodeTypeGuard(isSchemaName)(item)) {
-                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
                 }
