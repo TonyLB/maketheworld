@@ -262,7 +262,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
     const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm, combinedStandardForm } = useLibraryAsset()
     const { data } = item
-    const { tree, mapDispatch } = useMapContext()
+    const { tree, mapDispatch, mapId } = useMapContext()
     const onClick = useCallback((id: string) => {
         mapDispatch({ type: 'SelectItem', item: undefined })
         mapDispatch({ type: 'SelectParent', item: id })
@@ -299,7 +299,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
-            return <EditSchema tag="If" field={item} parentId="">
+            return <EditSchema componentKey={mapId} tag="If" field={item} parentId="">
                 <IfElseTree
                     render={render}
                     showSelected={true}

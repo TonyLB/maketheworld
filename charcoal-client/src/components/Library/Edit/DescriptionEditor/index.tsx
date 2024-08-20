@@ -52,8 +52,9 @@ import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 
 interface DescriptionEditorProps {
+    componentKey: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
-    fieldName?: string;
+    fieldName: string;
     toolbar?: boolean;
     checkPoints?: string[]
 }
@@ -166,8 +167,9 @@ type DescriptionEditorSlateComponentProperties = {
     standard: StandardForm;
     // editor: Editor;
     // value: Descendant[];
+    componentKey: string;
+    fieldName: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
-    fieldName?: string;
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
@@ -176,12 +178,22 @@ type DescriptionEditorSlateComponentProperties = {
     // saveToReduce?: (value: Descendant[]) => void;
 }
 
-const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName: string): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+    const component = standard[key]
+    const data = component?.[fieldName] as (GenericTreeNode<SchemaTag, TreeId> | undefined)
+    let tagName: 'Name' | 'ShortName' | 'Description' | 'Summary' | undefined
+    switch(fieldName) {
+        case 'name':
+        case 'shortName':
+        case 'description':
+        case 'summary':
+            tagName = [fieldName[0].toUpperCase(), ...fieldName.slice(1)] as unknown as 'Name' | 'ShortName' | 'Description' | 'Summary'
+    }
     const { parentId, tag } = useEditContext()
     const dispatch = useDispatch()
-    const { updateSchema } = useLibraryAsset()
+    const { updateSchema, updateStandard } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        if (data.id) {
+        if (data) {
             if (newRender.length) {
                 if (isSchemaSummary(data.data)) {
                     dispatch(addOnboardingComplete(['summarizeRoom']))
@@ -189,25 +201,27 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
                 if (isSchemaDescription(data.data)) {
                     dispatch(addOnboardingComplete(['describeRoom']))
                 }
-                updateSchema({
-                    type: 'replaceChildren',
-                    id: data.id,
-                    children: newRender
+                updateStandard({
+                    type: 'replaceItem',
+                    key,
+                    itemKey: fieldName,
+                    item: { data: { tag: tagName }, children: newRender }
                 })
             }
             else {
-                updateSchema({
-                    type: 'delete',
-                    id: data.id
+                updateStandard({
+                    type: 'replaceItem',
+                    key,
+                    itemKey: fieldName,
                 })
             }
         }
         else {
             if (tag !== 'Statement') {
-                if (isSchemaSummary(data.data)) {
+                if (isSchemaSummary(data?.data)) {
                     dispatch(addOnboardingComplete(['summarizeRoom']))
                 }
-                if (isSchemaDescription(data.data)) {
+                if (isSchemaDescription(data?.data)) {
                     dispatch(addOnboardingComplete(['describeRoom']))
                 }
                 updateSchema({
@@ -217,9 +231,9 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
                 })
             }
         }
-    }, [data, updateSchema])
+    }, [data, updateStandard])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: data.children,
+        tree: data?.children ?? [],
         typeGuard: isSchemaOutputTag
     })), [data])
     const defaultValue = useMemo(() => {
@@ -229,12 +243,12 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(data.children)
+        comparisonOutput: descendantsToRender(data?.children ?? [])
     })
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = maybeGenericIDFromTree(descendantsToRender(data.children)((value || []).filter(isCustomBlock)))
-        if (!deepEqual(newRender, data.children)) {
+        const newRender = maybeGenericIDFromTree(descendantsToRender(data?.children ?? [])((value || []).filter(isCustomBlock)))
+        if (!deepEqual(newRender, data?.children ?? [])) {
             onChange(newRender)
         }
     }, [onChange, value, data])
@@ -256,10 +270,10 @@ const useDescriptionEditorHook = (data: GenericTreeNode<SchemaTag, TreeId>, stan
 }
 
 const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateComponentProperties> = ({
-    data,
     standard,
     validLinkTags,
     placeholder,
+    componentKey,
     fieldName,
     toolbar,
     readonly,
@@ -267,10 +281,10 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} fieldName={fieldName} />))), [validLinkTags, placeholder])
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor componentKey={componentKey} validLinkTags={validLinkTags} fieldName={fieldName} />))), [validLinkTags, placeholder])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(data, standard)
+    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(standard, componentKey, fieldName)
     const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])

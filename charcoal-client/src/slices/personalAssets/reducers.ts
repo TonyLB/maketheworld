@@ -307,6 +307,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 }
                 break
             case 'Map':
+            case 'Character':
                 switch(payload.itemKey) {
                     case 'name':
                         if (wrappedNodeTypeGuard(isSchemaName)(item)) {

@@ -48,38 +48,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
-    const onChangeShortName = useCallback((event: any) => {
-        if (isStandardRoom(component)) {
-            const newValue = event.target.value
-            if (newValue) {
-                if (component.shortName?.id) {
-                    updateSchema({
-                        type: 'replaceChildren',
-                        id: component.shortName.id,
-                        children: [{ data: { tag: 'String', value: newValue }, children: [] }]
-                    })
-                }
-                else {
-                    updateSchema({
-                        type: 'addChild',
-                        id: component.id,
-                        item: {
-                            data: { tag: 'ShortName' },
-                            children: [{ data: { tag: 'String', value: newValue }, children: [] }]
-                        }
-                    })
-                }
-            }
-            else {
-                if (component.shortName?.id) {
-                    updateSchema({
-                        type: 'delete',
-                        id: component.shortName.id
-                    })
-                }
-            }
-        }
-    }, [component, updateSchema])
 
     return component.id ? <Box sx={{
         marginLeft: '0.5em',
@@ -92,6 +60,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     }}>
         {
             (isStandardRoom(component)) && <EditSchema
+                componentKey={ComponentId}
                 tag="ShortName"
                 field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
                 inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
@@ -99,14 +68,16 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             >
                 <TitledBox title="Short Name">
                     <DescriptionEditor
+                        componentKey={ComponentId}
                         validLinkTags={[]}
-                        fieldName="short name"
+                        fieldName="shortName"
                         toolbar={false}
                     />
                 </TitledBox>
             </EditSchema>
         }
         <EditSchema
+            componentKey={ComponentId}
             tag="Name"
             field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
             inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
@@ -114,6 +85,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
+                    componentKey={ComponentId}
                     toolbar
                     validLinkTags={[]}
                     fieldName="name"
@@ -122,6 +94,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         </EditSchema>
         {
             isStandardRoom(component) && <EditSchema
+                componentKey={ComponentId}
                 tag="Summary"
                 field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
                 inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
@@ -129,6 +102,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             >
                 <TitledBox title="Summary">
                     <DescriptionEditor
+                        componentKey={ComponentId}
                         toolbar
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                         fieldName="summary"
@@ -138,6 +112,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </EditSchema>
         }
         <EditSchema
+            componentKey={ComponentId}
             tag="Description"
             field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
             inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
@@ -145,6 +120,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         >
             <TitledBox>
                 <DescriptionEditor
+                    componentKey={ComponentId}
                     toolbar
                     validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
                     fieldName="description"
