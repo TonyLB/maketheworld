@@ -127,9 +127,10 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <EditSchema tag="Name" field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                <EditSchema componentKey={ComponentId} tag="Name" field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
                     <TitledBox title="Name">
                         <DescriptionEditor
+                            componentKey={ComponentId}
                             validLinkTags={[]}
                             fieldName="name"
                             toolbar={false}

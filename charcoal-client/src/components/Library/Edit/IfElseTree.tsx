@@ -163,7 +163,7 @@ type IfElseTreeProps = {
 // and renders the statements and fallthrough of its children
 //
 export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '', onClick }: IfElseTreeProps): ReactElement => {
-    const { field } = useEditContext()
+    const { componentKey, field } = useEditContext()
     const { updateSchema } = useLibraryAsset()
     const firstStatement = useMemo(() => (field.children[0]), [field])
     const otherStatements = useMemo(() => (field.children.slice(1)), [field])
@@ -245,7 +245,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            <EditSchema tag="Statement" field={firstStatement} parentId={field.id}>
+            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} parentId={field.id}>
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -269,7 +269,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        <EditSchema tag="Statement" field={{ data, children, id }} parentId={field.id}>
+                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} parentId={field.id}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -287,7 +287,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            <EditSchema tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
+                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
                                 <Render />
                             </EditSchema>
                         </IfElseWrapBox>

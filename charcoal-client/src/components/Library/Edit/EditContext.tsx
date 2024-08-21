@@ -4,6 +4,7 @@ import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 
 type EditContextType = {
+    componentKey: string;
     field: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     parentId: string;
@@ -11,13 +12,14 @@ type EditContextType = {
 }
 
 const EditContext = React.createContext<EditContextType>({
+    componentKey: '',
     field: { data: { tag: 'Name' }, id: '', children: [] },
     parentId: '',
     tag: 'Name'
 })
 
-export const EditSchema: FunctionComponent<EditContextType> = ({ field, inherited, parentId, tag, children }) => {
-    return <EditContext.Provider value={{ field, inherited, parentId, tag }}>
+export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, field, inherited, parentId, tag, children }) => {
+    return <EditContext.Provider value={{ componentKey, field, inherited, parentId, tag }}>
         { children }
     </EditContext.Provider>
 }

@@ -266,7 +266,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
 }
 
 const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
-    const { updateSchema } = useLibraryAsset()
+    const { updateStandard } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
         return schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || ''
@@ -276,15 +276,15 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        const children = [{ data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }]
-        if (!deepEqual(stripIDFromTree(ignoreWrapped(character.name)?.children ?? []), children)) {
-            updateSchema({
-                type: 'replaceChildren',
-                id,
-                children
+        if ((schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || '') !== debouncedTagValue) {
+            updateStandard({
+                type: 'replaceItem',
+                key: character.key,
+                itemKey: 'name',
+                item: { data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }
             })
         }
-    }, [id, character.name, updateSchema, debouncedTagValue])
+    }, [character.key, character.name, updateStandard, debouncedTagValue])
 
     return <TextField
         required

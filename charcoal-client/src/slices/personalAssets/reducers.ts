@@ -9,7 +9,7 @@ import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
-import { Schema } from '@tonylb/mtw-wml/dist/schema'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
 import { EditWrappedStandardNode } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
@@ -98,7 +98,7 @@ export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPaylo
 
 type UpdateStandardPayloadReplaceItem = {
     type: 'replaceItem';
-    key: string;
+    componentKey: string;
     itemKey: string; // Needs to restrict to possible itemKeys
     item: GenericTreeNode<SchemaTag>
 }
@@ -263,10 +263,10 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
-    const component = (payload.type === 'replaceItem') ? state.standard.byId[payload.key] : undefined
+    const component = (payload.type === 'replaceItem') ? state.standard.byId[payload.componentKey] : undefined
     if (payload.type === 'replaceItem') {
         const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
-        switch(component.tag) {
+        switch(component?.tag) {
             case 'Room':
                 switch(payload.itemKey) {
                     case 'shortName':
@@ -307,6 +307,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 }
                 break
             case 'Map':
+            case 'Character':
                 switch(payload.itemKey) {
                     case 'name':
                         if (wrappedNodeTypeGuard(isSchemaName)(item)) {
