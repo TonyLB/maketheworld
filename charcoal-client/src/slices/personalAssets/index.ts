@@ -381,21 +381,11 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                 const { description, summary } = results
                 if (description) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
-                    if (roomComponent.description?.id) {
-                        dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.description.id, children: [stringTag]}))
-                    }
-                    else {
-                        dispatch(updateSchema(assetId)({ type: 'addChild', id: roomComponent.id, item: { data: { tag: 'Description' }, children: [stringTag] }}))
-                    }
+                    dispatch(updateStandard(assetId)({ type: 'replaceItem', componentKey: roomId, itemKey: 'description', item: { data: { tag: 'Description' }, children: [stringTag] } }))
                 }
                 if (summary) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: summary.trim() }, children: [] }
-                    if (roomComponent.summary?.id) {
-                        dispatch(updateSchema(assetId)({ type: 'replaceChildren', id: roomComponent.summary.id, children: [stringTag]}))
-                    }
-                    else {
-                        dispatch(updateSchema(assetId)({ type: 'addChild', id: roomComponent.id, item: { data: { tag: 'Summary' }, children: [stringTag] }}))
-                    }
+                    dispatch(updateStandard(assetId)({ type: 'replaceItem', componentKey: roomId, itemKey: 'summary', item: { data: { tag: 'Summary' }, children: [stringTag] } }))
                 }
                 if (description || summary) {
                     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY']}))
