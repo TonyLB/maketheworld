@@ -36,7 +36,7 @@ import {
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
+import { UpdateSchemaPayload, UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -120,7 +120,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
-    const updateStandard = useCallback((updateAction: {}) => {
+    const updateStandard = useCallback((updateAction: UpdateStandardPayload) => {
+        console.log(`updateAction: ${JSON.stringify(updateAction, null, 4)}`)
         dispatch(updateStandardAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)

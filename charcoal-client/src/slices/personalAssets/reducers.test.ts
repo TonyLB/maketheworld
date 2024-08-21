@@ -338,7 +338,7 @@ describe('personalAsset slice reducers', () => {
                 type: 'updateStandard',
                 payload: {
                     type: 'replaceItem',
-                    key: 'testRoom',
+                    componentKey: 'testRoom',
                     itemKey: 'name',
                     item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
                 }
@@ -432,7 +432,7 @@ describe('personalAsset slice reducers', () => {
                     type: 'updateStandard',
                     payload: {
                         type: 'replaceItem',
-                        key: 'testRoom',
+                        componentKey: 'testRoom',
                         itemKey: 'name',
                         item: undefined
                     }

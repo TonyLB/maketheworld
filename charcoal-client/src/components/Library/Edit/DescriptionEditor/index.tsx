@@ -179,7 +179,7 @@ type DescriptionEditorSlateComponentProperties = {
 }
 
 const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName: string): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
-    const component = standard[key]
+    const component = standard.byId[key]
     const data = component?.[fieldName] as (GenericTreeNode<SchemaTag, TreeId> | undefined)
     let tagName: 'Name' | 'ShortName' | 'Description' | 'Summary' | undefined
     switch(fieldName) {
@@ -187,7 +187,7 @@ const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName
         case 'shortName':
         case 'description':
         case 'summary':
-            tagName = [fieldName[0].toUpperCase(), ...fieldName.slice(1)] as unknown as 'Name' | 'ShortName' | 'Description' | 'Summary'
+            tagName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}` as unknown as 'Name' | 'ShortName' | 'Description' | 'Summary'
     }
     const { parentId, tag } = useEditContext()
     const dispatch = useDispatch()
@@ -201,9 +201,10 @@ const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName
                 if (isSchemaDescription(data.data)) {
                     dispatch(addOnboardingComplete(['describeRoom']))
                 }
+                console.log(`replaceItem key: ${key}`)
                 updateStandard({
                     type: 'replaceItem',
-                    key,
+                    componentKey: key,
                     itemKey: fieldName,
                     item: { data: { tag: tagName }, children: newRender }
                 })
@@ -211,8 +212,8 @@ const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName
             else {
                 updateStandard({
                     type: 'replaceItem',
-                    key,
-                    itemKey: fieldName,
+                    componentKey: key,
+                    itemKey: fieldName
                 })
             }
         }
