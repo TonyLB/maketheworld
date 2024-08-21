@@ -25,8 +25,8 @@ import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
 
 export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
-    const { componentKey, field } = useEditContext()
-    const { updateSchema, schema } = useLibraryAsset()
+    const { componentKey } = useEditContext()
+    const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':

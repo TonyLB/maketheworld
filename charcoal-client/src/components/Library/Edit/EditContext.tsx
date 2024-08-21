@@ -24,4 +24,13 @@ export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, f
     </EditContext.Provider>
 }
 
+type EditSubSchemaArgs = {}
+
+export const EditSubSchema: FunctionComponent<EditSubSchemaArgs> = ({}) => {
+    //
+    // TODO: Create EditSubSchema
+    //
+    return null
+}
+
 export const useEditContext = () => (useContext(EditContext))
