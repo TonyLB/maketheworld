@@ -65,6 +65,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
                 inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
                 parentId={component?.id ?? ''}
+                onChange={() => {}}
             >
                 <TitledBox title="Short Name">
                     <DescriptionEditor
@@ -82,6 +83,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
             inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
             parentId={component?.id ?? ''}
+            onChange={() => {}}
         >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
@@ -99,6 +101,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
                 inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
                 parentId={component?.id ?? ''}
+                onChange={() => {}}
             >
                 <TitledBox title="Summary">
                     <DescriptionEditor
@@ -117,6 +120,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
             inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
             parentId={component?.id ?? ''}
+            onChange={() => {}}
         >
             <TitledBox>
                 <DescriptionEditor

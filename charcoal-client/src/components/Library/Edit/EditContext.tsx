@@ -8,18 +8,20 @@ type EditContextType = {
     field: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     parentId: string;
-    tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If'
+    tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If';
+    onChange: (value: GenericTreeNode<SchemaTag, TreeId>) => void;
 }
 
 const EditContext = React.createContext<EditContextType>({
     componentKey: '',
     field: { data: { tag: 'Name' }, id: '', children: [] },
     parentId: '',
-    tag: 'Name'
+    tag: 'Name',
+    onChange: () => {}
 })
 
-export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, field, inherited, parentId, tag, children }) => {
-    return <EditContext.Provider value={{ componentKey, field, inherited, parentId, tag }}>
+export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, field, inherited, parentId, tag, onChange, children }) => {
+    return <EditContext.Provider value={{ componentKey, field, inherited, parentId, tag, onChange }}>
         { children }
     </EditContext.Provider>
 }

@@ -299,7 +299,13 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
-            return <EditSchema componentKey={mapId} tag="If" field={item} parentId="">
+            return <EditSchema
+                componentKey={mapId}
+                tag="If"
+                field={item}
+                parentId=""
+                onChange={() => {}}
+            >
                 <IfElseTree
                     render={render}
                     showSelected={true}
