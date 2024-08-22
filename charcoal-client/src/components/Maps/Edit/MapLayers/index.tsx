@@ -303,7 +303,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 componentKey={mapId}
                 tag="If"
                 field={item}
-                parentId=""
                 onChange={() => {}}
             >
                 <IfElseTree

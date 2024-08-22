@@ -131,7 +131,6 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     componentKey={ComponentId}
                     tag="Name"
                     field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
-                    parentId={component?.id ?? ''}
                     onChange={() => {}}
                 >
                     <TitledBox title="Name">

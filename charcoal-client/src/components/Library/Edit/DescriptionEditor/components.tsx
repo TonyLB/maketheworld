@@ -67,7 +67,6 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
                     componentKey={componentKey}
                     tag="If"
                     field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
-                    parentId=""
                     onChange={() => {}}
                 >
                     <IfElseTree render={render} />
@@ -80,7 +79,6 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
                     componentKey={componentKey}
                     tag="If"
                     field={nodeById}
-                    parentId=""
                     onChange={() => {}}
                 >
                     <IfElseTree render={render} />

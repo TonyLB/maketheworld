@@ -189,19 +189,18 @@ const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName
         case 'summary':
             tagName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}` as unknown as 'Name' | 'ShortName' | 'Description' | 'Summary'
     }
-    const { parentId, tag } = useEditContext()
+    const { tag } = useEditContext()
     const dispatch = useDispatch()
-    const { updateSchema, updateStandard } = useLibraryAsset()
+    const { updateStandard } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        if (data) {
+        if (tag !== 'Statement') {
             if (newRender.length) {
-                if (isSchemaSummary(data.data)) {
+                if (isSchemaSummary(data?.data)) {
                     dispatch(addOnboardingComplete(['summarizeRoom']))
                 }
-                if (isSchemaDescription(data.data)) {
+                if (isSchemaDescription(data?.data)) {
                     dispatch(addOnboardingComplete(['describeRoom']))
                 }
-                console.log(`replaceItem key: ${key}`)
                 updateStandard({
                     type: 'replaceItem',
                     componentKey: key,
@@ -214,21 +213,6 @@ const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName
                     type: 'replaceItem',
                     componentKey: key,
                     itemKey: fieldName
-                })
-            }
-        }
-        else {
-            if (tag !== 'Statement') {
-                if (isSchemaSummary(data?.data)) {
-                    dispatch(addOnboardingComplete(['summarizeRoom']))
-                }
-                if (isSchemaDescription(data?.data)) {
-                    dispatch(addOnboardingComplete(['describeRoom']))
-                }
-                updateSchema({
-                    type: 'addChild',
-                    id: parentId,
-                    item: { data: { tag }, children: newRender }
                 })
             }
         }
