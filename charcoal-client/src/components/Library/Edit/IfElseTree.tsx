@@ -12,7 +12,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 
 import { useLibraryAsset } from "./LibraryAsset"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 
@@ -63,6 +63,7 @@ const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: React
 
 type IfElseWrapBoxProps = {
     id: string;
+    index: number;
     type: 'if' | 'elseIf' | 'else';
     source: string;
     actions: ReactChild[] | ReactChildren;
@@ -70,27 +71,27 @@ type IfElseWrapBoxProps = {
     showSelected?: boolean;
     selected?: boolean;
     highlighted?: boolean;
-    onSelect?: (id: string) => void;
-    onUnselect?: (id: string) => void;
+    onSelect?: (index: number) => void;
+    onUnselect?: () => void;
     onClick?: (id: string) => void;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, actions, onDelete, showSelected = false, selected = false, highlighted = false, onSelect = () => {}, onUnselect = () => {}, onClick, children }) => {
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, index, actions, onDelete, showSelected = false, selected = false, highlighted = false, onSelect = () => {}, onUnselect = () => {}, onClick, children }) => {
     const { updateSchema } = useLibraryAsset()
     const onChange = useCallback((event) => {
         if (event.target.checked) {
-            onSelect(id)
+            onSelect(index)
         }
         else {
             if (!highlighted) {
-                onUnselect(id)
+                onUnselect()
             }
         }
     }, [id, onSelect, onUnselect, highlighted])
     const onClickHandler = useCallback(() => {
         if (onClick) {
             onClick(id)
-            onSelect(id)
+            onSelect(index)
         }
     }, [id, onClick, onSelect])
     return <LabelledIndentBox
@@ -163,52 +164,75 @@ type IfElseTreeProps = {
 // and renders the statements and fallthrough of its children
 //
 export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '', onClick }: IfElseTreeProps): ReactElement => {
-    const { componentKey, field } = useEditContext()
+    const { componentKey, field, onChange } = useEditContext()
     const { updateSchema } = useLibraryAsset()
     const firstStatement = useMemo(() => (field.children[0]), [field])
     const otherStatements = useMemo(() => (field.children.slice(1)), [field])
-    const onSelect = useCallback((id: string) => {
-        const currentSelected = field.children
-            .filter(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
-            .find(({ data }) => (data.selected))
-        const toSelect = field.children
-            .filter(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
-            .find((node) => (node.id === id))
-        if (currentSelected?.id === toSelect?.id) {
+    //
+    // TODO: onSelect takes an index in the children of the current SchemaConditionTag field, clears select from all other
+    // children, and sets select on that index
+    //
+    const onSelect = useCallback((index: number) => {
+        const toSelectData = field.children[index]?.data
+        if (toSelectData && (isSchemaConditionStatement(toSelectData) || isSchemaConditionFallthrough(toSelectData)) && toSelectData.selected) {
             return
         }
-        if (currentSelected) {
-            updateSchema({ type: 'updateNode', id: currentSelected.id, item: { ...currentSelected.data, selected: false } })
-        }
-        if (toSelect) {
-            updateSchema({ type: 'updateNode', id: toSelect.id, item: { ...toSelect.data, selected: true } })
-        }
+        onChange([{
+            ...field,
+            children: field.children.map((child, compareIndex) => {
+                if (!(treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child))) {
+                    return child
+                }
+                else {
+                    return { ...child, data: { ...child.data, selected: compareIndex === index ? true : undefined }}
+                }
+            })
+        }])
     }, [field])
-    const onUnselect = useCallback((id: string) => {
-        const fallthrough = field.children
-            .find(treeNodeTypeguard(isSchemaConditionFallthrough))
-        const toUnselect = field.children
-            .filter(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
-            .find((node) => (node.id === id))
-        if (fallthrough?.id === toUnselect?.id) {
-            return
-        }
-        if (toUnselect) {
-            updateSchema({ type: 'updateNode', id: toUnselect.id, item: { ...toUnselect.data, selected: false } })
-            if (fallthrough) {
-                updateSchema({ type: 'updateNode', id: fallthrough.id, item: { ...fallthrough.data, selected: true } })
-            }
-        }
+    const onUnselect = useCallback(() => {
+        onChange([{
+            ...field,
+            children: field.children.map((child) => {
+                if (!treeNodeTypeguard(isSchemaConditionFallthrough)(child)) {
+                    if (treeNodeTypeguard(isSchemaConditionStatement)(child)) {
+                        return { ...child, data: { ...child.data, selected: undefined }}
+                    }
+                    return child
+                }
+                else {
+                    return { ...child, data: { ...child.data, selected: true }}
+                }
+            })
+        }])
     }, [field])
-    const addElseIf = useCallback((afterId: string) => (
+    const addElseIf = useCallback((afterIndex: number) => (
         <AddItemButton
             key="elseIf"
             addItemIcon={<React.Fragment>elseIf</React.Fragment>}
             onClick={() => {
-                updateSchema({ type: 'addChild', id: field.id, afterId, item: { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }]
-            } })}}
-        />), [field, firstStatement, updateSchema])
-    const addElse = useMemo(() => (<AddItemButton key="else" addItemIcon={<React.Fragment>else</React.Fragment>} onClick={() => { updateSchema({ type: 'addChild', id: field.id, item: { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }})}} />), [field, otherStatements, updateSchema])
+                onChange([{
+                    ...field,
+                    children: [...field.children.slice(0, afterIndex + 1), { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }, ...field.children.slice(afterIndex + 1)],
+                    id: ''
+                }])
+            }}
+        />), [field, onChange])
+    const addElse = useMemo(
+        () => (
+            <AddItemButton
+                key="else"
+                addItemIcon={<React.Fragment>else</React.Fragment>}
+                onClick={() => {
+                    onChange([{
+                        ...field,
+                        children: [...field.children, { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }],
+                        id: ''
+                    }])    
+                }}
+            />
+        ),
+        [field, onChange]
+    )
     if (
         !(isSchemaCondition(field.data)) ||
         field.children.length === 0 ||
@@ -224,6 +248,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
         <IfElseWrapBox
             key={firstStatement.id}
             id={firstStatement.id}
+            index={0}
             highlighted={firstStatement.id === highlightID}
             onClick={onClick}
             type={'if'}
@@ -237,7 +262,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                 }
             }}
             actions={[
-                addElseIf(firstStatement.id),
+                addElseIf(0),
                 ...(otherStatements.length === 0 ? [addElse] : [])
             ]}
             showSelected={showSelected}
@@ -255,13 +280,14 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                     ? <IfElseWrapBox
                         key={id}
                         id={id}
+                        index={index + 1}
                         highlighted={id === highlightID}
                         onClick={onClick}
                         type={'elseIf'}
                         source={data.if}
                         onDelete={() => { updateSchema({ type: 'delete', id })}}
                         actions={[
-                            addElseIf(id),
+                            addElseIf(index + 1),
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
                         ]}
                         showSelected={showSelected}
@@ -277,6 +303,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         ? <IfElseWrapBox
                             key={id}
                             id={id}
+                            index={index + 1}
                             highlighted={id === highlightID}
                             onClick={onClick}
                             type={'else'}

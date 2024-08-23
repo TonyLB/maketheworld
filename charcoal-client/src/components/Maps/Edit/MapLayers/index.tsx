@@ -304,7 +304,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 tag="If"
                 field={item}
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
-                >
+            >
                 <IfElseTree
                     render={render}
                     showSelected={true}
