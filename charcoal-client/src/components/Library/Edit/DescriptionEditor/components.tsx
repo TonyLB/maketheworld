@@ -25,8 +25,8 @@ import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
 
 export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
-    const { componentKey, field } = useEditContext()
-    const { updateSchema, schema } = useLibraryAsset()
+    const { componentKey } = useEditContext()
+    const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -63,14 +63,24 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
             </SlateIndentBox>
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
-                <EditSchema componentKey={componentKey} tag="If" field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }} parentId="">
+                <EditSchema
+                    componentKey={componentKey}
+                    tag="If"
+                    field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
+                    onChange={() => {}}
+                >
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>
         case 'ifWrapper':
             const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
-                <EditSchema componentKey={componentKey} tag="If" field={nodeById} parentId="">
+                <EditSchema
+                    componentKey={componentKey}
+                    tag="If"
+                    field={nodeById}
+                    onChange={() => {}}
+                >
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>

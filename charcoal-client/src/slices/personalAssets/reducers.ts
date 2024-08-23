@@ -100,7 +100,7 @@ type UpdateStandardPayloadReplaceItem = {
     type: 'replaceItem';
     componentKey: string;
     itemKey: string; // Needs to restrict to possible itemKeys
-    item: GenericTreeNode<SchemaTag>
+    item?: GenericTreeNode<SchemaTag>
 }
 
 export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem

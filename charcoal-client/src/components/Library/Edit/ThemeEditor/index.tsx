@@ -44,7 +44,7 @@ type ThemeEditorProps = {}
 export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateSchema, standardForm } = useLibraryAsset()
+    const { assetKey, updateSchema, standardForm, updateStandard } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component: StandardTheme = useMemo(() => {
         if (ComponentId) {
@@ -127,7 +127,12 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <EditSchema componentKey={ComponentId} tag="Name" field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }} parentId={component?.id ?? ''}>
+                <EditSchema
+                    componentKey={ComponentId}
+                    tag="Name"
+                    field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+                    onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                >
                     <TitledBox title="Name">
                         <DescriptionEditor
                             componentKey={ComponentId}

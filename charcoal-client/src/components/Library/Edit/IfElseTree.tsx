@@ -245,7 +245,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} parentId={field.id}>
+            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} onChange={() => {}}>
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -269,7 +269,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} parentId={field.id}>
+                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} onChange={() => {}}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -287,7 +287,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} parentId={field.id}>
+                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} onChange={() => {}}>
                                 <Render />
                             </EditSchema>
                         </IfElseWrapBox>

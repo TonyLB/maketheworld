@@ -55,7 +55,7 @@ type LibraryAssetContextType = {
     inheritedStandardForm: StandardForm;
     inheritedByAssetId: { assetId: string; standardForm: StandardForm }[];
     updateSchema: (action: UpdateSchemaPayload) => void;
-    updateStandard: (action: {}) => void;
+    updateStandard: (action: UpdateStandardPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
     save: () => void;
