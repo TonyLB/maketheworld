@@ -77,7 +77,7 @@ type IfElseWrapBoxProps = {
 }
 
 const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id, index, actions, onDelete, showSelected = false, selected = false, highlighted = false, onSelect = () => {}, onUnselect = () => {}, onClick, children }) => {
-    const { updateSchema } = useLibraryAsset()
+    const { field, onChange: contextOnChange } = useEditContext()
     const onChange = useCallback((event) => {
         if (event.target.checked) {
             onSelect(index)
@@ -135,11 +135,14 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                         <CodeEditor
                             source={source}
                             onChange={(source: string) => {
-                                updateSchema({
-                                    type: 'updateNode',
-                                    id,
-                                    item: { tag: 'Statement', if: source }
-                                })
+                                contextOnChange([{
+                                    ...field,
+                                    children: [
+                                        ...field.children.slice(0, index),
+                                        { data: { tag: 'Statement', if: source }, children: field.children[index].children, id: '' },
+                                        ...field.children.slice(index+1)
+                                    ]
+                                }])
                             }}
                         />
                     </Box>
@@ -165,7 +168,6 @@ type IfElseTreeProps = {
 //
 export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '', onClick }: IfElseTreeProps): ReactElement => {
     const { componentKey, field, onChange } = useEditContext()
-    const { updateSchema } = useLibraryAsset()
     const firstStatement = useMemo(() => (field.children[0]), [field])
     const otherStatements = useMemo(() => (field.children.slice(1)), [field])
     //
@@ -255,10 +257,10 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             source={firstStatement.data.if}
             onDelete={() => {
                 if (otherStatements.length && isSchemaConditionStatement(otherStatements[0].data)) {
-                    updateSchema({ type: 'delete', id: firstStatement.id })
+                    onChange([{ ...field, children: field.children.slice(1) }])
                 }
                 if (!otherStatements.length) {
-                    updateSchema({ type: 'delete', id: field.id })
+                    onChange([])
                 }
             }}
             actions={[
@@ -285,7 +287,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onClick={onClick}
                         type={'elseIf'}
                         source={data.if}
-                        onDelete={() => { updateSchema({ type: 'delete', id })}}
+                        onDelete={() => { onChange([{ ...field, children: [...field.children.slice(0, index), ...field.children.slice(index+1)] }]) }}
                         actions={[
                             addElseIf(index + 1),
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
@@ -308,7 +310,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             onClick={onClick}
                             type={'else'}
                             source=''
-                            onDelete={() => { updateSchema({ type: 'delete', id })}}
+                            onDelete={() => { onChange([{ ...field, children: field.children.slice(0, -1) }]) }}
                             actions={[]}
                             showSelected={showSelected}
                             selected={data.selected}
