@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useContext } from "react"
-import { GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 
@@ -8,7 +8,7 @@ type EditContextType = {
     field: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If';
-    onChange: (value: GenericTreeNode<SchemaTag, TreeId>) => void;
+    onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
 }
 
 const EditContext = React.createContext<EditContextType>({

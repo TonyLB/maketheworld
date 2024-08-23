@@ -1,6 +1,4 @@
 import React, { FunctionComponent, useMemo, useState, useCallback, useRef } from 'react'
-import { v4 as uuidv4 } from 'uuid'
-import { isKeyHotkey } from 'is-hotkey'
 
 import { useSlate } from 'slate-react'
 import {
@@ -25,7 +23,6 @@ import LinkOffIcon from '@mui/icons-material/LinkOff'
 import TreeIcon from '@mui/icons-material/AccountTree';
 
 import {
-    CustomIfWrapper,
     CustomNewIfWrapper,
     isCustomBlock
 } from '../baseClasses'
@@ -39,15 +36,13 @@ import LinkDialog from './LinkDialog'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { isSchemaDescription, isSchemaOutputTag, isSchemaSummary, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { useDispatch } from 'react-redux'
-import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 
@@ -181,40 +176,11 @@ type DescriptionEditorSlateComponentProperties = {
 const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName: string): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const component = standard.byId[key]
     const data = component?.[fieldName] as (GenericTreeNode<SchemaTag, TreeId> | undefined)
-    let tagName: 'Name' | 'ShortName' | 'Description' | 'Summary' | undefined
-    switch(fieldName) {
-        case 'name':
-        case 'shortName':
-        case 'description':
-        case 'summary':
-            tagName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}` as unknown as 'Name' | 'ShortName' | 'Description' | 'Summary'
-    }
-    const { tag } = useEditContext()
-    const dispatch = useDispatch()
+    const { tag, onChange: contextOnChange } = useEditContext()
     const { updateStandard } = useLibraryAsset()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
         if (tag !== 'Statement') {
-            if (newRender.length) {
-                if (isSchemaSummary(data?.data)) {
-                    dispatch(addOnboardingComplete(['summarizeRoom']))
-                }
-                if (isSchemaDescription(data?.data)) {
-                    dispatch(addOnboardingComplete(['describeRoom']))
-                }
-                updateStandard({
-                    type: 'replaceItem',
-                    componentKey: key,
-                    itemKey: fieldName,
-                    item: { data: { tag: tagName }, children: newRender }
-                })
-            }
-            else {
-                updateStandard({
-                    type: 'replaceItem',
-                    componentKey: key,
-                    itemKey: fieldName
-                })
-            }
+            contextOnChange(maybeGenericIDFromTree(newRender))
         }
     }, [data, updateStandard])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({

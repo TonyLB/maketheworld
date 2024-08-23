@@ -26,13 +26,15 @@ import { GenericTree, TreeId, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tre
 import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
 }
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { standardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
+    const dispatch = useDispatch()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
         const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (ComponentId) {
@@ -64,7 +66,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 tag="ShortName"
                 field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
                 inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
-                onChange={() => {}}
+                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
             >
                 <TitledBox title="Short Name">
                     <DescriptionEditor
@@ -81,7 +83,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             tag="Name"
             field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
             inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
-            onChange={() => {}}
+            onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
         >
             <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                 <DescriptionEditor
@@ -98,7 +100,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 tag="Summary"
                 field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
                 inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
-                onChange={() => {}}
+                onChange={(value) => {
+                    if (value.length) {
+                        dispatch(addOnboardingComplete(['summarizeRoom']))
+                    }
+                    updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                }}
             >
                 <TitledBox title="Summary">
                     <DescriptionEditor
@@ -116,7 +123,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             tag="Description"
             field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
             inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
-            onChange={() => {}}
+            onChange={(value) => {
+                if (value.length) {
+                    dispatch(addOnboardingComplete(['describeRoom']))
+                }
+                updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
+            }}
         >
             <TitledBox>
                 <DescriptionEditor

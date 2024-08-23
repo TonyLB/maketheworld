@@ -279,7 +279,7 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
         if ((schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || '') !== debouncedTagValue) {
             updateStandard({
                 type: 'replaceItem',
-                key: character.key,
+                componentKey: character.key,
                 itemKey: 'name',
                 item: { data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }
             })

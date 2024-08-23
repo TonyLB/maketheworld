@@ -260,7 +260,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
-    const { standardForm, combinedStandardForm } = useLibraryAsset()
+    const { standardForm, combinedStandardForm, updateStandard } = useLibraryAsset()
     const { data } = item
     const { tree, mapDispatch, mapId } = useMapContext()
     const onClick = useCallback((id: string) => {
@@ -303,8 +303,8 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 componentKey={mapId}
                 tag="If"
                 field={item}
-                onChange={() => {}}
-            >
+                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                >
                 <IfElseTree
                     render={render}
                     showSelected={true}
