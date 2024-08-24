@@ -103,7 +103,14 @@ type UpdateStandardPayloadReplaceItem = {
     item?: GenericTreeNode<SchemaTag>
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem
+type UpdateStandardPayloadUpdateField = {
+    type: 'updateField';
+    componentKey: string;
+    itemKey: string; // Needs to restrict to possible itemKeys
+    value?: any
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -315,6 +322,15 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                         break
                 }
+                break
+        }
+    }
+    if (payload.type === 'updateField') {
+        switch(component?.tag) {
+            case 'Action':
+            case 'Variable':
+            case 'Computed':
+                component[payload.itemKey] = payload.value
                 break
         }
     }

@@ -21,7 +21,7 @@ type JSHeaderProps<T extends JSTags, V extends T> = {
 }
 
 const JSHeader = <T extends JSTags, V extends T>({ id, item, typeGuard, getJS, schema, maxHeight }: JSHeaderProps<T, V>): ReactElement<any, any> | null => {
-    const { updateSchema, readonly } = useLibraryAsset()
+    const { updateStandard, readonly } = useLibraryAsset()
     const src = useMemo<string>(() => (
         typeGuard(item)
             ? getJS(item)
@@ -40,11 +40,22 @@ const JSHeader = <T extends JSTags, V extends T>({ id, item, typeGuard, getJS, s
                 <JSEdit
                     src={src}
                     onChange={(value) => {
-                        updateSchema({
-                            type: 'updateNode',
-                            id,
-                            item: schema(item.key, value)
-                        })
+                        if (['Action', 'Computed'].includes(item.tag)) {
+                            updateStandard({
+                                type: 'updateField',
+                                componentKey: item.key,
+                                itemKey: 'src',
+                                value
+                            })                            
+                        }
+                        if (item.tag === 'Variable') {
+                            updateStandard({
+                                type: 'updateField',
+                                componentKey: item.key,
+                                itemKey: 'default',
+                                value
+                            })
+                        }
                     }}
                     maxHeight={maxHeight}
                     readonly={readonly}
