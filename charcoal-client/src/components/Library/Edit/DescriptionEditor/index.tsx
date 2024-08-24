@@ -169,9 +169,7 @@ type DescriptionEditorSlateComponentProperties = {
 const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const { tag, onChange: contextOnChange, value: contextValue } = useEditContext()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        if (tag !== 'Statement') {
-            contextOnChange(maybeGenericIDFromTree(newRender))
-        }
+        contextOnChange(maybeGenericIDFromTree(newRender))
     }, [tag, contextOnChange])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag>({
         tree: contextValue ?? [],

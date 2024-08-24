@@ -272,7 +272,18 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} value={firstStatement.children} onChange={() => {}} onDelete={() => {}}>
+            <EditSchema
+                componentKey={componentKey}
+                tag="Statement"
+                field={firstStatement}
+                value={firstStatement.children}
+                onChange={(value) => {
+                    onChange([{ ...field, children: [{ ...firstStatement, children: value }, ...otherStatements] }])
+                }}
+                onDelete={() => {
+                    onChange([{ ...field, children: [{ ...firstStatement, children: [] }, ...otherStatements] }])
+                }}
+            >
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -297,7 +308,18 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} value={children} onChange={() => {}} onDelete={() => {}}>
+                        <EditSchema
+                            componentKey={componentKey}
+                            tag="Statement"
+                            field={{ data, children, id }}
+                            value={children}
+                            onChange={(value) => {
+                                onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: value , id}, ...field.children.slice(index + 2)] }])
+                            }}
+                            onDelete={() => {
+                                onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: [] , id}, ...field.children.slice(index + 2)] }])
+                            }}
+                    >
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -316,7 +338,18 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} value={children} onChange={() => {}} onDelete={() => {}}>
+                            <EditSchema
+                                componentKey={componentKey}
+                                tag="Fallthrough"
+                                field={{ data, children, id }}
+                                value={children}
+                                onChange={(value) => {
+                                    onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: value , id}]}])
+                                }}
+                                onDelete={() => {
+                                    onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: [], id }] }])
+                                }}
+                            >
                                 <Render />
                             </EditSchema>
                         </IfElseWrapBox>

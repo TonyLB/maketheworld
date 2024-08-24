@@ -32,14 +32,12 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
     const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     const newIfWrapperStub = useCallback(() => {
-        console.log(`newIfWrapper stub`)
     }, [])
     const ifWrapperOnChange = useCallback((position: number) => (value: GenericTree<SchemaTag>) => {
         //
         // TODO: Create onChange function that uses the element's placement in the Slate Editor Descendants list
         // to create a Transform to update the `subTree` property with the new values of the ifWrapper editable void
         //
-        console.log(`ifWrapper[${position}]: ${JSON.stringify(value, null, 4)}`)
         const subTree = Editor.fragment(editor, [position])[0]
         if (!(isCustomBlock(subTree) && isCustomIfWrapper(subTree))) {
             throw new Error('If Wrapper position error')
@@ -170,7 +168,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
 export const withParagraphBR = (editor: Editor) => {
     const { normalizeNode } = editor
     editor.normalizeNode = ([node, path]) => {
-        console.log(`normalize`)
         //
         // Check all paragraphs to set their explicitBR and softBR marks according to their next element and contents
         //
