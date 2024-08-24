@@ -234,7 +234,7 @@ type LiteralTagFieldProps = {
 }
 
 const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, required, tag, label }) => {
-    const { updateSchema } = useLibraryAsset()
+    const { updateSchema, updateStandard } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
         return ignoreWrapped(character[tag])?.data?.value || ''
@@ -247,13 +247,14 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
         const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
         const item = { tag: schemaTag, value: debouncedTagValue }
         if (!deepEqual(character[tag]?.data ?? {}, item)) {
-            updateSchema({
-                type: 'updateNode',
-                id,
-                item
+            updateStandard({
+                type: 'updateField',
+                componentKey: character.key,
+                itemKey: tag,
+                value: item
             })
         }
-    }, [id, tag, updateSchema, debouncedTagValue])
+    }, [character.key, id, tag, updateStandard, debouncedTagValue])
 
     return <TextField
         required={required}
@@ -415,7 +416,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { updateSchema, standardForm, save, AssetId, status } = useLibraryAsset()
+    const { updateSchema, updateStandard, standardForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = useMemo(() => {
@@ -440,18 +441,17 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [currentPronouns])
     const onSelectChangeHandler = useCallback((value) => {
         if ((value !== 'custom') && standardPronouns[value]) {
-            if (character.pronouns.id) {
-                updateSchema({
-                    type: 'updateNode',
-                    id: character.pronouns.id,
-                    item: {
-                        tag: 'Pronouns',
-                        ...standardPronouns[value]
-                    }
-                })
-            }
+            updateStandard({
+                type: 'updateField',
+                componentKey: character.key,
+                itemKey: 'pronouns',
+                value: {
+                    tag: 'Pronouns',
+                    ...standardPronouns[value]
+                }
+            })
         }
-    }, [character, updateSchema])
+    }, [character, updateStandard])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -468,10 +468,11 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary
             //
             else {
-                updateSchema({
-                    type: 'addChild',
-                    id: character.id,
-                    item: { data: { tag: 'Image', key: characterIconKey }, children: [] }
+                updateStandard({
+                    type: 'updateField',
+                    componentKey: character.key,
+                    itemKey: 'image',
+                    value: { data: { tag: 'Image', key: characterIconKey }, children: [] }
                 })
                 SCHEMADIRTY = true
                 dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))
@@ -479,7 +480,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             dispatch(setIntent({ key: AssetId, intent: SCHEMADIRTY ? ['SCHEMADIRTY'] : ['WMLDIRTY', 'SCHEMADIRTY']}))
             dispatch(heartbeat)
         }
-    }, [dispatch, character, updateSchema])
+    }, [dispatch, character, updateStandard])
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
         save()
@@ -556,7 +557,6 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
 
     const character = useSelector(getMyCharacterByKey(assetKey)) as AssetClientPlayerCharacter
-    const AssetId = `CHARACTER#${assetKey}` as const
     useAutoPin({
         href: `/Library/Edit/Character/${assetKey}`,
         label: `${assetKey}`,
