@@ -270,7 +270,7 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
-    const component = (payload.type === 'replaceItem') ? state.standard.byId[payload.componentKey] : undefined
+    const component = ['replaceItem', 'updateField'].includes(payload.type) ? state.standard.byId[payload.componentKey] : undefined
     if (payload.type === 'replaceItem') {
         const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
         switch(component?.tag) {
@@ -326,6 +326,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (payload.type === 'updateField') {
+        console.log(`updateField payload: ${JSON.stringify(payload, null, 4)}`)
         switch(component?.tag) {
             case 'Action':
             case 'Variable':

@@ -56,7 +56,7 @@ import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
-import { StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { StandardAction, StandardComputed, StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, StandardVariable, isStandardAction, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
@@ -161,13 +161,10 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardKnowledge)), [standardForm])
     const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardMap)), [standardForm])
     const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardImage)), [standardForm])
-    const jsItems = useMemo(() => (
-        treeTypeGuardOnce<SchemaTag, SchemaComputedTag | SchemaVariableTag | SchemaActionTag, TreeId>({ tree: baseSchema, typeGuard: (data: SchemaTag): data is SchemaComputedTag | SchemaVariableTag | SchemaActionTag => (['Action', 'Computed', 'Varaible'].includes(data.tag)) })
-    ), [schema])
+    const variables = useMemo<StandardVariable[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardVariable)), [standardForm])
+    const computes = useMemo<StandardComputed[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardComputed)), [standardForm])
+    const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardAction)), [standardForm])
 
-    const variables = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaVariableTag, TreeId>({ tree: jsItems, typeGuard: isSchemaVariable })), [jsItems])
-    const computes = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaComputedTag, TreeId>({ tree: jsItems, typeGuard: isSchemaComputed })), [jsItems])
-    const actions = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaActionTag, TreeId>({ tree: jsItems, typeGuard: isSchemaAction })), [jsItems])
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
@@ -293,48 +290,27 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                     <ListSubheader>Variables</ListSubheader>
                     { (variables || [])
                         .map((variable) => (<JSHeader
-                            key={variable.id}
-                            id={variable.id}
-                            item={variable.data}
-                            typeGuard={isSchemaVariable}
+                            key={variable.key}
+                            item={variable}
                             getJS={(item) => (item.default)}
-                            schema={(key, value) => ({
-                                key,
-                                tag: 'Variable',
-                                default: value
-                            })}
                             maxHeight="4em"
                         />))
                     }
                     { !readonly && <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} /> }
                     <ListSubheader>Computes</ListSubheader>
                     { (computes || []).map((compute) => (<JSHeader
-                            key={compute.id}
-                            id={compute.id}
-                            item={compute.data}
-                            typeGuard={isSchemaComputed}
+                            key={compute.key}
+                            item={compute}
                             getJS={(item) => (item.src)}
-                            schema={(key, value) => ({
-                                key,
-                                tag: 'Computed',
-                                src: value
-                            })}
                             maxHeight="8em"
                         />))
                     }
                     { !readonly && <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} /> }
                     <ListSubheader>Actions</ListSubheader>
                     { (actions || []).map((action) => (<JSHeader
-                            key={action.id}
-                            id={action.id}
-                            item={action.data}
-                            typeGuard={isSchemaAction}
+                            key={action.key}
+                            item={action}
                             getJS={(item) => (item.src)}
-                            schema={(key, value) => ({
-                                key,
-                                tag: 'Action',
-                                src: value
-                            })}
                             maxHeight="32em"
                         />))
                     }

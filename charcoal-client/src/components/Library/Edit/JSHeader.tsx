@@ -6,27 +6,21 @@ import { Box, ListItem, ListItemIcon, SxProps, Typography } from '@mui/material'
 import { useLibraryAsset } from './LibraryAsset'
 import { JSEdit } from './JSEdit'
 import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { StandardAction, StandardComputed, StandardVariable } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
-type JSTags = SchemaActionTag | SchemaComputedTag | SchemaVariableTag
+type JSTags = StandardAction | StandardComputed | StandardVariable
 
-type JSHeaderProps<T extends JSTags, V extends T> = {
-    id: string;
+type JSHeaderProps<T extends JSTags> = {
     item: T;
-    typeGuard: (item: T) => item is V;
-    getJS: (item: V) => string;
-    schema: (key: string, value: string) => SchemaTag;
+    getJS: (item: T) => string;
     maxHeight?: string;
     sx?: SxProps;
     selected?: boolean;
 }
 
-const JSHeader = <T extends JSTags, V extends T>({ id, item, typeGuard, getJS, schema, maxHeight }: JSHeaderProps<T, V>): ReactElement<any, any> | null => {
+const JSHeader = <T extends JSTags>({ item, getJS, maxHeight }: JSHeaderProps<T>): ReactElement<any, any> | null => {
     const { updateStandard, readonly } = useLibraryAsset()
-    const src = useMemo<string>(() => (
-        typeGuard(item)
-            ? getJS(item)
-            : ''
-    ), [item, getJS, typeGuard])
+    const src = useMemo<string>(() => (getJS(item)), [item, getJS])
 
     return <ListItem>
         <ListItemIcon>
