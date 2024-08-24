@@ -41,15 +41,15 @@ import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { useEditContext } from '../EditContext'
+import { EditSchema, useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 
 interface DescriptionEditorProps {
-    componentKey: string;
+    // componentKey: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
-    fieldName: string;
+    // fieldName: string;
     toolbar?: boolean;
     checkPoints?: string[]
 }
@@ -158,51 +158,41 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 }
 
 type DescriptionEditorSlateComponentProperties = {
-    data: GenericTreeNode<SchemaTag, TreeId>;
     standard: StandardForm;
-    // editor: Editor;
-    // value: Descendant[];
-    componentKey: string;
-    fieldName: string;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
     checkPoints?: string[];
-    // setValue?: (value: Descendant[]) => void;
-    // saveToReduce?: (value: Descendant[]) => void;
 }
 
-const useDescriptionEditorHook = (standard: StandardForm, key: string, fieldName: string): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
-    const component = standard.byId[key]
-    const data = component?.[fieldName] as (GenericTreeNode<SchemaTag, TreeId> | undefined)
-    const { tag, onChange: contextOnChange } = useEditContext()
-    const { updateStandard } = useLibraryAsset()
+const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+    const { tag, onChange: contextOnChange, value: contextValue } = useEditContext()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
         if (tag !== 'Statement') {
             contextOnChange(maybeGenericIDFromTree(newRender))
         }
-    }, [data, updateStandard])
-    const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag, TreeId>({
-        tree: data?.children ?? [],
+    }, [tag, contextOnChange])
+    const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag>({
+        tree: contextValue ?? [],
         typeGuard: isSchemaOutputTag
-    })), [data])
+    })), [contextValue])
     const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(output, { standard })
+        const returnValue = descendantsFromRender(maybeGenericIDFromTree(output), { standard })
         return returnValue
     }, [output, standard])
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(data?.children ?? [])
+        comparisonOutput: descendantsToRender(maybeGenericIDFromTree(contextValue ?? []))
     })
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = maybeGenericIDFromTree(descendantsToRender(data?.children ?? [])((value || []).filter(isCustomBlock)))
-        if (!deepEqual(newRender, data?.children ?? [])) {
+        const newRender = maybeGenericIDFromTree(descendantsToRender(maybeGenericIDFromTree(contextValue ?? []))((value || []).filter(isCustomBlock)))
+        if (!deepEqual(newRender, contextValue ?? [])) {
             onChange(newRender)
         }
-    }, [onChange, value, data])
+    }, [onChange, value, contextValue])
 
     useDebouncedOnChange({
         value,
@@ -224,18 +214,16 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
     standard,
     validLinkTags,
     placeholder,
-    componentKey,
-    fieldName,
     toolbar,
     readonly,
     checkPoints = []
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor componentKey={componentKey} validLinkTags={validLinkTags} fieldName={fieldName} />))), [validLinkTags, placeholder])
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} />))), [validLinkTags])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(standard, componentKey, fieldName)
+    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(standard)
     const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])
@@ -272,7 +260,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
-    const { field, inherited } = useEditContext()
+    const { componentKey, inherited, tag } = useEditContext()
     const { standardForm, inheritedStandardForm, readonly } = useLibraryAsset()
     return <React.Fragment>
         { inherited?.id
@@ -281,20 +269,20 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
                 background: grey[100],
                 width: '100%'
             }}>
-                <DescriptionEditorSlateComponent
-                    { ...props }
-                    data={inherited}
-                    standard={inheritedStandardForm}
-                    readonly={true}
-                    toolbar={false}
-                />
+                <EditSchema value={inherited.children} onChange={() => {}} onDelete={() => {}} componentKey={componentKey} field={inherited} tag={tag}>
+                    <DescriptionEditorSlateComponent
+                        { ...props }
+                        standard={inheritedStandardForm}
+                        readonly={true}
+                        toolbar={false}
+                    />
+                </EditSchema>
             </Box>
             : null
         }
         <DescriptionEditorSlateComponent
             { ...props }
-            placeholder={`${inherited?.id ? 'Add to': 'Enter a'} ${props.fieldName}`}
-            data={field}
+            placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}
             standard={standardForm}
             readonly={readonly}
             checkPoints={props.checkPoints}

@@ -49,6 +49,7 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
                 returnValue.push({
                     type: 'ifWrapper',
                     treeId: id,
+                    subTree: { data: item, children },
                     children: [{ text: "" }]
                 })
                 break
@@ -104,7 +105,7 @@ export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeI
                 }
                 returnValue = [
                     ...returnValue,
-                    { type: 'ifWrapper', treeId: item.treeId, children: [{ text: '' }] }
+                    { type: 'ifWrapper', treeId: item.treeId, subTree: item.subTree, children: [{ text: '' }] }
                 ]
             }
             else {

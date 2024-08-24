@@ -7,30 +7,26 @@ type EditContextType = {
     componentKey: string;
     field: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
+    value: GenericTree<SchemaTag>;
     tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If';
     onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
+    onDelete: () => void;
+    subIndex?: number;
 }
 
 const EditContext = React.createContext<EditContextType>({
     componentKey: '',
     field: { data: { tag: 'Name' }, id: '', children: [] },
     tag: 'Name',
-    onChange: () => {}
+    value: [],
+    onChange: () => {},
+    onDelete: () => {}
 })
 
-export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, field, inherited, tag, onChange, children }) => {
-    return <EditContext.Provider value={{ componentKey, field, inherited, tag, onChange }}>
+export const EditSchema: FunctionComponent<EditContextType> = ({ componentKey, field, inherited, tag, value, onChange, onDelete, subIndex, children }) => {
+    return <EditContext.Provider value={{ componentKey, field, inherited, subIndex, tag, value, onChange, onDelete }}>
         { children }
     </EditContext.Provider>
-}
-
-type EditSubSchemaArgs = {}
-
-export const EditSubSchema: FunctionComponent<EditSubSchemaArgs> = ({}) => {
-    //
-    // TODO: Create EditSubSchema
-    //
-    return null
 }
 
 export const useEditContext = () => (useContext(EditContext))

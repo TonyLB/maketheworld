@@ -303,7 +303,9 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
                 componentKey={mapId}
                 tag="If"
                 field={item}
+                value={item.children ?? []}
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                onDelete={() => {}}
             >
                 <IfElseTree
                     render={render}

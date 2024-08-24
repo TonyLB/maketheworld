@@ -1,5 +1,5 @@
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
-import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
@@ -55,6 +55,7 @@ export type CustomIfWrapper = {
     type: 'ifWrapper';
     children: EmptyText[];
     treeId: string;
+    subTree: GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag>;
 }
 
 //

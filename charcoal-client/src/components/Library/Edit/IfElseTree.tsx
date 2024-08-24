@@ -139,7 +139,7 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, id
                                     ...field,
                                     children: [
                                         ...field.children.slice(0, index),
-                                        { data: { tag: 'Statement', if: source }, children: field.children[index].children, id: '' },
+                                        { ...field.children[index], data: { tag: 'Statement', if: source }, children: field.children[index].children },
                                         ...field.children.slice(index+1)
                                     ]
                                 }])
@@ -272,7 +272,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} onChange={() => {}}>
+            <EditSchema componentKey={componentKey} tag="Statement" field={firstStatement} value={firstStatement.children} onChange={() => {}} onDelete={() => {}}>
                 <Render />
             </EditSchema>
         </IfElseWrapBox>
@@ -297,7 +297,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} onChange={() => {}}>
+                        <EditSchema componentKey={componentKey} tag="Statement" field={{ data, children, id }} value={children} onChange={() => {}} onDelete={() => {}}>
                             <Render />
                         </EditSchema>
                     </IfElseWrapBox>
@@ -316,7 +316,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} onChange={() => {}}>
+                            <EditSchema componentKey={componentKey} tag="Fallthrough" field={{ data, children, id }} value={children} onChange={() => {}} onDelete={() => {}}>
                                 <Render />
                             </EditSchema>
                         </IfElseWrapBox>

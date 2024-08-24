@@ -32,7 +32,7 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
             ]
         }
         if (isCustomIfWrapper(item)) {
-            const node = selectById(item.treeId)(schema)
+            const node = item.subTree
             if (typeof node === 'undefined') {
                 return tree
             }

@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
@@ -24,10 +24,26 @@ import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
 import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
 
-export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
+export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const { componentKey } = useEditContext()
     const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
+    const newIfWrapperStub = useCallback(() => {
+        console.log(`newIfWrapper stub`)
+    }, [])
+    const ifWrapperOnChange = useCallback(() => {
+        //
+        // TODO: Create onChange function that uses the element's placement in the Slate Editor Descendants list
+        // to create a Transform to update the `subTree` property with the new values of the ifWrapper editable void
+        //
+        console.log(`ifWrapper stub`)
+    }, [])
+    const nodeById = useMemo(() => {
+        if (element.type === 'ifWrapper') {
+            return selectById(element.treeId)(schema)
+        }
+        return undefined
+    }, [element, schema])
     switch(element.type) {
         case 'featureLink':
             return <span {...attributes}>
@@ -67,19 +83,22 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
                     componentKey={componentKey}
                     tag="If"
                     field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
-                    onChange={() => {}}
+                    value={[]}
+                    onChange={newIfWrapperStub}
+                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>
         case 'ifWrapper':
-            const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
                     componentKey={componentKey}
                     tag="If"
                     field={nodeById}
-                    onChange={() => {}}
+                    value={element.subTree.children}
+                    onChange={ifWrapperOnChange}
+                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>
@@ -137,6 +156,7 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
 export const withParagraphBR = (editor: Editor) => {
     const { normalizeNode } = editor
     editor.normalizeNode = ([node, path]) => {
+        console.log(`normalize`)
         //
         // Check all paragraphs to set their explicitBR and softBR marks according to their next element and contents
         //

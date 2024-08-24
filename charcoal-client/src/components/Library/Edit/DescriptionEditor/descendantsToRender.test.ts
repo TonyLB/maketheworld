@@ -85,6 +85,13 @@ describe('descendantsToRender', () => {
         {
             type: 'ifWrapper',
             treeId: 'ABC',
+            subTree: {
+                data: { tag: 'If' },
+                children: [
+                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If'}, children: [] }] },
+                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [] }] }
+                ]
+            },
             children: [{ text: '' }]
         },
         {
@@ -95,8 +102,8 @@ describe('descendantsToRender', () => {
             {
                 data: { tag: 'If' },
                 children: [
-                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If' }, children: [], id: '' }], id: '' },
-                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [], id: '' }], id: '' }
+                    { data: { tag: 'Statement', if: 'testVariable' }, children: [{ data: { tag: 'String', value: 'with an If' }, children: [] }] },
+                    { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [] }] }
                 ],
                 id: 'ABC'
             },

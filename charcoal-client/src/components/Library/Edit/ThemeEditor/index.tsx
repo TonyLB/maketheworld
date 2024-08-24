@@ -131,15 +131,12 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     componentKey={ComponentId}
                     tag="Name"
                     field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+                    value={component?.name?.children ?? []}
                     onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                    onDelete={() => {}}
                 >
                     <TitledBox title="Name">
-                        <DescriptionEditor
-                            componentKey={ComponentId}
-                            validLinkTags={[]}
-                            fieldName="name"
-                            toolbar={false}
-                        />
+                        <DescriptionEditor validLinkTags={[]} toolbar={false} />
                     </TitledBox>
                 </EditSchema>
                 <SidebarTitle title="Prompts" minHeight="8em">
