@@ -56,6 +56,7 @@ export type CustomIfWrapper = {
     children: EmptyText[];
     treeId: string;
     subTree: GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag>;
+    position: number;
 }
 
 //

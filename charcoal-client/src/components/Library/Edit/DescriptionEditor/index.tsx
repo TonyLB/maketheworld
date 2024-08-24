@@ -220,10 +220,10 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} />))), [validLinkTags])
+    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(standard)
+    const Element = useMemo(() => (elementFactory(() => (<DescriptionEditor validLinkTags={validLinkTags} />))), [editor, validLinkTags])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    const { editor, value, setValue, saveToReduce } = useDescriptionEditorHook(standard)
     const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])

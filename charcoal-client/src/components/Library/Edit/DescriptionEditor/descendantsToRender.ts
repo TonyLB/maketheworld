@@ -11,7 +11,6 @@ import {
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag, SchemaTag, isSchemaCondition, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { selectById } from "@tonylb/mtw-wml/dist/schema/selectors/byId"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 //

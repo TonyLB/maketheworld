@@ -2,7 +2,7 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
-import { RenderElementProps, RenderLeafProps } from 'slate-react'
+import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
@@ -18,26 +18,40 @@ import {
     Range,
     Transforms
 } from 'slate'
-import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
 import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
+    const editor = useSlate()
     const { componentKey } = useEditContext()
     const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     const newIfWrapperStub = useCallback(() => {
         console.log(`newIfWrapper stub`)
     }, [])
-    const ifWrapperOnChange = useCallback(() => {
+    const ifWrapperOnChange = useCallback((position: number) => (value: GenericTree<SchemaTag>) => {
         //
         // TODO: Create onChange function that uses the element's placement in the Slate Editor Descendants list
         // to create a Transform to update the `subTree` property with the new values of the ifWrapper editable void
         //
-        console.log(`ifWrapper stub`)
-    }, [])
+        console.log(`ifWrapper[${position}]: ${JSON.stringify(value, null, 4)}`)
+        const subTree = Editor.fragment(editor, [position])[0]
+        if (!(isCustomBlock(subTree) && isCustomIfWrapper(subTree))) {
+            throw new Error('If Wrapper position error')
+        }
+        if (value.length === 0) {
+            Transforms.removeNodes(editor, { at: [position] })
+        }
+        const wrapper = value[0]
+        if (treeNodeTypeguard(isSchemaCondition)(wrapper)) {
+            Transforms.setNodes(editor, { subTree: wrapper }, { at: [position] })
+        }
+    }, [editor])
     const nodeById = useMemo(() => {
         if (element.type === 'ifWrapper') {
             return selectById(element.treeId)(schema)
@@ -97,7 +111,7 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
                     tag="If"
                     field={nodeById}
                     value={element.subTree.children}
-                    onChange={ifWrapperOnChange}
+                    onChange={ifWrapperOnChange(element.position)}
                     onDelete={() => {}}
                 >
                     <IfElseTree render={render} />

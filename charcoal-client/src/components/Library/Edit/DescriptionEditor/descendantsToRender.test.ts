@@ -92,6 +92,7 @@ describe('descendantsToRender', () => {
                     { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: ' and an Else' }, children: [] }] }
                 ]
             },
+            position: 2,
             children: [{ text: '' }]
         },
         {
