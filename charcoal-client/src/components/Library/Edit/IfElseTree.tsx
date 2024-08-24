@@ -209,7 +209,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
     }, [field])
     const addElseIf = useCallback((afterIndex: number) => (
         <AddItemButton
-            key="elseIf"
+            key={`elseIf-${afterIndex}`}
             addItemIcon={<React.Fragment>elseIf</React.Fragment>}
             onClick={() => {
                 onChange([{
@@ -251,7 +251,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             key={firstStatement.id}
             id={firstStatement.id}
             index={0}
-            highlighted={firstStatement.id === highlightID}
+            highlighted={highlightID && (firstStatement.id === highlightID)}
             onClick={onClick}
             type={'if'}
             source={firstStatement.data.if}
@@ -291,10 +291,10 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             otherStatements.map(({ data, children, id }, index) => {
                 return isSchemaConditionStatement(data)
                     ? <IfElseWrapBox
-                        key={id}
+                        key={`elseIfWrap-${index}`}
                         id={id}
                         index={index + 1}
-                        highlighted={id === highlightID}
+                        highlighted={highlightID && (id === highlightID)}
                         onClick={onClick}
                         type={'elseIf'}
                         source={data.if}
@@ -325,10 +325,10 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                     </IfElseWrapBox>
                     : isSchemaConditionFallthrough(data)
                         ? <IfElseWrapBox
-                            key={id}
+                            key="elseWrap"
                             id={id}
                             index={index + 1}
-                            highlighted={id === highlightID}
+                            highlighted={highlightID && (id === highlightID)}
                             onClick={onClick}
                             type={'else'}
                             source=''

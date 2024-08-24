@@ -121,7 +121,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(heartbeat)
     }, [dispatch, AssetId])
     const updateStandard = useCallback((updateAction: UpdateStandardPayload) => {
-        console.log(`updateAction: ${JSON.stringify(updateAction, null, 4)}`)
         dispatch(updateStandardAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)

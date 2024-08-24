@@ -45,9 +45,11 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         if (value.length === 0) {
             Transforms.removeNodes(editor, { at: [position] })
         }
-        const wrapper = value[0]
-        if (treeNodeTypeguard(isSchemaCondition)(wrapper)) {
-            Transforms.setNodes(editor, { subTree: wrapper }, { at: [position] })
+        else {
+            const wrapper = value[0]
+            if (treeNodeTypeguard(isSchemaCondition)(wrapper)) {
+                Transforms.setNodes(editor, { subTree: wrapper }, { at: [position] })
+            }    
         }
     }, [editor])
     const nodeById = useMemo(() => {
