@@ -1,8 +1,8 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
-import { RenderElementProps, RenderLeafProps } from 'slate-react'
+import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
@@ -18,16 +18,44 @@ import {
     Range,
     Transforms
 } from 'slate'
-import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
 import { EditSchema, useEditContext } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
-export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): FunctionComponent<RenderElementProps> => (props) => {
+export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
+    const editor = useSlate()
     const { componentKey } = useEditContext()
     const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
+    const newIfWrapperStub = useCallback(() => {
+    }, [])
+    const ifWrapperOnChange = useCallback((position: number) => (value: GenericTree<SchemaTag>) => {
+        //
+        // TODO: Create onChange function that uses the element's placement in the Slate Editor Descendants list
+        // to create a Transform to update the `subTree` property with the new values of the ifWrapper editable void
+        //
+        const subTree = Editor.fragment(editor, [position])[0]
+        if (!(isCustomBlock(subTree) && isCustomIfWrapper(subTree))) {
+            throw new Error('If Wrapper position error')
+        }
+        if (value.length === 0) {
+            Transforms.removeNodes(editor, { at: [position] })
+        }
+        const wrapper = value[0]
+        if (treeNodeTypeguard(isSchemaCondition)(wrapper)) {
+            Transforms.setNodes(editor, { subTree: wrapper }, { at: [position] })
+        }
+    }, [editor])
+    const nodeById = useMemo(() => {
+        if (element.type === 'ifWrapper') {
+            return selectById(element.treeId)(schema)
+        }
+        return undefined
+    }, [element, schema])
     switch(element.type) {
         case 'featureLink':
             return <span {...attributes}>
@@ -67,19 +95,22 @@ export const elementFactory = (render: FunctionComponent<{ treeId: string; }>): 
                     componentKey={componentKey}
                     tag="If"
                     field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
-                    onChange={() => {}}
+                    value={[]}
+                    onChange={newIfWrapperStub}
+                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>
             </div>
         case 'ifWrapper':
-            const nodeById = selectById(element.treeId)(schema)
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
                     componentKey={componentKey}
                     tag="If"
                     field={nodeById}
-                    onChange={() => {}}
+                    value={element.subTree.children}
+                    onChange={ifWrapperOnChange(element.position)}
+                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>

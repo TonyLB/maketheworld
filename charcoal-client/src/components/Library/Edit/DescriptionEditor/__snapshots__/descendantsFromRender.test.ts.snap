@@ -50,6 +50,46 @@ Array [
         "text": "",
       },
     ],
+    "subTree": Object {
+      "children": Array [
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "with an If",
+              },
+              "id": "",
+            },
+          ],
+          "data": Object {
+            "if": "testVariable",
+            "tag": "Statement",
+          },
+          "id": "",
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "and an Else",
+              },
+              "id": "",
+            },
+          ],
+          "data": Object {
+            "tag": "Fallthrough",
+          },
+          "id": "",
+        },
+      ],
+      "data": Object {
+        "tag": "If",
+      },
+    },
     "treeId": "ABC",
     "type": "ifWrapper",
   },

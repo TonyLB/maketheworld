@@ -49,6 +49,8 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
                 returnValue.push({
                     type: 'ifWrapper',
                     treeId: id,
+                    subTree: { data: item, children },
+                    position: 0,
                     children: [{ text: "" }]
                 })
                 break
@@ -92,7 +94,7 @@ export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeI
     let returnValue = [] as CustomBlock[]
     let accumulator = [] as CustomParagraphContents[]
     const translated = descendantsTranslate(render, options)
-    descendantsCompact(translated).forEach((item) => {
+    descendantsCompact(translated).forEach((item, index) => {
         if (isCustomBlock(item)) {
             if (isCustomIfWrapper(item)) {
                 if (accumulator.length) {
@@ -104,7 +106,7 @@ export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeI
                 }
                 returnValue = [
                     ...returnValue,
-                    { type: 'ifWrapper', treeId: item.treeId, children: [{ text: '' }] }
+                    { ...item, type: 'ifWrapper', position: index, children: [{ text: '' }] }
                 ]
             }
             else {
