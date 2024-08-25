@@ -415,6 +415,111 @@ describe('personalAsset slice reducers', () => {
             }])
         })
 
+        it('should splice a component list', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: 'UUID1',
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID2', children: [] }]},
+                            { data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, id: 'MNO', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }]}
+                        ]
+                    },
+                    {
+                        data: { tag: 'Room', key: 'testDestination' },
+                        id: 'PQR',
+                        children: []
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+
+            //
+            // Test removing an item from a list
+            //
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'spliceList',
+                        componentKey: 'testRoom',
+                        itemKey: 'exits',
+                        at: 0,
+                        replace: 1,
+                        items: []
+                    }
+                })
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testDestination' },
+                        id: expect.any(String),
+                        children: []
+                    },
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]},
+                        ]
+                    }
+                ]
+            }])
+
+            //
+            // Test replacing an item in a list
+            //
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'spliceList',
+                        componentKey: 'testRoom',
+                        itemKey: 'exits',
+                        at: 0,
+                        replace: 1,
+                        items: [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
+                    }
+                })
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testDestination' },
+                        id: expect.any(String),
+                        children: []
+                    },
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}
+                        ]
+                    }
+                ]
+            }])
+        })
+
         it('should delete schema content', () => {
             const testSchema = [{
                 data: { tag: 'Asset' as const, key: 'testAsset', Story: undefined },
