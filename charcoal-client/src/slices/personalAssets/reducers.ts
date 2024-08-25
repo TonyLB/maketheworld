@@ -11,7 +11,7 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { EditWrappedStandardNode, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -110,7 +110,16 @@ type UpdateStandardPayloadUpdateField = {
     value?: any
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField
+type UpdateStandardPayloadAddComponent = {
+    type: 'addComponent';
+    tag: SchemaWithKey["tag"];
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent
+
+const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
+const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
+const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -133,6 +142,73 @@ export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTa
     let nextIndex = 1
     while (keysByTag.includes(`${tag}${nextIndex}`)) { nextIndex++ }
     return `${tag}${nextIndex}`
+}
+
+const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponent => {
+    switch(tag) {
+        case 'Room':
+            return {
+                tag,
+                key,
+                id: '',
+                exits: [],
+                themes: []
+            }
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                tag,
+                key,
+                id: ''
+            }
+        case 'Image':
+            return {
+                tag: 'Image' as const,
+                key,
+                id: ''
+            }
+        case 'Variable':
+            return {
+                tag: 'Variable' as const,
+                key,
+                default: 'false',
+                id: ''
+            }
+        case 'Computed':
+            return {
+                tag: 'Computed' as const,
+                key,
+                src: '',
+                id: ''
+            }
+        case 'Action':
+            return {
+                tag: 'Action' as const,
+                key,
+                src: '',
+                id: ''
+            }
+        case 'Map':
+            return {
+                tag: 'Map' as const,
+                key,
+                themes: [],
+                images: [],
+                positions: [],
+                id: ''
+            }
+        case 'Theme':
+            return {
+                tag: 'Theme' as const,
+                key,
+                prompts: [],
+                rooms: [],
+                maps: [],
+                id: ''
+            }
+        default:
+            throw new Error(`No default component for tag: '${tag}'`)
+    }
 }
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
@@ -270,8 +346,8 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
-    const component = ['replaceItem', 'updateField'].includes(payload.type) ? state.standard.byId[payload.componentKey] : undefined
-    if (payload.type === 'replaceItem') {
+    const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? state.standard.byId[payload.componentKey] : undefined
+    if (isUpdateStandardPayloadReplaceItem(payload)) {
         const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
         switch(component?.tag) {
             case 'Room':
@@ -325,8 +401,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 break
         }
     }
-    if (payload.type === 'updateField') {
-        console.log(`updateField payload: ${JSON.stringify(payload, null, 4)}`)
+    if (isUpdateStandardPayloadUpdateField(payload)) {
         switch(component?.tag) {
             case 'Action':
             case 'Variable':
@@ -334,6 +409,19 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 component[payload.itemKey] = payload.value
                 break
         }
+    }
+    if (isUpdateStandardPayloadAddComponent(payload)) {
+        //
+        // Create a next synthetic key that doesn't conflict with the existing standardForm
+        //
+        const keysByTag = Object.entries(state.standard.byId).filter(([_, node]) => (node.tag === payload.tag)).map(([key]) => (key))
+        let nextIndex = 1
+        while (keysByTag.includes(`${payload.tag}${nextIndex}`)) { nextIndex++ }
+        const key = `${payload.tag}${nextIndex}`
+        //
+        // Add a default component
+        //
+        state.standard.byId[key] = defaultComponentFromTag(payload.tag, key)
     }
     const inheritedStandardizer = new Standardizer()
     inheritedStandardizer.loadStandardForm(state.inherited)

@@ -1,6 +1,8 @@
 import produce from "immer"
 import { updateSchema, updateStandard } from "./reducers"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 describe('personalAsset slice reducers', () => {
     describe('updateSchema', () => {
@@ -335,14 +337,15 @@ describe('personalAsset slice reducers', () => {
                     inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
                 },
                 (state) => updateStandard(state as any, {
-                type: 'updateStandard',
-                payload: {
-                    type: 'replaceItem',
-                    componentKey: 'testRoom',
-                    itemKey: 'name',
-                    item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
-                }
-            })).schema).toEqual([{
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'replaceItem',
+                        componentKey: 'testRoom',
+                        itemKey: 'name',
+                        item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
+                    }
+                })
+            ).schema).toEqual([{
                 data: { tag: 'Asset', key: 'testAsset' },
                 id: expect.any(String),
                 children: [
@@ -358,53 +361,59 @@ describe('personalAsset slice reducers', () => {
             }])
         })
 
-        // it('should add children', () => {
-        //     const testSchema = [{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: 'UUID1',
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'testRoom' },
-        //                 id: 'ABC',
-        //                 children: [
-        //                     { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
-        //                     { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID2', children: [] }]}
-        //                 ]
-        //             }
-        //         ]
-        //     }]
-        //     expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
-        //         type: 'updateSchema',
-        //         payload: {
-        //             type: 'addChild',
-        //             id: 'DEF',
-        //             item: {
-        //                 data: { tag: 'String', value: ': Edited' },
-        //                 children: []
-        //             }
-        //         }
-        //     })).baseSchema).toEqual([{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: expect.any(String),
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'testRoom' },
-        //                 id: expect.any(String),
-        //                 children: [
-        //                     {
-        //                         data: { tag: 'Name' },
-        //                         id: expect.any(String),
-        //                         children: [
-        //                             { data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] },
-        //                             { data: { tag: 'String', value: ': Edited' }, id: expect.any(String), children: [] },
-        //                         ]
-        //                     },
-        //                     { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
-        //                 ]
-        //             }
-        //         ]    
-        //     }])
-        // })
+        it('should add a component', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: 'UUID1',
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID2', children: [] }]}
+                        ]
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'addComponent',
+                        tag: 'Variable'
+                    }
+                })
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            {
+                                data: { tag: 'Name' },
+                                id: expect.any(String),
+                                children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]
+                            },
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
+                        ]
+                    },
+                    {
+                        data: { tag: 'Variable', key: 'Variable1', default: 'false' },
+                        id: expect.any(String),
+                        children: []
+                    }
+                ]    
+            }])
+        })
 
         it('should delete schema content', () => {
             const testSchema = [{
@@ -451,67 +460,45 @@ describe('personalAsset slice reducers', () => {
             }])
         })
 
-        // it('should update a schemaTag without changing its children', () => {
-        //     const testSchema = [{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: '',
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'testRoom' },
-        //                 id: 'ABC',
-        //                 children: [
-        //                     {
-        //                         data: { tag: 'Name' },
-        //                         id: 'DEF',
-        //                         children: [{
-        //                             data: { tag: 'If' },
-        //                             id: 'IF-Wrapper',
-        //                             children: [{
-        //                                 data: { tag: 'Statement', if: 'true', selected: false },
-        //                                 id: 'IF-1',
-        //                                 children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]
-        //                             }]
-        //                         }]
-        //                     },
-        //                     { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
-        //                 ]
-        //             }
-        //         ]
-        //     }]
-        //     expect(produce({ baseSchema: testSchema, importData: [] }, (state) => updateSchema(state as any, {
-        //         type: 'updateSchema',
-        //         payload: {
-        //             type: 'updateNode',
-        //             id: 'ABC',
-        //             item: { tag: 'Room', key: 'lobby' }
-        //         }
-        //     })).baseSchema).toEqual([{
-        //         data: { tag: 'Asset', key: 'testAsset' },
-        //         id: expect.any(String),
-        //         children: [
-        //             {
-        //                 data: { tag: 'Room', key: 'lobby' },
-        //                 id: expect.any(String),
-        //                 children: [
-        //                     {
-        //                         data: { tag: 'Name' },
-        //                         id: expect.any(String),
-        //                         children: [{
-        //                             data: { tag: 'If' },
-        //                             id: expect.any(String),
-        //                             children: [{
-        //                                 data: { tag: 'Statement', if: 'true', selected: false },
-        //                                 id: expect.any(String),
-        //                                 children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]
-        //                             }]
-        //                         }]
-        //                     },
-        //                     { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
-        //                 ]
-        //             }
-        //         ]
-        //     }])
-        // })
+        it('should update a non-tree field in a standardComponent', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'Computed', key: 'testComputed', src: '!testVar' },
+                        id: 'ABC',
+                        children: []
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'updateField',
+                        componentKey: 'testComputed',
+                        itemKey: 'src',
+                        value: 'testVar'
+                    }
+            })).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Computed', key: 'testComputed', src: 'testVar' },
+                        id: 'ABC',
+                        children: []
+                    }
+                ]
+            }])
+        })
 
         // it('should rename exit targets on rename of room', () => {
         //     const testSchema = [{

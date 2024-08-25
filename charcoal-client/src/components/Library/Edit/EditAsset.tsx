@@ -148,7 +148,7 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { schema, baseSchema, updateSchema, save, status, serialized, standardForm, readonly, assetKey } = useLibraryAsset()
+    const { updateStandard, save, status, serialized, standardForm, readonly, assetKey } = useLibraryAsset()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
 
@@ -172,19 +172,11 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                 dispatch(addOnboardingComplete(['addRoom']))
                 break
         }
-        if (baseSchema.length === 0) {
-            return
-        }
-        const rootItem = baseSchema[0]
-        if (baseSchema.length > 1 || !isSchemaAsset(rootItem.data)) {
-            throw new Error('Top-level asset error in AssetEdit update')
-        }
-        updateSchema({
-            type: 'addChild',
-            id: rootItem.id,
-            item: { data: defaultItemFromTag(tag, ''), children: [] }
+        updateStandard({
+            type: 'addComponent',
+            tag
         })
-    }, [baseSchema, updateSchema, dispatch])
+    }, [updateStandard, dispatch])
     const innerSaveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveAsset']))
         save()
