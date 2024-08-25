@@ -20,7 +20,6 @@ import treeListFactory from "../treeListFactory"
 import { GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
-import ConnectionTable from "../ConnectionTable"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
@@ -142,20 +141,6 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <SidebarTitle title="Prompts" minHeight="8em">
                     <Prompts tree={component.prompts} parentId={component.id} />
                 </SidebarTitle>
-                <ConnectionTable
-                    label="Rooms"
-                    minHeight="5em"
-                    target={ComponentId}
-                    tag="Room"
-                    orientation="children"
-                />
-                <ConnectionTable
-                    label="Maps"
-                    tag="Map"
-                    orientation="children"
-                    minHeight="5em"
-                    target={ComponentId}
-                />
             </Box>
             <DraftLockout />
         </Box>
