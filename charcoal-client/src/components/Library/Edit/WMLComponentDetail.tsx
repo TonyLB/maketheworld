@@ -26,6 +26,7 @@ import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, S
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
+import { StandardFormSchema } from './StandardFormContext'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
@@ -60,96 +61,87 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         {
-            (isStandardRoom(component)) && <EditSchema
-                componentKey={ComponentId}
-                tag="ShortName"
-                field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
-                value={component?.shortName?.children ?? []}
-                inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
-                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
-                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName' })}}
+            (isStandardRoom(component)) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
+                <EditSchema
+                    field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
+                    value={component?.shortName?.children ?? []}
+                    inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
+                    onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
+                    onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName' })}}
+                >
+                    <TitledBox title="Short Name">
+                        <DescriptionEditor
+                            validLinkTags={[]}
+                            toolbar={false}
+                        />
+                    </TitledBox>
+                </EditSchema>
+            </StandardFormSchema>
+        }
+        <StandardFormSchema componentKey={ComponentId} tag="Name">
+            <EditSchema
+                field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+                value={component?.name?.children ?? []}
+                inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
+                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
+                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name' })}}
             >
-                <TitledBox title="Short Name">
+                <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                     <DescriptionEditor
+                        toolbar
                         validLinkTags={[]}
-                        toolbar={false}
                     />
                 </TitledBox>
             </EditSchema>
-        }
-        <EditSchema
-            componentKey={ComponentId}
-            tag="Name"
-            field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
-            value={component?.name?.children ?? []}
-            inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
-            onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
-            onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name' })}}
-        >
-            <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
-                <DescriptionEditor
-                    toolbar
-                    validLinkTags={[]}
-                />
-            </TitledBox>
-        </EditSchema>
+        </StandardFormSchema>
         {
-            isStandardRoom(component) && <EditSchema
-                componentKey={ComponentId}
-                tag="Summary"
-                field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
-                value={component?.summary?.children ?? []}
-                inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
+            isStandardRoom(component) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
+                <EditSchema
+                    field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
+                    value={component?.summary?.children ?? []}
+                    inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
+                    onChange={(value) => {
+                        if (value.length) {
+                            dispatch(addOnboardingComplete(['summarizeRoom']))
+                        }
+                        updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                    }}
+                    onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary' })}}
+                >
+                    <TitledBox title="Summary">
+                        <DescriptionEditor
+                            toolbar
+                            validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
+                            checkPoints={['summarizeRoom']}
+                        />
+                    </TitledBox>
+                </EditSchema>
+            </StandardFormSchema>
+        }
+        <StandardFormSchema componentKey={ComponentId} tag="Description">
+            <EditSchema
+                field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
+                value={component?.description?.children ?? []}
+                inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
                 onChange={(value) => {
                     if (value.length) {
-                        dispatch(addOnboardingComplete(['summarizeRoom']))
+                        dispatch(addOnboardingComplete(['describeRoom']))
                     }
-                    updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                    updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
                 }}
-                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary' })}}
+                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description' })}}
             >
-                <TitledBox title="Summary">
+                <TitledBox>
                     <DescriptionEditor
                         toolbar
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                        checkPoints={['summarizeRoom']}
+                        checkPoints={isStandardRoom(component) ? ['describeRoom'] : undefined}
                     />
                 </TitledBox>
             </EditSchema>
-        }
-        <EditSchema
-            componentKey={ComponentId}
-            tag="Description"
-            field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
-            value={component?.description?.children ?? []}
-            inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
-            onChange={(value) => {
-                if (value.length) {
-                    dispatch(addOnboardingComplete(['describeRoom']))
-                }
-                updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
-            }}
-            onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description' })}}
-        >
-            <TitledBox>
-                <DescriptionEditor
-                    toolbar
-                    validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                    checkPoints={isStandardRoom(component) ? ['describeRoom'] : undefined}
-                />
-            </TitledBox>
-        </EditSchema>
+        </StandardFormSchema>
         {
-            isStandardRoom(component) && <React.Fragment>
-                <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
-                {/* <ConnectionTable
-                    label="Themes"
-                    minHeight="10em"
-                    target={ComponentId}
-                    tag="Theme"
-                    orientation="parents"
-                /> */}
-            </React.Fragment>
+            isStandardRoom(component) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
         }
     </Box>
     : <Box />

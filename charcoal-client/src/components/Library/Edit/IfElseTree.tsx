@@ -167,7 +167,7 @@ type IfElseTreeProps = {
 // and renders the statements and fallthrough of its children
 //
 export const IfElseTree = ({ render: Render, showSelected = false, highlightID = '', onClick }: IfElseTreeProps): ReactElement => {
-    const { componentKey, field, onChange } = useEditContext()
+    const { field, onChange } = useEditContext()
     const firstStatement = useMemo(() => (field.children[0]), [field])
     const otherStatements = useMemo(() => (field.children.slice(1)), [field])
     //
@@ -273,8 +273,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onUnselect={onUnselect}
         >
             <EditSchema
-                componentKey={componentKey}
-                tag="Statement"
                 field={firstStatement}
                 value={firstStatement.children}
                 onChange={(value) => {
@@ -309,8 +307,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onUnselect={onUnselect}
                     >
                         <EditSchema
-                            componentKey={componentKey}
-                            tag="Statement"
                             field={{ data, children, id }}
                             value={children}
                             onChange={(value) => {
@@ -339,8 +335,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             onSelect={onSelect}
                         >
                             <EditSchema
-                                componentKey={componentKey}
-                                tag="Fallthrough"
                                 field={{ data, children, id }}
                                 value={children}
                                 onChange={(value) => {

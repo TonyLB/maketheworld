@@ -45,6 +45,7 @@ import { EditSchema, useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
+import { StandardFormSchema, useStandardFormContext } from '../StandardFormContext'
 
 interface DescriptionEditorProps {
     // componentKey: string;
@@ -167,10 +168,10 @@ type DescriptionEditorSlateComponentProperties = {
 }
 
 const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
-    const { tag, onChange: contextOnChange, value: contextValue } = useEditContext()
+    const { onChange: contextOnChange, value: contextValue } = useEditContext()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
         contextOnChange(maybeGenericIDFromTree(newRender))
-    }, [tag, contextOnChange])
+    }, [contextOnChange])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag>({
         tree: contextValue ?? [],
         typeGuard: isSchemaOutputTag
@@ -258,7 +259,8 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
-    const { componentKey, inherited, tag } = useEditContext()
+    const { inherited } = useEditContext()
+    const { tag } = useStandardFormContext()
     const { standardForm, inheritedStandardForm, readonly } = useLibraryAsset()
     return <React.Fragment>
         { inherited?.id
@@ -267,7 +269,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
                 background: grey[100],
                 width: '100%'
             }}>
-                <EditSchema value={inherited.children} onChange={() => {}} onDelete={() => {}} componentKey={componentKey} field={inherited} tag={tag}>
+                <EditSchema value={inherited.children} onChange={() => {}} onDelete={() => {}} field={inherited}>
                     <DescriptionEditorSlateComponent
                         { ...props }
                         standard={inheritedStandardForm}

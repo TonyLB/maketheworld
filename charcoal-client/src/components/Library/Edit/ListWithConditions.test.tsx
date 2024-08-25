@@ -16,8 +16,6 @@ describe('ListWithConditions component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    tag="Name"
-                    componentKey='room1'
                     field={{ data: { tag: 'Room', key: 'room1' }, children: [], id: '' }}
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
@@ -39,8 +37,6 @@ describe('ListWithConditions component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    tag="Name"
-                    componentKey='room1'
                     field={{ data: { tag: 'Room', key: 'room1' }, children: [], id: '' }}
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},

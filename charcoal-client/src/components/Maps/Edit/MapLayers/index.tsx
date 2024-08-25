@@ -295,8 +295,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema
-                componentKey={mapId}
-                tag="If"
                 field={item}
                 value={item.children ?? []}
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
