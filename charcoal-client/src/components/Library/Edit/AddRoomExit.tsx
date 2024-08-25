@@ -17,17 +17,19 @@ interface AddRoomExitProps {
 }
 
 export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId }) => {
-    const { standardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
     const roomComponent = useMemo(() => (standardForm.byId[RoomId]), [standardForm, RoomId])
     const addExitItem = useCallback(() => {
         if (roomComponent && isStandardRoom(roomComponent)) {
-            updateSchema({
-                type: 'addChild',
-                id: roomComponent.id,
-                item: { data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }
+            updateStandard({
+                type: 'spliceList',
+                componentKey: roomComponent.key,
+                itemKey: 'exits',
+                at: roomComponent.exits.length,
+                items: [{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }]
             })
         }
-    }, [roomComponent, updateSchema])
+    }, [roomComponent, updateStandard])
     return <List>
         <ListItemButton onClick={addExitItem}>
             <ListItemIcon>

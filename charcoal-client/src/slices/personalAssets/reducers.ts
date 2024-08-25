@@ -115,11 +115,21 @@ type UpdateStandardPayloadAddComponent = {
     tag: SchemaWithKey["tag"];
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent
+type UpdateStandardPayloadSpliceList = {
+    type: 'spliceList';
+    componentKey: string;
+    itemKey: string; // Needs to restrict to possible itemKeys
+    at: number;
+    replace?: number;
+    items: GenericTree<SchemaTag>
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList
 
 const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
 const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
+const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -422,6 +432,12 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         // Add a default component
         //
         state.standard.byId[key] = defaultComponentFromTag(payload.tag, key)
+    }
+    if (isUpdateStandardPayloadSpliceList(payload)) {
+        const component = state.standard?.byId?.[payload.componentKey]
+        if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
+            component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
+        }
     }
     const inheritedStandardizer = new Standardizer()
     inheritedStandardizer.loadStandardForm(state.inherited)
