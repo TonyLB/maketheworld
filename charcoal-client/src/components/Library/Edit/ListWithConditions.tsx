@@ -9,7 +9,6 @@ import IfElseTree from "./IfElseTree";
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;
     render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag> }>;
-    tree: GenericTreeFiltered<T, SchemaTag>;
 }
 
 export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
@@ -22,10 +21,11 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
         value.map((item, index) => {
             if (treeNodeTypeguard(isSchemaCondition)(item)) {
                 <EditSchema
+                    key={`list-with-conditions-${index}`}
                     tag={tag}
                     componentKey={componentKey}
                     field={maybeGenericIDFromTree([item])[0]}
-                    value={item.children}
+                    value={[item]}
                     onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}
                     onDelete={() => { onChange(maybeGenericIDFromTree([...value.slice(0, index), ...value.slice(index+1)])) }}
                 >
@@ -34,6 +34,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
             }
             else if (treeNodeTypeguard(props.typeGuard)(item)) {
                 return <EditSchema
+                    key={`list-with-conditions-${index}`}
                     tag={tag}
                     componentKey={componentKey}
                     field={maybeGenericIDFromTree([item])[0]}
@@ -48,3 +49,5 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
         })
     }</React.Fragment>
 }
+
+export default ListWithConditions
