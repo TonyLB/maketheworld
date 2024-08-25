@@ -1,7 +1,7 @@
 import React, { FunctionComponent, PropsWithChildren, ReactElement } from "react"
 
 import { isSchemaCondition, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext";
 import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
 import IfElseTree from "./IfElseTree";
@@ -13,17 +13,13 @@ type ListWithConditionsProperties<T extends SchemaTag> = {
 
 export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
     const { render: Render } = props
-    const { tag, componentKey, value, onChange } = useEditContext()
-    //
-    // TODO: Document field and value on useEditContext, and be sure that I'm using them correctly here (probably not)
-    //
+    const { value, onChange } = useEditContext()
+
     return <React.Fragment>{
         value.map((item, index) => {
             if (treeNodeTypeguard(isSchemaCondition)(item)) {
                 <EditSchema
                     key={`list-with-conditions-${index}`}
-                    tag={tag}
-                    componentKey={componentKey}
                     field={maybeGenericIDFromTree([item])[0]}
                     value={[item]}
                     onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}
@@ -35,8 +31,6 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
             else if (treeNodeTypeguard(props.typeGuard)(item)) {
                 return <EditSchema
                     key={`list-with-conditions-${index}`}
-                    tag={tag}
-                    componentKey={componentKey}
                     field={maybeGenericIDFromTree([item])[0]}
                     value={item.children}
                     onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}

@@ -28,7 +28,6 @@ import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseCl
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const editor = useSlate()
-    const { componentKey } = useEditContext()
     const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     const newIfWrapperStub = useCallback(() => {
@@ -94,8 +93,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
-                    componentKey={componentKey}
-                    tag="If"
                     field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
                     value={[]}
                     onChange={newIfWrapperStub}
@@ -107,8 +104,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         case 'ifWrapper':
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
-                    componentKey={componentKey}
-                    tag="If"
                     field={nodeById}
                     value={element.subTree.children}
                     onChange={ifWrapperOnChange(element.position)}

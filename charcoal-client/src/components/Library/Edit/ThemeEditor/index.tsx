@@ -22,6 +22,7 @@ import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, Sc
 import SidebarTitle from "../SidebarTitle"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
+import { StandardFormSchema } from "../StandardFormContext"
 
 const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
     const { updateSchema } = useLibraryAsset()
@@ -126,18 +127,18 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <EditSchema
-                    componentKey={ComponentId}
-                    tag="Name"
-                    field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
-                    value={component?.name?.children ?? []}
-                    onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
-                    onDelete={() => {}}
-                >
-                    <TitledBox title="Name">
-                        <DescriptionEditor validLinkTags={[]} toolbar={false} />
-                    </TitledBox>
-                </EditSchema>
+                <StandardFormSchema componentKey={ComponentId} tag="Name">
+                    <EditSchema
+                        field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
+                        value={component?.name?.children ?? []}
+                        onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                        onDelete={() => {}}
+                    >
+                        <TitledBox title="Name">
+                            <DescriptionEditor validLinkTags={[]} toolbar={false} />
+                        </TitledBox>
+                    </EditSchema>
+                </StandardFormSchema>
                 <SidebarTitle title="Prompts" minHeight="8em">
                     <Prompts tree={component.prompts} parentId={component.id} />
                 </SidebarTitle>
