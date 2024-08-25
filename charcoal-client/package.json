@@ -81,6 +81,7 @@
     "@types/redux-mock-store": "^1.0.3",
     "@types/uuid": "^8.3.3",
     "lorem-ipsum": "^2.0.4",
+    "react-test-renderer": "^17.0.2",
     "redux-mock-store": "^1.5.4"
   }
 }
