@@ -113,7 +113,6 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, i
                 replace: 1,
                 items: [{ data: { tag: 'Exit', key: `${RoomId}:${event.target.value}`, from: RoomId, to: event.target.value }, children: nameTree }]
             })
-            updateSchema({ type: 'replace', id, item: { data: { tag: 'Exit', key: `${RoomId}:${event.target.value}`, from: RoomId, to: event.target.value }, children: nameTree, id } })
         }}
     />
     return <Box
