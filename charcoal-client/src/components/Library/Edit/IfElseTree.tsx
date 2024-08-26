@@ -171,7 +171,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
     const firstStatement = useMemo(() => (field.children[0]), [field])
     const otherStatements = useMemo(() => (field.children.slice(1)), [field])
     //
-    // TODO: onSelect takes an index in the children of the current SchemaConditionTag field, clears select from all other
+    // onSelect takes an index in the children of the current SchemaConditionTag field, clears select from all other
     // children, and sets select on that index
     //
     const onSelect = useCallback((index: number) => {
@@ -272,18 +272,35 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            <EditSchema
-                field={firstStatement}
-                value={firstStatement.children}
-                onChange={(value) => {
-                    onChange([{ ...field, children: [{ ...firstStatement, children: value }, ...otherStatements] }])
-                }}
-                onDelete={() => {
-                    onChange([{ ...field, children: [{ ...firstStatement, children: [] }, ...otherStatements] }])
-                }}
-            >
-                <Render />
-            </EditSchema>
+            {
+                firstStatement.children.map((child, index) => (
+                    <EditSchema
+                        field={child}
+                        value={[child]}
+                        onChange={(value) => {
+                            onChange([{
+                                ...field,
+                                children: [
+                                    {
+                                        ...firstStatement,
+                                        children: [
+                                            ...firstStatement.children.slice(0, index),
+                                            ...value,
+                                            ...firstStatement.children.slice(index + 1)
+                                        ]
+                                    },
+                                    ...otherStatements
+                                ]
+                            }])
+                        }}
+                        onDelete={() => {
+                            onChange([{ ...field, children: [{ ...firstStatement, children: [] }, ...otherStatements] }])
+                        }}
+                    >
+                        <Render />
+                    </EditSchema>    
+                ))
+            }
         </IfElseWrapBox>
         { 
             otherStatements.map(({ data, children, id }, index) => {
@@ -306,18 +323,25 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        <EditSchema
-                            field={{ data, children, id }}
-                            value={children}
-                            onChange={(value) => {
-                                onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: value , id}, ...field.children.slice(index + 2)] }])
-                            }}
-                            onDelete={() => {
-                                onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: [] , id}, ...field.children.slice(index + 2)] }])
-                            }}
-                    >
-                            <Render />
-                        </EditSchema>
+                        {
+                            children.map((child) => (
+                                <EditSchema
+                                    field={child}
+                                    value={[child]}
+                                    //
+                                    // TODO ISS4303: Refactor with EditSubListSchema
+                                    //
+                                    onChange={(value) => {
+                                        onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: value , id}, ...field.children.slice(index + 2)] }])
+                                    }}
+                                    onDelete={() => {
+                                        onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: [] , id}, ...field.children.slice(index + 2)] }])
+                                    }}
+                                >
+                                    <Render />
+                                </EditSchema>
+                            ))
+                        }
                     </IfElseWrapBox>
                     : isSchemaConditionFallthrough(data)
                         ? <IfElseWrapBox
@@ -334,18 +358,25 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            <EditSchema
-                                field={{ data, children, id }}
-                                value={children}
-                                onChange={(value) => {
-                                    onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: value , id}]}])
-                                }}
-                                onDelete={() => {
-                                    onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: [], id }] }])
-                                }}
-                            >
-                                <Render />
-                            </EditSchema>
+                            {
+                                children.map((child) => (
+                                    <EditSchema
+                                        field={child}
+                                        value={[child]}
+                                        //
+                                        // TODO ISS4303: Refactor with EditSubListSchema
+                                        //
+                                        onChange={(value) => {
+                                            onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: value , id}]}])
+                                        }}
+                                        onDelete={() => {
+                                            onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: [], id }] }])
+                                        }}
+                                    >
+                                        <Render />
+                                    </EditSchema>
+                                ))
+                            }
                         </IfElseWrapBox>
                         : null
             })
