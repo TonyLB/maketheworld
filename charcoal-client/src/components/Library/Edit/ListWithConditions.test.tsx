@@ -1,17 +1,30 @@
+jest.mock('./CodeEditor')
+import CodeEditor from './CodeEditor'
+
 import renderer from 'react-test-renderer'
 import { FunctionComponent } from 'react'
 
 import ListWithConditions from './ListWithConditions'
 import { isSchemaExit, isSchemaOutputTag, SchemaExitTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTreeNodeFiltered } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTreeNodeFiltered, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { EditSchema, useEditContext } from './EditContext'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { EditSchema } from './EditContext'
 
 describe('ListWithConditions component', () => {
-    const render: FunctionComponent<{ item: GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> }> = ({ item }) => {
+    const render: FunctionComponent<{ item: GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> }> = ({}) => {
+        const { field: item } = useEditContext()
+        if (!treeNodeTypeguard(isSchemaExit)(item)) {
+            console.log(`item: ${JSON.stringify(item, null, 4)}`)
+            throw new Error('Non-exit passed to render')
+        }
         return <div>{ `'${item.data.from}' to '${item.data.to}': ${schemaOutputToString(treeTypeGuard({ typeGuard: isSchemaOutputTag, tree: item.children }))}` }</div>
     }
+
+    beforeEach(() => {
+        (CodeEditor as jest.Mock).mockReturnValue(null)
+    })
+
     it('renders non-conditions correctly', () => {
         expect(renderer
             .create(

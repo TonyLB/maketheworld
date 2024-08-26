@@ -18,7 +18,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
     return <React.Fragment>{
         value.map((item, index) => {
             if (treeNodeTypeguard(isSchemaCondition)(item)) {
-                <EditSchema
+                return <EditSchema
                     key={`list-with-conditions-${index}`}
                     field={maybeGenericIDFromTree([item])[0]}
                     value={[item]}
@@ -32,7 +32,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
                 return <EditSchema
                     key={`list-with-conditions-${index}`}
                     field={maybeGenericIDFromTree([item])[0]}
-                    value={item.children}
+                    value={[item]}
                     onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}
                     onDelete={() => { onChange(maybeGenericIDFromTree([...value.slice(0, index), ...value.slice(index+1)])) }}
                 >
