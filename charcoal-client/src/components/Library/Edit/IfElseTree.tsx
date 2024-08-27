@@ -248,7 +248,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
     }
     return <React.Fragment>
         <IfElseWrapBox
-            key={firstStatement.id}
+            key="IfElseBox-0"
             id={firstStatement.id}
             index={0}
             highlighted={highlightID && (firstStatement.id === highlightID)}

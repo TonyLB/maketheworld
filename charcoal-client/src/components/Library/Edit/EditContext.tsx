@@ -34,31 +34,24 @@ export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ ind
     if (value.length === 0) {
         return null
     }
-    const nodeChildren = value[0].children
-    if (index >= nodeChildren.length) {
+    if (index >= value.length) {
         return null
     }
     return <EditSchema
-        field={maybeGenericIDFromTree([nodeChildren[index]])[0]}
-        value={[nodeChildren[index]]}
+        field={maybeGenericIDFromTree([value[index]])[0]}
+        value={[value[index]]}
         onChange={(newValue) => {
-            onChange(maybeGenericIDFromTree([{
-                ...value[0],
-                children: [
-                    ...nodeChildren.slice(0, index),
-                    ...newValue,
-                    ...nodeChildren.slice(index + 1)
-                ]
-            }]))
+            onChange(maybeGenericIDFromTree([
+                ...value.slice(0, index),
+                ...newValue,
+                ...value.slice(index + 1)
+            ]))
         }}
         onDelete={() => {
-            onChange(maybeGenericIDFromTree([{
-                ...value[0],
-                children: [
-                    ...nodeChildren.slice(0, index),
-                    ...nodeChildren.slice(index + 1)
-                ]
-            }]))
+            onChange(maybeGenericIDFromTree([
+                ...value.slice(0, index),
+                ...value.slice(index + 1)
+            ]))
         }}
     >
         { children }
