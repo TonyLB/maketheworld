@@ -2,8 +2,7 @@ import React, { FunctionComponent, PropsWithChildren, ReactElement } from "react
 
 import { isSchemaCondition, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { EditSchema, useEditContext } from "./EditContext";
-import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
+import { EditSubListSchema, useEditContext } from "./EditContext";
 import IfElseTree from "./IfElseTree";
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
@@ -13,34 +12,23 @@ type ListWithConditionsProperties<T extends SchemaTag> = {
 
 export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
     const { render: Render } = props
-    const { value, onChange } = useEditContext()
+    const { value } = useEditContext()
 
     return <React.Fragment>{
-        value.map((item, index) => {
-            if (treeNodeTypeguard(isSchemaCondition)(item)) {
-                return <EditSchema
-                    key={`list-with-conditions-${index}`}
-                    field={maybeGenericIDFromTree([item])[0]}
-                    value={[item]}
-                    onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}
-                    onDelete={() => { onChange(maybeGenericIDFromTree([...value.slice(0, index), ...value.slice(index+1)])) }}
-                >
-                    <IfElseTree render={props.render} />
-                </EditSchema>
-            }
-            else if (treeNodeTypeguard(props.typeGuard)(item)) {
-                return <EditSchema
-                    key={`list-with-conditions-${index}`}
-                    field={maybeGenericIDFromTree([item])[0]}
-                    value={[item]}
-                    onChange={(newValue) => { onChange(maybeGenericIDFromTree([...value.slice(0, index), { ...item, children: newValue }, ...value.slice(index+1)])) }}
-                    onDelete={() => { onChange(maybeGenericIDFromTree([...value.slice(0, index), ...value.slice(index+1)])) }}
-                >
-                    <Render item={item} />
-                </EditSchema>
-            }
-            return null
-        })
+        value.map((item, index) => (
+            <EditSubListSchema
+                key={`list-with-conditions-${index}`}
+                index={index}
+            >
+                {
+                    treeNodeTypeguard(isSchemaCondition)(item)
+                        ? <IfElseTree render={props.render} />
+                        : treeNodeTypeguard(props.typeGuard)(item)
+                            ? <Render item={item} />
+                            : null
+                }
+            </EditSubListSchema>
+        ))
     }</React.Fragment>
 }
 

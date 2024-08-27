@@ -35,14 +35,11 @@ describe('EditSchema', () => {
 })
 
 describe('EditSubListSchema', () => {
-    const testSchema: GenericTree<SchemaTag> = [{
-        data: { tag: 'Statement', if: 'true' },
-        children: [
-            { data: { tag: 'String', value: 'Test1' }, children: [] },
-            { data: { tag: 'String', value: 'Test2' }, children: [] },
-            { data: { tag: 'String', value: 'Test3' }, children: [] }
-          ]
-    }]
+    const testSchema: GenericTree<SchemaTag> = [
+        { data: { tag: 'String', value: 'Test1' }, children: [] },
+        { data: { tag: 'String', value: 'Test2' }, children: [] },
+        { data: { tag: 'String', value: 'Test3' }, children: [] }
+    ]
 
     it('should extract an indexed value from node children', () => {
         expect(renderer
@@ -85,14 +82,11 @@ describe('EditSubListSchema', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([{
-            data: { tag: 'Statement', if: 'true' },
-            children: [
-                { data: { tag: 'String', value: 'Test1' }, children: [] },
-                { data: { tag: 'String', value: 'Test change' }, children: [] },
-                { data: { tag: 'String', value: 'Test3' }, children: [] }
-              ]
-        }])
+        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
+            { data: { tag: 'String', value: 'Test1' }, children: [] },
+            { data: { tag: 'String', value: 'Test change' }, children: [] },
+            { data: { tag: 'String', value: 'Test3' }, children: [] }
+        ])
     })
 
     it('should bubble up onDelete events', () => {
@@ -119,12 +113,9 @@ describe('EditSubListSchema', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([{
-            data: { tag: 'Statement', if: 'true' },
-            children: [
-                { data: { tag: 'String', value: 'Test1' }, children: [] },
-                { data: { tag: 'String', value: 'Test3' }, children: [] }
-              ]
-        }])
+        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
+            { data: { tag: 'String', value: 'Test1' }, children: [] },
+            { data: { tag: 'String', value: 'Test3' }, children: [] }
+        ])
     })
 })
