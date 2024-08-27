@@ -67,7 +67,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     value={component?.shortName?.children ?? []}
                     inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
                     onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
-                    onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName' })}}
                 >
                     <TitledBox title="Short Name">
                         <DescriptionEditor
@@ -84,7 +83,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 value={component?.name?.children ?? []}
                 inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
-                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name' })}}
             >
                 <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                     <DescriptionEditor
@@ -106,7 +104,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         }
                         updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
                     }}
-                    onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary' })}}
                 >
                     <TitledBox title="Summary">
                         <DescriptionEditor
@@ -129,7 +126,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     }
                     updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
                 }}
-                onDelete={() => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description' })}}
             >
                 <TitledBox>
                     <DescriptionEditor

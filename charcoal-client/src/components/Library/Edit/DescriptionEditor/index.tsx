@@ -269,7 +269,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (pro
                 background: grey[100],
                 width: '100%'
             }}>
-                <EditSchema value={inherited.children} onChange={() => {}} onDelete={() => {}} field={inherited}>
+                <EditSchema value={inherited.children} onChange={() => {}} field={inherited}>
                     <DescriptionEditorSlateComponent
                         { ...props }
                         standard={inheritedStandardForm}

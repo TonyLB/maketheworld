@@ -24,7 +24,6 @@ describe('EditSchema', () => {
                     field={{ data: { tag: 'String', value: 'Test' }, children: [], id: '' }}
                     value={[{ data: { tag: 'String', value: 'Test' }, children: [] }]}
                     onChange={() => {}}
-                    onDelete={() => {}}
                 >
                     <Render />
                 </EditSchema>
@@ -48,7 +47,6 @@ describe('EditSubListSchema', () => {
                     field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={() => {}}
-                    onDelete={() => {}}
                 >
                     <EditSubListSchema index={1}>
                         <Render />
@@ -73,7 +71,6 @@ describe('EditSubListSchema', () => {
                     field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={onChange}
-                    onDelete={() => {}}
                 >
                     <EditSubListSchema index={1}>
                         <ChangeRender />
@@ -89,33 +86,33 @@ describe('EditSubListSchema', () => {
         ])
     })
 
-    it('should bubble up onDelete events', () => {
-        const ChangeRender: FunctionComponent<{}> = () => {
-            const { onDelete } = useEditContext()
-            useEffect(() => {
-                onDelete()
-            }, [])
-            return <Render />
-        }
-        const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
-                <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
-                    value={testSchema}
-                    onChange={onChange}
-                    onDelete={() => {}}
-                >
-                    <EditSubListSchema index={1}>
-                        <ChangeRender />
-                    </EditSubListSchema>
-                </EditSchema>
-            )
-        })
-        expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
-            { data: { tag: 'String', value: 'Test1' }, children: [] },
-            { data: { tag: 'String', value: 'Test3' }, children: [] }
-        ])
-    })
+    // it('should bubble up onDelete events', () => {
+    //     const ChangeRender: FunctionComponent<{}> = () => {
+    //         const { onDelete } = useEditContext()
+    //         useEffect(() => {
+    //             onDelete()
+    //         }, [])
+    //         return <Render />
+    //     }
+    //     const onChange = jest.fn()
+    //     renderer.act(() => {
+    //         renderer.create(
+    //             <EditSchema
+    //                 field={maybeGenericIDFromTree(testSchema)[0]}
+    //                 value={testSchema}
+    //                 onChange={onChange}
+    //                 onDelete={() => {}}
+    //             >
+    //                 <EditSubListSchema index={1}>
+    //                     <ChangeRender />
+    //                 </EditSubListSchema>
+    //             </EditSchema>
+    //         )
+    //     })
+    //     expect(onChange).toHaveBeenCalledTimes(1)
+    //     expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
+    //         { data: { tag: 'String', value: 'Test1' }, children: [] },
+    //         { data: { tag: 'String', value: 'Test3' }, children: [] }
+    //     ])
+    // })
 })
