@@ -35,7 +35,6 @@ describe('ListWithConditions component', () => {
                         { data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}
                     ]}
                     onChange={() => {}}
-                    onDelete={() => {}}
                 >
                     <ListWithConditions
                         typeGuard={isSchemaExit}
@@ -60,7 +59,6 @@ describe('ListWithConditions component', () => {
                         ] }
                     ]}
                     onChange={() => {}}
-                    onDelete={() => {}}
                 >
                     <ListWithConditions
                         typeGuard={isSchemaExit}

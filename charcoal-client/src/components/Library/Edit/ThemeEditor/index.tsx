@@ -131,8 +131,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     <EditSchema
                         field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
                         value={component?.name?.children ?? []}
-                        onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
-                        onDelete={() => {}}
+                        onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined })}}
                     >
                         <TitledBox title="Name">
                             <DescriptionEditor validLinkTags={[]} toolbar={false} />

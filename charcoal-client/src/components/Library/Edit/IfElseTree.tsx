@@ -293,9 +293,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                                 ]
                             }])
                         }}
-                        onDelete={() => {
-                            onChange([{ ...field, children: [{ ...firstStatement, children: [] }, ...otherStatements] }])
-                        }}
                     >
                         <Render />
                     </EditSchema>    
@@ -334,9 +331,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                                     onChange={(value) => {
                                         onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: value , id}, ...field.children.slice(index + 2)] }])
                                     }}
-                                    onDelete={() => {
-                                        onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: [] , id}, ...field.children.slice(index + 2)] }])
-                                    }}
                                 >
                                     <Render />
                                 </EditSchema>
@@ -368,9 +362,6 @@ export const IfElseTree = ({ render: Render, showSelected = false, highlightID =
                                         //
                                         onChange={(value) => {
                                             onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: value , id}]}])
-                                        }}
-                                        onDelete={() => {
-                                            onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: [], id }] }])
                                         }}
                                     >
                                         <Render />

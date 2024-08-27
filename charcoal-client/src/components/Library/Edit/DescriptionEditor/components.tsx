@@ -96,7 +96,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
                     field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
                     value={[]}
                     onChange={newIfWrapperStub}
-                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>
@@ -107,7 +106,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
                     field={nodeById}
                     value={element.subTree.children}
                     onChange={ifWrapperOnChange(element.position)}
-                    onDelete={() => {}}
                 >
                     <IfElseTree render={render} />
                 </EditSchema>
