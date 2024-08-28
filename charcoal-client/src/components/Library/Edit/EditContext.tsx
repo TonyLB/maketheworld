@@ -28,6 +28,7 @@ type EditContextType = {
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     value: GenericTree<SchemaTag>;
     onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
+    highlighted?: boolean;
     setHighlight: (value?: string) => void;
 }
 
@@ -39,11 +40,12 @@ const EditContext = React.createContext<EditContextType>({
     setHighlight: () => {}
 })
 
-export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight'>> = ({ field, inherited, value, onChange, children }) => {
+export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight' | 'highlighted'>> = ({ field, inherited, value, onChange, children }) => {
     const id = useMemo(() => (uuidv4()), [])
-    const { setHighlight: contextSetHighlight } = useContext(EditHighlightContext)
+    const { highlighted } = useContext(EditContext)
+    const { highlightId, setHighlight: contextSetHighlight } = useContext(EditHighlightContext)
     const setHighlight = useCallback((value?: string) => { contextSetHighlight(value?? id) }, [id, contextSetHighlight])
-    return <EditContext.Provider value={{ field, id, inherited, value, onChange, setHighlight }}>
+    return <EditContext.Provider value={{ field, id, inherited, value, onChange, highlighted: id === highlightId || highlighted, setHighlight }}>
         { children }
     </EditContext.Provider>
 }
