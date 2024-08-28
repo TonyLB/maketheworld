@@ -15,6 +15,7 @@ import { useLibraryAsset } from "./LibraryAsset"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditSchema, useEditContext } from "./EditContext"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -165,21 +166,21 @@ type IfElseTreeProps = {
 // and renders the statements and fallthrough of its children
 //
 export const IfElseTree = ({ render: Render, showSelected = false, onClick }: IfElseTreeProps): ReactElement => {
-    const { field, onChange } = useEditContext()
-    const firstStatement = useMemo(() => (field.children[0]), [field])
-    const otherStatements = useMemo(() => (field.children.slice(1)), [field])
+    const { value, onChange } = useEditContext()
+    const firstStatement = useMemo(() => (value[0].children[0]), [value])
+    const otherStatements = useMemo(() => (value[0].children.slice(1)), [value])
     //
     // onSelect takes an index in the children of the current SchemaConditionTag field, clears select from all other
     // children, and sets select on that index
     //
     const onSelect = useCallback((index: number) => {
-        const toSelectData = field.children[index]?.data
+        const toSelectData = value[0].children[index]?.data
         if (toSelectData && (isSchemaConditionStatement(toSelectData) || isSchemaConditionFallthrough(toSelectData)) && toSelectData.selected) {
             return
         }
-        onChange([{
-            ...field,
-            children: field.children.map((child, compareIndex) => {
+        onChange(maybeGenericIDFromTree([{
+            ...value[0],
+            children: value[0].children.map((child, compareIndex) => {
                 if (!(treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child))) {
                     return child
                 }
@@ -187,12 +188,12 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                     return { ...child, data: { ...child.data, selected: compareIndex === index ? true : undefined }}
                 }
             })
-        }])
-    }, [field])
+        }]))
+    }, [value])
     const onUnselect = useCallback(() => {
-        onChange([{
-            ...field,
-            children: field.children.map((child) => {
+        onChange(maybeGenericIDFromTree([{
+            ...value[0],
+            children: value[0].children.map((child) => {
                 if (!treeNodeTypeguard(isSchemaConditionFallthrough)(child)) {
                     if (treeNodeTypeguard(isSchemaConditionStatement)(child)) {
                         return { ...child, data: { ...child.data, selected: undefined }}
@@ -203,41 +204,41 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                     return { ...child, data: { ...child.data, selected: true }}
                 }
             })
-        }])
-    }, [field])
+        }]))
+    }, [value])
     const addElseIf = useCallback((afterIndex: number) => (
         <AddItemButton
             key={`elseIf-${afterIndex}`}
             addItemIcon={<React.Fragment>elseIf</React.Fragment>}
             onClick={() => {
-                onChange([{
-                    ...field,
-                    children: [...field.children.slice(0, afterIndex + 1), { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }, ...field.children.slice(afterIndex + 1)],
+                onChange(maybeGenericIDFromTree([{
+                    ...value[0],
+                    children: [...value[0].children.slice(0, afterIndex + 1), { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }, ...value[0].children.slice(afterIndex + 1)],
                     id: ''
-                }])
+                }]))
             }}
-        />), [field, onChange])
+        />), [value, onChange])
     const addElse = useMemo(
         () => (
             <AddItemButton
                 key="else"
                 addItemIcon={<React.Fragment>else</React.Fragment>}
                 onClick={() => {
-                    onChange([{
-                        ...field,
-                        children: [...field.children, { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [], id: '' }], id: '' }],
+                    onChange(maybeGenericIDFromTree([{
+                        ...value[0],
+                        children: [...value[0].children, { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }],
                         id: ''
-                    }])    
+                    }]))    
                 }}
             />
         ),
-        [field, onChange]
+        [value, onChange]
     )
     if (
-        !(isSchemaCondition(field.data)) ||
-        field.children.length === 0 ||
-        !isSchemaConditionStatement(field.children[0].data) ||
-        Boolean(field.children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
+        !(isSchemaCondition(value[0].data)) ||
+        value[0].children.length === 0 ||
+        !isSchemaConditionStatement(value[0].children[0].data) ||
+        Boolean(value[0].children.find(({ data }) => (!(isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)))))
     ) {
         throw new Error('Invalid arguments in IfElseTree')
     }
@@ -247,14 +248,14 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
     return <React.Fragment>
         <IfElseWrapBox
             key="IfElseBox-0"
-            id={firstStatement.id}
+            id={''}
             index={0}
             onClick={onClick}
             type={'if'}
             source={firstStatement.data.if}
             onDelete={() => {
                 if (otherStatements.length && isSchemaConditionStatement(otherStatements[0].data)) {
-                    onChange([{ ...field, children: field.children.slice(1) }])
+                    onChange(maybeGenericIDFromTree([{ ...value[0], children: value[0].children.slice(1) }]))
                 }
                 if (!otherStatements.length) {
                     onChange([])
@@ -272,11 +273,11 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
             {
                 firstStatement.children.map((child, index) => (
                     <EditSchema
-                        field={child}
+                        field={maybeGenericIDFromTree([child])[0]}
                         value={[child]}
                         onChange={(value) => {
-                            onChange([{
-                                ...field,
+                            onChange(maybeGenericIDFromTree([{
+                                ...value[0],
                                 children: [
                                     {
                                         ...firstStatement,
@@ -288,7 +289,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                                     },
                                     ...otherStatements
                                 ]
-                            }])
+                            }]))
                         }}
                     >
                         <Render />
@@ -297,16 +298,16 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
             }
         </IfElseWrapBox>
         { 
-            otherStatements.map(({ data, children, id }, index) => {
+            otherStatements.map(({ data, children }, index) => {
                 return isSchemaConditionStatement(data)
                     ? <IfElseWrapBox
                         key={`elseIfWrap-${index}`}
-                        id={id}
+                        id={''}
                         index={index + 1}
                         onClick={onClick}
                         type={'elseIf'}
                         source={data.if}
-                        onDelete={() => { onChange([{ ...field, children: [...field.children.slice(0, index), ...field.children.slice(index+1)] }]) }}
+                        onDelete={() => { onChange(maybeGenericIDFromTree([{ ...value[0], children: [...value[0].children.slice(0, index), ...value[0].children.slice(index+1)] }])) }}
                         actions={[
                             addElseIf(index + 1),
                             ...(index === otherStatements.length - 1 ? [addElse] : [])
@@ -319,13 +320,13 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                         {
                             children.map((child) => (
                                 <EditSchema
-                                    field={child}
+                                    field={maybeGenericIDFromTree([child])[0]}
                                     value={[child]}
                                     //
                                     // TODO ISS4303: Refactor with EditSubListSchema
                                     //
                                     onChange={(value) => {
-                                        onChange([{ ...field, children: [...field.children.slice(0, index + 1), { data, children: value , id}, ...field.children.slice(index + 2)] }])
+                                        onChange(maybeGenericIDFromTree([{ ...value[0], children: [...value[0].children.slice(0, index + 1), { data, children: value }, ...value[0].children.slice(index + 2)] }]))
                                     }}
                                 >
                                     <Render />
@@ -336,12 +337,12 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                     : isSchemaConditionFallthrough(data)
                         ? <IfElseWrapBox
                             key="elseWrap"
-                            id={id}
+                            id={''}
                             index={index + 1}
                             onClick={onClick}
                             type={'else'}
                             source=''
-                            onDelete={() => { onChange([{ ...field, children: field.children.slice(0, -1) }]) }}
+                            onDelete={() => { onChange(maybeGenericIDFromTree([{ ...value[0], children: value[0].children.slice(0, -1) }])) }}
                             actions={[]}
                             showSelected={showSelected}
                             selected={data.selected}
@@ -350,13 +351,13 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                             {
                                 children.map((child) => (
                                     <EditSchema
-                                        field={child}
+                                        field={maybeGenericIDFromTree([child])[0]}
                                         value={[child]}
                                         //
                                         // TODO ISS4303: Refactor with EditSubListSchema
                                         //
                                         onChange={(value) => {
-                                            onChange([{ ...field, children: [...field.children.slice(0, -1), { data, children: value , id}]}])
+                                            onChange(maybeGenericIDFromTree([{ ...value[0], children: [...value[0].children.slice(0, -1), { data, children: value }]}]))
                                         }}
                                     >
                                         <Render />
