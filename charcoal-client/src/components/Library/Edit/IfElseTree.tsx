@@ -13,7 +13,7 @@ import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined
 
 import { useLibraryAsset } from "./LibraryAsset"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { EditSchema, useEditContext } from "./EditContext"
+import { EditChildren, EditSchema, EditSubListSchema, useEditContext } from "./EditContext"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
@@ -245,7 +245,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
     if (!isSchemaConditionStatement(firstStatement.data)) {
         throw new Error('Invalid arguments in IfElseTree')
     }
-    return <React.Fragment>
+    return <EditChildren>
         <IfElseWrapBox
             key="IfElseBox-0"
             id={''}
@@ -270,32 +270,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
             onSelect={onSelect}
             onUnselect={onUnselect}
         >
-            {
-                firstStatement.children.map((child, index) => (
-                    <EditSchema
-                        field={maybeGenericIDFromTree([child])[0]}
-                        value={[child]}
-                        onChange={(value) => {
-                            onChange(maybeGenericIDFromTree([{
-                                ...value[0],
-                                children: [
-                                    {
-                                        ...firstStatement,
-                                        children: [
-                                            ...firstStatement.children.slice(0, index),
-                                            ...value,
-                                            ...firstStatement.children.slice(index + 1)
-                                        ]
-                                    },
-                                    ...otherStatements
-                                ]
-                            }]))
-                        }}
-                    >
-                        <Render />
-                    </EditSchema>    
-                ))
-            }
+            <EditSubListSchema index={0}><EditChildren><Render /></EditChildren></EditSubListSchema>
         </IfElseWrapBox>
         { 
             otherStatements.map(({ data, children }, index) => {
@@ -317,22 +292,7 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                         onSelect={onSelect}
                         onUnselect={onUnselect}
                     >
-                        {
-                            children.map((child) => (
-                                <EditSchema
-                                    field={maybeGenericIDFromTree([child])[0]}
-                                    value={[child]}
-                                    //
-                                    // TODO ISS4303: Refactor with EditSubListSchema
-                                    //
-                                    onChange={(value) => {
-                                        onChange(maybeGenericIDFromTree([{ ...value[0], children: [...value[0].children.slice(0, index + 1), { data, children: value }, ...value[0].children.slice(index + 2)] }]))
-                                    }}
-                                >
-                                    <Render />
-                                </EditSchema>
-                            ))
-                        }
+                        <EditSubListSchema index={index + 1}><EditChildren><Render /></EditChildren></EditSubListSchema>
                     </IfElseWrapBox>
                     : isSchemaConditionFallthrough(data)
                         ? <IfElseWrapBox
@@ -348,27 +308,12 @@ export const IfElseTree = ({ render: Render, showSelected = false, onClick }: If
                             selected={data.selected}
                             onSelect={onSelect}
                         >
-                            {
-                                children.map((child) => (
-                                    <EditSchema
-                                        field={maybeGenericIDFromTree([child])[0]}
-                                        value={[child]}
-                                        //
-                                        // TODO ISS4303: Refactor with EditSubListSchema
-                                        //
-                                        onChange={(value) => {
-                                            onChange(maybeGenericIDFromTree([{ ...value[0], children: [...value[0].children.slice(0, -1), { data, children: value }]}]))
-                                        }}
-                                    >
-                                        <Render />
-                                    </EditSchema>
-                                ))
-                            }
+                            <EditSubListSchema index={index + 1}><EditChildren><Render /></EditChildren></EditSubListSchema>
                         </IfElseWrapBox>
                         : null
             })
         }
-    </React.Fragment>
+    </EditChildren>
 }
 
 export default IfElseTree

@@ -52,4 +52,56 @@ describe('IfElseTree component', () => {
         ).toMatchSnapshot()
     })
 
+    it('renders elseif correctly', () => {
+        expect(renderer
+            .create(
+                <EditSchema
+                    field={{ data: { tag: 'String', value: '' } ,children: [], id: '' }}
+                    value={[{
+                        data: { tag: 'If' },
+                        children: [
+                            {
+                                data: { tag: 'Statement', if: 'true' },
+                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
+                            },
+                            {
+                                data: { tag: 'Statement', if: 'false' },
+                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
+                            }
+                        ]
+                    }]}
+                    onChange={() => {}}
+                >
+                    <IfElseTree render={render} />
+                </EditSchema>
+            ).toJSON()
+        ).toMatchSnapshot()
+    })
+
+    it('renders else correctly', () => {
+        expect(renderer
+            .create(
+                <EditSchema
+                    field={{ data: { tag: 'String', value: '' } ,children: [], id: '' }}
+                    value={[{
+                        data: { tag: 'If' },
+                        children: [
+                            {
+                                data: { tag: 'Statement', if: 'true' },
+                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
+                            },
+                            {
+                                data: { tag: 'Fallthrough' },
+                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
+                            }
+                        ]
+                    }]}
+                    onChange={() => {}}
+                >
+                    <IfElseTree render={render} />
+                </EditSchema>
+            ).toJSON()
+        ).toMatchSnapshot()
+    })
+
 })
