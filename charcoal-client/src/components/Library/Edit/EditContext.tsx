@@ -1,11 +1,13 @@
-import React, { FunctionComponent, useContext } from "react"
+import React, { FunctionComponent, useContext, useMemo } from "react"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
+import { v4 as uuidv4 } from 'uuid'
 
 type EditContextType = {
     field: GenericTreeNode<SchemaTag, TreeId>;
+    id: string;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     value: GenericTree<SchemaTag>;
     onChange: (value: GenericTree<SchemaTag, TreeId>) => void
@@ -13,12 +15,14 @@ type EditContextType = {
 
 const EditContext = React.createContext<EditContextType>({
     field: { data: { tag: 'Name' }, id: '', children: [] },
+    id: 'NONE',
     value: [],
     onChange: () => {}
 })
 
-export const EditSchema: FunctionComponent<EditContextType> = ({ field, inherited, value, onChange, children }) => {
-    return <EditContext.Provider value={{ field, inherited, value, onChange }}>
+export const EditSchema: FunctionComponent<Omit<EditContextType, 'id'>> = ({ field, inherited, value, onChange, children }) => {
+    const id = useMemo(() => (uuidv4()), [])
+    return <EditContext.Provider value={{ field, id, inherited, value, onChange }}>
         { children }
     </EditContext.Provider>
 }
