@@ -1,28 +1,49 @@
-import React, { FunctionComponent, useContext, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
 import { v4 as uuidv4 } from 'uuid'
 
+type EditHighlightContextType = {
+    highlightId: string;
+    setHighlight: (value: string) => void;
+}
+
+const EditHighlightContext = React.createContext<EditHighlightContextType>({
+    highlightId: '',
+    setHighlight: () => {}
+})
+
+export const EditHighlight: FunctionComponent<{}> = ({ children }) => {
+    const [highlightId, setHighlight] = useState('')
+    return <EditHighlightContext.Provider value={{ highlightId, setHighlight }}>
+        { children }
+    </EditHighlightContext.Provider>
+}
+
 type EditContextType = {
     field: GenericTreeNode<SchemaTag, TreeId>;
     id: string;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     value: GenericTree<SchemaTag>;
-    onChange: (value: GenericTree<SchemaTag, TreeId>) => void
+    onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
+    setHighlight: (value?: string) => void;
 }
 
 const EditContext = React.createContext<EditContextType>({
     field: { data: { tag: 'Name' }, id: '', children: [] },
     id: 'NONE',
     value: [],
-    onChange: () => {}
+    onChange: () => {},
+    setHighlight: () => {}
 })
 
-export const EditSchema: FunctionComponent<Omit<EditContextType, 'id'>> = ({ field, inherited, value, onChange, children }) => {
+export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight'>> = ({ field, inherited, value, onChange, children }) => {
     const id = useMemo(() => (uuidv4()), [])
-    return <EditContext.Provider value={{ field, id, inherited, value, onChange }}>
+    const { setHighlight: contextSetHighlight } = useContext(EditHighlightContext)
+    const setHighlight = useCallback((value?: string) => { contextSetHighlight(value?? id) }, [id, contextSetHighlight])
+    return <EditContext.Provider value={{ field, id, inherited, value, onChange, setHighlight }}>
         { children }
     </EditContext.Provider>
 }
