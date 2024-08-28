@@ -1,5 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`EditChildren should extract node children 1`] = `
+Array [
+  "Test1",
+  "Test2",
+  "Test3",
+]
+`;
+
 exports[`EditSchema should provide value for children 1`] = `"Test"`;
 
 exports[`EditSubListSchema should extract an indexed value from node children 1`] = `"Test2"`;
