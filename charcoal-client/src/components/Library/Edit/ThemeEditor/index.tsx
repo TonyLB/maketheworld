@@ -24,7 +24,7 @@ import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema } from "../StandardFormContext"
 import ListWithConditions from "../ListWithConditions"
 
-const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag>, index: number }> = ({ node, index }) => {
+const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()
     const onChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (isSchemaPrompt(data)) {
@@ -137,7 +137,12 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         value={component?.prompts ?? []}
                         onChange={(value) => { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) }}
                     >
-                        <ListWithConditions render={({ item, index }) => (<PromptItem node={item} index={index} />)} typeGuard={isSchemaPrompt} />
+                        <ListWithConditions
+                            render={() => (<PromptItem />)}
+                            typeGuard={isSchemaPrompt}
+                            label="Prompt"
+                            defaultNode={{ tag: 'Prompt', value: '' }}
+                        />
                     </EditSchema>
                 </SidebarTitle>
             </Box>
