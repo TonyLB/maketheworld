@@ -7,7 +7,7 @@ import IfElseTree from "./IfElseTree";
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;
-    render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag> }>;
+    render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag>, index: number }>;
 }
 
 export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
@@ -24,7 +24,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
                     treeNodeTypeguard(isSchemaCondition)(item)
                         ? <IfElseTree render={props.render} />
                         : treeNodeTypeguard(props.typeGuard)(item)
-                            ? <Render item={item} />
+                            ? <Render item={item} index={index} />
                             : null
                 }
             </EditSubListSchema>
