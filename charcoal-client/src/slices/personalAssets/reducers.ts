@@ -409,6 +409,15 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         break
                 }
                 break
+            case 'Theme':
+                switch(payload.itemKey) {
+                    case 'name':
+                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                            component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
+                        }
+                        break
+                }
+                break
         }
     }
     if (isUpdateStandardPayloadUpdateField(payload)) {
