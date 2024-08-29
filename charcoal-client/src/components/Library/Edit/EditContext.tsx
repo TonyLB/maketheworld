@@ -113,7 +113,7 @@ export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ ind
 
 export const useEditContext = () => (useContext(EditContext))
 export const useEditNodeContext = () => {
-    const { value, onChange } = useEditContext()
+    const { value, onChange, highlighted } = useEditContext()
     return {
         data: value[0]?.data,
         children: value[0]?.children ?? [],
@@ -122,6 +122,7 @@ export const useEditNodeContext = () => {
         },
         onDelete: () => {
             onChange(maybeGenericIDFromTree(value.slice(1)))
-        }
+        },
+        highlighted
     }
 }
