@@ -29,6 +29,7 @@ import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 type MapLayersProps = {
     mapId: string;
@@ -220,31 +221,30 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
     </React.Fragment>
 }
 
-const AddIfButton: FunctionComponent<{ id: string }> = ({ id }) => {
-    const { updateSchema } = useLibraryAsset()
+const AddIfButton: FunctionComponent<{}> = () => {
+    const { value, onChange } = useEditContext()
     const onClick = useCallback(() => {
-        updateSchema({
-            type: 'addChild',
-            id,
-            item: {
+        onChange(maybeGenericIDFromTree([
+            ...value,
+            {
                 data: { tag: 'If' },
                 children: [{
                     data: { tag: 'Statement', if: '' },
                     children: []
                 }]
             }
-        })
-    }, [id, updateSchema])
+        ]))
+    }, [value, onChange])
     return <ListItem>
         <ListItemText sx={{ textAlign: 'center' }}><Button variant="contained" onClick={onClick}>Add If</Button></ListItemText>
     </ListItem>
 }
 
 const MapStubRender: FunctionComponent<{}> = () => {
-    const { field } = useEditContext()
+    const { value } = useEditContext()
     return <React.Fragment>
-        { field.children.map((node) => (<MapItemLayer item={node} key={node.id} />)) }
-        <AddIfButton id={field.id} />
+        { maybeGenericIDFromTree(value).map((node) => (<MapItemLayer item={node} key={node.id} />)) }
+        <AddIfButton />
     </React.Fragment>
 }
 
@@ -295,14 +295,12 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
             return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema
-                field={item}
                 value={item.children ?? []}
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
             >
                 <IfElseTree
                     render={render}
                     showSelected={true}
-                    highlightID={highlightID}
                     onClick={onClick}
                 />
             </EditSchema>
@@ -312,21 +310,14 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    const { tree, UI: { parentID }, nodeId } = useMapContext()
+    const { tree, UI: { parentID } } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
-        {/* <ConnectionTable
-            label="Themes"
-            minHeight="10em"
-            target={mapId}
-            tag="Theme"
-            orientation="parents"
-        /> */}
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
             { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} highlightID={parentID} />))}
-            <AddIfButton id={nodeId} />
+            <AddIfButton />
         </Box>
     </MapLayersContext.Provider>
 

@@ -23,7 +23,6 @@ export const EditHighlight: FunctionComponent<{}> = ({ children }) => {
 }
 
 type EditContextType = {
-    field: GenericTreeNode<SchemaTag, TreeId>;
     id: string;
     inherited?: GenericTreeNode<SchemaTag, TreeId>;
     value: GenericTree<SchemaTag>;
@@ -33,19 +32,18 @@ type EditContextType = {
 }
 
 const EditContext = React.createContext<EditContextType>({
-    field: { data: { tag: 'Name' }, id: '', children: [] },
     id: 'NONE',
     value: [],
     onChange: () => {},
     setHighlight: () => {}
 })
 
-export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight' | 'highlighted'>> = ({ field, inherited, value, onChange, children }) => {
+export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight' | 'highlighted'>> = ({ inherited, value, onChange, children }) => {
     const id = useMemo(() => (uuidv4()), [])
     const { highlighted } = useContext(EditContext)
     const { highlightId, setHighlight: contextSetHighlight } = useContext(EditHighlightContext)
     const setHighlight = useCallback((value?: string) => { contextSetHighlight(value?? id) }, [id, contextSetHighlight])
-    return <EditContext.Provider value={{ field, id, inherited, value, onChange, highlighted: id === highlightId || highlighted, setHighlight }}>
+    return <EditContext.Provider value={{ id, inherited, value, onChange, highlighted: id === highlightId || highlighted, setHighlight }}>
         { children }
     </EditContext.Provider>
 }
@@ -55,7 +53,7 @@ type EditNodeContextType = {
     onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
 }
 export const EditSchemaNode: FunctionComponent<EditNodeContextType> = ({ node, onChange }) => (
-    <EditSchema field={node} value={[node]} onChange={onChange}/>
+    <EditSchema value={[node]} onChange={onChange}/>
 )
 
 type EditChildrenArguments = {
@@ -77,7 +75,6 @@ export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty
         }
     }, [contextOnChange, isEmpty])
     return <EditSchema
-        field={maybeGenericIDFromTree(value)[0]}
         value={nodeChildren}
         onChange={onChange}
     >
@@ -97,7 +94,6 @@ export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ ind
         return null
     }
     return <EditSchema
-        field={maybeGenericIDFromTree([value[index]])[0]}
         value={[value[index]]}
         onChange={(newValue) => {
             onChange(maybeGenericIDFromTree([
