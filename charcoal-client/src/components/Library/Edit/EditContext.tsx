@@ -62,9 +62,6 @@ type EditChildrenArguments = {
 
 export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty = () => false, children }) => {
     const { value, onChange: contextOnChange } = useEditContext()
-    if (value.length === 0) {
-        return null
-    }
     const { children: nodeChildren } = value[0]
     const onChange = useCallback((newValue: GenericTree<SchemaTag>) => {
         if (isEmpty(newValue)) {
@@ -74,6 +71,9 @@ export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty
             contextOnChange(maybeGenericIDFromTree([{ ...value[0], children: newValue }, ...value.slice(1)]))
         }
     }, [contextOnChange, isEmpty])
+    if (value.length === 0) {
+        return null
+    }
     return <EditSchema
         value={nodeChildren}
         onChange={onChange}

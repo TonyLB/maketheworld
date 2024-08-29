@@ -13,31 +13,26 @@ import { StandardTheme, isStandardTheme } from "@tonylb/mtw-wml/dist/standardize
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { rename as renameNavigationTab } from '../../../../slices/UI/navigationTabs'
 import LibraryBanner from "../LibraryBanner"
-import { EditSchema } from "../EditContext"
+import { EditSchema, useEditNodeContext } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
-import treeListFactory from "../treeListFactory"
 import { GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema } from "../StandardFormContext"
+import ListWithConditions from "../ListWithConditions"
 
-const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag, TreeId>}> = ({ node }) => {
-    const { updateSchema } = useLibraryAsset()
-    const value = useMemo(() => (node.data.value), [node])
+const PromptItem: FunctionComponent<{ node: GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag>, index: number }> = ({ node, index }) => {
+    const { data, children, onChange: contextOnChange } = useEditNodeContext()
     const onChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        updateSchema({ type: 'updateNode', id: node.id, item: { tag: 'Prompt', value: event.target.value }})
-    }, [updateSchema, node.id])
-    return <TextField label="Prompt" variant="standard" value={value} onChange={onChange} />
+        if (isSchemaPrompt(data)) {
+            contextOnChange({ data: { ...data, value: event.target.value }, children })
+        }
+    }, [contextOnChange, data, children])
+    return isSchemaPrompt(data) ? <TextField label="Prompt" variant="standard" value={data.value} onChange={onChange} /> : null
 }
-
-const Prompts = treeListFactory<SchemaPromptTag>({
-    render: ({ node }) => (<PromptItem node={node} />),
-    defaultNode: { tag: 'Prompt', value: '' },
-    label: 'Prompt'
-})
 
 type ThemeEditorProps = {}
 
@@ -138,7 +133,12 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                     </EditSchema>
                 </StandardFormSchema>
                 <SidebarTitle title="Prompts" minHeight="8em">
-                    <Prompts tree={component.prompts} parentId={component.id} />
+                    <EditSchema
+                        value={component?.prompts ?? []}
+                        onChange={(value) => { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) }}
+                    >
+                        <ListWithConditions render={({ item, index }) => (<PromptItem node={item} index={index} />)} typeGuard={isSchemaPrompt} />
+                    </EditSchema>
                 </SidebarTitle>
             </Box>
             <DraftLockout />
