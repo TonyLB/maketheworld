@@ -98,6 +98,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         return Object.keys(standardForm.byId).map((key) => (exportMappings[key] ?? key))
     }, [standardForm])
     const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
+    const render = useCallback(() => (<PromptItem />), [])
     if (!(ComponentId && ComponentId in standardForm.byId)) {
         return <Box />
     }
@@ -138,7 +139,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         onChange={(value) => { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) }}
                     >
                         <ListWithConditions
-                            render={() => (<PromptItem />)}
+                            render={render}
                             typeGuard={isSchemaPrompt}
                             label="Prompt"
                             defaultNode={{ tag: 'Prompt', value: '' }}
