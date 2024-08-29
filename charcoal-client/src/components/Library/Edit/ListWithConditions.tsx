@@ -5,11 +5,13 @@ import ListItem from "@mui/material/ListItem"
 import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemButton from "@mui/material/ListItemButton"
 import ListItemText from "@mui/material/ListItemText"
+import IconButton from "@mui/material/IconButton"
 import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { EditSubListSchema, useEditContext } from "./EditContext"
+import { EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
 import IfElseTree from "./IfElseTree"
 import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
@@ -30,8 +32,28 @@ type ListWithConditionsGroup<T extends SchemaTag> = {
     node: GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag>;
 }
 
-export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
+const ListWithConditionItem = <T extends SchemaTag>(props: PropsWithChildren<{ index: number; render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag>, index: number }>; typeGuard: (value: SchemaTag) => value is T; }>) => {
+    const { onDelete, data, children } = useEditNodeContext()
     const { render: Render } = props
+    if (!props.typeGuard(data)) {
+        return null
+    }
+    return <ListItem
+        secondaryAction={
+            <IconButton
+                edge="end"
+                aria-label="delete"
+                onClick={() => { onDelete() }}
+            >
+                <DeleteIcon />
+            </IconButton>
+        }>
+            <Render item={{ data, children }} index={props.index} />
+        </ListItem>
+}
+
+export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
+    const { render, typeGuard } = props
     const { value, onChange } = useEditContext()
 
     const listGroups = value.reduce<ListWithConditionsGroup<T>[]>((previous, item, index) => {
@@ -67,9 +89,10 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
                 ? <List key={`list-with-conditions-${group.startIndex + index}`}>
                     { group.tree.map((item, index) => (
                         <EditSubListSchema
+                            key={`subList-${group.startIndex + index}`}
                             index={group.startIndex + index}
                         >
-                            <ListItem><Render item={item} index={group.startIndex + index} /></ListItem>
+                            <ListWithConditionItem index={group.startIndex + index} render={render} typeGuard={typeGuard} />
                         </EditSubListSchema>
                     ))}
                     { index === listGroups.length - 1 && addButton }
