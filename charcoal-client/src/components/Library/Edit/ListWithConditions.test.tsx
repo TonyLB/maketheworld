@@ -39,6 +39,8 @@ describe('ListWithConditions component', () => {
                     <ListWithConditions
                         typeGuard={isSchemaExit}
                         render={render}
+                        label="Exit"
+                        defaultNode={{ tag: 'Exit', from: '', to: '', key: '#' }}
                     />
                 </EditSchema>
             ).toJSON()
@@ -62,6 +64,8 @@ describe('ListWithConditions component', () => {
                     <ListWithConditions
                         typeGuard={isSchemaExit}
                         render={render}
+                        label="Exit"
+                        defaultNode={{ tag: 'Exit', from: '', to: '', key: '#' }}
                     />
                 </EditSchema>
             ).toJSON()

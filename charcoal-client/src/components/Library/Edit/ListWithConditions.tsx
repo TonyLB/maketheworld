@@ -1,15 +1,23 @@
 import React, { FunctionComponent, PropsWithChildren, ReactElement } from "react"
 
+import List from "@mui/material/List"
+import ListItem from "@mui/material/ListItem"
+import ListItemIcon from "@mui/material/ListItemIcon"
+import ListItemButton from "@mui/material/ListItemButton"
+import ListItemText from "@mui/material/ListItemText"
+import AddIcon from '@mui/icons-material/Add'
+
 import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { EditSubListSchema, useEditContext } from "./EditContext"
 import IfElseTree from "./IfElseTree"
-import List from "@mui/material/List"
-import ListItem from "@mui/material/ListItem"
+import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;
     render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag>, index: number }>;
+    label: string;
+    defaultNode: T;
 }
 
 type ListWithConditionsGroup<T extends SchemaTag> = {
@@ -24,7 +32,7 @@ type ListWithConditionsGroup<T extends SchemaTag> = {
 
 export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren<ListWithConditionsProperties<T>>): ReactElement<any, any> | null => {
     const { render: Render } = props
-    const { value } = useEditContext()
+    const { value, onChange } = useEditContext()
 
     const listGroups = value.reduce<ListWithConditionsGroup<T>[]>((previous, item, index) => {
         if (treeNodeTypeguard(isSchemaCondition)(item)) {
@@ -44,18 +52,27 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
         }
     }, [])
 
-    return <React.Fragment>{
-        listGroups.map((group) => (
+    const addButton = <List>
+        <ListItemButton onClick={() => { onChange(maybeGenericIDFromTree([...value, { data: props.defaultNode, children: [] }])) }}>
+            <ListItemIcon>
+                <AddIcon />
+            </ListItemIcon>
+            <ListItemText primary={`Add ${props.label}`} />
+        </ListItemButton>
+    </List>
+
+    return <React.Fragment>
+        { listGroups.map((group, index) => (
             group.type === 'tree'
-                ? <List>
+                ? <List key={`list-with-conditions-${group.startIndex + index}`}>
                     { group.tree.map((item, index) => (
                         <EditSubListSchema
-                            key={`list-with-conditions-${group.startIndex + index}`}
                             index={group.startIndex + index}
                         >
                             <ListItem><Render item={item} index={group.startIndex + index} /></ListItem>
                         </EditSubListSchema>
                     ))}
+                    { index === listGroups.length - 1 && addButton }
                 </List>
                 : <EditSubListSchema
                     key={`list-with-conditions-${group.index}`}
@@ -63,8 +80,9 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
                 >
                     <IfElseTree render={props.render} />
                 </EditSubListSchema>
-        ))
-    }</React.Fragment>
+        )) }
+        { listGroups.slice(-1)[0]?.type !== 'tree' && addButton }
+    </React.Fragment>
 }
 
 export default ListWithConditions
