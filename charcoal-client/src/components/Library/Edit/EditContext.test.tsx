@@ -21,7 +21,6 @@ describe('EditSchema', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'String', value: 'Test' }, children: [], id: '' }}
                     value={[{ data: { tag: 'String', value: 'Test' }, children: [] }]}
                     onChange={() => {}}
                 >
@@ -60,7 +59,6 @@ describe('EditChildren', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={() => {}}
                 >
@@ -88,7 +86,6 @@ describe('EditChildren', () => {
         renderer.act(() => {
             renderer.create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={onChange}
                 >
@@ -125,7 +122,6 @@ describe('EditChildren', () => {
         renderer.act(() => {
             renderer.create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={onChange}
                 >
@@ -152,7 +148,6 @@ describe('EditSubListSchema', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={() => {}}
                 >
@@ -176,7 +171,6 @@ describe('EditSubListSchema', () => {
         renderer.act(() => {
             renderer.create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={onChange}
                 >
@@ -206,7 +200,6 @@ describe('EditSubListSchema', () => {
         renderer.act(() => {
             renderer.create(
                 <EditSchema
-                    field={maybeGenericIDFromTree(testSchema)[0]}
                     value={testSchema}
                     onChange={onChange}
                 >

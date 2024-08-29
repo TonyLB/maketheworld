@@ -6,7 +6,7 @@ import React, { FunctionComponent } from 'react'
 
 import ListWithConditions from './ListWithConditions'
 import { isSchemaExit, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTreeNodeFiltered, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { EditSchema, useEditContext } from './EditContext'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
@@ -30,7 +30,6 @@ describe('ListWithConditions component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'Room', key: 'room1' }, children: [], id: '' }}
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
                         { data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}
@@ -50,7 +49,6 @@ describe('ListWithConditions component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'Room', key: 'room1' }, children: [], id: '' }}
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
                         { data: { tag: 'If' }, children: [

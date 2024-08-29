@@ -63,7 +63,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             (isStandardRoom(component)) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
-                    field={component?.shortName ? component.shortName : { data: { tag: 'ShortName' }, children: [], id: '' }}
                     value={component?.shortName?.children ?? []}
                     inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
                     onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
@@ -79,7 +78,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
         <StandardFormSchema componentKey={ComponentId} tag="Name">
             <EditSchema
-                field={component?.name ? component.name : { data: { tag: 'Name' }, children: [], id: '' }}
                 value={component?.name?.children ?? []}
                 inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
@@ -95,7 +93,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             isStandardRoom(component) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
                 <EditSchema
-                    field={component?.summary ? component.summary : { data: { tag: 'Summary' }, children: [], id: '' }}
                     value={component?.summary?.children ?? []}
                     inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
                     onChange={(value) => {
@@ -117,7 +114,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
         <StandardFormSchema componentKey={ComponentId} tag="Description">
             <EditSchema
-                field={component?.description ? component.description : { data: { tag: 'Description' }, children: [], id: '' } }
                 value={component?.description?.children ?? []}
                 inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
                 onChange={(value) => {

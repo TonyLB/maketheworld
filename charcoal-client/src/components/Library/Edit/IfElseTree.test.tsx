@@ -31,7 +31,6 @@ describe('IfElseTree component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'String', value: '' } ,children: [], id: '' }}
                     value={[{
                         data: { tag: 'If' },
                         children: [
@@ -56,7 +55,6 @@ describe('IfElseTree component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'String', value: '' } ,children: [], id: '' }}
                     value={[{
                         data: { tag: 'If' },
                         children: [
@@ -82,7 +80,6 @@ describe('IfElseTree component', () => {
         expect(renderer
             .create(
                 <EditSchema
-                    field={{ data: { tag: 'String', value: '' } ,children: [], id: '' }}
                     value={[{
                         data: { tag: 'If' },
                         children: [

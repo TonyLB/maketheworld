@@ -21,7 +21,7 @@ import {
 import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
-import { EditSchema, useEditContext } from '../EditContext'
+import { EditSchema } from '../EditContext'
 import { useLibraryAsset } from '../LibraryAsset'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -93,8 +93,7 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         case 'newIfWrapper':
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
-                    field={{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [], id: '' }], id: '' }}
-                    value={[]}
+                    value={[{ data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: '' }, children: [] }] }]}
                     onChange={newIfWrapperStub}
                 >
                     <IfElseTree render={render} />
@@ -103,8 +102,7 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         case 'ifWrapper':
             return <div {...attributes} contentEditable={false}>
                 <EditSchema
-                    field={nodeById}
-                    value={element.subTree.children}
+                    value={[element.subTree]}
                     onChange={ifWrapperOnChange(element.position)}
                 >
                     <IfElseTree render={render} />
