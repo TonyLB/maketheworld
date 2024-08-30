@@ -2,7 +2,7 @@ import React, { FunctionComponent, useContext } from "react"
 
 type StandardFormContextType = {
     componentKey: string;
-    tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If';
+    tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If' | 'Exits';
 }
 
 const StandardFormContext = React.createContext<StandardFormContextType>({

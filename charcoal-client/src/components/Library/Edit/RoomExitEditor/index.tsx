@@ -1,25 +1,22 @@
-import React, { FunctionComponent, useCallback, useMemo } from "react"
+import { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
-import IconButton from "@mui/material/IconButton"
-import { grey } from "@mui/material/colors"
 import { useLibraryAsset } from "../LibraryAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
-import DeleteIcon from '@mui/icons-material/Delete'
 import Select, { SelectChangeEvent } from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { SchemaExitTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { isSchemaExit, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
-import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { isStandardRoom, StandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import SidebarTitle from "../SidebarTitle"
-import AddRoomExit from "../AddRoomExit"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
+import { StandardFormSchema, useStandardFormContext } from "../StandardFormContext"
+import { EditSchema, useEditNodeContext } from "../EditContext"
+import ListWithConditions from "../ListWithConditions"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -74,22 +71,15 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
     </FormControl>
 }
 
-type EditExitProps = {
-    node: GenericTreeNodeFiltered<SchemaExitTag, SchemaTag, TreeId>;
-    RoomId: string;
-    inherited?: boolean;
-    index: number;
-}
-
-const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, index }) => {
-    const { readonly, standardForm: baseStandardForm, inheritedStandardForm, updateSchema, updateStandard } = useLibraryAsset()
-    const { data, children, id } = node
+const EditExit: FunctionComponent<{}> = () => {
+    const { readonly, standardForm, updateSchema, updateStandard } = useLibraryAsset()
+    const { componentKey } = useStandardFormContext()
+    const { data, children, onChange, onDelete } = useEditNodeContext()
 
     const nameTree = useMemo(() => (treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), [children])
     const name = useMemo(() => (schemaOutputToString(nameTree)), [nameTree])
-    const standardForm = useMemo(() => (inherited ? inheritedStandardForm : baseStandardForm), [baseStandardForm, inherited, inheritedStandardForm])
     const targetName = useMemo(() => {
-        if (!data.to) {
+        if (!(isSchemaExit(data) && data.to)) {
             return ''
         }
         const targetComponent = standardForm.byId[data.to]
@@ -97,22 +87,17 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, i
             return ''
         }
         return schemaOutputToString(ignoreWrapped(targetComponent.shortName)?.children ?? []) ?? targetComponent.key
-    }, [data, inherited, standardForm, inheritedStandardForm, inherited])
-    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
-    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && data.from !== RoomId && name)})
+    }, [data, standardForm])
+    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(name)})
+    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(isSchemaExit(data) && data.from !== componentKey && name)})
+    if (!isSchemaExit(data)) {
+        return null
+    }
     const targetElement = <ExitTargetSelector
         target={data.to}
         RoomId={data.from}
-        inherited={inherited}
         onChange={(event) => {
-            updateStandard({
-                type: 'spliceList',
-                componentKey: RoomId,
-                itemKey: 'exits',
-                at: index,
-                replace: 1,
-                items: [{ data: { tag: 'Exit', key: `${RoomId}:${event.target.value}`, from: RoomId, to: event.target.value }, children: nameTree }]
-            })
+            onChange({ data: { ...data, key: `${data.from}#${event.target.value}`, to: event.target.value }, children: nameTree })
         }}
     />
     return <Box
@@ -136,130 +121,50 @@ const EditExit: FunctionComponent<EditExitProps> = ({ node, RoomId, inherited, i
                 hiddenLabel
                 size="small"
                 required
-                id={ nameTree[0]?.id ?? "exit-name"}
                 value={name}
-                onChange={(event) => { updateSchema({ type: 'replace', id, item: { data, id, children: [{ data: { tag: 'String', value: event.target.value }, children: [], id: nameTree[0]?.id }]} }) } }
-                disabled={readonly || inherited}
+                onChange={(event) => { onChange({ data, children: [{ data: { tag: 'String', value: event.target.value }, children: [] }]}) }}
+                disabled={readonly}
                 placeholder={targetName}
             />
         </Box>
         <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}>{ targetElement }</Box>
-        { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={() => { updateSchema({ type: 'delete', id }) }} disabled={readonly}><DeleteIcon /></IconButton></Box> }
     </Box>
 }
 
-
-type RoomExitComponentProps = {
-    RoomId: string;
-    node: GenericTreeNode<SchemaTag, TreeId>;
-    addExit: (node: GenericTreeNode<SchemaTag>) => void;
-    inherited?: boolean;
-    index: number;
-}
-
-//
-// TODO: Refactor RoomExitComponent to receive If > Room > Exit for both incoming and outgoing
-// exits, and to derive direction from comparing the Room element against passed RoomId
-//
-const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, node, addExit, inherited = false, index }) => {
-    if (treeNodeTypeguard(isSchemaExit)(node)) {
-        return <EditExit
-            key={node.id}
-            RoomId={RoomId}
-            node={node}
-            inherited={inherited}
-            index={index}
-        />
-    }
-    //
-    // TODO: ISS-4294: Nest EditSchema to handle Exit list updates, so that conditioned exits can be edited properly
-    //
-    else if (isSchemaCondition(node.data)) {
-        return <React.Fragment>
-            { node.children.map((conditionNode, index) => {
-                return conditionNode.children.map((conditionContents) => {
-                    return <RoomExitComponent
-                        RoomId={RoomId}
-                        node={conditionContents}
-                        addExit={(node) => {
-                            addExit({
-                                data: { tag: 'If' },
-                                children: node.children.map((siblingNode, siblingIndex) => ({
-                                    data: siblingNode.data,
-                                    children: siblingIndex === index
-                                        ? [node]
-                                        : []
-                                }))
-                            })
-                        }}
-                        index={index}
-                    />
-                })
-            })}
-        </React.Fragment>
-    }
-    else {
-        throw new Error('Invalid entry to RoomExitComponent')
-    }
-}
-
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { standardForm, inheritedStandardForm, updateSchema } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
 
-    const roomComponent = useMemo(() => (standardForm.byId[RoomId]), [standardForm, RoomId])
-    const exitTree = useMemo(() => {
-        if (!(roomComponent && isStandardRoom(roomComponent))) {
-            return []
+    const component: StandardRoom = useMemo(() => {
+        if (RoomId) {
+            const component = standardForm.byId[RoomId]
+            if (component && isStandardRoom(component)) {
+                return component
+            }
         }
-        return roomComponent.exits
-    }, [roomComponent])
-
-    const inheritedComponent = useMemo(() => (inheritedStandardForm.byId[RoomId]), [inheritedStandardForm, RoomId])
-    const inheritedExitTree = useMemo(() => {
-        if (!(inheritedComponent && isStandardRoom(inheritedComponent))) {
-            return []
+        return {
+            key: RoomId,
+            id: '',
+            tag: 'Room',
+            exits: [],
+            themes: []
         }
-        return inheritedComponent.exits
-    }, [inheritedComponent])
+    }, [RoomId, standardForm])
+    const render = useCallback(() => (<EditExit />), [])
 
     return <SidebarTitle title="Exits" minHeight="5em">
-        {
-            inheritedExitTree.length
-                ? <Box sx={{
-                        padding: '0.5em',
-                        background: grey[100],
-                        width: '100%'
-                    }}>{
-                        inheritedExitTree.map((node) => (
-                            <RoomExitComponent inherited index={0} key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { if (roomComponent) { updateSchema({ type: 'addChild', id: roomComponent?.id, item: node }) } }} />
-                        ))
-                    }</Box>
-                : null
-        }
-        { exitTree.map((node, index) => (
-            <RoomExitComponent index={index} key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { if (roomComponent) { updateSchema({ type: 'addChild', id: roomComponent?.id, item: node }) } }} />
-        ))}
-        {/* 
-            TODO: Replace naive list of exits with one that properly handles conditional items.
-         */}
-        {/* <IfElseTree
-            tree={outgoingExits}
-            parentId={schema[0]?.id ?? ''}
-            render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
-            addItemIcon={<ExitIcon />}
-            defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }}
-        /> */}
-        {/* { exitTree.map((node) => {
-            if (isSchemaCondition(node.data)) {
-                return <IfElseTree
-                    tree={treeTypeGuard({ tree: node.children, typeGuard: (subNode): subNode is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (['Statement', 'Fallthrough'].includes(subNode.data.tag)) }) }
-                    render={(props) => (<RoomExitComponent tree={props.} RoomId={RoomId} />)}
-            }
-            else {
-                return <RoomExitComponent key={node.id ?? ''} RoomId={RoomId} node={maybeGenericIDFromTree([node])[0]} addExit={(node) => { if (roomComponent) { updateSchema({ type: 'addChild', id: roomComponent?.id, item: node }) } }} />
-            }
-        }) } */}
-        <AddRoomExit RoomId={RoomId} />
+        <StandardFormSchema componentKey={RoomId} tag="Exits">
+            <EditSchema
+                value={component?.exits ?? []}
+                onChange={(value) => { updateStandard({ type: 'spliceList', componentKey: RoomId, itemKey: 'exits', at: 0, replace: (component?.exits ?? []).length, items: value })}}
+            >
+                <ListWithConditions
+                    render={render}
+                    typeGuard={isSchemaExit}
+                    label="Exit"
+                    defaultNode={{ tag: 'Exit', from: RoomId, to: '', key: `${RoomId}#` }}
+                />
+            </EditSchema>
+        </StandardFormSchema>
     </SidebarTitle>
 }
 
