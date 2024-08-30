@@ -124,12 +124,18 @@ type UpdateStandardPayloadSpliceList = {
     items: GenericTree<SchemaTag>
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList
+type UpdateStandardPayloadReplaceMetaData = {
+    type: 'replaceMetaData';
+    metaData: GenericTree<SchemaTag>;
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData
 
 const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
 const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
+const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -447,6 +453,9 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
             component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
         }
+    }
+    if (isUpdateStandardPayloadReplaceMetaData(payload)) {
+        state.standard.metaData = maybeGenericIDFromTree(payload.metaData)
     }
     const inheritedStandardizer = new Standardizer()
     inheritedStandardizer.loadStandardForm(state.inherited)
