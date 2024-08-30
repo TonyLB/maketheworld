@@ -72,9 +72,9 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
 }
 
 const EditExit: FunctionComponent<{}> = () => {
-    const { readonly, standardForm, updateSchema, updateStandard } = useLibraryAsset()
+    const { readonly, standardForm } = useLibraryAsset()
     const { componentKey } = useStandardFormContext()
-    const { data, children, onChange, onDelete } = useEditNodeContext()
+    const { data, children, onChange } = useEditNodeContext()
 
     const nameTree = useMemo(() => (treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), [children])
     const name = useMemo(() => (schemaOutputToString(nameTree)), [nameTree])

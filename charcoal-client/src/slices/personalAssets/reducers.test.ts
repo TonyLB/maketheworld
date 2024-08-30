@@ -605,6 +605,48 @@ describe('personalAsset slice reducers', () => {
             }])
         })
 
+
+        it('should replace metaData', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Character', key: 'testCharacter', Pronouns: { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'Import', from: 'testImport', mapping: {} },
+                        id: 'DEF',
+                        children: []
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testCharacter', tag: 'Character', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'replaceMetaData',
+                        metaData: [{
+                            data: { tag: 'Import', from: 'differentImport', mapping: {} },
+                            children: []
+                        }]
+                    }
+            })).schema).toEqual([{
+                data: { tag: 'Character', key: 'testCharacter', Pronouns: { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Import', from: 'differentImport', mapping: {} },
+                        id: expect.any(String),
+                        children: []
+                    }
+                ]
+            }])
+        })
+
         // it('should rename exit targets on rename of room', () => {
         //     const testSchema = [{
         //         data: { tag: 'Asset', key: 'testAsset' },
