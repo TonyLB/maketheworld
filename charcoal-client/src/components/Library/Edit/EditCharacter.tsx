@@ -314,7 +314,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { updateSchema, standardForm } = useLibraryAsset()
+    const { updateStandard, standardForm } = useLibraryAsset()
     const assetsImported = useMemo(() => (standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
         .map(({ data }) => (data))
@@ -329,25 +329,11 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
     const onChange = useCallback((_, newAssets) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
         const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
-        const deleteAssets = standardForm.metaData
-            .filter(treeNodeTypeguard(isSchemaImport))
-            .filter(({ data }) => (!saveableAssets.find(({ key }) => (key === data.from))))
-            .map(({ id }) => (id))
-        const character = standardForm.byId[standardForm.key]
-        if (character && character.tag === 'Character') {
-            deleteAssets.forEach((id) => { updateSchema({ type: 'delete', id }) })
-            addAssets.forEach(({ key }) => {
-                updateSchema({
-                    type: 'addChild',
-                    id: character.id,
-                    item: { data: { tag: 'Import', from: key, mapping: {} }, children: [] }
-                })
-            })
-            if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
-                dispatch(addOnboardingComplete(['editCharacterAssets']))
-            }
+        updateStandard({ type: 'replaceMetaData', metaData: saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key, mapping: {} }, children: [] })) })
+        if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
+            dispatch(addOnboardingComplete(['editCharacterAssets']))
         }
-    }, [standardForm, updateSchema, dispatch])
+    }, [standardForm, updateStandard, dispatch])
     return <Autocomplete
         multiple
         id="asset-list"
