@@ -1058,13 +1058,14 @@ export class StandardizerAbstract {
                 return { [key]: incomingComponent }
             }
         })))
+        const combinedMetaData = new SchemaTagTree([...this.metaData, ...incoming.metaData])
 
         const returnStandardizer = new StandardizerAbstract()
         returnStandardizer.loadStandardForm({
             byId: combinedById,
             key: this._assetKey,
             tag: this._assetTag,
-            metaData: this.metaData
+            metaData: maybeGenericIDFromTree(combinedMetaData.tree)
         })
         returnStandardizer._assetId = this._assetId === 'Test' ? incoming._assetId : this._assetId
         return returnStandardizer
