@@ -116,6 +116,7 @@ type UpdateStandardPayloadUpdateField = {
 type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
     tag: SchemaWithKey["tag"];
+    key?: string;
 }
 
 type UpdateStandardPayloadSpliceList = {
@@ -452,11 +453,11 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const keysByTag = Object.entries(state.standard.byId).filter(([_, node]) => (node.tag === payload.tag)).map(([key]) => (key))
         let nextIndex = 1
         while (keysByTag.includes(`${payload.tag}${nextIndex}`)) { nextIndex++ }
-        const key = `${payload.tag}${nextIndex}`
+        const syntheticKey = `${payload.tag}${nextIndex}`
         //
         // Add a default component
         //
-        state.standard.byId[key] = defaultComponentFromTag(payload.tag, key)
+        state.standard.byId[payload.key ?? syntheticKey] = defaultComponentFromTag(payload.tag, payload.key ?? syntheticKey)
     }
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]

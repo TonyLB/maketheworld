@@ -6,6 +6,9 @@ import { treeFindByID } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
 
 export const stabilizeFactory = (props: { schema: GenericTree<SchemaTag, TreeId>; updateSchema: (action: UpdateSchemaPayload) => void }) => (values: SimNode[]) => {
     const { schema, updateSchema } = props
+    //
+    // TODO: ISS-4348: Refactor stabilize to aggregate the changes to positions data into a single update
+    //
     values.forEach(({ id, x, y }) => {
         const previousNode = treeFindByID(schema, id)
         if (typeof previousNode !== 'undefined') {

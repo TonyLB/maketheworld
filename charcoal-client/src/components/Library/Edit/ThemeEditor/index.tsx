@@ -39,7 +39,7 @@ type ThemeEditorProps = {}
 export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateSchema, standardForm, updateStandard } = useLibraryAsset()
+    const { assetKey, standardForm, updateStandard } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component: StandardTheme = useMemo(() => {
         if (ComponentId) {

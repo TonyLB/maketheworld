@@ -22,17 +22,26 @@ export const addExitFactory = ({ standardForm, combinedStandardForm, updateSchem
     if (!(from in standardForm)) {
         addImport(from)
     }
-    updateSchema({
-        type: 'addChild',
-        id: parentId,
-        item: {
-            data: { tag: 'Room', key: from },
-            children: [
-                {
-                    data: { tag: 'Exit', key: `${from}#${to}`, from, to },
-                    children: schemaOutputLowerCase(children)
-                }
-            ]
-        }
-    })
+    //
+    // TODO: ISS-4347: Create updateSelection function in mapContext which allows updates localized to the
+    // place in the ancestor-hierarchy of the selection (as recorded in mapTree) that is legal
+    // for the action in question
+    //
+    // TODO: Use updateSelection in place of updateStandard to make the update to the appropriate
+    // place in the mapTree hierarchy automatically.
+    //
+
+    // updateSchema({
+    //     type: 'addChild',
+    //     id: parentId,
+    //     item: {
+    //         data: { tag: 'Room', key: from },
+    //         children: [
+    //             {
+    //                 data: { tag: 'Exit', key: `${from}#${to}`, from, to },
+    //                 children: schemaOutputLowerCase(children)
+    //             }
+    //         ]
+    //     }
+    // })
 }
