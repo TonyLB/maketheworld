@@ -129,6 +129,10 @@ export type SchemaInheritedTag = {
     tag: 'Inherited';
 } & SchemaBase
 
+export type SchemaSelectedTag = {
+    tag: 'Selected';
+} & SchemaBase
+
 export type SchemaConditionTag = {
     tag: 'If';
 } & SchemaBase
@@ -159,8 +163,8 @@ export type SchemaLinkTag = {
 } & SchemaBase
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaInheritedTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaInheritedTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaInheritedTag | SchemaSelectedTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaInheritedTag | SchemaSelectedTag
 export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -171,7 +175,8 @@ export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaConditionStatement(tag) ||
     isSchemaConditionFallthrough(tag) ||
     isSchemaReplace(tag) ||
-    isSchemaInherited(tag)
+    isSchemaInherited(tag) ||
+    isSchemaSelected(tag)
 )
 
 export type SchemaDescriptionTag = {
@@ -299,6 +304,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaImportTag |
     SchemaExportTag |
     SchemaInheritedTag |
+    SchemaSelectedTag |
     SchemaConditionTag |
     SchemaConditionStatementTag |
     SchemaConditionFallthroughTag |
@@ -377,7 +383,7 @@ export const isSchemaPrompt = (value: SchemaTag): value is SchemaPromptTag => (v
 export const isSchemaMap = (value: SchemaTag): value is SchemaMapTag => (value.tag === 'Map')
 export const isSchemaMessage = (value: SchemaTag): value is SchemaMessageTag => (value.tag === 'Message')
 export const isSchemaMoment = (value: SchemaTag): value is SchemaMomentTag => (value.tag === 'Moment')
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaInherited(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaInherited(value) || isSchemaSelected(value))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If', 'Name', 'Theme'].includes(value.tag))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
@@ -401,6 +407,7 @@ export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag =
 export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
 export const isSchemaExport = (value: SchemaTag): value is SchemaExportTag => (value.tag === 'Export')
 export const isSchemaInherited = (value: SchemaTag): value is SchemaInheritedTag => (value.tag === 'Inherited')
+export const isSchemaSelected = (value: SchemaTag): value is SchemaSelectedTag => (value.tag === 'Selected')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')

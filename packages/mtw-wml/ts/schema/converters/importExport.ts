@@ -1,4 +1,4 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited } from "../baseClasses"
+import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaSelected } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -13,7 +13,8 @@ const importExportTemplates = {
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key }
     },
-    Inherited: {}
+    Inherited: {},
+    Selected: {}
 } as const
 
 export const importExportConverters: Record<string, ConverterMapEntry> = {
@@ -74,6 +75,12 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             tag: 'Inherited',
             ...validateProperties(importExportTemplates.Inherited)(parseOpen)
         })
+    },
+    Selected: {
+        initialize: ({ parseOpen }): SchemaSelectedTag => ({
+            tag: 'Selected',
+            ...validateProperties(importExportTemplates.Selected)(parseOpen)
+        })
     }    
 }
 
@@ -117,6 +124,16 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
             ? tagRender({
                 ...args,
                 tag: 'Inherited',
+                properties: [],
+                node: { data: tag, children }
+            })
+            : [{ printMode: PrintMode.naive, output: '' }]
+    ),
+    Selected: ({ tag: { data: tag, children }, ...args}: PrintMapEntryArguments) => (
+        isSchemaSelected(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Selected',
                 properties: [],
                 node: { data: tag, children }
             })
