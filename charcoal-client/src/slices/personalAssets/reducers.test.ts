@@ -713,6 +713,71 @@ describe('personalAsset slice reducers', () => {
             }])
         })
 
+        it('should rename map references on rename of room', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: 'UUID1',
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'room2' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: 'UUID2', children: [{ data: { tag: 'String', value: 'Garden' }, id: 'UUID3', children: [] }]}
+                        ]
+                    },
+                    {
+                        data: { tag: 'Map', key: 'testMap' },
+                        id: 'DEF',
+                        children: [{
+                            data: { tag: 'Room', key: 'room2' },
+                            id: 'UUID4',
+                            children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [], id: 'UUID5' }]
+                        }]
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            console.log(`standard: ${JSON.stringify(standardize.standardForm, null, 4)}`)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => {
+                    updateStandard(state as any, {
+                        type: 'updateStandard',
+                        payload: {
+                            type: 'renameKey',
+                            from: 'room2',
+                            to: 'garden'
+                        }
+                    })
+                }
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'garden' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Garden' }, id: expect.any(String), children: [] }]},
+                        ]
+                    },
+                    {
+                        data: { tag: 'Map', key: 'testMap' },
+                        id: expect.any(String),
+                        children: [{
+                            data: { tag: 'Room', key: 'garden' },
+                            id: expect.any(String),
+                            children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [], id: expect.any(String) }]
+                        }]
+                    }
+                ]
+            }])
+        })
+
         // it('should rename link targets on rename of feature', () => {
         //     const testSchema = [{
         //         data: { tag: 'Asset', key: 'testAsset' },

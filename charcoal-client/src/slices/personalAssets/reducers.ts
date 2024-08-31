@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
@@ -11,7 +11,7 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { WritableDraft } from 'immer/dist/internal'
 import { transform } from 'typescript'
 
@@ -492,6 +492,20 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         exit.to = exit.to === payload.from ? payload.to : exit.to
                         exit.from = exit.from === payload.from ? payload.to : exit.from
                         exit.key = `${exit.from}:${exit.to}`
+                    }
+                })
+            }
+            if (isStandardMap(component)) {
+                //
+                // Recursive transform positions
+                //
+                recursiveRenameWalk({
+                    tree: component.positions,
+                    typeGuard: isSchemaRoom,
+                    transform: (room) => {
+                        if (room.key === payload.from) {
+                            room.key = payload.to
+                        }
                     }
                 })
             }
