@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/tree/map'
@@ -11,7 +11,10 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { WritableDraft } from 'immer/dist/internal'
+import { transform } from 'typescript'
+import { excludeUndefined } from '../../lib/lists'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -129,13 +132,20 @@ type UpdateStandardPayloadReplaceMetaData = {
     metaData: GenericTree<SchemaTag>;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData
+type UpdateStandardPayloadRenameKey = {
+    type: 'renameKey',
+    from: string;
+    to: string;
+}
+
+export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
 const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
+const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
 export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
     const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
@@ -456,6 +466,82 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
         state.standard.metaData = maybeGenericIDFromTree(payload.metaData)
+    }
+    if (isUpdateStandardPayloadRenameKey(payload)) {
+        const recursiveRenameWalk = <T extends SchemaTag>(props: {
+            tree: WritableDraft<GenericTree<SchemaTag>>;
+            typeGuard: (value: SchemaTag) => value is T;
+            transform: (value: WritableDraft<T>) => void;
+        }): void => {
+            const { tree, typeGuard, transform } = props
+            tree.forEach(({ data, children }) => {
+                if (typeGuard(data)) {
+                    transform(data as WritableDraft<T>)
+                }
+                recursiveRenameWalk({ tree: children, typeGuard, transform })
+            })
+        }
+        Object.values(state.standard.byId).forEach((component) => {
+            if (isStandardFeature(component) || isStandardKnowledge(component)) {
+                //
+                // Recursive transform links
+                //
+                if (component.description) {
+                    recursiveRenameWalk({
+                        tree: [component.description],
+                        typeGuard: isSchemaLink,
+                        transform: (link) => {
+                            if (link.to === payload.from) {
+                                link.to = payload.to
+                            }
+                        }
+                    })    
+                }
+            }
+            if (isStandardRoom(component)) {
+                //
+                // Recursive transform exits
+                //
+                recursiveRenameWalk({
+                    tree: component.exits,
+                    typeGuard: isSchemaExit,
+                    transform: (exit) => {
+                        exit.to = exit.to === payload.from ? payload.to : exit.to
+                        exit.from = exit.from === payload.from ? payload.to : exit.from
+                        exit.key = `${exit.from}:${exit.to}`
+                    }
+                })
+                //
+                // Recursive transform links
+                //
+                recursiveRenameWalk({
+                    tree: [component.description, component.summary].filter(excludeUndefined),
+                    typeGuard: isSchemaLink,
+                    transform: (link) => {
+                        if (link.to === payload.from) {
+                            link.to = payload.to
+                        }
+                    }
+                })
+            }
+            if (isStandardMap(component)) {
+                //
+                // Recursive transform positions
+                //
+                recursiveRenameWalk({
+                    tree: component.positions,
+                    typeGuard: isSchemaRoom,
+                    transform: (room) => {
+                        if (room.key === payload.from) {
+                            room.key = payload.to
+                        }
+                    }
+                })
+            }
+        })
+        state.standard.byId[payload.to] = state.standard.byId[payload.from]
+        delete state.standard.byId[payload.from]
+        state.standard.byId[payload.to].key = payload.to
     }
     const inheritedStandardizer = new Standardizer()
     inheritedStandardizer.loadStandardForm(state.inherited)

@@ -70,10 +70,10 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         componentId: ComponentId || ''
     })
     const onKeyChange = useCallback((toKey: string) => {
-        updateSchema({
-            type: 'rename',
-            fromKey: ComponentId,
-            toKey
+        updateStandard({
+            type: 'renameKey',
+            from: ComponentId,
+            to: toKey
         })
         dispatch(renameNavigationTab({
             fromHRef: `/Library/Edit/Asset/${assetKey}/Theme/${ComponentId}`,
@@ -81,7 +81,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
             componentId: toKey
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/Theme/${toKey}`)
-    }, [updateSchema, ComponentId, navigate, assetKey, dispatch])
+    }, [updateStandard, ComponentId, navigate, assetKey, dispatch])
     const allExportKeys = useMemo(() => {
         const tagTree = new SchemaTagTree(standardForm.metaData)
             .filter({ match: 'Export' })
