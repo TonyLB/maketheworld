@@ -145,7 +145,7 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateSchema, standardForm, combinedStandardForm } = useLibraryAsset()
+    const { assetKey, updateStandard, standardForm, combinedStandardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
@@ -170,10 +170,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         componentId: ComponentId || ''
     })
     const onKeyChange = useCallback((toKey: string) => {
-        updateSchema({
-            type: 'rename',
-            fromKey: ComponentId,
-            toKey
+        updateStandard({
+            type: 'renameKey',
+            from: ComponentId,
+            to: toKey
         })
         dispatch(renameNavigationTab({
             fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
@@ -181,7 +181,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentId: toKey
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
-    }, [updateSchema, ComponentId, navigate, assetKey, dispatch, tag])
+    }, [updateStandard, ComponentId, navigate, assetKey, dispatch, tag])
     const allExportKeys = useMemo(() => {
         const tagTree = new SchemaTagTree(standardForm.metaData)
             .filter({ match: 'Export' })
