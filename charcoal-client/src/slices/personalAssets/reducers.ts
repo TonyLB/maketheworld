@@ -11,9 +11,10 @@ import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { WritableDraft } from 'immer/dist/internal'
 import { transform } from 'typescript'
+import { excludeUndefined } from '../../lib/lists'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -481,6 +482,22 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             })
         }
         Object.values(state.standard.byId).forEach((component) => {
+            if (isStandardFeature(component) || isStandardKnowledge(component)) {
+                //
+                // Recursive transform links
+                //
+                if (component.description) {
+                    recursiveRenameWalk({
+                        tree: [component.description],
+                        typeGuard: isSchemaLink,
+                        transform: (link) => {
+                            if (link.to === payload.from) {
+                                link.to = payload.to
+                            }
+                        }
+                    })    
+                }
+            }
             if (isStandardRoom(component)) {
                 //
                 // Recursive transform exits
@@ -492,6 +509,18 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         exit.to = exit.to === payload.from ? payload.to : exit.to
                         exit.from = exit.from === payload.from ? payload.to : exit.from
                         exit.key = `${exit.from}:${exit.to}`
+                    }
+                })
+                //
+                // Recursive transform links
+                //
+                recursiveRenameWalk({
+                    tree: [component.description, component.summary].filter(excludeUndefined),
+                    typeGuard: isSchemaLink,
+                    transform: (link) => {
+                        if (link.to === payload.from) {
+                            link.to = payload.to
+                        }
                     }
                 })
             }
