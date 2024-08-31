@@ -48,7 +48,7 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
-    const { standardForm, updateSchema, AssetId } = useLibraryAsset()
+    const { standardForm, updateStandard, AssetId } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
@@ -60,28 +60,17 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
         if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) ?? roomId) {
-            if (roomComponent.shortName?.id) {
-                updateSchema({
-                    type: 'replaceChildren',
-                    id: roomComponent.shortName.id,
-                    children: [{ data: { tag: 'String', value }, children: [] }]
-                })
-            }
-            else {
-                updateSchema({
-                    type: 'addChild',
-                    id: roomComponent.id,
-                    item: {
-                        data: { tag: 'ShortName' },
-                        children: [{ data: { tag: 'String', value }, children: [] }]
-                    }
-                })
-            }
+            updateStandard({
+                type: 'replaceItem',
+                componentKey: roomId,
+                itemKey: 'shortName',
+                item: { data: { tag: 'String', value }, children: [] }
+            })
             if (isEphemeraAssetId(AssetId)) {
                 dispatch(requestLLMGeneration({ assetId: AssetId, roomId }))
             }
         }
-    }, [standardForm, updateSchema, roomId, name, dispatch, AssetId])
+    }, [standardForm, updateStandard, roomId, name, dispatch, AssetId])
     const renameRef = useRef<HTMLDivElement>(null)
     const editRef = useRef<HTMLButtonElement>(null)
     return <React.Fragment>

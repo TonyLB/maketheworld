@@ -234,7 +234,7 @@ type LiteralTagFieldProps = {
 }
 
 const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, required, tag, label }) => {
-    const { updateSchema, updateStandard } = useLibraryAsset()
+    const { updateStandard } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
         return ignoreWrapped(character[tag])?.data?.value || ''
