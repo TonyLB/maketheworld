@@ -53,11 +53,6 @@ type MapDispatchUpdateTree = {
     tree: GenericTree<SchemaTag, TreeId>;
 }
 
-type MapDispatchUpdateInherited = {
-    type: 'UpdateInherited';
-    tree: GenericTree<SchemaTag, TreeId>;
-}
-
 type MapContextItemSelectedLayer = {
     type: 'Layer';
     key: string;
@@ -109,7 +104,6 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchDragExit |
     MapDispatchSetNode |
     MapDispatchUpdateTree |
-    MapDispatchUpdateInherited |
     MapDispatchSelectItem |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
@@ -131,7 +125,6 @@ export type MapContextType = {
     mapId: string;
     nodeId: string;
     tree: GenericTree<MapTreeSchemaTags, TreeId>;
-    inherited: GenericTree<MapTreeSchemaTags, TreeId>;
     selectedPositions: GenericTree<MapTreeSchemaTags>;
     updateSelected: (newValue: GenericTree<SchemaTag>) => void;
     UI: {

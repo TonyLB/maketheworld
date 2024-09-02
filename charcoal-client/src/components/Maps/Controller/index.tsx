@@ -2,7 +2,7 @@ import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, 
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { stabilizeFactory } from "./stabilize"
@@ -18,7 +18,7 @@ import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
-import { addImport, getInherited } from "../../../slices/personalAssets"
+import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 
@@ -28,7 +28,6 @@ const MapContext = React.createContext<MapContextType>({
     tree: [],
     selectedPositions: [],
     updateSelected: () => {},
-    inherited: [],
     UI: {
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
@@ -69,12 +68,12 @@ const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeI
 //    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
 //    - An onChange function that accepts changes to that mapTree
 //
-const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string[]): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag, TreeId> => {
+const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
         isSchemaSelected(item) || isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaConditionStatement(item) || isSchemaConditionFallthrough(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
     )
-    const filterRoomsWithChildren = (tree: GenericTree<SchemaTag, Partial<TreeId> & { inherited?: boolean }>): GenericTree<SchemaTag, Partial<TreeId> & { inherited?: boolean }> => {
+    const filterRoomsWithChildren = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
         return tree.map(({ data, children, ...rest }) => (
             isSchemaRoom(data)
                 ? (children.filter(({ data }) => (!isSchemaShortName(data))).length > 0
@@ -86,7 +85,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string
     }
 
     const positions = mapComponent?.positions ?? []
-    const roomKeys = allKeys ?? selectKeysByTag('Room')(positions)
+    const roomKeys = selectKeysByTag('Room')(positions)
     const roomAndExits = roomKeys
         .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
         .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
@@ -99,7 +98,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string
         .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
         .tree
     const tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId> = maybeGenericIDFromTree(treeTypeGuard({ tree: filterRoomsWithChildren(combinedTree), typeGuard: isMapContents }))
-    return { data: { tag: 'Asset', key: standardForm.key, Story: undefined }, children: tree, id: '' }
+    return { data: { tag: 'Asset', key: standardForm.key, Story: undefined }, children: tree }
 }
 
 const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree<MapTreeSchemaTags> | undefined => (
@@ -131,7 +130,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     }, [standardForm, mapId])
     const selectedPositions: GenericTree<MapTreeSchemaTags> = useMemo(() => (firstSelectedSubTree(tree) ?? tree), [tree])
     const updateSelected = () => {}
-    const inheritedTree = useMemo(() => (inheritedByAssetId.map(({ standardForm }) => (mapTreeMemo(standardForm, mapId)))), [inheritedByAssetId, mapId])
 
     //
     // Make local data and setters for exit decorator source and drag location.
@@ -188,11 +186,12 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
         return previous
     }, [combinedStandardForm.byId])
-    const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag, TreeId>, inheritedTree: GenericTree<SchemaTag, TreeId>): MapContextPosition[] => {
-        const basePositions = tree
-            .reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(mapComponent.id),
-            inheritedTree.reduce<Partial<MapContextPosition>[]>(extractRoomsHelper(''), [])
-        )
+    const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag>): MapContextPosition[] => {
+        const basePositions = maybeGenericIDFromTree(tree)
+            .reduce<Partial<MapContextPosition>[]>(
+                extractRoomsHelper(mapComponent.id),
+                []
+            )
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
             (typeof item.id !== 'undefined') &&
@@ -204,7 +203,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         )
         return overwrittenPositions.filter(valuesPresentTypeguard)
     }, [extractRoomsHelper, mapComponent.id])
-    const rawPositions = useMemo<MapContextPosition[]>(() => (extractRoomsById({})(tree, inheritedTree)), [tree, inheritedTree])
+    const rawPositions = useMemo<MapContextPosition[]>(() => (extractRoomsById({})(tree)), [tree])
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(rawPositions)
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes
@@ -214,17 +213,16 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     : previous
             ), {})
 
-        const extractedPositions = extractRoomsById(xyByRoomId)(tree, inheritedTree)
+        const extractedPositions = extractRoomsById(xyByRoomId)(tree)
         return setLocalPositions(extractedPositions)
-    }, [tree, inheritedTree])
+    }, [tree])
 
     //
     // TODO: Extract a MapTreeItem tree out of Schema (particularly, assigning names)
     //
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
-            tree,
-            inherited: inheritedTree,
+            tree: maybeGenericIDFromTree(tree),
             parentId: mapComponent.id,
             onExitDrag: setExitDrag,
         })
@@ -237,9 +235,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 return
             case 'UpdateTree':
                 mapD3.update(action.tree, mapComponent.id)
-                return
-            case 'UpdateInherited':
-                mapD3.updateInherited(action.tree)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -322,11 +317,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         })
     }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSelected])
     useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', tree })
+        mapDispatch({ type: 'UpdateTree', tree: maybeGenericIDFromTree(tree) })
     }, [mapDispatch, tree])
-    useEffect(() => {
-        mapDispatch({ type: 'UpdateInherited', tree: inheritedTree })
-    }, [mapDispatch, inheritedTree])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
@@ -335,10 +327,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         value={{
             mapId,
             nodeId: mapComponent.id,
-            tree,
+            tree: maybeGenericIDFromTree(tree),
             selectedPositions,
             updateSelected: () => {},
-            inherited: inheritedTree,
             UI: {
                 toolSelected,
                 exitDrag,
@@ -422,12 +413,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             nodeId: '',
             tree: mappedTree,
             selectedPositions: mappedTree,
-            //
-            // TODO: ISS-4351: Refactor updateSelected to drill down using lib/context wrapper functions in order to
-            // on-Change only the relevant selected sub-tree.
-            //
             updateSelected: () => {},
-            inherited: [],
             UI: {
                 toolSelected: 'Select',
                 exitDrag: { sourceRoomId: '', x: 0, y: 0 }
