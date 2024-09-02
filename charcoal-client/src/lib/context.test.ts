@@ -1,6 +1,6 @@
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { nestOnChangeChildren, nestOnChangeSubItem } from "./context"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { GenericTree, GenericTreeWithUndefined } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
+import { isSchemaDescription, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 describe('context nesting helper library', () => {
     it('should nest onChange with nestOnChangeSubItem', () => {
@@ -68,5 +68,48 @@ describe('context nesting helper library', () => {
         }])
     })
 
+    it('should transform onChange with onChangeTreeMap', () => {
+        const onChange = jest.fn()
+        const testSchema: GenericTree<SchemaTag> = [{
+            data: { tag: 'Description' },
+            children: [
+                { data: { tag: 'String', value: 'A' }, children: [] },
+                { data: { tag: 'String', value: 'B' }, children: [] },
+                { data: { tag: 'String', value: 'C' }, children: [] }
+            ]
+        }]
 
+        const mappedReducer = nestTransformTreeReducer(
+            (baseReducer, { parentData } = {}) => (previous, newValue) => {
+                if (parentData && isSchemaDescription(parentData)) {
+                    const previousLength = (previous ?? []).length
+                    return baseReducer(previous, [
+                        ...(newValue.slice(0, previousLength)),
+                        ...((newValue.length > previousLength) ? [{ data: { tag: 'br' as const }, children: [] }] : []),
+                        ...(newValue.slice(previousLength))
+                    ])
+                }
+                else {
+                    return baseReducer(previous, newValue)
+                }
+            }
+        )
+        expect(mappedReducer(testSchema, [{
+            data: { tag: 'Description' },
+            children: [
+                undefined,
+                { data: { tag: 'String', value: 'B' }, children: [] },
+                { data: { tag: 'String', value: 'C' }, children: [] },
+                { data: { tag: 'String', value: 'D' }, children: [] }
+            ]
+        }])).toEqual([{
+            data: { tag: 'Description' },
+            children: [
+                { data: { tag: 'String', value: 'B' }, children: [] },
+                { data: { tag: 'String', value: 'C' }, children: [] },
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'String', value: 'D' }, children: [] }
+            ]
+        }])
+    })
 })

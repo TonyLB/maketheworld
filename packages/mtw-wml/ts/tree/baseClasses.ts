@@ -9,6 +9,13 @@ export type GenericTreeFiltered<F extends {}, N extends {}, Extra extends {} = {
 
 export type GenericTree<N extends {}, Extra extends {} = {}> = GenericTreeFiltered<N, N, Extra>
 
+export type GenericTreeWithUndefined<N extends {}> = GenericTreeNodeWithUndefined<N>[]
+
+export type GenericTreeNodeWithUndefined<N extends{}> = undefined | {
+    data: N;
+    children: GenericTreeWithUndefined<N>;
+}
+
 export enum GenericTreeDiffAction {
     Exclude,
     Context,
