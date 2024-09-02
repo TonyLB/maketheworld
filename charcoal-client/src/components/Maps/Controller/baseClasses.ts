@@ -1,5 +1,5 @@
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaAssetTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
@@ -125,11 +125,15 @@ export type MapContextPosition = {
     y: number;
 }
 
+export type MapTreeSchemaTags = SchemaAssetTag | SchemaSelectedTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag
+
 export type MapContextType = {
     mapId: string;
     nodeId: string;
-    tree: GenericTree<SchemaAssetTag | SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>;
-    inherited: GenericTree<SchemaAssetTag | SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>;
+    tree: GenericTree<MapTreeSchemaTags, TreeId>;
+    inherited: GenericTree<MapTreeSchemaTags, TreeId>;
+    selectedPositions: GenericTree<MapTreeSchemaTags>;
+    updateSelected: (newValue: GenericTree<SchemaTag>) => void;
     UI: {
         //
         // The Map editor can conceivably need data for:
