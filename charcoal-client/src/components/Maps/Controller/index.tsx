@@ -59,6 +59,16 @@ const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeI
     }, undefined)
 }
 
+//
+// ISS-4348: mapTreeMemo takes:
+//    - A standard form
+//    - The key of a map in that standardForm
+//    - The replaceItem onChange for that standardForm
+//
+// ... and returns:
+//    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
+//    - An onChange function that accepts changes to that mapTree
+//
 const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string[]): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag, TreeId> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
@@ -74,11 +84,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, allKeys?: string
                 : [{ data, ...rest, children: filterRoomsWithChildren(children) }]
         )).flat(1)
     }
-    //
-    // TODO: ISS3954: roomKeys must select from positions in both incoming standardForm and
-    // any inheritance (to catch exits from rooms that are imported by not positioned within
-    // the base asset's version of the map)
-    //
+
     const positions = mapComponent?.positions ?? []
     const roomKeys = allKeys ?? selectKeysByTag('Room')(positions)
     const roomAndExits = roomKeys
@@ -121,12 +127,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
 
     const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
     const tree = useMemo(() => {
-        const mapComponent = combinedStandardForm.byId[mapId]
-        const allKeys = (mapComponent && isStandardMap(mapComponent))
-            ? selectKeysByTag('Room')(mapComponent.positions)
-            : undefined
-        return mapTreeMemo(standardForm, mapId, allKeys).children
-    }, [standardForm, combinedStandardForm, mapId])
+        return mapTreeMemo(standardForm, mapId).children
+    }, [standardForm, mapId])
     const selectedPositions: GenericTree<MapTreeSchemaTags> = useMemo(() => (firstSelectedSubTree(tree) ?? tree), [tree])
     const updateSelected = () => {}
     const inheritedTree = useMemo(() => (inheritedByAssetId.map(({ standardForm }) => (mapTreeMemo(standardForm, mapId)))), [inheritedByAssetId, mapId])
