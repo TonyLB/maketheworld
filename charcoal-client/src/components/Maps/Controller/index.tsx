@@ -8,8 +8,8 @@ import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
-import { useDispatch, useSelector } from "react-redux"
-import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
+import { useDispatch } from "react-redux"
+import { toggle } from "../../../slices/UI/mapEdit"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
@@ -27,6 +27,7 @@ const MapContext = React.createContext<MapContextType>({
     nodeId: '',
     tree: [],
     selectedPositions: [],
+    updateSelected: () => {},
     inherited: [],
     UI: {
         toolSelected: 'Select',
@@ -108,7 +109,7 @@ const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree
 )
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { AssetId, schema, standardForm, inheritedByAssetId, combinedStandardForm, updateSchema, updateStandard } = useLibraryAsset()
+    const { AssetId, schema, standardForm, inheritedByAssetId, combinedStandardForm, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -127,6 +128,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return mapTreeMemo(standardForm, mapId, allKeys).children
     }, [standardForm, combinedStandardForm, mapId])
     const selectedPositions: GenericTree<MapTreeSchemaTags> = useMemo(() => (firstSelectedSubTree(tree) ?? tree), [tree])
+    const updateSelected = () => {}
     const inheritedTree = useMemo(() => (inheritedByAssetId.map(({ standardForm }) => (mapTreeMemo(standardForm, mapId)))), [inheritedByAssetId, mapId])
 
     //
@@ -263,7 +265,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setParentID(action.item)
                 return
             case 'AddRoom':
-                addRoomFactory({ parentId: dispatchParentId, standard: standardForm, updateStandard })({ roomId: action.roomId, x: action.x, y: action.y })
+                addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
             case 'UnlockRoom':
                 //
@@ -273,7 +275,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 if (relevantMapDThreeIterator) {
                     const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
                     if (relevantNode && relevantNode.cascadeNode) {
-                        addRoomFactory({ parentId: dispatchParentId, standard: standardForm, updateStandard })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
+                        addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
                     }
                 }
                 else {
@@ -285,7 +287,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                                 dispatch(addImport({ assetId: AssetId, fromAsset, type: 'Room', key: relevantContext.roomId }))
                             }
                         }
-                        addRoomFactory({ parentId: dispatchParentId, standard: standardForm, updateStandard })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
+                        addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
                     }
                 }
                 return
@@ -301,7 +303,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
     }, [inheritedByAssetId, dispatch])
     useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ standardForm, combinedStandardForm, updateSchema, addImport: addExitImport, parentId: dispatchParentId })
+        const addExitFactoryOutput = addExitFactory({ standardForm, combinedStandardForm, selectedPositions, updateSelected, addImport: addExitImport })
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
@@ -312,11 +314,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         mapD3.setCallbacks({
             onTick: onTick,
             onStability: (value: SimNode[]) => {
-                stabilizeFactory({ schema, updateSchema })(value)
+                stabilizeFactory({ schema, updateSchema: () => {} })(value)
             },
             onAddExit
         })
-    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSchema, dispatchParentId])
+    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSelected])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
@@ -333,6 +335,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             nodeId: mapComponent.id,
             tree,
             selectedPositions,
+            updateSelected: () => {},
             inherited: inheritedTree,
             UI: {
                 toolSelected,
@@ -417,6 +420,11 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             nodeId: '',
             tree: mappedTree,
             selectedPositions: mappedTree,
+            //
+            // TODO: ISS-4351: Refactor updateSelected to drill down using lib/context wrapper functions in order to
+            // on-Change only the relevant selected sub-tree.
+            //
+            updateSelected: () => {},
             inherited: [],
             UI: {
                 toolSelected: 'Select',

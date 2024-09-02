@@ -1,7 +1,9 @@
+import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 
-export const addRoomFactory = ({ parentId, standard, updateStandard }: { parentId: string; standard: StandardForm, updateStandard: (action: UpdateStandardPayload) => void }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
+export const addRoomFactory = ({ standard, updateStandard, updateSelected, selectedPositions }: { standard: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag> }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
     //
     // Create a next synthetic key that doesn't conflict with the existing standardForm
     //
@@ -26,12 +28,11 @@ export const addRoomFactory = ({ parentId, standard, updateStandard }: { parentI
     // place in the mapTree hierarchy automatically.
     //
 
-    // updateSchema({
-    //     type: 'addChild',
-    //     id: parentId,
-    //     item: {
-    //         data: { tag: 'Room', key: defaultedRoomId },
-    //         children: [{ data: { tag: 'Position', x, y }, children: [] }]
-    //     }
-    // })
+    updateSelected([
+        ...selectedPositions,
+        {
+            data: { tag: 'Room', key: defaultedRoomId },
+            children: []
+        }
+    ])
 }

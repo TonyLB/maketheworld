@@ -133,6 +133,7 @@ export type MapContextType = {
     tree: GenericTree<MapTreeSchemaTags, TreeId>;
     inherited: GenericTree<MapTreeSchemaTags, TreeId>;
     selectedPositions: GenericTree<MapTreeSchemaTags>;
+    updateSelected: (newValue: GenericTree<SchemaTag>) => void;
     UI: {
         //
         // The Map editor can conceivably need data for:

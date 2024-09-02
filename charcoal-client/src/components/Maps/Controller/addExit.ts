@@ -1,7 +1,6 @@
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
-import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
+import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses";
 import { isStandardRoom, StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
-import { isSchemaString, SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
+import { isSchemaString, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils";
 
 const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> => (
@@ -11,7 +10,7 @@ const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<
     }))
 )
 
-export const addExitFactory = ({ standardForm, combinedStandardForm, updateSchema, addImport, parentId }: { standardForm: StandardForm, combinedStandardForm: StandardForm, updateSchema: (action: UpdateSchemaPayload) => void, addImport: (key: string) => void, parentId: string }) => ({ to, from }: { to: string; from: string }) => {
+export const addExitFactory = ({ standardForm, combinedStandardForm, updateSelected, selectedPositions, addImport }: { standardForm: StandardForm, combinedStandardForm: StandardForm, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag>, addImport: (key: string) => void }) => ({ to, from }: { to: string; from: string }) => {
     const destinationComponent = combinedStandardForm.byId[to]
     const children = (destinationComponent && isStandardRoom(destinationComponent))
         ? ignoreWrapped(destinationComponent.shortName)?.children ?? []
@@ -22,26 +21,22 @@ export const addExitFactory = ({ standardForm, combinedStandardForm, updateSchem
     if (!(from in standardForm)) {
         addImport(from)
     }
+
     //
-    // TODO: ISS-4347: Create updateSelection function in mapContext which allows updates localized to the
-    // place in the ancestor-hierarchy of the selection (as recorded in mapTree) that is legal
-    // for the action in question
-    //
-    // TODO: Use updateSelection in place of updateStandard to make the update to the appropriate
+    // Use updateSelection to make the update to the appropriate
     // place in the mapTree hierarchy automatically.
     //
 
-    // updateSchema({
-    //     type: 'addChild',
-    //     id: parentId,
-    //     item: {
-    //         data: { tag: 'Room', key: from },
-    //         children: [
-    //             {
-    //                 data: { tag: 'Exit', key: `${from}#${to}`, from, to },
-    //                 children: schemaOutputLowerCase(children)
-    //             }
-    //         ]
-    //     }
-    // })
+    updateSelected([
+        ...selectedPositions,
+        {
+            data: { tag: 'Room', key: from },
+            children: [
+                {
+                    data: { tag: 'Exit', key: `${from}#${to}`, from, to },
+                    children: schemaOutputLowerCase(children)
+                }
+            ]
+        }
+    ])
 }
