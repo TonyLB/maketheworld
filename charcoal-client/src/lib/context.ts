@@ -23,13 +23,22 @@ export const nestOnChangeChildren = <T extends SchemaTag>(node: GenericTreeNode<
 type ChangeTreeReducer<T extends SchemaTag> = (previous: GenericTree<T> | undefined, newValue: GenericTree<T>) => GenericTree<T>
 type ChangeTreeReducerInternal<T extends SchemaTag> = (previous: GenericTree<T> | undefined, newValue: GenericTreeWithUndefined<T>) => GenericTree<T>
 
-export const nestTransformTreeReducer = <T extends SchemaTag>(
-    reducerTransform: (baseReducer: ChangeTreeReducer<T>, options?: { parentData?: T }) => ChangeTreeReducerInternal<T>,
-    baseReducer: ChangeTreeReducer<T> = (_, newValue) => (newValue)
+export const nestTransformTreeReducer = <T extends SchemaTag, Supplement extends {}>(
+    reducerTransform: (baseReducer: ChangeTreeReducer<T>, options: { parentData?: T }, addSupplemental: (supplement: Supplement) => void) => ChangeTreeReducerInternal<T>,
+    baseReducer: ChangeTreeReducer<T> = (_, newValue) => (newValue),
+    addSupplemental: (supplemental: Supplement) => void = () => {}
 ): ChangeTreeReducerInternal<T> => (previous, newValue): GenericTree<T> => {
     //
     // Recursively generate a new onChange function
     //
-    const recursedOutput = reducerTransform(baseReducer)(previous, newValue.map((node, index) => (node ? { data: node.data, children: nestTransformTreeReducer((baseReducer) => (reducerTransform(baseReducer, { parentData: node.data })), baseReducer)(previous[index]?.children ?? undefined, node.children) } : undefined))).filter(excludeUndefined)
-    return recursedOutput
+    const recursedOutput = reducerTransform(baseReducer, {}, addSupplemental)(previous, newValue.map((node, index) => {
+        if (node) {
+            const { data, children } = node
+            return { data, children: nestTransformTreeReducer((baseReducer) => (reducerTransform(baseReducer, { parentData: data }, addSupplemental)), baseReducer, addSupplemental)(previous?.[index]?.children ?? undefined, children) }
+        }
+        else {
+            return undefined
+        }
+    }))
+    return recursedOutput.filter(excludeUndefined)
 }
