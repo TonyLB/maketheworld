@@ -21,6 +21,7 @@ import { assertTypeguard } from "../../../lib/types"
 import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
+import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -68,7 +69,7 @@ const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeI
 //    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
 //    - An onChange function that accepts changes to that mapTree
 //
-const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
+const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
         isSchemaSelected(item) || isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaConditionStatement(item) || isSchemaConditionFallthrough(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
@@ -125,8 +126,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
 
     const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
+    const replaceItem = useCallback((args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => {
+        updateStandard({ ...args, type: 'replaceItem' })
+    }, [updateStandard])
     const tree = useMemo(() => {
-        return mapTreeMemo(standardForm, mapId).children
+        return mapTreeMemo(standardForm, mapId, replaceItem).children
     }, [standardForm, mapId])
     const selectedPositions: GenericTree<MapTreeSchemaTags> = useMemo(() => (firstSelectedSubTree(tree) ?? tree), [tree])
     const updateSelected = () => {}
