@@ -5,6 +5,8 @@ import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
@@ -12,7 +14,8 @@ export type SimulationTreeNode = SimulationReturn & {
 
 type MapDThreeTreeProps = {
     tree: GenericTree<SimulationTreeNode>;
-    inherited?: GenericTree<SimulationTreeNode>;
+    onChange: (newTree: GenericTree<SchemaTag>) => void;
+    standardForm: StandardForm;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
@@ -265,13 +268,17 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
     return { output, visibleLayers: incomingLayersFromSiblings }
 }
 
+//
+// TODO: ISS4348: Refactor MapDThreeTree to accept incoming GenericTree<SchemaTag> and ignore all
+// the conditional sub-trees, so that there can be a clearer through-line for onChange calls to
+// send back the entire appropriate sub-tree to the sub-change function.
+//
 export class MapDThreeTree extends Object {
     layers: MapDThreeIterator[] = [];
     stable: boolean = true;
     onStability: SimCallback = () => {};
     onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
-    _inherited?: MapDThreeIterator
     _cascadeIndex?: number;
     _visibleLayers: number[] = [];
 
@@ -279,7 +286,6 @@ export class MapDThreeTree extends Object {
         super(props)
         const {
             tree,
-            inherited = [],
             onStabilize,
             onTick
         } = props
@@ -287,7 +293,6 @@ export class MapDThreeTree extends Object {
         // TODO: ISS3228: Refactor construction of MapDThree layers
         //
         this.layers = []
-        this.updateInherited(inherited)
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.update(tree)
         this.checkStability()
@@ -307,7 +312,7 @@ export class MapDThreeTree extends Object {
                         { ...node, layers: [layerIndex, ...(previousNode?.layers ?? [])] }
                     ]
                 }, previous)
-        }, (this._inherited?._nodes ?? []).map((node) => ({ ...node, layers: [] })))
+        }, [])
     }
 
     get nodes(): (SimNode & { layers: number[] })[] {
@@ -324,44 +329,19 @@ export class MapDThreeTree extends Object {
             this.onTick = onTick
         }
     }
-    //
-    // Update responds to changes in the semantic structure of the inherited map, flattening it into a single
-    // fixed layer from which the active layers can start their cascade.
-    //
-    updateInherited(tree: GenericTree<SimulationTreeNode>): void {
-        const reduceCallback = (previous: SimulationTreeNode, { data, children }: GenericTreeNode<SimulationTreeNode>): SimulationTreeNode => {
-            if (data.visible) {
-                return children.reduce(reduceCallback, {
-                    ...previous,
-                    nodes: [
-                        ...previous.nodes.filter(({ roomId }) => (!data.nodes.find(({ roomId: checkId }) => (checkId === roomId)))),
-                        ...data.nodes
-                    ],
-                    links: [...previous.links, ...data.links],
-                    key: data.key ?? previous.key
-                })
-            }
-            return previous
-        }
-        const inheritedLayer = tree.reduce(reduceCallback, { key: '', nodes: [], links: [], visible: true })
-        if (inheritedLayer.key) {
-            this._inherited = new MapDThreeIterator(inheritedLayer.key, inheritedLayer.nodes, inheritedLayer.links)
-        }
-        if (this._visibleLayers.length) {
-            this.layers[this._visibleLayers.slice(-1)[0]].setCallbacks({ onTick: this.cascade.bind(this) })
-        }
-        else {
-            this.cascade()
-        }
-        this.checkStability()
-    }
-
 
     //
     // Update responds to changes in the semantic structure of the map, while keeping live and running simulations.
     //
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
+    //
+
+    //
+    // TODO: ISS4348: Refactor update to accept GenericTree<SchemaTag> and standardForm, and to assume
+    // standard schema for a standardMap rooms property (i.e., positions and conditions only), as well
+    // as to pull in relevant exit and name information from the standardForm entries for the rooms
+    // themselves
     //
     update(tree: GenericTree<SimulationTreeNode>): void {
         const incomingDiff = diffTrees({

@@ -29,7 +29,7 @@ export const nestTransformTreeReducer = <T extends SchemaTag, Supplement extends
     addSupplemental: (supplemental: Supplement) => void = () => {}
 ): ChangeTreeReducerInternal<T> => (previous, newValue): GenericTree<T> => {
     //
-    // Recursively generate a new onChange function
+    // Recursively generate a new reducer function with functionally transformed operations
     //
     const recursedOutput = reducerTransform(baseReducer, {}, addSupplemental)(previous, newValue.map((node, index) => {
         if (node) {
