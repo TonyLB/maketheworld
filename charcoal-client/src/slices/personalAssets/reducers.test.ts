@@ -1,8 +1,8 @@
 import produce from "immer"
 import { updateSchema, updateStandard } from "./reducers"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { GenericTree, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { isSchemaDescription, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 describe('personalAsset slice reducers', () => {
     describe('updateSchema', () => {
@@ -355,6 +355,57 @@ describe('personalAsset slice reducers', () => {
                         children: [
                             { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Update' }, id: expect.any(String), children: [] }]},
                             { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]}
+                        ]
+                    }
+                ]    
+            }])
+        })
+
+        it('should replace schema content using an immer produce', () => {
+            const testSchema = [{
+                data: { tag: 'Asset' as const, key: 'testAsset', Story: undefined },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'Room' as const, key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' as const }, id: 'DEF', children: [{ data: { tag: 'String' as const, value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' as const }, id: 'JKL', children: [{ data: { tag: 'String' as const, value: 'Test Description' }, id: '', children: [] }]}
+                        ]
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'replaceItem',
+                        componentKey: 'testRoom',
+                        itemKey: 'description',
+                        produce: (draft) => {
+                            draft.children.filter(treeNodeTypeguard(isSchemaString)).forEach((node) => {
+                                node.data.value = 'Functional update'
+                            })
+                        }
+                    }
+                })
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Functional update' }, id: expect.any(String), children: [] }]}
                         ]
                     }
                 ]    
