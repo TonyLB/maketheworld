@@ -488,7 +488,12 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]
         if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
-            component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
+            if (payload.produce) {
+                payload.produce(component[payload.itemKey])
+            }
+            else {
+                component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
+            }
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {

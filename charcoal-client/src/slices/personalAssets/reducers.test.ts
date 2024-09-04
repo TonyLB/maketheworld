@@ -2,7 +2,7 @@ import produce from "immer"
 import { updateSchema, updateStandard } from "./reducers"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
 import { GenericTree, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { isSchemaDescription, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaDescription, isSchemaExit, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 describe('personalAsset slice reducers', () => {
     describe('updateSchema', () => {
@@ -569,6 +569,76 @@ describe('personalAsset slice reducers', () => {
                     }
                 ]
             }])
+        })
+
+        it('should splice a component list with immer producer', () => {
+            const testSchema: GenericTree<SchemaTag, TreeId> = [{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: 'UUID1',
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: 'UUID2', children: [] }]},
+                            { data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, id: 'MNO', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }]}
+                        ]
+                    },
+                    {
+                        data: { tag: 'Room', key: 'testDestination' },
+                        id: 'PQR',
+                        children: []
+                    }
+                ]
+            }]
+            const standardize = new Standardizer(testSchema)
+
+            //
+            // Test updating a targeted item in a list
+            //
+            expect(produce(
+                {
+                    schema: testSchema,
+                    standard: standardize.standardForm,
+                    inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+                },
+                (state) => updateStandard(state as any, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'spliceList',
+                        componentKey: 'testRoom',
+                        itemKey: 'exits',
+                        at: 0,
+                        items: [],
+                        produce: (draft) => {
+                            draft.filter(treeNodeTypeguard(isSchemaExit)).forEach((node) => {
+                                node.children.filter(treeNodeTypeguard(isSchemaString)).forEach(({ data }) => { data.value = 'Test Update' })
+                            })
+                        }
+                    }
+                })
+            ).schema).toEqual([{
+                data: { tag: 'Asset', key: 'testAsset', Story: undefined },
+                id: expect.any(String),
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testDestination' },
+                        id: expect.any(String),
+                        children: []
+                    },
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: expect.any(String),
+                        children: [
+                            { data: { tag: 'Name' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Room' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Description' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Description' }, id: expect.any(String), children: [] }]},
+                            { data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, id: expect.any(String), children: [{ data: { tag: 'String', value: 'Test Update' }, id: expect.any(String), children: [] }]}
+                        ]
+                    }
+                ]
+            }])
+
         })
 
         it('should delete schema content', () => {
