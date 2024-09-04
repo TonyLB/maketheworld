@@ -1,19 +1,21 @@
 import { SimCallback, MapLinks, SimNode, SimulationReturn, MapNodes } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { v4 as uuidv4 } from 'uuid'
 
 export type SimulationTreeNode = SimulationReturn & {
+    onChange: (newValue: SimulationTreeNode['nodes']) => void;
     visible: boolean;
 }
 
 type MapDThreeTreeProps = {
-    tree: GenericTree<SimulationTreeNode>;
+    tree: GenericTree<SchemaTag>;
     onChange: (newTree: GenericTree<SchemaTag>) => void;
     standardForm: StandardForm;
     onStabilize?: SimCallback;
@@ -268,6 +270,112 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
     return { output, visibleLayers: incomingLayersFromSiblings }
 }
 
+// const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
+//     const { data: nodeData, children } = node
+//     if (isSchemaAsset(nodeData)) {
+//         return children.reduce(mapTreeTranslateHelper, previous)
+//     }
+//     if (isSchemaCondition(nodeData)) {
+//         const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
+//         return {
+//             ...previous,
+//             children: [
+//                 ...previous.children,
+//                 ...children.map(({ data, children, id }) => (
+//                     (isSchemaConditionalContent(data))
+//                         ? mapTreeTranslate(children, id).map(({ data: internalData, ...rest }) => ({ data: { ...internalData, key: id, visible: Boolean(data.selected) }, ...rest }))
+//                         : []
+//                 )).flat(1)
+//             ]
+//         }
+//     }
+//     if (isSchemaRoom(nodeData)) {
+//         return {
+//             ...previous,
+//             data: children.reduce<SimulationTreeNode>((accumulator, { data: child, id: childId }) => {
+//                 if (isSchemaExit(child)) {
+//                     return {
+//                         ...accumulator,
+//                         links: [
+//                             ...accumulator.links,
+//                             {
+//                                 id: child.key,
+//                                 source: nodeData.key,
+//                                 target: child.to
+//                             }
+//                         ]
+//                     }
+//                 }
+//                 else if (isSchemaPosition(child)) {
+//                     return {
+//                         ...accumulator,
+//                         nodes: [
+//                             ...accumulator.nodes,
+//                             {
+//                                 id: childId,
+//                                 roomId: nodeData.key,
+//                                 x: child.x,
+//                                 y: child.y,
+//                                 cascadeNode: false,
+//                                 visible: previous.data.visible
+//                             }
+//                         ]
+//                     }
+//                 }
+//                 else {
+//                     return accumulator
+//                 }
+//             }, previous.data)
+//         }
+//     }
+// }
+
+export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag>) => void, standardForm: StandardForm, parentId?: string }): GenericTree<SimulationTreeNode> => {
+    //
+    // Create nodes for all top-level Rooms with positions in the tree
+    //
+    const { nodes, onChangeMap } = tree.reduce<{ nodes: SimulationTreeNode['nodes']; onChangeMap: Record<string, number>}>((previous, node, index) => {
+        if (treeNodeTypeguard(isSchemaRoom)(node)) {
+            const position = node.children.find(treeNodeTypeguard(isSchemaPosition))
+            if (position) {
+                return {
+                    ...previous,
+                    nodes: [
+                        ...previous.nodes,
+                        {
+                            id: uuidv4(),
+                            x: position.data.x,
+                            y: position.data.y,
+                            roomId: node.data.key,
+                            cascadeNode: false,
+                            visible: true
+                        }
+                    ],
+                    onChangeMap: {
+                        ...previous.onChangeMap,
+                        [node.data.key]: index
+                    }
+                }
+            }
+        }
+        return previous
+    }, { nodes: [], onChangeMap: {} })
+    const topTreeNode: SimulationTreeNode = {
+        key: parentId,
+        nodes,
+        onChange: (newPositions) => {
+            //
+            // TODO: Refactor onChange procedures to accept either a new argument or an immer producer function,
+            // and use such a function to map incoming position changes to just updates in the nested position
+            // records on each top-level room
+            //
+        },
+        links: [],
+        visible: true
+    }
+    return [{ data: topTreeNode, children: [] }]
+}
+
 //
 // TODO: ISS4348: Refactor MapDThreeTree to accept incoming GenericTree<SchemaTag> and ignore all
 // the conditional sub-trees, so that there can be a clearer through-line for onChange calls to
@@ -286,6 +394,8 @@ export class MapDThreeTree extends Object {
         super(props)
         const {
             tree,
+            standardForm,
+            onChange,
             onStabilize,
             onTick
         } = props
@@ -294,7 +404,7 @@ export class MapDThreeTree extends Object {
         //
         this.layers = []
         this.setCallbacks({ onTick, onStability: onStabilize })
-        this.update(tree)
+        this.update(tree, standardForm, onChange)
         this.checkStability()
     }
 
@@ -337,19 +447,15 @@ export class MapDThreeTree extends Object {
     // in the incoming map tree.
     //
 
-    //
-    // TODO: ISS4348: Refactor update to accept GenericTree<SchemaTag> and standardForm, and to assume
-    // standard schema for a standardMap rooms property (i.e., positions and conditions only), as well
-    // as to pull in relevant exit and name information from the standardForm entries for the rooms
-    // themselves
-    //
-    update(tree: GenericTree<SimulationTreeNode>): void {
+    update(tree: GenericTree<SchemaTag>, standardForm: StandardForm, onChange: (newTree: GenericTree<SchemaTag>) => void): void {
+
+        const translatedTree = mapTreeTranslate({ tree, onChange, standardForm })
         const incomingDiff = diffTrees({
             compare: ({ key: keyA }: SimulationTreeNode, { key: keyB }: SimulationTreeNode) => (keyA === keyB),
             extractProperties: ({ key, nodes, links, visible }): SimulationReturn & { visible: boolean } => ({ key, nodes, links, visible }),
             rehydrateProperties: (baseValue, properties) => (Object.assign(baseValue, ...properties)),
             verbose: true
-        })(this._tree, tree)
+        })(this._tree, translatedTree)
 
         //
         // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
@@ -385,7 +491,7 @@ export class MapDThreeTree extends Object {
         }, [])
         this.layers = newLayers
         this._visibleLayers = visibleLayers
-        this._tree = tree
+        this._tree = translatedTree
         this.layers.forEach((layer) => {
             layer.setCallbacks({
                 onTick: () => {},
