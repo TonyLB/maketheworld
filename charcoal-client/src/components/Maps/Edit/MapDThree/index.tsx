@@ -140,14 +140,18 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
         this.tree = new MapDThreeTree({
-            tree: simulatorTree,
+            tree,
             standardForm,
             onChange: (newTree) => {
                 const mapComponent = standardForm.byId[mapId]
                 if (mapComponent && isStandardMap(mapComponent)) {
-                    updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
+                    if (typeof newTree === 'function') {
+                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, items: [], produce: newTree })
+                    }
+                    else {
+                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
+                    }
                 }
             },
             onTick,

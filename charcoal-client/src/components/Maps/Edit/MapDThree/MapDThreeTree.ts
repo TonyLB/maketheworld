@@ -6,8 +6,9 @@ import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
+import { Draft } from 'immer'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;
@@ -16,7 +17,7 @@ export type SimulationTreeNode = SimulationReturn & {
 
 type MapDThreeTreeProps = {
     tree: GenericTree<SchemaTag>;
-    onChange: (newTree: GenericTree<SchemaTag>) => void;
+    onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void;
     standardForm: StandardForm;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
@@ -330,50 +331,76 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
 //     }
 // }
 
-export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag>) => void, standardForm: StandardForm, parentId?: string }): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string }): GenericTree<SimulationTreeNode> => {
     //
     // Create nodes for all top-level Rooms with positions in the tree
     //
-    const { nodes, onChangeMap } = tree.reduce<{ nodes: SimulationTreeNode['nodes']; onChangeMap: Record<string, number>}>((previous, node, index) => {
+    const nodes = tree.reduce<SimulationTreeNode['nodes']>((previous, node) => {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             const position = node.children.find(treeNodeTypeguard(isSchemaPosition))
             if (position) {
-                return {
+                return [
                     ...previous,
-                    nodes: [
-                        ...previous.nodes,
-                        {
-                            id: uuidv4(),
-                            x: position.data.x,
-                            y: position.data.y,
-                            roomId: node.data.key,
-                            cascadeNode: false,
-                            visible: true
-                        }
-                    ],
-                    onChangeMap: {
-                        ...previous.onChangeMap,
-                        [node.data.key]: index
+                    {
+                        id: uuidv4(),
+                        x: position.data.x,
+                        y: position.data.y,
+                        roomId: node.data.key,
+                        cascadeNode: false,
+                        visible: true
                     }
-                }
+                ]
             }
         }
         return previous
-    }, { nodes: [], onChangeMap: {} })
+    }, [])
     const topTreeNode: SimulationTreeNode = {
         key: parentId,
         nodes,
         onChange: (newPositions) => {
-            //
-            // TODO: Refactor onChange procedures to accept either a new argument or an immer producer function,
-            // and use such a function to map incoming position changes to just updates in the nested position
-            // records on each top-level room
-            //
+            const newPositionsByRoomId = newPositions.reduce<Record<string, SimNode>>((previous, node) => ({
+                ...previous,
+                [node.roomId]: node
+            }), {})
+            onChange((draft) => {
+                draft.filter(treeNodeTypeguard(isSchemaRoom)).forEach(({ data, children }) => {
+                    const position = children.find(treeNodeTypeguard(isSchemaPosition))
+                    if (position && data.key in newPositionsByRoomId) {
+                        position.data.x = newPositionsByRoomId[data.key].x
+                        position.data.y = newPositionsByRoomId[data.key].y
+                    }
+                })
+            })
         },
+        //
+        // TODO: Aggregate links from exits for the connected rooms
+        //
         links: [],
         visible: true
     }
-    return [{ data: topTreeNode, children: [] }]
+    const children = tree.reduce<GenericTree<SimulationTreeNode>>((previous, node, index) => {
+        if (treeNodeTypeguard(isSchemaCondition)(node)) {
+            const nestedOnChange = (innerIndex: number) => {
+                return (newValue: (draft: Draft<GenericTree<SchemaTag>>) => void) => {
+                    onChange((draft) => { newValue(draft[index].children[innerIndex].children) })
+                }
+            }
+            return [
+                ...previous,
+                ...(node.children.map((child, innerIndex) => {
+                    const newParentId = `${parentId}::${treeNodeTypeguard(isSchemaConditionStatement)(child) ? `(${child.data.if})` : '[fallthrough]' }`
+                    return mapTreeTranslate({
+                        tree: child.children,
+                        onChange: nestedOnChange(innerIndex),
+                        standardForm,
+                        parentId: newParentId
+                    })
+                }).flat(1))
+            ]
+        }
+        return previous
+    }, [])
+    return [{ data: topTreeNode, children }]
 }
 
 //
