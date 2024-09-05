@@ -6,7 +6,7 @@ import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { excludeUndefined, unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
 import { isStandardRoom, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { Draft } from 'immer'
 
 export type SimulationTreeNode = SimulationReturn & {
@@ -30,6 +30,7 @@ type MapDFSActionDelete = {
 type MapDFSActionRetain = {
     type: 'retain';
     index: number;
+    onChange: (value: SimNode[]) => void;
     getCascadeNodes: () => (SimNode & { layers: number[] })[];
 }
 
@@ -43,6 +44,7 @@ type MapDFSActionAdd = {
         source: string;
         target: string;
     }[];
+    onChange: (value: SimNode[]) => void;
     getCascadeNodes: () => (SimNode & { layers: number[] })[];
 }
 
@@ -56,6 +58,7 @@ type MapDFSActionUpdate = {
         source: string;
         target: string;
     }[];
+    onChange: (value: SimNode[]) => void;
     getCascadeNodes: () => (SimNode & { layers: number[] })[];
 }
 
@@ -152,7 +155,7 @@ const mapDFSInnerCallbackFactory =
                 return { output: [], state }
             }
             return {
-                output: [{ type: 'retain', index: state.nextLayerIndex, getCascadeNodes }],
+                output: [{ type: 'retain', index: state.nextLayerIndex, onChange: treeNode.onChange, getCascadeNodes }],
                 state: {
                     ...state,
                     links: [ ...(state.links ?? []), ...treeNode.links ],
@@ -180,6 +183,7 @@ const mapDFSInnerCallbackFactory =
                         key: treeNode.key,
                         nodes: [...addedCascadeNodes, ...treeNode.nodes],
                         links: relevantLinks,
+                        onChange: treeNode.onChange,
                         getCascadeNodes
                     }],
                     state: {
@@ -190,7 +194,7 @@ const mapDFSInnerCallbackFactory =
                 }
             }
             return {
-                output: [{ type: 'update', index: state.nextLayerIndex, nodes: [...addedCascadeNodes, ...treeNode.nodes], links: relevantLinks, getCascadeNodes }],
+                output: [{ type: 'update', index: state.nextLayerIndex, nodes: [...addedCascadeNodes, ...treeNode.nodes], links: relevantLinks, onChange: treeNode.onChange, getCascadeNodes }],
                 state: {
                     ...state,
                     links: [ ...(state.links ?? []), ...treeNode.links ],
@@ -270,67 +274,7 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
     return { output, visibleLayers: incomingLayersFromSiblings }
 }
 
-// const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
-//     const { data: nodeData, children } = node
-//     if (isSchemaAsset(nodeData)) {
-//         return children.reduce(mapTreeTranslateHelper, previous)
-//     }
-//     if (isSchemaCondition(nodeData)) {
-//         const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
-//         return {
-//             ...previous,
-//             children: [
-//                 ...previous.children,
-//                 ...children.map(({ data, children, id }) => (
-//                     (isSchemaConditionalContent(data))
-//                         ? mapTreeTranslate(children, id).map(({ data: internalData, ...rest }) => ({ data: { ...internalData, key: id, visible: Boolean(data.selected) }, ...rest }))
-//                         : []
-//                 )).flat(1)
-//             ]
-//         }
-//     }
-//     if (isSchemaRoom(nodeData)) {
-//         return {
-//             ...previous,
-//             data: children.reduce<SimulationTreeNode>((accumulator, { data: child, id: childId }) => {
-//                 if (isSchemaExit(child)) {
-//                     return {
-//                         ...accumulator,
-//                         links: [
-//                             ...accumulator.links,
-//                             {
-//                                 id: child.key,
-//                                 source: nodeData.key,
-//                                 target: child.to
-//                             }
-//                         ]
-//                     }
-//                 }
-//                 else if (isSchemaPosition(child)) {
-//                     return {
-//                         ...accumulator,
-//                         nodes: [
-//                             ...accumulator.nodes,
-//                             {
-//                                 id: childId,
-//                                 roomId: nodeData.key,
-//                                 x: child.x,
-//                                 y: child.y,
-//                                 cascadeNode: false,
-//                                 visible: previous.data.visible
-//                             }
-//                         ]
-//                     }
-//                 }
-//                 else {
-//                     return accumulator
-//                 }
-//             }, previous.data)
-//         }
-//     }
-// }
-
-export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string, previousRoomKeys?: string[] }): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', visible=true, previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string, previousRoomKeys?: string[], visible?: boolean }): GenericTree<SimulationTreeNode> => {
     //
     // Create nodes for all top-level Rooms with positions in the tree
     //
@@ -391,7 +335,7 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
                     
             })
             .flat(1),
-        visible: true
+        visible
     }
     const children = tree.reduce<GenericTree<SimulationTreeNode>>((previous, node, index) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
@@ -403,12 +347,14 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
             return [
                 ...previous,
                 ...(node.children.map((child, innerIndex) => {
+                    const visible = treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child) ? child.data.selected : undefined
                     const newParentId = `${parentId}::${treeNodeTypeguard(isSchemaConditionStatement)(child) ? `(${child.data.if})` : '[fallthrough]' }`
                     return mapTreeTranslate({
                         tree: child.children,
                         onChange: nestedOnChange(innerIndex),
                         standardForm,
                         parentId: newParentId,
+                        visible,
                         previousRoomKeys: [
                             ...previousRoomKeys,
                             ...(topTreeNode.nodes.map(({ roomId }) => (roomId)))
@@ -508,7 +454,7 @@ export class MapDThreeTree extends Object {
         const newLayers = output.reduce<MapDThreeIterator[]>((previous, mapAction) => {
             if (mapAction.type === 'retain') {
                 const retainLayer = this.layers[mapAction.index]
-                retainLayer.setCallbacks({ getCascadeNodes: mapAction.getCascadeNodes })
+                retainLayer.setCallbacks({ getCascadeNodes: mapAction.getCascadeNodes, onStability: mapAction.onChange })
                 return [...previous, retainLayer]
             }
             if (mapAction.type === 'delete') {
@@ -523,13 +469,14 @@ export class MapDThreeTree extends Object {
                         mapAction.key,
                         mapAction.nodes,
                         mapAction.links,
+                        mapAction.onChange,
                         mapAction.getCascadeNodes
                     )
                 ]
             }
             if (mapAction.type === 'update') {
                 const updateLayer = this.layers[mapAction.index]
-                updateLayer.update(mapAction.nodes, mapAction.links, true, mapAction.getCascadeNodes)
+                updateLayer.update(mapAction.nodes, mapAction.links, true, mapAction.onChange, mapAction.getCascadeNodes)
                 return [...previous, updateLayer]
             }
         }, [])

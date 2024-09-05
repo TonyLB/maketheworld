@@ -5,7 +5,6 @@ import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatch
 import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
-import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch } from "react-redux"
@@ -22,6 +21,7 @@ import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
+import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -33,7 +33,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ tree: [], parentId: '', onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] }, updateStandard: () => {}, mapId: '', onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -222,23 +222,25 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     }, [tree])
 
     //
-    // TODO: Extract a MapTreeItem tree out of Schema (particularly, assigning names)
+    // Extract a MapTreeItem tree out of Schema
     //
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree: maybeGenericIDFromTree(tree),
-            parentId: mapComponent.id,
+            standardForm,
+            updateStandard,
+            mapId,
             onExitDrag: setExitDrag,
         })
     })
-    const dispatchParentId = useMemo(() => (parentID ?? standardForm.byId[mapId]?.id), [parentID, mapId, standardForm.byId])
+    const dispatchParentId = useMemo(() => (standardForm.byId[mapId]?.id), [mapId, standardForm.byId])
     const mapDispatch = useCallback((action: MapDispatchAction) => {
         switch(action.type) {
             case 'SetToolSelected':
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                mapD3.update(action.tree, mapComponent.id)
+                mapD3.update(action.tree, standardForm, updateStandard, mapId)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -314,9 +316,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
         mapD3.setCallbacks({
             onTick: onTick,
-            onStability: (value: SimNode[]) => {
-                stabilizeFactory({ schema, updateSchema: () => {} })(value)
-            },
+            onStability: (value: SimNode[]) => {},
             onAddExit
         })
     }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSelected])
@@ -369,6 +369,19 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
         },
         [tree]
     )
+    const standardForm = useMemo(
+        () => {
+            const standardizer = new Standardizer([{
+                data: { tag: 'Asset', key: 'TEMP', Story: undefined },
+                children: [{
+                    data: { tag: 'Map', key: 'Map' },
+                    children: mappedTree
+                }]
+            }])
+            return standardizer.standardForm
+        },
+        [mappedTree]
+    )
     //
     // Make local data and setters for node positions denormalized for display
     //
@@ -399,13 +412,15 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree: mappedTree,
-            parentId: 'Root',
+            standardForm,
+            updateStandard: () => {},
+            mapId: 'MAP',
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(mappedTree, 'Root')
+        mapD3.update(mappedTree, standardForm, () => {}, 'Root')
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()
