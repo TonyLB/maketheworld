@@ -3,56 +3,74 @@
 exports[`MapDThree should initialize stack on construction 1`] = `
 Array [
   Object {
-    "inherited": Array [],
-    "onStabilize": undefined,
-    "onTick": undefined,
-    "tree": Array [
+    "children": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "Position",
+          "x": 300,
+          "y": 300,
+        },
+      },
+    ],
+    "data": Object {
+      "key": "GHI",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
+  },
+  Object {
+    "children": Array [
       Object {
         "children": Array [
           Object {
-            "children": Array [],
-            "data": Object {
-              "key": "If-1",
-              "links": Array [],
-              "nodes": Array [
-                Object {
-                  "cascadeNode": false,
-                  "id": "",
-                  "roomId": "DEF",
-                  "visible": true,
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Position",
                   "x": 300,
                   "y": 200,
                 },
-                Object {
-                  "cascadeNode": false,
-                  "id": "",
-                  "roomId": "ABC",
-                  "visible": true,
+              },
+            ],
+            "data": Object {
+              "key": "DEF",
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Position",
                   "x": 200,
                   "y": 200,
                 },
-              ],
-              "visible": true,
+              },
+            ],
+            "data": Object {
+              "key": "ABC",
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
             },
           },
         ],
         "data": Object {
-          "key": "XYZ",
-          "links": Array [],
-          "nodes": Array [
-            Object {
-              "cascadeNode": false,
-              "id": "",
-              "roomId": "GHI",
-              "visible": true,
-              "x": 300,
-              "y": 300,
-            },
-          ],
-          "visible": true,
+          "if": "true",
+          "selected": true,
+          "tag": "Statement",
         },
       },
     ],
+    "data": Object {
+      "tag": "If",
+    },
   },
 ]
 `;

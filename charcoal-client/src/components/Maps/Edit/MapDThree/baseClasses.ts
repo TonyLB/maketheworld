@@ -41,5 +41,6 @@ export interface MapLayerRoom {
 export interface MapLayer {
     key: string;
     rooms: Record<string, MapLayerRoom>;
+    onStability?: (nodes: SimNode[]) => void;
     roomVisibility: Record<string, boolean>;
 }

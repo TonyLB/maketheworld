@@ -9,11 +9,10 @@ import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
-import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
 import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { WritableDraft } from 'immer/dist/internal'
-import { transform } from 'typescript'
+import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
@@ -99,11 +98,12 @@ type UpdateSchemaPayloadDelete = {
 
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadReplaceChildren | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
-type UpdateStandardPayloadReplaceItem = {
+export type UpdateStandardPayloadReplaceItem = {
     type: 'replaceItem';
     componentKey: string;
     itemKey: string; // Needs to restrict to possible itemKeys
     item?: GenericTreeNode<SchemaTag>
+    produce?: (draft: Draft<GenericTreeNode<SchemaTag>>) => void;
 }
 
 type UpdateStandardPayloadUpdateField = {
@@ -125,7 +125,8 @@ type UpdateStandardPayloadSpliceList = {
     itemKey: string; // Needs to restrict to possible itemKeys
     at: number;
     replace?: number;
-    items: GenericTree<SchemaTag>
+    items: GenericTree<SchemaTag>;
+    produce?: (draft: Draft<GenericTree<SchemaTag>>) => void;
 }
 
 type UpdateStandardPayloadReplaceMetaData = {
@@ -375,27 +376,40 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? state.standard.byId[payload.componentKey] : undefined
     if (isUpdateStandardPayloadReplaceItem(payload)) {
+        const produce = payload.produce
         const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
         switch(component?.tag) {
             case 'Room':
                 switch(payload.itemKey) {
                     case 'shortName':
-                        if (!item || wrappedNodeTypeGuard(isSchemaShortName)(item)) {
+                        if (produce) {
+                            produce(component.shortName)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaShortName)(item)) {
                             component.shortName = item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'name':
-                        if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
+                        if (produce) {
+                            produce(component.name)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
                             component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'summary':
-                        if (!item || wrappedNodeTypeGuard(isSchemaSummary)(item)) {
+                        if (produce) {
+                            produce(component.summary)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaSummary)(item)) {
                             component.summary = item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'description':
-                        if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                        if (produce) {
+                            produce(component.description)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
                             component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
                         }
                         break
@@ -405,12 +419,18 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             case 'Knowledge':
                 switch(payload.itemKey) {
                     case 'name':
-                        if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
+                        if (produce) {
+                            produce(component.name)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
                             component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
                     case 'description':
-                        if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
+                        if (produce) {
+                            produce(component.description)
+                        }
+                        else if (!item || wrappedNodeTypeGuard(isSchemaDescription)(item)) {
                             component.description = item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
                         }
                         break
@@ -420,7 +440,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             case 'Character':
                 switch(payload.itemKey) {
                     case 'name':
-                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                        if (produce) {
+                            produce(component.name)
+                        }
+                        else if (wrappedNodeTypeGuard(isSchemaName)(item)) {
                             component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
@@ -429,7 +452,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             case 'Theme':
                 switch(payload.itemKey) {
                     case 'name':
-                        if (wrappedNodeTypeGuard(isSchemaName)(item)) {
+                        if (produce) {
+                            produce(component.name)
+                        }
+                        else if (wrappedNodeTypeGuard(isSchemaName)(item)) {
                             component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
@@ -462,7 +488,12 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]
         if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
-            component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
+            if (payload.produce) {
+                payload.produce(component[payload.itemKey])
+            }
+            else {
+                component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
+            }
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {

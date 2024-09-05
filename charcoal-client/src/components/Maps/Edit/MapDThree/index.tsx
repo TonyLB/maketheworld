@@ -13,6 +13,8 @@ import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard } from '@tonylb
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaInherited, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { defaultSelected } from '@tonylb/mtw-wml/dist/standardize'
+import { isStandardMap, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -43,73 +45,6 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
     return [ ...Object.entries(currentExits).filter(([_, { to }]) => (to)).map(([key]) => key), roomId ]
 }
 
-const mapTreeTranslateHelper = (previous: GenericTreeNode<SimulationTreeNode>, node: GenericTreeNode<SchemaTag, TreeId>): GenericTreeNode<SimulationTreeNode> => {
-    const { data: nodeData, children } = node
-    if (isSchemaAsset(nodeData)) {
-        return children.reduce(mapTreeTranslateHelper, previous)
-    }
-    if (isSchemaCondition(nodeData)) {
-        const isSchemaConditionalContent = (data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))
-        return {
-            ...previous,
-            children: [
-                ...previous.children,
-                ...children.map(({ data, children, id }) => (
-                    (isSchemaConditionalContent(data))
-                        ? mapTreeTranslate(children, id).map(({ data: internalData, ...rest }) => ({ data: { ...internalData, key: id, visible: Boolean(data.selected) }, ...rest }))
-                        : []
-                )).flat(1)
-            ]
-        }
-    }
-    if (isSchemaRoom(nodeData)) {
-        return {
-            ...previous,
-            data: children.reduce<SimulationTreeNode>((accumulator, { data: child, id: childId }) => {
-                if (isSchemaExit(child)) {
-                    return {
-                        ...accumulator,
-                        links: [
-                            ...accumulator.links,
-                            {
-                                id: child.key,
-                                source: nodeData.key,
-                                target: child.to
-                            }
-                        ]
-                    }
-                }
-                else if (isSchemaPosition(child)) {
-                    return {
-                        ...accumulator,
-                        nodes: [
-                            ...accumulator.nodes,
-                            {
-                                id: childId,
-                                roomId: nodeData.key,
-                                x: child.x,
-                                y: child.y,
-                                cascadeNode: false,
-                                visible: previous.data.visible
-                            }
-                        ]
-                    }
-                }
-                else {
-                    return accumulator
-                }
-            }, previous.data)
-        }
-    }
-}
-
-export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, parentId: string): GenericTree<SimulationTreeNode> => {
-    const reorderedTree = new SchemaTagTree(tree)
-        .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
-        .tree
-    return [reorderedTree.reduce<GenericTreeNode<SimulationTreeNode>>(mapTreeTranslateHelper, { data: { nodes: [], links: [], visible: true, key: parentId }, children: [] })]
-}
-
 export class MapDThree extends Object {
     tree: MapDThreeTree;
     exitDragLayer?: ExitDragD3Layer
@@ -119,24 +54,35 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    constructor({ tree, inherited=[], parentId, onStability, onTick, onExitDrag, onAddExit }: {
+    //
+    // TODO: ISS4348: Refactor MapDThree constructor to accept standardForm, updateStandard, and mapID rather
+    // than tree, inherited, and parentId
+    //
+    constructor({ standardForm, updateStandard, mapId, tree, onStability, onTick, onExitDrag, onAddExit }: {
+        standardForm: StandardForm;
+        updateStandard: (action: UpdateStandardPayload) => void;
+        mapId: string;
         tree: GenericTree<SchemaTag, TreeId>;
-        inherited?: GenericTree<SchemaTag, TreeId>;
-        parentId: string;
         onStability?: SimCallback;
         onTick?: SimCallback;
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void;
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
-        const inheritedLayer: GenericTree<SimulationTreeNode> = defaultSelected(inherited)
-            .filter(treeNodeTypeguard(isSchemaAsset))
-            .map(({ data, children }) => (mapTreeTranslate(children, `INHERITED#${data.key}`)))
-            .flat(1)
         this.tree = new MapDThreeTree({
-            tree: simulatorTree,
-            inherited: inheritedLayer,
+            tree,
+            standardForm,
+            onChange: (newTree) => {
+                const mapComponent = standardForm.byId[mapId]
+                if (mapComponent && isStandardMap(mapComponent)) {
+                    if (typeof newTree === 'function') {
+                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, items: [], produce: newTree })
+                    }
+                    else {
+                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
+                    }
+                }
+            },
             onTick,
             onStabilize: onStability
         })
@@ -173,20 +119,20 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<SchemaTag, TreeId>, parentId: string): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, parentId)
-        
-        this.tree.update(simulatorTree)
+    update(tree: GenericTree<SchemaTag>, standardForm: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, mapId: string): void {
+        this.tree.update(tree, standardForm, (newTree) => {
+            const mapComponent = standardForm.byId[mapId]
+            if (mapComponent && isStandardMap(mapComponent)) {
+                if (typeof newTree === 'function') {
+                    updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, items: [], produce: newTree })
+                }
+                else {
+                    updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
+                }
+            }
+        },
+)
         this.tree.checkStability()
-    }
-
-    updateInherited(tree: GenericTree<SchemaTag, TreeId>): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = tree
-            .filter(treeNodeTypeguard(isSchemaAsset))
-            .map(({ data, children }) => (mapTreeTranslate(children, `INHERITED#${data.key}`)))
-            .flat(1)
-        
-        this.tree.updateInherited(simulatorTree)
     }
 
     //

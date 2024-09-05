@@ -19,6 +19,7 @@ export class MapDThreeIterator extends Object {
     key: string = ''
     _nodes: MapNodes = []
     _links: MapLinks = []
+    _onChange: SimCallback;
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
     stable: boolean = true
     onTick: SimCallback = () => {}
@@ -47,11 +48,12 @@ export class MapDThreeIterator extends Object {
     get links() {
         return this._links
     }
-    constructor(key: string, nodes: MapNodes, links: MapLinks, getCascadeNodes?: () => MapNodes) {
+    constructor(key: string, nodes: MapNodes, links: MapLinks, onChange: SimCallback, getCascadeNodes?: () => MapNodes) {
         super()
         this.key = key
         this._nodes = nodes
         this._links = links
+        this._onChange = onChange
         this.simulation = forceSimulation(this._nodes)
         this.simulation
             .alphaDecay(0.15)
@@ -71,6 +73,7 @@ export class MapDThreeIterator extends Object {
         })
         this.simulation.on('end', () => {
             this.stable = true
+            this._onChange(this._nodes)
             this.onStability?.(this._nodes)
         })
     }
@@ -79,7 +82,7 @@ export class MapDThreeIterator extends Object {
     // or deletions of nodes.  It returns that value to the controller, so that in the case of a change any successive layer
     // can be forced to also restart its simulation.
     //
-    update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false, getCascadeNodes?: () => MapNodes): boolean {
+    update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false, onChange: SimCallback, getCascadeNodes?: () => MapNodes): boolean {
         const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.roomId]: false }), {})
         type NestedLinkMap = Record<string, Record<string, boolean>>
         const linksFound: NestedLinkMap = this._links.reduce<NestedLinkMap>((previous, { source, target }) => {
@@ -130,6 +133,7 @@ export class MapDThreeIterator extends Object {
 
         this.simulation.nodes(nodes)
         this._nodes = nodes
+        this._onChange = onChange
         if (anyDifference || forceRestart) {
             if (getCascadeNodes) {
                 this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ roomId }) => roomId))
