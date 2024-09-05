@@ -3,11 +3,10 @@ import MapDThreeIterator from './MapDThreeIterator'
 import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { unique } from '../../../../lib/lists'
+import { excludeUndefined, unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { v4 as uuidv4 } from 'uuid'
+import { isStandardRoom, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isSchemaCondition, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { Draft } from 'immer'
 
 export type SimulationTreeNode = SimulationReturn & {
@@ -331,7 +330,7 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
 //     }
 // }
 
-export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string }): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string, previousRoomKeys?: string[] }): GenericTree<SimulationTreeNode> => {
     //
     // Create nodes for all top-level Rooms with positions in the tree
     //
@@ -342,7 +341,7 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }
                 return [
                     ...previous,
                     {
-                        id: uuidv4(),
+                        id: node.data.key,
                         x: position.data.x,
                         y: position.data.y,
                         roomId: node.data.key,
@@ -354,6 +353,7 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }
         }
         return previous
     }, [])
+    const allRoomKeys = unique(previousRoomKeys, nodes.map(({ roomId }) => (roomId)))
     const topTreeNode: SimulationTreeNode = {
         key: parentId,
         nodes,
@@ -373,9 +373,24 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }
             })
         },
         //
-        // TODO: Aggregate links from exits for the connected rooms
+        // Aggregate links from exits for the rooms newly connected in this layer
         //
-        links: [],
+        links: allRoomKeys
+            .map((roomKey) => (standardForm.byId[roomKey]))
+            .filter(excludeUndefined)
+            .filter(isStandardRoom)
+            .map(({ key, exits }) => {
+                if (!allRoomKeys.includes(key)) {
+                    return []
+                }
+                return exits
+                    .filter(treeNodeTypeguard(isSchemaExit))
+                    .map(({ data }) => (data))
+                    .filter(({ to }) => (!(previousRoomKeys.includes(key) && previousRoomKeys.includes(to))))
+                    .map(({ to, from }) => ({ id: `${from}:${to}`, source: from, target: to }))
+                    
+            })
+            .flat(1),
         visible: true
     }
     const children = tree.reduce<GenericTree<SimulationTreeNode>>((previous, node, index) => {
@@ -393,7 +408,11 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }
                         tree: child.children,
                         onChange: nestedOnChange(innerIndex),
                         standardForm,
-                        parentId: newParentId
+                        parentId: newParentId,
+                        previousRoomKeys: [
+                            ...previousRoomKeys,
+                            ...(topTreeNode.nodes.map(({ roomId }) => (roomId)))
+                        ]
                     })
                 }).flat(1))
             ]
@@ -404,9 +423,9 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '' }
 }
 
 //
-// TODO: ISS4348: Refactor MapDThreeTree to accept incoming GenericTree<SchemaTag> and ignore all
-// the conditional sub-trees, so that there can be a clearer through-line for onChange calls to
-// send back the entire appropriate sub-tree to the sub-change function.
+// MapDThreeTree accepts incoming GenericTree<SchemaTag> and maps an incoming onChange funtion (on
+// that tree) to individual onChange functions for each sub-tree at the same conditional level (i.e.,
+// all items with no conditions, or all items within the same condition).
 //
 export class MapDThreeTree extends Object {
     layers: MapDThreeIterator[] = [];
@@ -426,9 +445,7 @@ export class MapDThreeTree extends Object {
             onStabilize,
             onTick
         } = props
-        //
-        // TODO: ISS3228: Refactor construction of MapDThree layers
-        //
+
         this.layers = []
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.update(tree, standardForm, onChange)
