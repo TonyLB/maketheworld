@@ -22,7 +22,6 @@ import {
     getLoadedImages,
     setIntent,
     getProperties,
-    updateSchema as updateSchemaAction,
     updateStandard as updateStandardAction,
     getDraftWML,
     getStatus,
@@ -54,7 +53,6 @@ type LibraryAssetContextType = {
     combinedStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
     inheritedByAssetId: { assetId: string; standardForm: StandardForm }[];
-    updateSchema: (action: UpdateSchemaPayload) => void;
     updateStandard: (action: UpdateStandardPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -76,7 +74,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedByAssetId: [],
-    updateSchema: () => {},
     updateStandard: () => {},
     properties: {},
     loadedImages: {},
@@ -115,11 +112,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const serialized = useSelector(getSerialized(AssetId))
     const dispatch = useDispatch()
     const select = useCallback(<T extends {}>(args: { selector: (tree: GenericTree<SchemaTag, TreeId>, options?: { tag: string; key: string }) => T }): T => (args.selector(schema)), [schema])
-    const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
-        dispatch(updateSchemaAction(AssetId)(updateAction))
-        dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
-        dispatch(heartbeat)
-    }, [dispatch, AssetId])
     const updateStandard = useCallback((updateAction: UpdateStandardPayload) => {
         dispatch(updateStandardAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
@@ -143,7 +135,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             combinedStandardForm,
             inheritedStandardForm,
             inheritedByAssetId,
-            updateSchema,
             updateStandard,
             properties,
             loadedImages,

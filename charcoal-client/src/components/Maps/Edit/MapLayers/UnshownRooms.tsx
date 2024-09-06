@@ -24,9 +24,9 @@ type UnshownRoomsProps = {
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const { standardForm, combinedStandardForm } = useLibraryAsset()
-    const { tree, inherited, UI: { itemSelected }, mapDispatch } = useMapContext()
+    const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
-    const shownRooms = useMemo(() => (selectKeysByTag('Room')([...tree, ...inherited])), [tree, inherited])
+    const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
     const unshownRoomItems = Object.values(standardForm.byId)
         .filter(isStandardRoom)
         .filter(({ key }) => (!shownRooms.includes(key)))
