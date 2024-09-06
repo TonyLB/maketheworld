@@ -1,4 +1,4 @@
-import { addImport, removeImport } from "."
+import { addImport } from "."
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
@@ -110,47 +110,4 @@ describe('personalAssets slice', () => {
         })
     })
 
-    describe('removeImport', () => {
-
-        beforeEach(() => {
-            jest.clearAllMocks()
-            jest.resetAllMocks()
-            overrideGetSchemaInternal.mockReturnValue(schema.schema)
-            overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
-            overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
-        })
-
-        it('should remove import from character', () => {
-            const schema = new Schema()
-            schema.loadWML(`<Character key=(testCharacter)>
-                <Name>Test</Name>
-                <Import from=(testImportOne) />
-            </Character>`)
-
-            const importItemId = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))[0].id
-            removeImport({
-                assetId: 'CHARACTER#testCharacter',
-                fromAsset: 'testImportOne'
-            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
-            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'delete',
-                id: importItemId
-            })
-        })
-
-        it('should no-op when asked to remove an import that is not present', () => {
-            const schema = new Schema()
-            schema.loadWML(`<Character key=(testCharacter)>
-                <Name>Test</Name>
-                <Import from=(testImportOne) />
-            </Character>`)
-
-            removeImport({
-                assetId: 'CHARACTER#testCharacter',
-                fromAsset: 'testImportTwo'
-            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
-            expect(overrideUpdateSchemaInternal).not.toHaveBeenCalled()
-        })
-
-    })
 })

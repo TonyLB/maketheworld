@@ -323,29 +323,6 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
     dispatch(heartbeat)
 }
 
-export const removeImport = ({ assetId, fromAsset }: {
-    assetId: EphemeraAssetId | EphemeraCharacterId,
-    fromAsset: string,
-}, options?: { overrideGetSchema?: typeof getSchema, overrideUpdateSchema?: typeof updateSchema }) => (dispatch: any, getState: any) => {
-    const schemaSelector = (options?.overrideGetSchema || getSchema)(assetId)
-    const schema = schemaSelector(getState())
-    const topLevelItem = schema[0].data
-    if (!(topLevelItem && (isSchemaAsset(topLevelItem) || isSchemaCharacter(topLevelItem)))) {
-        return
-    }
-    const importItem = schema[0].children
-        .find(({ data }) => (isSchemaImport(data) && data.from === fromAsset))
-    if (importItem) {
-        dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-            type: 'delete',
-            id: importItem.id
-        }))
-    }
-    if (isEphemeraAssetId(assetId)) {
-        dispatch(fetchImports(assetId))
-    }
-}
-
 //
 // assignAssetToCharacterId action loads characterId asset if necessary, and when it has
 // been loaded adds the asset as an import
