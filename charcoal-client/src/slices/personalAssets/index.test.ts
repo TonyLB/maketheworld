@@ -2,6 +2,8 @@ import { addImport } from "."
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
+import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
@@ -10,11 +12,12 @@ schema.loadWML(`<Asset key=(testAsset)>
     </Import>
     <Room key=(testRoom)><Name>: imported</Name></Room>
 </Asset>`)
+const standard = new Standardizer(schema.schema)
 
-const overrideGetSchemaInternal = jest.fn()
-const overrideGetSchema = jest.fn()
-const overrideUpdateSchemaInternal = jest.fn()
-const overrideUpdateSchema = jest.fn()
+const overrideGetStandardInternal = jest.fn()
+const overrideGetStandard = jest.fn()
+const overrideUpdateStandardInternal = jest.fn()
+const overrideUpdateStandard = jest.fn()
 
 const dispatch = jest.fn()
 const getState = jest.fn().mockReturnValue({})
@@ -25,9 +28,9 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
-            overrideGetSchemaInternal.mockReturnValue(schema.schema)
-            overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
-            overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
+            overrideGetStandardInternal.mockReturnValue(standard.standardForm)
+            overrideGetStandard.mockReturnValue(overrideGetStandardInternal)
+            overrideUpdateStandard.mockReturnValue(overrideUpdateStandardInternal)
         })
 
         it('should no-op on a repeated import', () => {
@@ -36,8 +39,8 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoom',
                 type: 'Room'
-            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
-            expect(overrideUpdateSchemaInternal).not.toHaveBeenCalled()
+            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
+            expect(overrideUpdateStandardInternal).not.toHaveBeenCalled()
         })
 
         it('should add children on an import from same asset', () => {
@@ -46,15 +49,17 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoomTwo',
                 type: 'Room'
-            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
-            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
-            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'addChild',
-                id: importItems[0].id,
-                item: {
-                    data: { tag: 'Room', key: 'testRoomTwo' },
-                    children: []
-                }
+            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+                type: 'replaceMetaData',
+                metaData: [{
+                    data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
+                    children: [
+                        { data: { tag: 'Room', key: 'testRoom' }, children: [], id: expect.any(String) },
+                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [], id: expect.any(String) }
+                    ],
+                    id: expect.any(String)
+                }]
             })
         })
 
@@ -64,23 +69,23 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImportTwo',
                 key: 'testRoomTwo',
                 type: 'Room'
-            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
-            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'addChild',
-                id: schema.schema[0].id,
-                item: {
-                    data: {
-                        tag: 'Import',
-                        from: 'testImportTwo',
-                        mapping: {
-                            testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
-                        }
-                    },
-                    children: [{
-                        data: { tag: 'Room', key: 'testRoomTwo' },
-                        children: []
-                    }]
-                }
+            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+                type: 'replaceMetaData',
+                metaData: [{
+                    data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
+                    children: [
+                        { data: { tag: 'Room', key: 'testRoom' }, children: [], id: expect.any(String) },
+                    ],
+                    id: expect.any(String)
+                },
+                {
+                    data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
+                    children: [
+                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [], id: expect.any(String) },
+                    ],
+                    id: expect.any(String)
+                }]
             })
         })
 
@@ -90,22 +95,24 @@ describe('personalAssets slice', () => {
                 <Name>Test</Name>
                 <Import from=(testImportOne) />
             </Character>`)
+            const standard = new Standardizer(schema.schema)
 
             addImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportTwo'
-            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
-            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
-                type: 'addChild',
-                id: schema.schema[0].id,
-                item: {
-                    data: {
-                        tag: 'Import',
-                        from: 'testImportTwo',
-                        mapping: {}
-                    },
-                    children: []
-                }
+            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardForm => (standard.standardForm)), overrideUpdateStandard })(dispatch, getState)
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+                type: 'replaceMetaData',
+                metaData: [{
+                    data: { tag: 'Import', from: 'testImportOne', mapping: expect.any(Object) },
+                    children: [],
+                    id: expect.any(String)
+                },
+                {
+                    data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
+                    children: [],
+                    id: expect.any(String)
+                }]
             })
         })
     })
