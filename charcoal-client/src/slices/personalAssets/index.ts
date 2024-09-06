@@ -21,7 +21,6 @@ import {
     setDraftWML as setDraftWMLReducer,
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
-    updateSchema as updateSchemaReducer,
     updateStandard as updateStandardReducer,
     setImport as setImportReducer
 } from './reducers'
@@ -33,8 +32,9 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { v4 as uuidv4 } from 'uuid'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -68,7 +68,6 @@ export const {
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
-        updateSchema: updateSchemaReducer,
         updateStandard: updateStandardReducer,
         setImport: setImportReducer,
     },
@@ -225,7 +224,6 @@ export const {
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
-    updateSchema,
     updateStandard,
     setImport,
     onEnter
@@ -251,117 +249,58 @@ export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dis
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
 }
 
+//
+// TODO: ISS4354: Refactor addImport to use updateStandard
+//
 export const addImport = ({ assetId, fromAsset, as, key, type }: {
     assetId: EphemeraAssetId | EphemeraCharacterId,
     fromAsset: string,
     key?: string;
     as?: string;
     type?: SchemaImportMapping["type"];
-}, options?: { overrideGetSchema?: typeof getSchema, overrideUpdateSchema?: typeof updateSchema }) => (dispatch: any, getState: any) => {
-    const schemaSelector = (options?.overrideGetSchema || getSchema)(assetId)
-    const schema = schemaSelector(getState())
-    const topLevelItem = schema[0]
-    if (!(topLevelItem && (isSchemaAsset(topLevelItem.data) || isSchemaCharacter(topLevelItem.data)))) {
-        return
-    }
-    const importItem = topLevelItem.children.find(({ data }) => {
-        if (!isSchemaImport(data)) {
+}, options?: { overrideGetStandard?: typeof getStandardForm, overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
+    const standardSelector = (options?.overrideGetStandard || getStandardForm)(assetId)
+    const standard = standardSelector(getState())
+    const importItem = standard.metaData.find((node) => {
+        if (!treeNodeTypeguard(isSchemaImport)(node)) {
             return false
         }
-        return data.from === fromAsset
+        return node.data.from === fromAsset
     })
-    if (importItem) {
-        const { data, children } = importItem
-        if (!isSchemaImport(data)) {
-            throw new Error('Type mismatch in addImport')
+    if (!importItem) {
+        dispatch((options?.overrideUpdateStandard ?? updateStandard)(assetId)({
+            type: 'replaceMetaData',
+            metaData: [
+                ...standard.metaData,
+                { data: { tag: 'Import', from: fromAsset, mapping: {} }, children: key ? [{ data: { tag: type, key, as }, children: [], id: uuidv4() }] : [], id: uuidv4() }
+            ]
+        }))
+    }
+    else {
+        if (importItem.children.find((child) => (!key || (treeNodeTypeguard(isSchemaWithKey)(child) && (child.data.key === key) && (child.data.tag === type) && ((child.data.as ?? '') === (as ?? '')))))) {
+            return
         }
-        if (key && type) {
-            const currentImportItem = children.find(({ data }) => (isSchemaWithKey(data) && data.key === key))
-            if (currentImportItem) {
-                const { data: importItemData } = currentImportItem
-                if (!isImportable(importItemData)) {
-                    throw new Error('Type mismatch in addImport')
-                }
-                if (importItemData.as !== as) {
-                    dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-                        type: 'updateNode',
-                        id: currentImportItem.id,
-                        item: { data: { tag: type, key, as }, children: [], id: currentImportItem.id }
-                    }))
+        const newMetaData = standard.metaData.map((node) => {
+            if (treeNodeTypeguard(isSchemaImport)(node) && node.data.from === fromAsset) {
+                return {
+                    ...node,
+                    children: [
+                        ...node.children.filter((child) => (!(treeNodeTypeguard(isSchemaWithKey)(child) && child.data.key === key))),
+                        { data: { tag: type, key, as }, children: [], id: uuidv4() }
+                    ]
                 }
             }
             else {
-                const newItem: SchemaTag = {
-                    tag: type,
-                    key,
-                    as
-                } as SchemaTag
-                dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-                    type: 'addChild',
-                    id: importItem.id,
-                    item: { data: newItem, children: [] }
-                }))
+                return node
             }
-        }
-    }
-    else {
-        const newItem: SchemaImportTag = {
-            tag: 'Import',
-            from: fromAsset,
-            mapping: key
-                ? { [as || key]: { key, type } }
-                : {}
-        }
-        dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-            type: 'addChild',
-            id: schema[0].id,
-            item: { data: newItem, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
+        })
+        dispatch((options?.overrideUpdateStandard ?? updateStandard)(assetId)({
+            type: 'replaceMetaData',
+            metaData: newMetaData
         }))
     }
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
-    dispatch(heartbeat)
-}
-
-export const removeImport = ({ assetId, fromAsset }: {
-    assetId: EphemeraAssetId | EphemeraCharacterId,
-    fromAsset: string,
-}, options?: { overrideGetSchema?: typeof getSchema, overrideUpdateSchema?: typeof updateSchema }) => (dispatch: any, getState: any) => {
-    const schemaSelector = (options?.overrideGetSchema || getSchema)(assetId)
-    const schema = schemaSelector(getState())
-    const topLevelItem = schema[0].data
-    if (!(topLevelItem && (isSchemaAsset(topLevelItem) || isSchemaCharacter(topLevelItem)))) {
-        return
-    }
-    const importItem = schema[0].children
-        .find(({ data }) => (isSchemaImport(data) && data.from === fromAsset))
-    if (importItem) {
-        dispatch((options?.overrideUpdateSchema ?? updateSchema)(assetId)({
-            type: 'delete',
-            id: importItem.id
-        }))
-    }
-    if (isEphemeraAssetId(assetId)) {
-        dispatch(fetchImports(assetId))
-    }
-}
-
-//
-// assignAssetToCharacterId action loads characterId asset if necessary, and when it has
-// been loaded adds the asset as an import
-//
-export const assignAssetToCharacterId = ({ assetId, characterId }: { assetId: EphemeraAssetId, characterId: EphemeraCharacterId }) => async (dispatch) => {
-    const activeStates: (keyof PersonalAssetsNodes)[] = ['WMLDIRTY', 'FRESH', 'SCHEMADIRTY']
-    dispatch(addItem({ key: characterId }))
-    dispatch(onEnter(characterId)(activeStates)).then(() => {
-        dispatch(addImport({ assetId: characterId, fromAsset: assetId.split('#')[1] }))
-        dispatch(setIntent({ key: characterId, intent: ['SCHEMADIRTY']}))
-        dispatch(onEnter(characterId)(['SCHEMADIRTY'])).then(() => {
-            dispatch(setIntent({ key: characterId, intent: ['NEEDSAVE'] }))
-            dispatch(heartbeat)
-        })
-        dispatch(heartbeat)
-    })
     dispatch(heartbeat)
 }
 
