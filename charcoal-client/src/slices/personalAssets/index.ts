@@ -21,7 +21,6 @@ import {
     setDraftWML as setDraftWMLReducer,
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
-    updateSchema as updateSchemaReducer,
     updateStandard as updateStandardReducer,
     setImport as setImportReducer
 } from './reducers'
@@ -69,7 +68,6 @@ export const {
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
-        updateSchema: updateSchemaReducer,
         updateStandard: updateStandardReducer,
         setImport: setImportReducer,
     },
@@ -226,7 +224,6 @@ export const {
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
-    updateSchema,
     updateStandard,
     setImport,
     onEnter
