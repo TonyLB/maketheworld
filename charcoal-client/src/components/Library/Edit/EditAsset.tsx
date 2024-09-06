@@ -34,7 +34,6 @@ import {
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
-    assignAssetToCharacterId,
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -47,14 +46,9 @@ import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
-import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag, isSchemaAction, isSchemaAsset, isSchemaComputed, isSchemaVariable, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
-import { getMyCharacters } from '../../../slices/player'
-import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 import ThemeEditor from './ThemeEditor'
 import { StandardAction, StandardComputed, StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, StandardVariable, isStandardAction, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
@@ -62,81 +56,52 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOu
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 
-type AssetEditFormProps = {
-    setAssignDialogShown: (value: boolean) => void;
-}
+type AssetEditFormProps = {}
 
-const defaultItemFromTag = (tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
-    switch(tag) {
-        case 'Room':
-        case 'Feature':
-        case 'Knowledge':
-            return {
-                tag,
-                key
-            }
-        case 'Image':
-            return {
-                tag: 'Image' as const,
-                key
-            }
-        case 'Variable':
-            return {
-                tag: 'Variable' as const,
-                key,
-                default: 'false'
-            }
-        case 'Computed':
-            return {
-                tag: 'Computed' as const,
-                key,
-                src: ''
-            }
-        case 'Action':
-            return {
-                tag: 'Action' as const,
-                key,
-                src: ''
-            }
-        case 'Map':
-            return {
-                tag: 'Map' as const,
-                key
-            }
-        case 'Theme':
-            return {
-                tag: 'Theme' as const,
-                key
-            }
-    }
-}
-
-type AssetAssignDialogProps = {
-    open: boolean;
-    onClose: () => void;
-    assignHandler: () => void;
-}
-
-const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, onClose, assignHandler }) => {
-    return <Dialog
-            open={open}
-            onClose={onClose}
-        >
-            <DialogTitle>Assign asset to characters?</DialogTitle>
-            <DialogContent>
-                <Typography>
-                    Would you like to have all your characters able to see this asset?
-                </Typography>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={() => { onClose()}}>No</Button>
-                <Button onClick={() => {
-                    assignHandler()
-                    onClose()
-                }} autoFocus>Yes</Button>
-            </DialogActions>
-        </Dialog>
-}
+// const defaultItemFromTag = (tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
+//     switch(tag) {
+//         case 'Room':
+//         case 'Feature':
+//         case 'Knowledge':
+//             return {
+//                 tag,
+//                 key
+//             }
+//         case 'Image':
+//             return {
+//                 tag: 'Image' as const,
+//                 key
+//             }
+//         case 'Variable':
+//             return {
+//                 tag: 'Variable' as const,
+//                 key,
+//                 default: 'false'
+//             }
+//         case 'Computed':
+//             return {
+//                 tag: 'Computed' as const,
+//                 key,
+//                 src: ''
+//             }
+//         case 'Action':
+//             return {
+//                 tag: 'Action' as const,
+//                 key,
+//                 src: ''
+//             }
+//         case 'Map':
+//             return {
+//                 tag: 'Map' as const,
+//                 key
+//             }
+//         case 'Theme':
+//             return {
+//                 tag: 'Theme' as const,
+//                 key
+//             }
+//     }
+// }
 
 const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
     <ListItemButton onClick={onAdd}>
@@ -147,8 +112,8 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
     </ListItemButton>
 )
 
-const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { updateStandard, save, status, serialized, standardForm, readonly, assetKey } = useLibraryAsset()
+const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
+    const { updateStandard, save, status, standardForm, readonly, assetKey } = useLibraryAsset()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
 
@@ -183,10 +148,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     }, [save, dispatch])
     const saveHandler = useCallback(() => {
         innerSaveHandler()
-        if (!Boolean(serialized)) {
-            setAssignDialogShown(true)
-        }
-    }, [innerSaveHandler, serialized, setAssignDialogShown])
+    }, [innerSaveHandler])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={standardForm.key || 'Untitled'}
@@ -337,22 +299,8 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
-    const [assignDialogShown, setAssignDialogShown] = useState<boolean>(false)
-    const Characters = useSelector(getMyCharacters)
-    const assignHandler = useCallback(() => {
-        if (isEphemeraAssetId(AssetId)) {
-            //
-            // TODO: ISS-3674: Figure out how to get DB-ID from Character, rather than namespace key, for this
-            // assign
-            //
-            Characters.forEach(({ scopedId }) => {
-                dispatch(assignAssetToCharacterId({ assetId: AssetId, characterId: `CHARACTER#${scopedId}` }))
-            })
-        }
-    }, [AssetId, Characters, dispatch])
 
     return <React.Fragment>
-        <AssetAssignDialog open={assignDialogShown} onClose={() => { setAssignDialogShown(false) }} assignHandler={assignHandler} />
         {
             (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
                 ? 
@@ -364,7 +312,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                             <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
-                            <Route path={''} element={<AssetEditForm setAssignDialogShown={setAssignDialogShown} />} />
+                            <Route path={''} element={<AssetEditForm />} />
                         </Routes>
                     </LibraryAsset>
                     

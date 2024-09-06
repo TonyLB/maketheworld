@@ -323,25 +323,6 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
     dispatch(heartbeat)
 }
 
-//
-// assignAssetToCharacterId action loads characterId asset if necessary, and when it has
-// been loaded adds the asset as an import
-//
-export const assignAssetToCharacterId = ({ assetId, characterId }: { assetId: EphemeraAssetId, characterId: EphemeraCharacterId }) => async (dispatch) => {
-    const activeStates: (keyof PersonalAssetsNodes)[] = ['WMLDIRTY', 'FRESH', 'SCHEMADIRTY']
-    dispatch(addItem({ key: characterId }))
-    dispatch(onEnter(characterId)(activeStates)).then(() => {
-        dispatch(addImport({ assetId: characterId, fromAsset: assetId.split('#')[1] }))
-        dispatch(setIntent({ key: characterId, intent: ['SCHEMADIRTY']}))
-        dispatch(onEnter(characterId)(['SCHEMADIRTY'])).then(() => {
-            dispatch(setIntent({ key: characterId, intent: ['NEEDSAVE'] }))
-            dispatch(heartbeat)
-        })
-        dispatch(heartbeat)
-    })
-    dispatch(heartbeat)
-}
-
 export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: string }) => async (dispatch, getState) => {
     const standardSelector = getStandardForm(assetId)
     const standard = standardSelector(getState())
