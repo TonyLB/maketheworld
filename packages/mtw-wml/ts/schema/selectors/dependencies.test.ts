@@ -2,6 +2,7 @@ import { Schema } from ".."
 import { selectDependencies } from './dependencies'
 import { selectItemsByKey } from './itemsByKey'
 import { Standardizer } from '../../standardize'
+import { maybeGenericIDFromTree } from "../../tree/genericIDTree"
 
 describe('dependencies selector', () => {
     it('should select dependencies from a room', () => {
@@ -33,7 +34,7 @@ describe('dependencies selector', () => {
                 default: return []
             }
         })
-        expect(selectDependencies(selectItemsByKey('room1')(testOne.schema))).toEqual(['lights', 'power'])
+        expect(selectDependencies(selectItemsByKey('room1')(maybeGenericIDFromTree(testOne.schema)))).toEqual(['lights', 'power'])
     })
 
 })

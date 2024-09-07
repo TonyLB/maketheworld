@@ -28,7 +28,7 @@ import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { StandardFormSchema } from './StandardFormContext'
 
-const unwrapInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
+const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
 }
 
@@ -51,7 +51,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
-    return component.id ? <Box sx={{
+    return component ? <Box sx={{
         marginLeft: '0.5em',
         marginTop: '0.5em',
         display: 'flex',
@@ -64,7 +64,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             (isStandardRoom(component)) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
                     value={component?.shortName?.children ?? []}
-                    inherited={(inherited && isStandardRoom(inherited) && inherited.shortName) ? unwrapInherited([inherited.shortName])[0] : undefined }
                     onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
                 >
                     <TitledBox title="Short Name">
@@ -79,7 +78,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         <StandardFormSchema componentKey={ComponentId} tag="Name">
             <EditSchema
                 value={component?.name?.children ?? []}
-                inherited={inherited?.name ? unwrapInherited([inherited.name])[0] : undefined }
                 onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
             >
                 <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
@@ -94,7 +92,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             isStandardRoom(component) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
                 <EditSchema
                     value={component?.summary?.children ?? []}
-                    inherited={inherited && isStandardRoom(inherited) && inherited.summary ? unwrapInherited([inherited.summary])[0] : undefined }
                     onChange={(value) => {
                         if (value.length) {
                             dispatch(addOnboardingComplete(['summarizeRoom']))
@@ -115,7 +112,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         <StandardFormSchema componentKey={ComponentId} tag="Description">
             <EditSchema
                 value={component?.description?.children ?? []}
-                inherited={inherited?.description ? unwrapInherited([inherited.description])[0] : undefined }
                 onChange={(value) => {
                     if (value.length) {
                         dispatch(addOnboardingComplete(['describeRoom']))

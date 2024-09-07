@@ -4,11 +4,12 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree, TreeId } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
+import { stripIDFromTree } from '../tree/genericIDTree'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
     schema.loadWML(wml)
-    const standardized = new Standardizer(schema.schema)
+    const standardized = new Standardizer(stripIDFromTree(schema.schema))
     return standardized
 }
 
@@ -71,87 +72,33 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(`<Asset key=(Test) />`)
     })
 
-    it('should prefer non-import IDs to import IDs', () => {
-        const test: GenericTree<SchemaTag, TreeId> = [{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
-            children: [
-                {
-                    data: { tag: 'Import', from: 'primitives', mapping: {} },
-                    id: 'DEF',
-                    children: [{
-                        data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                        id: 'ImportId',
-                        children: [{ data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] }]
-                    }]
-                },
-                {
-                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                    id: 'NonImportId',
-                    children: []
-                }
-            ]
-        }]
-        const standardizer = new Standardizer(test)
-        expect(standardizer.standardForm).toEqual({
-            tag: 'Asset',
-            key: 'Test',
-            metaData: [{
-                data: { tag: 'Import', from: 'primitives', mapping: {} },
-                id: 'DEF',
-                children: [{
-                    data: { tag: 'Knowledge', key: 'knowledgeRoot' },
-                    id: 'ImportId',
-                    children: []
-                }]
-            }],
-            byId: {
-                knowledgeRoot: {
-                    tag: 'Knowledge',
-                    key: 'knowledgeRoot',
-                    id: 'NonImportId',
-                    name: { data: { tag: 'Name' }, id: 'GHI', children: [{ data: { tag: 'String', value: 'TestName' }, id: 'JKL', children: [] }] },
-                    description: { data: { tag: 'Description' }, id: '', children: [] },
-                }
-            }
-        })
-    })
-
     it('should accept edit tags', () => {
-        const test: GenericTree<SchemaTag, TreeId> = [{
+        const test: GenericTree<SchemaTag> = [{
             data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: '',
             children: [
                 {
                     data: { tag: 'Room', key: 'testRoom' },
-                    id: '',
                     children: [{
                         data: { tag: 'Replace' },
-                        id: '',
                         children: [{
                             data: { tag: 'ReplaceMatch' },
-                            id: '',
                             children: [{
                                 data: { tag: 'Name' },
-                                id: '',
-                                children: [{ data: { tag: 'String', value: 'Lobby' }, id: '', children: [] }]
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
                             }]
                         },
                         {
                             data: { tag: 'ReplacePayload' },
-                            id: '',
                             children: [{
                                 data: { tag: 'Name' },
-                                id: '',
-                                children: [{ data: { tag: 'String', value: 'Foyer' }, id: '', children: [] }]
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
                             }]
                         }],
                         
                     },
                     {
                         data: { tag: 'Remove' },
-                        id: '',
-                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }]
                 }
             ]
@@ -166,38 +113,31 @@ describe('standardizeSchema', () => {
                 testRoom: {
                     tag: 'Room',
                     key: 'testRoom',
-                    id: '',
                     name: {
                         data: { tag: 'Replace' },
-                        id: '',
                         children: [{
                             data: { tag: 'ReplaceMatch' },
-                            id: '',
                             children: [{
                                 data: { tag: 'Name' },
-                                id: '',
-                                children: [{ data: { tag: 'String', value: 'Lobby' }, id: '', children: [] }]
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
                             }]
                         },
                         {
                             data: { tag: 'ReplacePayload' },
-                            id: '',
                             children: [{
                                 data: { tag: 'Name' },
-                                id: '',
-                                children: [{ data: { tag: 'String', value: 'Foyer' }, id: '', children: [] }]
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
                             }]
                         }]
                     },
                     exits: [{
                         data: { tag: 'Remove' },
-                        id: '',
-                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, id: '', children: [{ data: { tag: 'String', value: 'out' }, id: '', children: [] }] }]
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }],
                     themes: [],
-                    shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
-                    summary: { data: { tag: 'Summary' }, id: '', children: [] },
-                    description: { data: { tag: 'Description' }, id: '', children: [] },
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
                 }
             }
         })
@@ -625,13 +565,12 @@ describe('standardizeSchema', () => {
             </Import>
         </Asset>`)
         expect(test._byId.testRoomOne).toEqual({
-            description: { data: { tag: 'Description' }, id: '', children: [] },
+            description: { data: { tag: 'Description' }, children: [] },
             exits: [],
-            id: expect.any(String),
             key: 'testRoomOne',
-            name: { data: { tag: 'Name' }, id: '', children: [] },
-            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
-            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            name: { data: { tag: 'Name' }, children: [] },
+            shortName: { data: { tag: 'ShortName' }, children: [] },
+            summary: { data: { tag: 'Summary' }, children: [] },
             tag: 'Room',
             themes: []
         })
@@ -641,13 +580,12 @@ describe('standardizeSchema', () => {
             </Map>
         </Asset>`)
         expect(mapTest._byId.testRoomOne).toEqual({
-            description: { data: { tag: 'Description' }, id: '', children: [] },
+            description: { data: { tag: 'Description' }, children: [] },
             exits: [],
-            id: expect.any(String),
             key: 'testRoomOne',
-            name: { data: { tag: 'Name' }, id: '', children: [] },
-            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
-            summary: { data: { tag: 'Summary' }, id: '', children: [] },
+            name: { data: { tag: 'Name' }, children: [] },
+            shortName: { data: { tag: 'ShortName' }, children: [] },
+            summary: { data: { tag: 'Summary' }, children: [] },
             tag: 'Room',
             themes: []
         })
@@ -898,7 +836,7 @@ describe('standardizeSchema', () => {
         `)
         const inheritedSchema = new Schema()
         inheritedSchema.loadWML(inheritedSource)
-        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const inheritedStandard = new Standardizer(stripIDFromTree(inheritedSchema.schema))
         const testStandard = new StandardizerAbstract()
         testStandard.loadStandardForm({
             key: 'Test',
@@ -907,10 +845,9 @@ describe('standardizeSchema', () => {
                 testRoomOne: {
                     tag: 'Room',
                     key: 'testRoomOne',
-                    id: '',
                     exits: [],
                     themes: [],
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: ': Night' }, children: [], id: '' }], id: '' }
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: ': Night' }, children: [] }] }
                 }
             },
             metaData: []
@@ -995,197 +932,6 @@ describe('standardizeSchema', () => {
         `))
     })
 
-    it('should assign tree IDs correctly in map positions', () => {
-        const testSchema: GenericTree<SchemaTag, { id: string }> = [{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
-            children: [
-                {
-                    data: { tag: 'Room', key: 'testRoomOne' },
-                    id: 'DEF',
-                    children: [{
-                        data: { tag: 'ShortName' },
-                        id: 'GHI',
-                        children: [{
-                            data: { tag: 'String', value: 'Lobby' },
-                            id: 'JKL',
-                            children: []
-                        }]
-                    }]
-                },
-                {
-                    data: { tag: 'Map', key: 'testMap' },
-                    id: 'MNO',
-                    children: [{
-                        data: { tag: 'Room', key: 'testRoomOne' },
-                        id: 'NOP',
-                        children: [{
-                            data: { tag: 'Position', x: 0, y: 0 },
-                            id: 'QRS',
-                            children: []
-                        }]
-                    },
-                    {
-                        data: { tag: 'If' },
-                        id: 'RST',
-                        children: [{
-                            data: { tag: 'Statement', if: 'true' },
-                            id: 'TUV',
-                            children: [{
-                                data: { tag: 'Room', key: 'testRoomOne' },
-                                id: 'WXY',
-                                children: [{
-                                    data: { tag: 'Position', x: 0, y: 100 },
-                                    id: 'XYZ',
-                                    children: []
-                                }]
-                            }]
-                        }]
-                    }]
-                }
-            ]
-        }]
-        const standardizer = new Standardizer(testSchema)
-        expect(standardizer.schema).toEqual([{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
-            children: [{
-                data: { tag: 'Room', key: 'testRoomOne' },
-                id: 'DEF',
-                children: [{
-                    data: { tag: 'ShortName' },
-                    id: 'GHI',
-                    children: [{
-                        data: { tag: 'String', value: 'Lobby' },
-                        id: 'JKL',
-                        children: []
-                    }]
-                }]
-            },
-            {
-                data: { tag: 'Map', key: 'testMap' },
-                id: 'MNO',
-                children: [{
-                    data: { tag: 'Room', key: 'testRoomOne' },
-                    id: 'NOP',
-                    children: [{
-                        data: { tag: 'Position', x: 0, y: 0 },
-                        id: 'QRS',
-                        children: []
-                    }]
-                },
-                {
-                    data: { tag: 'If' },
-                    id: 'RST',
-                    children: [{
-                        data: { tag: 'Statement', if: 'true', selected: false },
-                        id: 'TUV',
-                        children: [{
-                            data: { tag: 'Room', key: 'testRoomOne' },
-                            id: 'WXY',
-                            children: [{
-                                data: { tag: 'Position', x: 0, y: 100 },
-                                id: 'XYZ',
-                                children: []
-                            }]
-                        }]
-                    }]
-                }]
-            }]
-        }])
-    })
-
-    it('should preserve tree IDs on combination', () => {
-        const inheritedSchema: GenericTree<SchemaTag, { inherited: boolean; id: string }> = [{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'Asset',
-            inherited: true,
-            children: [{
-                data: { tag: 'Inherited' },
-                id: 'Inherited',
-                inherited: true,
-                children: [{
-                    data: { tag: 'Room', key: 'testRoomOne' },
-                    id: 'Room',
-                    inherited: true,
-                    children: [{
-                        data: { tag: 'Description' },
-                        id: 'Description',
-                        inherited: true,
-                        children: [{
-                            data: { tag: 'String', value: 'A plain lobby.' },
-                            id: 'String',
-                            inherited: true,
-                            children: []
-                        }]
-                    }]
-                }]
-            }]
-        }]
-        const testSchema: GenericTree<SchemaTag, { id: string }> = [{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
-            children: [{
-                data: { tag: 'Room', key: 'testRoomOne' },
-                id: 'DEF',
-                children: [{
-                    data: { tag: 'Name' },
-                    id: 'GHI',
-                    children: [{
-                        data: { tag: 'String', value: 'Lobby' },
-                        id: 'JKL',
-                        children: []
-                    }]
-                },
-                {
-                    data: { tag: 'Description' },
-                    id: 'MNO',
-                    children: [{
-                        data: { tag: 'String', value: 'In darkness.' },
-                        id: 'QRS',
-                        children: []
-                    }]
-                }]
-            }]
-        }]
-        const standardizer = new Standardizer(inheritedSchema, testSchema)
-        expect(standardizer.schema).toEqual([{
-            data: { tag: 'Asset', key: 'Test', Story: undefined },
-            id: 'ABC',
-            children: [{
-                data: { tag: 'Room', key: 'testRoomOne' },
-                id: 'DEF',
-                children: [{
-                    data: { tag: 'Name' },
-                    id: 'GHI',
-                    children: [{
-                        data: { tag: 'String', value: 'Lobby' },
-                        id: 'JKL',
-                        children: []
-                    }]
-                },
-                {
-                    data: { tag: 'Description' },
-                    id: 'MNO',
-                    children: [{
-                        data: { tag: 'Inherited' },
-                        id: 'Inherited',
-                        children: [{
-                            data: { tag: 'String', value: 'A plain lobby.'},
-                            id: 'String',
-                            children: []
-                        }]
-                    },
-                    {
-                        data: { tag: 'String', value: 'In darkness.' },
-                        id: 'QRS',
-                        children: []
-                    }]
-                }]
-            }]
-        }])
-    })
-
     it('should assign dependencies correctly', () => {
         const extract = () => ['Test']
         const testSource = deIndentWML(`
@@ -1201,26 +947,22 @@ describe('standardizeSchema', () => {
         expect(test.standardForm.byId.testRoomOne).toEqual({
             tag: 'Room',
             key: 'testRoomOne',
-            id: expect.any(String),
-            shortName: { data: { tag: 'ShortName' }, id: '', children: [] },
+            shortName: { data: { tag: 'ShortName' }, children: [] },
             name: {
                 data: { tag: 'Name' },
-                id: expect.any(String),
                 children: [
-                    { data: { tag: 'String', value: 'Unconditioned' }, id: expect.any(String), children: [] },
+                    { data: { tag: 'String', value: 'Unconditioned' }, children: [] },
                     {
                         data: { tag: 'If' },
-                        id: expect.any(String),
                         children: [{
                             data: { tag: 'Statement', if: 'testVar', dependencies: ['Test'], selected: false },
-                            id: expect.any(String),
-                            children: [{ data: { tag: 'String', value: 'Conditioned' }, id: expect.any(String), children: [] }]
+                            children: [{ data: { tag: 'String', value: 'Conditioned' }, children: [] }]
                         }]
                     }
                 ]
             },
-            summary: { data: { tag: 'Summary' }, id: '', children: [] },
-            description: { data: { tag: 'Description' }, id: '', children: [] },
+            summary: { data: { tag: 'Summary' }, children: [] },
+            description: { data: { tag: 'Description' }, children: [] },
             exits: [],
             themes: []
         })

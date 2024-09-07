@@ -15,9 +15,9 @@ import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 
-const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []
-    tree.forEach(({ data: item, children, id }) => {
+    tree.forEach(({ data: item, children }) => {
         switch(item.tag) {
             case 'Space':
                 returnValue.push({
@@ -48,7 +48,6 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, option
             case 'If':
                 returnValue.push({
                     type: 'ifWrapper',
-                    treeId: id,
                     subTree: { data: item, children },
                     position: 0,
                     children: [{ text: "" }]
@@ -90,7 +89,7 @@ const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagrap
     }
 }
 
-export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeId>, options: { standard: StandardForm }): CustomBlock[] => {
+export const descendantsFromRender = (render: GenericTree<SchemaOutputTag>, options: { standard: StandardForm }): CustomBlock[] => {
     let returnValue = [] as CustomBlock[]
     let accumulator = [] as CustomParagraphContents[]
     const translated = descendantsTranslate(render, options)

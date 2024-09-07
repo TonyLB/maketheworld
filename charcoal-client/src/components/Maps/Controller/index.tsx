@@ -90,7 +90,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (ar
     const roomAndExits = roomKeys
         .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
         .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
-        .map(({ key, id, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, id, children: [shortName, ...exits] }))
+        .map(({ key, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, children: [shortName, ...exits] }))
     const combinedTree = new SchemaTagTree([
         ...positions,
         ...roomAndExits
@@ -146,8 +146,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsHelper = useCallback((parentId: string, context?: { roomId?: string, assetId?: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag, TreeId>): Partial<MapContextPosition>[] => {
-        const { data, children, id } = item
+    const extractRoomsHelper = useCallback((parentId: string, context?: { roomId?: string, assetId?: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag>): Partial<MapContextPosition>[] => {
+        const { data, children } = item
         const { roomId: contextRoomId, assetId: contextAssetId } = context ?? {}
         if (isSchemaAsset(data)) {
             return children.reduce(extractRoomsHelper(parentId, { ...context, assetId: data.key }), previous)
@@ -172,7 +172,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     ...previous.filter(({ roomId }) => (roomId !== contextRoomId)),
                     {
                         ...contextItem,
-                        id,
                         parentId: parentId ? parentId : contextAssetId ? `INHERITED#${contextAssetId}` : 'INHERITED',
                         x: data.x,
                         y: data.y
@@ -184,7 +183,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             const findSelectedSubItem = children.filter(treeNodeTypeguard((data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
                 .find(({ data }) => (data.selected))
             if (findSelectedSubItem) {
-                return findSelectedSubItem.children.reduce(extractRoomsHelper(findSelectedSubItem.id, context), previous)
+                return findSelectedSubItem.children.reduce(extractRoomsHelper(parentId, context), previous)
             }
         }
         return previous
@@ -192,7 +191,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag>): MapContextPosition[] => {
         const basePositions = maybeGenericIDFromTree(tree)
             .reduce<Partial<MapContextPosition>[]>(
-                extractRoomsHelper(mapComponent.id),
+                extractRoomsHelper(''),
                 []
             )
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
@@ -205,7 +204,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             (typeof item.y !== 'undefined')
         )
         return overwrittenPositions.filter(valuesPresentTypeguard)
-    }, [extractRoomsHelper, mapComponent.id])
+    }, [extractRoomsHelper])
     const rawPositions = useMemo<MapContextPosition[]>(() => (extractRoomsById({})(tree)), [tree])
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(rawPositions)
     const onTick = useCallback((nodes: SimNode[]) => {
@@ -232,7 +231,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             onExitDrag: setExitDrag,
         })
     })
-    const dispatchParentId = useMemo(() => (standardForm.byId[mapId]?.id), [mapId, standardForm.byId])
+    //
+    // TODO: ISS-4368: Refactor mapController not to need parentIDs now that TreeId has been
+    // deprecated
+    //
+    const dispatchParentId = useMemo(() => (''), [])
     const mapDispatch = useCallback((action: MapDispatchAction) => {
         switch(action.type) {
             case 'SetToolSelected':
@@ -286,7 +289,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [AssetId, mapD3, mapId, mapComponent.id, dispatchParentId, setToolSelected, setItemSelected, standardForm, updateStandard, dispatch, rawPositions])
+    }, [AssetId, mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, standardForm, updateStandard, dispatch, rawPositions])
     const addExitImport = useCallback((key: string) => {
         const relevantAssets = inheritedByAssetId.filter(({ standardForm }) => (key in standardForm.byId))
         if (relevantAssets.length) {
@@ -318,7 +321,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     return <MapContext.Provider
         value={{
             mapId,
-            nodeId: mapComponent.id,
+            nodeId: '',
             tree: maybeGenericIDFromTree(tree),
             selectedPositions,
             updateSelected: () => {},

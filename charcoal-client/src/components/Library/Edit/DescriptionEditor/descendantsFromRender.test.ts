@@ -10,9 +10,9 @@ describe('descendantsFromRender', () => {
 
     it('should return a text description', () => {
         expect(descendantsFromRender([
-            { data: { tag: 'String', value: 'This is a test ' }, children: [], id: '' },
-            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [{ data: { tag: 'String', value: 'with a link' }, children: [], id: '' }], id: '' },
-            { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' },
+            { data: { tag: 'String', value: 'This is a test ' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [{ data: { tag: 'String', value: 'with a link' }, children: [] }] },
+            { data: { tag: 'String', value: ' and more text.' }, children: [] },
         ], {
             standard: {
                 key: '',
@@ -21,9 +21,8 @@ describe('descendantsFromRender', () => {
                     testFeature: {
                         tag: 'Feature',
                         key: 'testFeature',
-                        id: '',
-                        name: { data: { tag: 'Name' }, children: [], id: '' },
-                        description: { data: { tag: 'Description' }, children: [], id: '' }
+                        name: { data: { tag: 'Name' }, children: [] },
+                        description: { data: { tag: 'Description' }, children: [] }
                     }
                 },
                 metaData: []
@@ -33,15 +32,15 @@ describe('descendantsFromRender', () => {
 
     it('should break paragraphs at LineBreak tags', () => {
         expect(descendantsFromRender([
-            { data: { tag: 'String', value: 'This is a test.' }, children: [], id: '' },
-            { data: { tag: 'br' }, children: [], id: '' },
-            { data: { tag: 'String', value: 'With two paragraphs.' }, children: [], id: '' }
+            { data: { tag: 'String', value: 'This is a test.' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'With two paragraphs.' }, children: [] }
         ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should render a single-level condition', () => {
         expect(descendantsFromRender([
-            { data: { tag: 'String', value: 'This is a test ' }, children: [], id: '' },
+            { data: { tag: 'String', value: 'This is a test ' }, children: [] },
             {
                 data: { tag: 'If' },
                 children: [{
@@ -49,34 +48,31 @@ describe('descendantsFromRender', () => {
                         tag: 'Statement',
                         if: 'testVariable'
                     },
-                    children: [{ data: { tag: 'String', value: 'with an If'}, children: [], id: '' }],
-                    id: ''
+                    children: [{ data: { tag: 'String', value: 'with an If'}, children: [] }]
                 },
                 {
                     data: { tag: 'Fallthrough' },
-                    children: [{ data: { tag: 'String', value: 'and an Else'}, children: [], id: '' }],
-                    id: ''
-                }],
-                id: 'ABC'
+                    children: [{ data: { tag: 'String', value: 'and an Else'}, children: [] }]
+                }]
             },
-            { data: { tag: 'String', value: ' and more text.' }, children: [], id: '' }
+            { data: { tag: 'String', value: ' and more text.' }, children: [] }
         ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should join a space element to text element', () => {
         expect(descendantsFromRender([
-            { data: { tag: 'String', value: 'Test' }, children: [], id: '' },
-            { data: { tag: 'Space' }, children: [], id: '' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] }
         ], { standard: stubStandard })).toMatchSnapshot()
     })
 
     it('should render a space after a link in a second paragraph', () => {
         expect(descendantsFromRender([
-            { data: { tag: 'String', value: 'Test' }, children: [], id: '' },
-            { data: { tag: 'br' }, children: [], id: '' },
-            { data: { tag: 'String', value: 'Another ' }, children: [], id: '' },
-            { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [{ data: { tag: 'String', value: 'test' }, children: [], id: ''}], id: '' },
-            { data: { tag: 'Space' },  children: [], id: '' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'Another ' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [{ data: { tag: 'String', value: 'test' }, children: [] }] },
+            { data: { tag: 'Space' },  children: [] }
         ], {
             standard: {
                 key: '',
@@ -85,9 +81,8 @@ describe('descendantsFromRender', () => {
                     testFeature: {
                         tag: 'Feature',
                         key: 'testFeature',
-                        id: '',
-                        name: { data: { tag: 'Name' }, children: [], id: '' },
-                        description: { data: { tag: 'Description' }, children: [], id: '' }
+                        name: { data: { tag: 'Name' }, children: [] },
+                        description: { data: { tag: 'Description' }, children: [] }
                     }
                 },
                 metaData: []

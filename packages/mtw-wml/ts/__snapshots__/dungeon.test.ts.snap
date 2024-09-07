@@ -7082,6 +7082,7 @@ Object {
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -7100,6 +7101,7 @@ Object {
           "tag": "Exit",
           "to": "cave",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "VORTEX",
@@ -7116,6 +7118,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -7174,6 +7177,7 @@ Object {
                     "text": "stop the bellows",
                     "to": "toggleBellowsRunning",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -7194,14 +7198,8 @@ Object {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -7232,6 +7230,7 @@ Object {
                     "text": "start the bellows",
                     "to": "toggleBellowsRunning",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -7246,16 +7245,19 @@ Object {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "bellows",
     "name": Object {
@@ -7271,6 +7273,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -7318,16 +7321,19 @@ Object {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "birdColumn",
     "name": Object {
@@ -7343,6 +7349,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -7482,16 +7489,19 @@ Object {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "catColumn",
     "name": Object {
@@ -7507,6 +7517,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -7529,6 +7540,7 @@ Object {
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "exits": Array [
       Object {
@@ -7547,6 +7559,7 @@ Object {
           "tag": "Exit",
           "to": "curvingPassage",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -7564,6 +7577,7 @@ Object {
           "tag": "Exit",
           "to": "VORTEX",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "cave",
@@ -7580,6 +7594,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -7610,6 +7625,7 @@ Object {
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "key": "childStatue",
     "name": Object {
@@ -7625,6 +7641,7 @@ Object {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -7661,6 +7678,7 @@ trapDoorOpen = false
             "text": "column with singing people",
             "to": "singingColumn",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7704,11 +7722,13 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -7731,6 +7751,7 @@ trapDoorOpen = false
             "text": "column with cats",
             "to": "catColumn",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7768,11 +7789,13 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -7795,6 +7818,7 @@ trapDoorOpen = false
             "text": "column with birds",
             "to": "birdColumn",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7813,6 +7837,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "columns",
     "name": Object {
@@ -7828,6 +7853,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -7845,6 +7871,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "exits": Array [
       Object {
@@ -7863,6 +7890,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "cave",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -7880,6 +7908,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "intersection",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "curvingPassage",
@@ -7896,6 +7925,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -7937,6 +7967,7 @@ trapDoorOpen = false
             "text": "turn the head",
             "to": "turnDeterminedHead",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7976,6 +8007,7 @@ trapDoorOpen = false
                     "text": "lower the right arm",
                     "to": "lowerRightArm",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -7996,6 +8028,7 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -8020,6 +8053,7 @@ trapDoorOpen = false
                     "text": "raise the right arm",
                     "to": "raiseRightArm",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8039,14 +8073,8 @@ trapDoorOpen = false
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8077,6 +8105,7 @@ trapDoorOpen = false
                     "text": "lower the left arm",
                     "to": "lowerLeftArm",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8091,6 +8120,7 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -8122,6 +8152,7 @@ trapDoorOpen = false
                     "text": "raise the left arm",
                     "to": "raiseLeftArm",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8132,19 +8163,22 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": true,
+                "selected": false,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "determinedNeck",
     "name": Object {
@@ -8167,6 +8201,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "id": undefined,
     },
     "tag": "Feature",
   },
@@ -8215,6 +8250,7 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -8242,11 +8278,13 @@ trapDoorOpen = false
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -8276,6 +8314,7 @@ trapDoorOpen = false
             "text": "neck",
             "to": "determinedNeck",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -8288,6 +8327,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "determinedStatue",
     "name": Object {
@@ -8303,6 +8343,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -8365,6 +8406,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8383,6 +8425,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8401,6 +8444,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8419,6 +8463,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8437,6 +8482,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8455,6 +8501,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8473,6 +8520,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8491,6 +8539,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8509,6 +8558,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8527,6 +8577,7 @@ trapDoorOpen = false
           "x": undefined,
           "y": undefined,
         },
+        "wrapperTag": undefined,
       },
     ],
     "tag": "Map",
@@ -8580,6 +8631,7 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8600,14 +8652,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8638,6 +8684,7 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8658,14 +8705,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8689,6 +8730,7 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8709,11 +8751,13 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -8757,14 +8801,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8786,14 +8824,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8815,14 +8847,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8844,14 +8870,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8873,16 +8893,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -8901,6 +8924,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "well",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -8922,6 +8946,7 @@ trapDoorOpen = false
                   "tag": "Exit",
                   "to": "orchard",
                 },
+                "wrapperTag": undefined,
               },
             ],
             "data": Object {
@@ -8929,11 +8954,13 @@ trapDoorOpen = false
               "selected": false,
               "tag": "Statement",
             },
+            "wrapperTag": undefined,
           },
         ],
         "data": Object {
           "tag": "If",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "fireCatGrotto",
@@ -8950,6 +8977,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -8991,6 +9019,7 @@ trapDoorOpen = false
             "text": "nests",
             "to": "nests",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9028,14 +9057,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9057,14 +9080,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9086,14 +9103,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9115,14 +9126,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9144,14 +9149,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9173,14 +9172,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9202,16 +9195,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -9230,6 +9226,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "orchard",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -9251,6 +9248,7 @@ trapDoorOpen = false
                   "tag": "Exit",
                   "to": "foundry",
                 },
+                "wrapperTag": undefined,
               },
             ],
             "data": Object {
@@ -9258,11 +9256,13 @@ trapDoorOpen = false
               "selected": false,
               "tag": "Statement",
             },
+            "wrapperTag": undefined,
           },
         ],
         "data": Object {
           "tag": "If",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "forest",
@@ -9279,6 +9279,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -9320,6 +9321,7 @@ trapDoorOpen = false
             "text": "iron-working tools",
             "to": "ironworkingTools",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9343,6 +9345,7 @@ trapDoorOpen = false
             "text": "strange devices",
             "to": "bellows",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9366,6 +9369,7 @@ trapDoorOpen = false
             "text": "open fireplace",
             "to": "hearthDetail",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9403,14 +9407,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9432,14 +9430,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9461,14 +9453,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9490,14 +9476,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9519,14 +9499,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9548,14 +9522,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9577,16 +9545,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -9605,6 +9576,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "intersection",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -9626,6 +9598,7 @@ trapDoorOpen = false
                   "tag": "Exit",
                   "to": "forest",
                 },
+                "wrapperTag": undefined,
               },
             ],
             "data": Object {
@@ -9633,11 +9606,13 @@ trapDoorOpen = false
               "selected": false,
               "tag": "Statement",
             },
+            "wrapperTag": undefined,
           },
         ],
         "data": Object {
           "tag": "If",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "foundry",
@@ -9654,6 +9629,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -9695,6 +9671,7 @@ trapDoorOpen = false
             "text": "shake a tree",
             "to": "shakeFruitTrees",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9707,6 +9684,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "fruitTrees",
     "name": Object {
@@ -9722,6 +9700,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -9778,6 +9757,7 @@ trapDoorOpen = false
                     "text": "open the flow",
                     "to": "toggleGratingBlocked",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -9792,14 +9772,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9830,6 +9804,7 @@ trapDoorOpen = false
                     "text": "block the flow",
                     "to": "toggleGratingBlocked",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -9844,16 +9819,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "gratingDetail",
     "name": Object {
@@ -9869,6 +9847,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -9922,14 +9901,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9957,11 +9930,13 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -9991,6 +9966,7 @@ trapDoorOpen = false
             "text": "turn the crest",
             "to": "toggleHearthPrimed",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10003,6 +9979,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "hearthCrest",
     "name": Object {
@@ -10018,6 +9995,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -10046,6 +10024,7 @@ trapDoorOpen = false
             "text": "crest",
             "to": "hearthCrest",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10083,16 +10062,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "hearthDetail",
     "name": Object {
@@ -10108,6 +10090,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -10149,14 +10132,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10178,14 +10155,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10207,14 +10178,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10236,14 +10201,8 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10265,16 +10224,19 @@ trapDoorOpen = false
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -10293,6 +10255,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "curvingPassage",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -10310,6 +10273,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "statueChamber",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -10327,6 +10291,7 @@ trapDoorOpen = false
           "tag": "Exit",
           "to": "foundry",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "intersection",
@@ -10343,6 +10308,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -10373,6 +10339,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "key": "ironworkingTools",
     "name": Object {
@@ -10388,6 +10355,7 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -10445,6 +10413,7 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "key": "nests",
     "name": Object {
@@ -10460,6 +10429,7 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -10488,6 +10458,7 @@ if (robedStatueActive) {
             "text": "fruit trees",
             "to": "fruitTrees",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10548,11 +10519,13 @@ if (robedStatueActive) {
                         "selected": false,
                         "tag": "Statement",
                       },
+                      "id": undefined,
                     },
                   ],
                   "data": Object {
                     "tag": "If",
                   },
+                  "id": undefined,
                 },
               ],
               "data": Object {
@@ -10560,14 +10533,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10618,11 +10585,13 @@ if (robedStatueActive) {
                         "selected": false,
                         "tag": "Statement",
                       },
+                      "id": undefined,
                     },
                   ],
                   "data": Object {
                     "tag": "If",
                   },
+                  "id": undefined,
                 },
               ],
               "data": Object {
@@ -10630,14 +10599,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10659,14 +10622,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10688,14 +10645,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10717,14 +10668,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10746,14 +10691,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10775,14 +10714,8 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10804,16 +10737,19 @@ if (robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -10832,6 +10768,7 @@ if (robedStatueActive) {
           "tag": "Exit",
           "to": "fireCatGrotto",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -10849,6 +10786,7 @@ if (robedStatueActive) {
           "tag": "Exit",
           "to": "forest",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "orchard",
@@ -10865,6 +10803,7 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -11049,6 +10988,7 @@ if (!robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -11076,11 +11016,13 @@ if (!robedStatueActive) {
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -11110,6 +11052,7 @@ if (!robedStatueActive) {
             "text": "shoulders",
             "to": "robedStatueShoulders",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11122,6 +11065,7 @@ if (!robedStatueActive) {
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "robedStatue",
     "name": Object {
@@ -11137,6 +11081,7 @@ if (!robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -11186,6 +11131,7 @@ if (!robedStatueActive) {
                     "text": "lower the head",
                     "to": "lowerRobedStatueHead",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11200,6 +11146,7 @@ if (!robedStatueActive) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -11224,6 +11171,7 @@ if (!robedStatueActive) {
                     "text": "raise the head",
                     "to": "raiseRobedStatueHead",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11237,16 +11185,19 @@ if (!robedStatueActive) {
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "robedStatueShoulders",
     "name": Object {
@@ -11262,6 +11213,7 @@ if (!robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -11330,6 +11282,7 @@ switch(glowingColumns) {
             "text": "sing",
             "to": "sing",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11342,6 +11295,7 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "singingColumn",
     "name": Object {
@@ -11357,6 +11311,7 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -11385,6 +11340,7 @@ switch(glowingColumns) {
             "text": "carved columns",
             "to": "columns",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11408,6 +11364,7 @@ switch(glowingColumns) {
             "text": "trap door",
             "to": "trapDoor",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11439,14 +11396,8 @@ switch(glowingColumns) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11468,14 +11419,8 @@ switch(glowingColumns) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11497,14 +11442,8 @@ switch(glowingColumns) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11526,14 +11465,8 @@ switch(glowingColumns) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11555,16 +11488,19 @@ switch(glowingColumns) {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -11583,6 +11519,7 @@ switch(glowingColumns) {
           "tag": "Exit",
           "to": "intersection",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -11600,6 +11537,7 @@ switch(glowingColumns) {
           "tag": "Exit",
           "to": "well",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "statueChamber",
@@ -11616,6 +11554,7 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -11646,6 +11585,7 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Description",
       },
+      "wrapperTag": undefined,
     },
     "key": "stoopedStatue",
     "name": Object {
@@ -11661,6 +11601,7 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -11852,6 +11793,7 @@ else {
                     "text": "close the door",
                     "to": "closeTrapDoor",
                   },
+                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11866,14 +11808,8 @@ else {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11895,16 +11831,19 @@ else {
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "trapDoor",
     "name": Object {
@@ -11920,6 +11859,7 @@ else {
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },
@@ -11969,6 +11909,7 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "wrapperTag": undefined,
             },
             Object {
               "children": Array [
@@ -11985,6 +11926,7 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "wrapperTag": undefined,
             },
             Object {
               "children": Array [
@@ -12000,11 +11942,13 @@ determinedStatueHead = !determinedStatueHead
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "wrapperTag": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
@@ -12049,6 +11993,7 @@ determinedStatueHead = !determinedStatueHead
             "text": "statues",
             "to": "wellStatues",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12094,14 +12039,8 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12123,14 +12062,8 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12152,14 +12085,8 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12181,14 +12108,8 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12210,16 +12131,19 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
       ],
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "exits": Array [
       Object {
@@ -12238,6 +12162,7 @@ determinedStatueHead = !determinedStatueHead
           "tag": "Exit",
           "to": "statueChamber",
         },
+        "wrapperTag": undefined,
       },
       Object {
         "children": Array [
@@ -12255,6 +12180,7 @@ determinedStatueHead = !determinedStatueHead
           "tag": "Exit",
           "to": "fireCatGrotto",
         },
+        "wrapperTag": undefined,
       },
     ],
     "key": "well",
@@ -12271,6 +12197,7 @@ determinedStatueHead = !determinedStatueHead
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "shortName": Object {
       "children": Array [],
@@ -12312,6 +12239,7 @@ determinedStatueHead = !determinedStatueHead
             "text": "child",
             "to": "childStatue",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12335,6 +12263,7 @@ determinedStatueHead = !determinedStatueHead
             "text": "robed figure",
             "to": "robedStatue",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12360,6 +12289,7 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "wrapperTag": undefined,
             },
             Object {
               "children": Array [
@@ -12370,21 +12300,6 @@ determinedStatueHead = !determinedStatueHead
                     "value": "weeping,",
                   },
                 },
-              ],
-              "data": Object {
-                "selected": true,
-                "tag": "Fallthrough",
-              },
-            },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
-            Object {
-              "children": Array [
                 Object {
                   "children": Array [],
                   "data": Object {
@@ -12409,11 +12324,13 @@ determinedStatueHead = !determinedStatueHead
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -12443,6 +12360,7 @@ determinedStatueHead = !determinedStatueHead
             "text": "stooped figure",
             "to": "stoopedStatue",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12486,6 +12404,7 @@ determinedStatueHead = !determinedStatueHead
                 "selected": false,
                 "tag": "Statement",
               },
+              "id": undefined,
             },
             Object {
               "children": Array [
@@ -12513,11 +12432,13 @@ determinedStatueHead = !determinedStatueHead
                 "selected": true,
                 "tag": "Fallthrough",
               },
+              "id": undefined,
             },
           ],
           "data": Object {
             "tag": "If",
           },
+          "id": undefined,
         },
         Object {
           "children": Array [],
@@ -12540,6 +12461,7 @@ determinedStatueHead = !determinedStatueHead
             "text": "figure striding",
             "to": "determinedStatue",
           },
+          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12552,6 +12474,7 @@ determinedStatueHead = !determinedStatueHead
       "data": Object {
         "tag": "Description",
       },
+      "id": undefined,
     },
     "key": "wellStatues",
     "name": Object {
@@ -12567,6 +12490,7 @@ determinedStatueHead = !determinedStatueHead
       "data": Object {
         "tag": "Name",
       },
+      "wrapperTag": undefined,
     },
     "tag": "Feature",
   },

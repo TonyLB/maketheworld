@@ -54,44 +54,6 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-type UpdateSchemaPayloadReplace = {
-    type: 'replace';
-    id: string;
-    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
-}
-
-type UpdateSchemaPayloadReplaceChildren = {
-    type: 'replaceChildren';
-    id: string;
-    children: GenericTree<SchemaTag, Partial<TreeId>>
-}
-
-type UpdateSchemaPayloadUpdateNode = {
-    type: 'updateNode';
-    id: string;
-    item: SchemaTag;
-}
-
-type UpdateSchemaPayloadAddChild = {
-    type: 'addChild';
-    id: string;
-    afterId?: string;
-    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
-}
-
-type UpdateSchemaPayloadRename = {
-    type: 'rename';
-    fromKey: string;
-    toKey: string;
-}
-
-type UpdateSchemaPayloadDelete = {
-    type: 'delete';
-    id: string;
-}
-
-export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadReplaceChildren | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
-
 export type UpdateStandardPayloadReplaceItem = {
     type: 'replaceItem';
     componentKey: string;
@@ -156,7 +118,6 @@ const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardCo
             return {
                 tag,
                 key,
-                id: '',
                 exits: [],
                 themes: []
             }
@@ -165,34 +126,29 @@ const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardCo
             return {
                 tag,
                 key,
-                id: ''
             }
         case 'Image':
             return {
                 tag: 'Image' as const,
                 key,
-                id: ''
             }
         case 'Variable':
             return {
                 tag: 'Variable' as const,
                 key,
                 default: 'false',
-                id: ''
             }
         case 'Computed':
             return {
                 tag: 'Computed' as const,
                 key,
                 src: '',
-                id: ''
             }
         case 'Action':
             return {
                 tag: 'Action' as const,
                 key,
                 src: '',
-                id: ''
             }
         case 'Map':
             return {
@@ -201,7 +157,6 @@ const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardCo
                 themes: [],
                 images: [],
                 positions: [],
-                id: ''
             }
         case 'Theme':
             return {
@@ -210,7 +165,6 @@ const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardCo
                 prompts: [],
                 rooms: [],
                 maps: [],
-                id: ''
             }
         default:
             throw new Error(`No default component for tag: '${tag}'`)
@@ -222,7 +176,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? state.standard.byId[payload.componentKey] : undefined
     if (isUpdateStandardPayloadReplaceItem(payload)) {
         const produce = payload.produce
-        const item = payload.item ? maybeGenericIDFromTree([payload.item])[0] : undefined
+        const item = payload.item
         switch(component?.tag) {
             case 'Room':
                 switch(payload.itemKey) {
@@ -238,7 +192,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         if (produce) {
                             produce(component.name)
                         }
-                        else if (!item || wrappedNodeTypeGuard(isSchemaName)(item)) {
+                        else if ((!item) || wrappedNodeTypeGuard(isSchemaName)(item)) {
                             component.name = item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
                         }
                         break
@@ -342,7 +296,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
-        state.standard.metaData = maybeGenericIDFromTree(payload.metaData)
+        state.standard.metaData = payload.metaData
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
         const recursiveRenameWalk = <T extends SchemaTag>(props: {

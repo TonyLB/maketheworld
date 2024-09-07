@@ -1,9 +1,8 @@
 import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from "../tree/baseClasses";
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../tree/baseClasses";
 
 type StandardBase = {
     key: string;
-    id: string;
     update?: boolean;
 }
 
@@ -41,66 +40,66 @@ export type StandardRoom = {
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    exits: GenericTree<SchemaTag, TreeId>;
-    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
+    exits: GenericTree<SchemaTag>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & StandardBase
 
 export type StandardRoomUpdate = StandardUpdateItem<StandardRoom>
 
 export type StandardFeature = {
     tag: 'Feature';
-    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
 } & StandardBase
 
 export type StandardFeatureUpdate = StandardUpdateItem<StandardFeature>
 
 export type StandardKnowledge = {
     tag: 'Knowledge';
-    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
-    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
 } & StandardBase
 
 export type StandardKnowledgeUpdate = StandardUpdateItem<StandardKnowledge>
 
 export type StandardBookmark = {
     tag: 'Bookmark';
-    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
 } & StandardBase
 
 export type StandardBookmarkUpdate = StandardUpdateItem<StandardBookmark>
 
 export type StandardMap = {
     tag: 'Map';
-    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
-    images: GenericTree<SchemaTag, TreeId>;
-    positions: GenericTree<SchemaTag, TreeId>;
-    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    images: GenericTree<SchemaTag>;
+    positions: GenericTree<SchemaTag>;
+    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & StandardBase
 
 export type StandardMapUpdate = StandardUpdateItem<StandardMap>
 
 export type StandardTheme = {
     tag: 'Theme';
-    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag, TreeId>;
-    prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag, TreeId>;
-    rooms: GenericTree<SchemaTag, TreeId>;
-    maps: GenericTree<SchemaTag, TreeId>;
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
+    rooms: GenericTree<SchemaTag>;
+    maps: GenericTree<SchemaTag>;
 } & StandardBase
 
 export type StandardThemeUpdate = StandardUpdateItem<StandardTheme>
 
 export type StandardMessage = {
     tag: 'Message';
-    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag, TreeId>;
-    rooms: GenericTree<SchemaTag, TreeId>;
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    rooms: GenericTree<SchemaTag>;
 } & StandardBase
 
 export type StandardMessageUpdate = StandardUpdateItem<StandardMessage>
 
 export type StandardMoment = {
     tag: 'Moment';
-    messages: GenericTree<SchemaTag, TreeId>;
+    messages: GenericTree<SchemaTag>;
 } & StandardBase
 
 export type StandardMomentUpdate = StandardUpdateItem<StandardMoment>
@@ -164,16 +163,14 @@ export const isStandardVariable = isStandardFactory<StandardVariable>("Variable"
 export const isStandardComputed = isStandardFactory<StandardComputed>("Computed")
 export const isStandardImage = isStandardFactory<StandardImage>("Image")
 
-export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = TreeId> = GenericTreeNodeFiltered<T, ChildType, Extra>
+export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = GenericTreeNodeFiltered<T, ChildType, Extra>
 
-export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = TreeId> = {
+export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = {
     data: SchemaRemoveTag;
     children: EditInternalStandardNode<T, ChildType, Extra>[];
-    id: string;
 } | {
     data: SchemaReplaceTag;
-    children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[], id: string }[];
-    id: string;
+    children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[] }[];
 } | EditInternalStandardNode<T, ChildType, Extra>
 
 
@@ -182,7 +179,7 @@ export type StandardForm = {
     tag: 'Asset' | 'Character';
     update?: boolean;
     byId: Record<string, StandardComponent>;
-    metaData: GenericTree<SchemaTag, TreeId>;
+    metaData: GenericTree<SchemaTag>;
 }
 
 type SerializableStandardBase = {

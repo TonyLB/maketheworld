@@ -1,11 +1,11 @@
 import { deepEqual } from "../../lib/objects"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "../../tree/baseClasses"
 import { maybeGenericIDFromTree, stripIDFromTree } from "../../tree/genericIDTree";
 import { isSchemaOutputTag, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaString, isSchemaWithKey, SchemaSpacerTag, SchemaStringTag, SchemaTag } from "../baseClasses"
 import { unwrapSubject } from "../utils";
 
-type SchemaTree = GenericTree<SchemaTag, TreeId>
+type SchemaTree = GenericTree<SchemaTag>
 
 type CompareEditOutputTreesResult = {
     type: 'Equal';
@@ -95,8 +95,8 @@ type CompareEditTreesResult = {
 //    - a = 'CEF', b = 'DEF': Merge Conflict. The edit tag did not find the content it expected.
 //
 const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult => {
-    const strippedA = stripIDFromTree(a)
-    const strippedB = stripIDFromTree(b)
+    const strippedA = a
+    const strippedB = b
     const tagA = new SchemaTagTree(strippedA)
     const tagB = new SchemaTagTree(strippedB)
     const remainderA = new SchemaTagTree(a)
@@ -127,13 +127,13 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
                         remainderA._tagList = remainderA._tagList.slice(0, -minimumLength)
                         return {
                             type: 'A Longer',
-                            remainder: maybeGenericIDFromTree(remainderA.tree)
+                            remainder: remainderA.tree
                         }
                     case 'B':
                         remainderB._tagList = remainderB._tagList.slice(0, -minimumLength)
                         return {
                             type: 'B Longer',
-                            remainder: maybeGenericIDFromTree(remainderB.tree)
+                            remainder: remainderB.tree
                         }
                     default:
                         return { type: 'Equal' }
@@ -149,7 +149,7 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
                         ]
                         return {
                             type: 'A Longer',
-                            remainder: maybeGenericIDFromTree(remainderA.tree)
+                            remainder: remainderA.tree
                         }
                 }
             case 'B Longer':
@@ -163,7 +163,7 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
                         ]
                         return {
                             type: 'B Longer',
-                            remainder: maybeGenericIDFromTree(remainderB.tree)
+                            remainder: remainderB.tree
                         }
                 }
         }
@@ -177,13 +177,13 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
                 remainderA._tagList = remainderA._tagList.slice(0, -minimumLength)
                 return {
                     type: 'A Longer',
-                    remainder: maybeGenericIDFromTree(remainderA.tree)
+                    remainder: remainderA.tree
                 }
             case 'B':
                 remainderB._tagList = remainderB._tagList.slice(0, -minimumLength)
                 return {
                     type: 'B Longer',
-                    remainder: maybeGenericIDFromTree(remainderB.tree)
+                    remainder: remainderB.tree
                 }
             default:
                 return { type: 'Equal' }
@@ -195,8 +195,8 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
 // applyExits takes a standard schema that includes (possibly) multiple edit entries, and aggregates down the edits
 // at each sibling-level to a single edit or entry.
 //
-export const applyEdits = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId> => {
-    return tree.reduce<GenericTree<SchemaTag, TreeId>>((previous, node) => {
+export const applyEdits = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
+    return tree.reduce<GenericTree<SchemaTag>>((previous, node) => {
         const recursedNode = {
             ...node,
             children: applyEdits(node.children)
@@ -220,8 +220,8 @@ export const applyEdits = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<Sc
                     (treeNodeTypeguard(isSchemaWithKey)(nodeSubject) && treeNodeTypeguard(isSchemaWithKey)(siblingSubject) && nodeSubject.data.key === siblingSubject.data.key)
                 )
             ) {
-                let removeTags: GenericTree<SchemaTag, TreeId> = []
-                let addTags: GenericTree<SchemaTag, TreeId> = []
+                let removeTags: GenericTree<SchemaTag> = []
+                let addTags: GenericTree<SchemaTag> = []
                 if (treeNodeTypeguard(isSchemaRemove)(siblingNode)) {
                     removeTags = siblingNode.children
                 }
@@ -280,7 +280,7 @@ export const applyEdits = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<Sc
                 //
                 if (addTags.length) {
                     if (removeTags.length) {
-                        return maybeGenericIDFromTree([
+                        return [
                             ...previous.slice(0, -1),
                             {
                                 data: { tag: 'Replace' },
@@ -289,24 +289,24 @@ export const applyEdits = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<Sc
                                     { data: { tag: 'ReplacePayload' }, children: addTags }
                                 ]
                             }
-                        ])
+                        ]
                     }
                     else {
-                        return maybeGenericIDFromTree([
+                        return [
                             ...previous.slice(0, -1),
                             ...addTags
-                        ])
+                        ]
                     }
                 }
                 else {
                     if (removeTags.length) {
-                        return maybeGenericIDFromTree([
+                        return [
                             ...previous.slice(0, -1),
                             {
                                 data: { tag: 'Remove' },
                                 children: removeTags
                             }
-                        ])
+                        ]
                     }
                     else {
                         return previous.slice(0, -1)

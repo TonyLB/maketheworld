@@ -240,7 +240,6 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
         return ignoreWrapped(character[tag])?.data?.value || ''
     })
 
-    const id = useMemo(() => (character[tag].id), [character])
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
     useEffect(() => {
@@ -254,7 +253,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
                 value: item
             })
         }
-    }, [character.key, id, tag, updateStandard, debouncedTagValue])
+    }, [character.key, tag, updateStandard, debouncedTagValue])
 
     return <TextField
         required={required}
@@ -273,7 +272,6 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
         return schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || ''
     })
 
-    const id = useMemo(() => (character.name?.id), [character])
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
