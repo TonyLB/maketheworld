@@ -411,11 +411,28 @@ const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag>): GenericTr
 const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':
-            const { tag, ...pronouns } = (item.pronouns ?? { data: { tag: 'Pronouns', subject: '', object: '', possessive: '', adjective: '', reflexive: '' }}).data
+            const pronounsItem = item.pronouns
+            //
+            // TODO: Use unwrapItem and wrap typeguards to make this check for default pronouns something that
+            // can handle WML edit tags
+            //
+            const pronounsFinalItem: Omit<SchemaPronounsTag, 'tag'> | undefined = pronounsItem
+                ? treeNodeTypeguard(isSchemaPronouns)(pronounsItem)
+                    ? (
+                        (pronounsItem.data.subject === 'they') &&
+                        (pronounsItem.data.object === 'them') &&
+                        (pronounsItem.data.possessive === 'theirs') &&
+                        (pronounsItem.data.adjective === 'their') &&
+                        (pronounsItem.data.reflexive === 'themself')
+                    )
+                        ? undefined
+                        : pronounsItem.data
+                    : undefined
+                : undefined
             return {
-                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
+                data: { tag: 'Character', key: item.key, Pronouns: pronounsFinalItem ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
                 children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit, item.image].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1),
+                    ...[item.name, ...(pronounsFinalItem ? [item.pronouns] : []), item.firstImpression, item.oneCoolThing, item.outfit, item.image].filter(excludeUndefined).map(standardFieldToOutputNode).flat(1),
                 ]
             }
         case 'Room':
@@ -683,12 +700,12 @@ export class StandardizerAbstract {
             }
             const character = characterTree[0]
             const pronouns: GenericTreeNodeFiltered<SchemaPronounsTag, SchemaTag> = (character.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } })
-            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag>): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> => ({ data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })})
-            const name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> = confirmOutputChildren(character.children.find(treeNodeTypeguard(isSchemaName)) ?? { children: [], data: { tag: 'Name' } })
-            const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> = character.children.find(treeNodeTypeguard(isSchemaFirstImpression)) ?? { children: [], data: { tag: 'FirstImpression', value: '' } }
-            const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing)) ?? { children: [], data: { tag: 'OneCoolThing', value: '' } }
-            const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> = character.children.find(treeNodeTypeguard(isSchemaOutfit)) ?? { children: [], data: { tag: 'Outfit', value: '' } }
-            const image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag> = character.children.find(treeNodeTypeguard(isSchemaImage)) ?? { children: [], data: { tag: 'Image', key: '' } }
+            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
+            const name: GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined = confirmOutputChildren(character.children.find(treeNodeTypeguard(isSchemaName)))
+            const firstImpression: GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> | undefined = character.children.find(treeNodeTypeguard(isSchemaFirstImpression))
+            const oneCoolThing: GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> | undefined = character.children.find(treeNodeTypeguard(isSchemaOneCoolThing))
+            const outfit: GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> | undefined = character.children.find(treeNodeTypeguard(isSchemaOutfit))
+            const image: GenericTreeNodeFiltered<SchemaImageTag, SchemaTag> | undefined = character.children.find(treeNodeTypeguard(isSchemaImage))
             this._byId[characterKey] = {
                 tag: 'Character',
                 key: characterKey,
