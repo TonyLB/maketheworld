@@ -1,12 +1,11 @@
 import React, { FunctionComponent, useCallback, useMemo } from 'react'
-import { pink, green, blue } from '@mui/material/colors'
+import { pink, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
 import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
-import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
 import MoreIcon from '@mui/icons-material/More'
@@ -20,15 +19,12 @@ import {
 } from 'slate'
 import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
-import { selectById } from '@tonylb/mtw-wml/dist/schema/selectors/byId'
 import { EditSchema } from '../EditContext'
-import { useLibraryAsset } from '../LibraryAsset'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const editor = useSlate()
-    const { schema } = useLibraryAsset()
     const { attributes, children, element } = props
     const newIfWrapperStub = useCallback(() => {
     }, [])
@@ -51,12 +47,6 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
             }    
         }
     }, [editor])
-    const nodeById = useMemo(() => {
-        if (element.type === 'ifWrapper') {
-            return selectById(element.treeId)(schema)
-        }
-        return undefined
-    }, [element, schema])
     switch(element.type) {
         case 'featureLink':
             return <span {...attributes}>
