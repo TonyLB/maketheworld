@@ -1,17 +1,14 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { markInherited } from '@tonylb/mtw-wml/dist/schema/treeManipulation/inherited'
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { map } from '@tonylb/mtw-wml/dist/tree/map'
-import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
 import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 
@@ -21,9 +18,8 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
     const schema = new Schema()
     schema.loadWML(newCurrent.payload.value)
     const standardizer = new Standardizer(schema.schema)
-    state.baseSchema = standardizer.schema
     state.standard = standardizer.standardForm
-    const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
+    const baseKey = standardizer.standardForm.key
     const importsStandardizer = new Standardizer(
         ...Object.values(state.importData)
             .map((tree) => (
@@ -41,8 +37,6 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
     })
     const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
     state.inherited = inheritedStandardizer.standardForm
-    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
-    state.schema = combinedStandardizer.schema
 }
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -148,22 +142,6 @@ const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): pa
 const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
-
-export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
-    const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
-    const standardizer = new Standardizer(
-        ...Object.values(importData)
-            .map(markInherited)
-            .map((tree) => (
-                tree.length === 1 && isSchemaAsset(tree[0].data)
-                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                    : []
-            ))
-            .filter((tree) => (tree.length)),
-        baseSchema
-    )
-    return standardizer
-}
 
 export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: SchemaWithKey["tag"] }): string => {
     const keysByTag = selectKeysByTag(tag)(schema)
@@ -442,17 +420,11 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         delete state.standard.byId[payload.from]
         state.standard.byId[payload.to].key = payload.to
     }
-    const inheritedStandardizer = new Standardizer()
-    inheritedStandardizer.loadStandardForm(state.inherited)
-    const standardizer = new Standardizer()
-    standardizer.loadStandardForm(state.standard)
-    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
-    state.schema = combinedStandardizer.schema
 }
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
-    const baseKey = state.baseSchema.length >= 1 && isSchemaAsset(state.baseSchema[0].data) && state.baseSchema[0].data.key
+    const baseKey = state.standard.key
     const standardizer = new Standardizer()
     standardizer.loadStandardForm(state.standard)
     const importsStandardizer = new Standardizer(
@@ -472,6 +444,4 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
     })
     const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
     state.inherited = inheritedStandardizer.standardForm
-    const combinedStandardizer = inheritedStandardizer.merge(standardizer)
-    state.schema = combinedStandardizer.schema
 }

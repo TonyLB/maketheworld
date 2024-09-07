@@ -24,7 +24,7 @@ import { MapDisplayController } from '../Controller';
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
-import { addImport, getStandardForm } from '../../../slices/personalAssets';
+import { addImport } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
 import { getPlayer } from '../../../slices/player';

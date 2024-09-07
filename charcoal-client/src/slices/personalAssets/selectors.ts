@@ -8,8 +8,6 @@ import { Standardizer } from '@tonylb/mtw-wml/dist/standardize';
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getDraftWML: (state: PersonalAssetsPublic) => string;
-    getSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
-    getBaseSchema: (state: PersonalAssetsPublic & { key: string }) => GenericTree<SchemaTag, TreeId>;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
     getImportData: (state: PersonalAssetsPublic & { key: string }) => Record<string, GenericTree<SchemaTag, TreeId>>;
@@ -22,10 +20,6 @@ export type PublicSelectors = {
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
-
-const getSchema = ({ schema }: PersonalAssetsPublic) => (schema)
-
-const getBaseSchema = ({ baseSchema }: PersonalAssetsPublic) => (baseSchema)
 
 const getStandardForm = ({ standard }: PersonalAssetsPublic) => (standard)
 
@@ -53,8 +47,6 @@ const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefine
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getDraftWML,
-    getSchema,
-    getBaseSchema,
     getStandardForm,
     getInherited,
     getImportData,

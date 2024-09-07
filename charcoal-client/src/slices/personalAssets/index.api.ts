@@ -10,7 +10,6 @@ import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } fr
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getStandardForm, setImport } from '.'
-import { deriveWorkingStandardizer } from './reducers'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -31,7 +30,7 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
     return { internalData: { fetchURL: url }, publicData: { properties } }
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL }, publicData }) => async () => {
+export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async () => {
     if (!fetchURL) {
         throw new Error()
     }
@@ -49,16 +48,12 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    const baseSchema = schemaConverter.schema
-    const standardizer = deriveWorkingStandardizer({ ...publicData, baseSchema })
-    const schema = standardizer.schema
+    const standardizer = new Standardizer(schemaConverter.schema)
     return {
         publicData: {
             originalWML: assetWML,
             currentWML: assetWML,
-            baseSchema,
             standard: standardizer.standardForm,
-            schema,
             serialized: true
         }
     }
@@ -239,13 +234,9 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
         const schema = new Schema()
         schema.loadWML(draftWML)
         const standardizer = new Standardizer(schema.schema)
-        const baseSchema = standardizer.schema
-        const workingStandardizer = deriveWorkingStandardizer({ ...publicData, baseSchema })
         return {
             publicData: {
                 standard: standardizer.standardForm,
-                baseSchema,
-                schema: workingStandardizer.schema,
                 currentWML: draftWML,
                 draftWML: undefined
             },
@@ -271,9 +262,11 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { baseSchema = [] }}) => async(dispatch) => {
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { standard }}) => async(dispatch) => {
     try {
-        const newWML = schemaToWML(baseSchema)
+        const standardizer = new Standardizer()
+        standardizer.loadStandardForm(standard)
+        const newWML = schemaToWML(standardizer.schema)
         return {
             publicData: { currentWML: newWML }
         }

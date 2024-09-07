@@ -26,19 +26,15 @@ import {
     getDraftWML,
     getStatus,
     getSerialized,
-    getSchema,
     getStandardForm,
     getInherited,
-    getBaseSchema,
     getInheritedByAssetId
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import { UpdateSchemaPayload, UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
+import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
