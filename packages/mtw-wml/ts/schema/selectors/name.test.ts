@@ -3,6 +3,7 @@ import { schemaToWML, Schema } from ".."
 import { deIndentWML } from "../utils"
 import { selectName } from './name'
 import { selectItemsByKey } from "./itemsByKey"
+import { maybeGenericIDFromTree } from '../../tree/genericIDTree'
 
 describe('name selector', () => {
     it('should select a single key from a normalForm', () => {
@@ -28,7 +29,7 @@ describe('name selector', () => {
             </Asset>
         `)
         const testOne = new Standardizer(testSchema.schema)
-        expect(schemaToWML(selectName(selectItemsByKey('room1')(testOne.schema)))).toEqual(deIndentWML(`
+        expect(schemaToWML(selectName(selectItemsByKey('room1')(maybeGenericIDFromTree(testOne.schema))))).toEqual(deIndentWML(`
             Test room
             <If {true}>: Addendum</If>
         `))

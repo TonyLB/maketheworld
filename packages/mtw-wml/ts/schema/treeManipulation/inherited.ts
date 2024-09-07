@@ -1,19 +1,17 @@
 import { GenericTree, TreeId } from "../../tree/baseClasses";
 import { SchemaTag } from "../baseClasses";
 
-export const markInherited = (tree: GenericTree<SchemaTag, TreeId>): GenericTree<SchemaTag, TreeId & { inherited: boolean }> => (
-    tree.map(({ data, children, id }) => ({
+export const markInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag, { inherited: boolean }> => (
+    tree.map(({ data, children }) => ({
         data,
-        id,
         inherited: true,
         children: markInherited(children)
     }))
 )
 
-export const unmarkInherited = (tree: GenericTree<SchemaTag, TreeId & { inherited?: boolean }>): GenericTree<SchemaTag, TreeId> => (
-    tree.map(({ data, children, id }) => ({
+export const unmarkInherited = (tree: GenericTree<SchemaTag, { inherited?: boolean }>): GenericTree<SchemaTag> => (
+    tree.map(({ data, children }) => ({
         data,
-        id,
         children: unmarkInherited(children)
     }))
 )
