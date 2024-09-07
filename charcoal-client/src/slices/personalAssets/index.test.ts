@@ -1,6 +1,4 @@
 import { addImport } from "."
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"

@@ -2,7 +2,6 @@ import { EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import React, { FunctionComponent, useCallback, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import Chip from "@mui/material/Chip"
 import EditIcon from '@mui/icons-material/Edit'
 
 import { addOnboardingComplete } from "../../slices/player/index.api"

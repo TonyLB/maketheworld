@@ -24,9 +24,9 @@ import {
     updateStandard as updateStandardReducer,
     setImport as setImportReducer
 } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { SchemaImportMapping, SchemaImportTag, SchemaStringTag, SchemaTag, isImportable, isSchemaAsset, isSchemaCharacter, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaImportMapping, SchemaStringTag, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
@@ -57,9 +57,7 @@ export const {
             properties: {},
             loadedImages: {},
             standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-            inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-            baseSchema: [],
-            schema: []
+            inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -83,9 +81,7 @@ export const {
                 properties: {},
                 loadedImages: {},
                 standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                baseSchema: [],
-                schema: []
+                inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
             }
         },
         states: {

@@ -3,7 +3,7 @@ import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { StandardComponent, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import {StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -19,7 +19,6 @@ export interface PersonalAssetsInternal {
         errorEnd?: number;
     };
     standardizer?: Standardizer;
-
 }
 
 export type PersonalAssetsLoadedImage = {
@@ -35,7 +34,7 @@ export interface PersonalAssetsPublic {
     // baseSchema is the schema derived purely from WML (i.e., the local
     // schema without inherited data)
     //
-    baseSchema: GenericTree<SchemaTag, TreeId>;
+    // baseSchema: GenericTree<SchemaTag, TreeId>;
     //
     // importData is the set of schemata that are inherited from imports
     //
@@ -44,7 +43,7 @@ export interface PersonalAssetsPublic {
     // schema is the combination of the baseSchema with all of the
     // data it inherits from imports
     //
-    schema: GenericTree<SchemaTag, TreeId>;
+    // schema: GenericTree<SchemaTag, TreeId>;
     //
     // standard is the standard form derived from WML
     //

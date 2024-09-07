@@ -149,22 +149,6 @@ const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payl
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
-export const deriveWorkingStandardizer = ({ baseSchema, importData={} }: { baseSchema: PersonalAssetsPublic["baseSchema"], importData?: PersonalAssetsPublic["importData"] }): Standardizer => {
-    const baseKey = baseSchema.length >= 1 && isSchemaAsset(baseSchema[0].data) && baseSchema[0].data.key
-    const standardizer = new Standardizer(
-        ...Object.values(importData)
-            .map(markInherited)
-            .map((tree) => (
-                tree.length === 1 && isSchemaAsset(tree[0].data)
-                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                    : []
-            ))
-            .filter((tree) => (tree.length)),
-        baseSchema
-    )
-    return standardizer
-}
-
 export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: SchemaWithKey["tag"] }): string => {
     const keysByTag = selectKeysByTag(tag)(schema)
     let nextIndex = 1
