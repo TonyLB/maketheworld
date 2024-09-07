@@ -81,7 +81,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             })
         }
     }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
-    const { UI: { toolSelected, parentID }, localPositions: rooms, mapDispatch } = useMapContext()
+    const { UI: { toolSelected }, localPositions: rooms } = useMapContext()
     const bind = (useGesture as any)({
         onWheel: ({ movement: [, y] }: any) => {
             const oldScale = scale
@@ -274,7 +274,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                         id={room.id}
                                         PermanentId={room.roomId}
                                         Name={room.name || room.roomId}
-                                        Locked={editMode && (room.parentId !== parentID)}
+                                        Locked={editMode}
                                         className={localClasses.roomNode}
                                         contrastClassName={localClasses.svgLightBlueContrast}
                                         x={room.x + (MAP_WIDTH / 2)}

@@ -115,7 +115,7 @@ const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree
 )
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { AssetId, schema, standardForm, inheritedByAssetId, combinedStandardForm, updateStandard } = useLibraryAsset()
+    const { AssetId, standardForm, inheritedByAssetId, combinedStandardForm, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -125,7 +125,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
 
-    const [parentID, setParentID] = useState<string | undefined>(mapComponent.id)
     const replaceItem = useCallback((args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => {
         updateStandard({ ...args, type: 'replaceItem' })
     }, [updateStandard])
@@ -222,7 +221,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     }, [tree])
 
     //
-    // Extract a MapTreeItem tree out of Schema
+    // Extract a MapTreeItem tree out of StandardForm
     //
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
@@ -252,20 +251,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double })
                 return
             case 'SelectItem':
-                if (action.item && action.item.type === 'Layer') {
-                    const ancestry = ancestryFromId(action.item.key)(schema) ?? []
-                    const conditionParent = ancestry.find(treeNodeTypeguard((data): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
-                    if (conditionParent) {
-                        setParentID(conditionParent.id)
-                    }
-                    else {
-                        setParentID(mapComponent.id)
-                    }
-                }
                 setItemSelected(action.item)
                 return
             case 'SelectParent':
-                setParentID(action.item)
                 return
             case 'AddRoom':
                 addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: action.roomId, x: action.x, y: action.y })
@@ -319,7 +307,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             onStability: (value: SimNode[]) => {},
             onAddExit
         })
-    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, schema, updateSelected])
+    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, updateSelected])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree: maybeGenericIDFromTree(tree) })
     }, [mapDispatch, tree])
@@ -337,8 +325,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             UI: {
                 toolSelected,
                 exitDrag,
-                itemSelected,
-                parentID
+                itemSelected
             },
             mapDispatch,
             mapD3,
