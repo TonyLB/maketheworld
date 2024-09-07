@@ -228,8 +228,6 @@ export const {
     getStatus,
     getCurrentWML,
     getDraftWML,
-    getSchema,
-    getBaseSchema,
     getStandardForm,
     getInherited,
     getInheritedByAssetId,
