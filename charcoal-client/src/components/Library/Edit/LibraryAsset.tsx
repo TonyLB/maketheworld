@@ -47,8 +47,6 @@ type LibraryAssetContextType = {
     AssetId: EphemeraCharacterId | EphemeraAssetId | null;
     currentWML: string;
     draftWML: string;
-    schema: GenericTree<SchemaTag, TreeId>;
-    baseSchema: GenericTree<SchemaTag, TreeId>;
     standardForm: StandardForm;
     combinedStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
@@ -60,7 +58,6 @@ type LibraryAssetContextType = {
     readonly: boolean;
     serialized: boolean;
     status?: keyof PersonalAssetsNodes;
-    select: <Output>(args: { selector: (tree: GenericTree<SchemaTag, TreeId>, options?: { tag: string, key: string }) => Output }) => Output;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -68,8 +65,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     AssetId: null,
     currentWML: '',
     draftWML: '',
-    schema: [],
-    baseSchema: [],
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
@@ -79,8 +74,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     loadedImages: {},
     save: () => {},
     readonly: true,
-    serialized: false,
-    select: () => { throw new Error('Undefined selector in LibraryAsset') }
+    serialized: false
 })
 
 type LibraryAssetProps = {
@@ -94,8 +88,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const AssetId = useMemo<EphemeraCharacterId | EphemeraAssetId>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
-    const schema = useSelector(getSchema(AssetId))
-    const baseSchema = useSelector(getBaseSchema(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
@@ -111,7 +103,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const status = useSelector(getStatus(AssetId))
     const serialized = useSelector(getSerialized(AssetId))
     const dispatch = useDispatch()
-    const select = useCallback(<T extends {}>(args: { selector: (tree: GenericTree<SchemaTag, TreeId>, options?: { tag: string; key: string }) => T }): T => (args.selector(schema)), [schema])
     const updateStandard = useCallback((updateAction: UpdateStandardPayload) => {
         dispatch(updateStandardAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
@@ -128,9 +119,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             AssetId,
             currentWML,
             draftWML,
-            select,
-            schema,
-            baseSchema,
             standardForm,
             combinedStandardForm,
             inheritedStandardForm,

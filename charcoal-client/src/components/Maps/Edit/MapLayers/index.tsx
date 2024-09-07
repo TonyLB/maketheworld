@@ -299,13 +299,13 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    const { tree, UI: { parentID } } = useMapContext()
+    const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} highlightID={parentID} />))}
+            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
             <AddIfButton />
         </Box>
     </MapLayersContext.Provider>
