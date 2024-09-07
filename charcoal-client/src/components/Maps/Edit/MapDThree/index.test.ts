@@ -8,7 +8,7 @@ import { mockClass } from '../../../../lib/jestHelpers'
 import { assertTypeguard, Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import { stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { maybeGenericIDFromTree, stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('MapDThree', () => {
@@ -38,7 +38,7 @@ describe('MapDThree', () => {
         const testTree = assertTypeguard(testComponent, isStandardMap)?.positions ?? []
 
         const testMapDThree = new MapDThree({
-            tree: testTree,
+            tree: maybeGenericIDFromTree(testTree),
             standardForm: testStandard.standardForm,
             mapId: 'testMap',
             updateStandard: () => {}

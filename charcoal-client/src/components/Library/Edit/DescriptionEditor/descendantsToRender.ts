@@ -16,8 +16,8 @@ import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 //
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
 //
-export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag, Partial<TreeId>> => {
-    const returnValue = items.reduce<GenericTree<SchemaOutputTag, Partial<TreeId>>>((tree, item, index) => {
+export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
+    const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item) => {
         if (isCustomNewIfWrapper(item)) {
             return [
                 ...tree,
@@ -41,7 +41,7 @@ export const descendantsToRender = (schema: GenericTree<SchemaTag, TreeId>) => (
             }
             return [
                 ...tree,
-                { data, id: item.treeId, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
+                { data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag }) }
             ]
         }
         if (isCustomParagraph(item) || (isCustomParagraphContents(item) && isCustomReplaceBlock(item))) {
