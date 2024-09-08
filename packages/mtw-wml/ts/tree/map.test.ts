@@ -1,4 +1,4 @@
-import { GenericTree, TreeId } from './baseClasses'
+import { GenericTree } from './baseClasses'
 import { map } from './map'
 
 describe('tree map', () => {
@@ -13,14 +13,4 @@ describe('tree map', () => {
         ])
     })
 
-    it('should map a GenericIDTree', () => {
-        const testTree: GenericTree<string, TreeId> = [
-            { data: 'A', id: 'A', children: [{ data: 'B', id: 'B', children: [] }, { data: 'C', id: 'C', children: [] }]},
-            { data: 'D', id: 'D', children: [] }
-        ]
-        expect(map(testTree, ({ data, children, id }) => ([{ data: `Test-${data}`, children, id }]))).toEqual([
-            { data: 'Test-A', id: 'A', children: [{ data: 'Test-B', id: 'B', children: [] }, { data: 'Test-C', id: 'C', children: [] }]},
-            { data: 'Test-D', id: 'D', children: [] }
-        ])
-    })
 })

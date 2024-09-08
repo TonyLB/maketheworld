@@ -1,4 +1,4 @@
-import { GenericTree, TreeId } from "../../tree/baseClasses";
+import { GenericTree } from "../../tree/baseClasses";
 import { SchemaTag } from "../baseClasses";
 
 export const markInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag, { inherited: boolean }> => (

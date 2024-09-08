@@ -1,4 +1,4 @@
-import { GenericTree, TreeId } from './baseClasses'
+import { GenericTree } from './baseClasses'
 import { filter } from './filter'
 
 describe('tree filter', () => {
