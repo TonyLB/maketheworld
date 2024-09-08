@@ -127,14 +127,13 @@ describe('SchemaTagTree', () => {
         }])
     })
 
-    it('should not condense identical condition statements', () => {
+    it('should not condense adjacent condition statements', () => {
         const testTree = maybeGenericIDFromTree(schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Description>
                         Test
-                        <If {true}>Item one</If>
-                        <ElseIf {true}>Item two</ElseIf>
+                        <If {false}>Item one</If><If {true}>Item two</If>
                     </Description>
                 </Room>
             </Asset>
@@ -144,7 +143,7 @@ describe('SchemaTagTree', () => {
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Description>
-                        Test <If {true}>Item one</If><ElseIf {true}>Item two</ElseIf>
+                        Test <If {false}>Item one</If><If {true}>Item two</If>
                     </Description>
                 </Room>
             </Asset>

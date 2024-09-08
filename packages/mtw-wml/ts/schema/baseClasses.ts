@@ -6,6 +6,10 @@ export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag |
 type SchemaBase = {
 }
 
+type SchemaWrapper = {
+    wrapperKey?: string;
+}
+
 export type SchemaImportableBase = SchemaBase & {
     from?: string;
     as?: string;
@@ -135,7 +139,7 @@ export type SchemaSelectedTag = {
 
 export type SchemaConditionTag = {
     tag: 'If';
-} & SchemaBase
+} & SchemaWrapper & SchemaBase
 
 export type SchemaConditionStatementTag = {
     tag: 'Statement';
@@ -189,7 +193,7 @@ export type SchemaSummaryTag = {
 
 export type SchemaReplaceTag = {
     tag: 'Replace';
-} & SchemaBase
+} & SchemaWrapper & SchemaBase
 
 export type SchemaReplaceMatchTag = {
     tag: 'ReplaceMatch';
