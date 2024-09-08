@@ -1,6 +1,6 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import {StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
@@ -30,20 +30,9 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
-    //
-    // baseSchema is the schema derived purely from WML (i.e., the local
-    // schema without inherited data)
-    //
-    // baseSchema: GenericTree<SchemaTag, TreeId>;
-    //
     // importData is the set of schemata that are inherited from imports
     //
-    importData: Record<string, GenericTree<SchemaTag, TreeId>>;
-    //
-    // schema is the combination of the baseSchema with all of the
-    // data it inherits from imports
-    //
-    // schema: GenericTree<SchemaTag, TreeId>;
+    importData: Record<string, GenericTree<SchemaTag>>;
     //
     // standard is the standard form derived from WML
     //

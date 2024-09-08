@@ -5,7 +5,6 @@ import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, Edit
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { isSchemaLink, isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { maybeGenericIDFromTree, stripIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 
 const Render: FunctionComponent<{}> = () => {
@@ -74,11 +73,11 @@ describe('EditChildren', () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditContext()
             useEffect(() => {
-                onChange(maybeGenericIDFromTree([
+                onChange([
                     { data: { tag: 'String', value: 'Test1' }, children: [] },
                     { data: { tag: 'String', value: 'Test change' }, children: [] },
                     { data: { tag: 'String', value: 'Test3' }, children: [] }
-                ]))
+                ])
             }, [])
             return <MultiRender />
         }
@@ -96,7 +95,7 @@ describe('EditChildren', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([{
+        expect(onChange).toHaveBeenCalledWith([{
             data: { tag: 'Description' },
             children: [
                 { data: { tag: 'String', value: 'Test1' }, children: [] },
@@ -110,11 +109,11 @@ describe('EditChildren', () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditContext()
             useEffect(() => {
-                onChange(maybeGenericIDFromTree([
+                onChange([
                     { data: { tag: 'String', value: 'Test1' }, children: [] },
                     { data: { tag: 'String', value: 'Test change' }, children: [] },
                     { data: { tag: 'String', value: 'Test3' }, children: [] }
-                ]))
+                ])
             }, [])
             return <MultiRender />
         }
@@ -132,7 +131,7 @@ describe('EditChildren', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([])
+        expect(onChange).toHaveBeenCalledWith([])
     })
 
 })
@@ -181,7 +180,7 @@ describe('EditSubListSchema', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
+        expect(onChange).toHaveBeenCalledWith([
             { data: { tag: 'String', value: 'Test1' }, children: [] },
             { data: { tag: 'String', value: 'Test change' }, children: [] },
             { data: { tag: 'String', value: 'Test3' }, children: [] }
@@ -210,7 +209,7 @@ describe('EditSubListSchema', () => {
             )
         })
         expect(onChange).toHaveBeenCalledTimes(1)
-        expect(stripIDFromTree(onChange.mock.calls[0][0])).toEqual([
+        expect(onChange).toHaveBeenCalledWith([
             { data: { tag: 'String', value: 'Test1' }, children: [] },
             { data: { tag: 'String', value: 'Test3' }, children: [] }
         ])

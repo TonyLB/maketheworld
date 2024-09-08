@@ -1,4 +1,4 @@
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 
@@ -50,7 +50,7 @@ type MapDispatchSetNode = {
 
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
-    tree: GenericTree<SchemaTag, TreeId>;
+    tree: GenericTree<SchemaTag>;
 }
 
 type MapContextItemSelectedLayer = {
@@ -124,7 +124,7 @@ export type MapTreeSchemaTags = SchemaAssetTag | SchemaSelectedTag | SchemaExitT
 export type MapContextType = {
     mapId: string;
     nodeId: string;
-    tree: GenericTree<MapTreeSchemaTags, TreeId>;
+    tree: GenericTree<MapTreeSchemaTags>;
     selectedPositions: GenericTree<MapTreeSchemaTags>;
     updateSelected: (newValue: GenericTree<SchemaTag>) => void;
     UI: {

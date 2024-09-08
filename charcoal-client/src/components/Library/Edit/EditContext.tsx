@@ -1,8 +1,6 @@
 import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
-import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
 
 type EditHighlightContextType = {
@@ -24,9 +22,9 @@ export const EditHighlight: FunctionComponent<{}> = ({ children }) => {
 
 type EditContextType = {
     id: string;
-    inherited?: GenericTreeNode<SchemaTag, TreeId>;
+    inherited?: GenericTreeNode<SchemaTag>;
     value: GenericTree<SchemaTag>;
-    onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
+    onChange: (value: GenericTree<SchemaTag>) => void;
     highlighted?: boolean;
     setHighlight: (value?: string) => void;
 }
@@ -49,8 +47,8 @@ export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHigh
 }
 
 type EditNodeContextType = {
-    node: GenericTreeNode<SchemaTag, TreeId>;
-    onChange: (value: GenericTree<SchemaTag, TreeId>) => void;
+    node: GenericTreeNode<SchemaTag>;
+    onChange: (value: GenericTree<SchemaTag>) => void;
 }
 export const EditSchemaNode: FunctionComponent<EditNodeContextType> = ({ node, onChange }) => (
     <EditSchema value={[node]} onChange={onChange}/>
@@ -68,7 +66,7 @@ export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty
             contextOnChange([])
         }
         else {
-            contextOnChange(maybeGenericIDFromTree([{ ...value[0], children: newValue }, ...value.slice(1)]))
+            contextOnChange([{ ...value[0], children: newValue }, ...value.slice(1)])
         }
     }, [contextOnChange, isEmpty])
     if (value.length === 0) {
@@ -96,11 +94,11 @@ export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ ind
     return <EditSchema
         value={[value[index]]}
         onChange={(newValue) => {
-            onChange(maybeGenericIDFromTree([
+            onChange([
                 ...value.slice(0, index),
                 ...newValue,
                 ...value.slice(index + 1)
-            ]))
+            ])
         }}
     >
         { children }
@@ -114,10 +112,10 @@ export const useEditNodeContext = () => {
         data: value[0]?.data,
         children: value[0]?.children ?? [],
         onChange: (newValue: GenericTreeNode<SchemaTag>) => {
-            onChange(maybeGenericIDFromTree([newValue, ...value.slice(1)]))
+            onChange([newValue, ...value.slice(1)])
         },
         onDelete: () => {
-            onChange(maybeGenericIDFromTree(value.slice(1)))
+            onChange(value.slice(1))
         },
         highlighted
     }

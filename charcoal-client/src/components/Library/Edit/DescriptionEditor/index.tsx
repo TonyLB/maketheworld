@@ -37,15 +37,14 @@ import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
 import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
+import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { EditSchema, useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
-import { StandardFormSchema, useStandardFormContext } from '../StandardFormContext'
+import { useStandardFormContext } from '../StandardFormContext'
 
 interface DescriptionEditorProps {
     // componentKey: string;
@@ -169,25 +168,25 @@ type DescriptionEditorSlateComponentProperties = {
 
 const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const { onChange: contextOnChange, value: contextValue } = useEditContext()
-    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag, Partial<TreeId>>) => {
-        contextOnChange(maybeGenericIDFromTree(newRender))
+    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag>) => {
+        contextOnChange(newRender)
     }, [contextOnChange])
     const output = useMemo(() => (treeTypeGuard<SchemaTag, SchemaOutputTag>({
         tree: contextValue ?? [],
         typeGuard: isSchemaOutputTag
     })), [contextValue])
     const defaultValue = useMemo(() => {
-        const returnValue = descendantsFromRender(maybeGenericIDFromTree(output), { standard })
+        const returnValue = descendantsFromRender(output, { standard })
         return returnValue
     }, [output, standard])
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
-        comparisonOutput: descendantsToRender(maybeGenericIDFromTree(contextValue ?? []))
+        comparisonOutput: descendantsToRender(contextValue ?? [])
     })
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = maybeGenericIDFromTree(descendantsToRender(maybeGenericIDFromTree(contextValue ?? []))((value || []).filter(isCustomBlock)))
+        const newRender = descendantsToRender(contextValue ?? [])((value || []).filter(isCustomBlock))
         if (!deepEqual(newRender, contextValue ?? [])) {
             onChange(newRender)
         }
@@ -259,36 +258,15 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
-    const { inherited } = useEditContext()
     const { tag } = useStandardFormContext()
-    const { standardForm, inheritedStandardForm, readonly } = useLibraryAsset()
-    return <React.Fragment>
-        { inherited?.id
-            ? <Box sx={{
-                padding: '0.5em',
-                background: grey[100],
-                width: '100%'
-            }}>
-                <EditSchema value={inherited.children} onChange={() => {}}>
-                    <DescriptionEditorSlateComponent
-                        { ...props }
-                        standard={inheritedStandardForm}
-                        readonly={true}
-                        toolbar={false}
-                    />
-                </EditSchema>
-            </Box>
-            : null
-        }
-        <DescriptionEditorSlateComponent
-            { ...props }
-            placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}
-            standard={standardForm}
-            readonly={readonly}
-            checkPoints={props.checkPoints}
-        />
-
-    </React.Fragment>
+    const { standardForm, readonly } = useLibraryAsset()
+    return <DescriptionEditorSlateComponent
+        { ...props }
+        placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}
+        standard={standardForm}
+        readonly={readonly}
+        checkPoints={props.checkPoints}
+    />
 }
 
 export default DescriptionEditor

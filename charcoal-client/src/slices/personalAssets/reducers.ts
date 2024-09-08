@@ -2,9 +2,8 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
-import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
@@ -376,7 +375,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag, TreeId> }>) => {
+export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
     const baseKey = state.standard.key
     const standardizer = new Standardizer()

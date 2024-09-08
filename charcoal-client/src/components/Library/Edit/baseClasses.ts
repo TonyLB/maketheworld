@@ -1,6 +1,6 @@
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';
-import { BaseEditor, Path, Selection } from 'slate'
+import { SchemaConditionTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
+import { GenericTreeNodeFiltered } from '@tonylb/mtw-wml/dist/tree/baseClasses';
+import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {

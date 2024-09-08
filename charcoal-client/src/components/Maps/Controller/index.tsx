@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree, GenericTreeNode, TreeId, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
@@ -12,7 +12,6 @@ import { toggle } from "../../../slices/UI/mapEdit"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
-import { genericIDFromTree, maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
@@ -40,27 +39,7 @@ const MapContext = React.createContext<MapContextType>({
 export const useMapContext = () => (useContext(MapContext))
 
 //
-// ancestryFromId returns the nodes in the ancestry of a given tree node (identified by searchID), starting from the direct parent and
-// proceeding up the tree.
-//
-const ancestryFromId = (searchID: string) => (tree: GenericTree<SchemaTag, TreeId>): GenericTreeNode<SchemaTag, TreeId>[] | undefined => {
-    return tree.reduce<GenericTreeNode<SchemaTag, TreeId>[] | undefined>((previous, { data, id, children }) => {
-        if (previous) {
-            return previous
-        }
-        if (id === searchID) {
-            return []
-        }
-        const recurse = ancestryFromId(searchID)(children)
-        if (typeof recurse !== 'undefined') {
-            return [...recurse, { data, id, children: [] }]
-        }
-        return previous
-    }, undefined)
-}
-
-//
-// ISS-4348: mapTreeMemo takes:
+// mapTreeMemo takes:
 //    - A standard form
 //    - The key of a map in that standardForm
 //    - The replaceItem onChange for that standardForm
@@ -98,7 +77,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (ar
         .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
         .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
         .tree
-    const tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId> = maybeGenericIDFromTree(treeTypeGuard({ tree: filterRoomsWithChildren(combinedTree), typeGuard: isMapContents }))
+    const tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag> = treeTypeGuard({ tree: filterRoomsWithChildren(combinedTree), typeGuard: isMapContents })
     return { data: { tag: 'Asset', key: standardForm.key, Story: undefined }, children: tree }
 }
 
@@ -189,7 +168,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return previous
     }, [combinedStandardForm.byId])
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag>): MapContextPosition[] => {
-        const basePositions = maybeGenericIDFromTree(tree)
+        const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(
                 extractRoomsHelper(''),
                 []
@@ -224,7 +203,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
-            tree: maybeGenericIDFromTree(tree),
+            tree,
             standardForm,
             updateStandard,
             mapId,
@@ -312,7 +291,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         })
     }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, updateSelected])
     useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', tree: maybeGenericIDFromTree(tree) })
+        mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])
     useEffect(() => () => {
         mapD3.unmount()
@@ -322,7 +301,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         value={{
             mapId,
             nodeId: '',
-            tree: maybeGenericIDFromTree(tree),
+            tree,
             selectedPositions,
             updateSelected: () => {},
             UI: {
@@ -339,7 +318,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     </MapContext.Provider>
 }
 
-export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTreeItem, TreeId> }> = ({ tree, children }) => {
+export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTreeItem> }> = ({ tree, children }) => {
     //
     // Transform incoming tree of MapTreeItems back into a tree of SchemaTags
     //
@@ -355,7 +334,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
                     ]
                 }
             ]))
-            return genericIDFromTree(returnValue)
+            return returnValue
         },
         [tree]
     )

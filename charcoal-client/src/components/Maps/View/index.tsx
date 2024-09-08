@@ -21,7 +21,6 @@ import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
 import { EphemeraAssetId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { MapDisplayController } from '../Controller';
-import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
 import { addImport } from '../../../slices/personalAssets';
@@ -122,7 +121,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                 </FormControl>
             </Box>
         </Box>
-        { MapId && <MapDisplayController tree={genericIDFromTree(cacheToTree(maps[MapId]))}>
+        { MapId && <MapDisplayController tree={cacheToTree(maps[MapId])}>
             <MapArea fileURL={maps[MapId].fileURL} editMode={false} />
         </MapDisplayController> }
         <Box sx={{ right: "2em", top: "0.25em", position: "absolute" }}>

@@ -16,8 +16,8 @@ import LibraryBanner from "../LibraryBanner"
 import { EditSchema, useEditNodeContext } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
-import { GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaPromptTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
@@ -50,9 +50,8 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
         }
         return {
             key: ComponentId,
-            id: '',
             tag: 'Theme',
-            name: { data: { tag: 'Name' }, children: [], id: '' },
+            name: { data: { tag: 'Name' }, children: [] },
             prompts: [],
             rooms: [],
             maps: []

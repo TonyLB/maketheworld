@@ -14,7 +14,6 @@ import { useLibraryAsset } from "./LibraryAsset"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { EditChildren, EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
 import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -161,17 +160,17 @@ export const IfElseTreeStatements: FunctionComponent<IfElseTreeStatementsProps> 
         if (toSelectData && (isSchemaConditionStatement(toSelectData) || isSchemaConditionFallthrough(toSelectData)) && toSelectData.selected) {
             return
         }
-        onChange(maybeGenericIDFromTree(value.map((child, compareIndex) => {
+        onChange(value.map((child, compareIndex) => {
                 if (!(treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child))) {
                     return child
                 }
                 else {
                     return { ...child, data: { ...child.data, selected: compareIndex === index ? true : undefined }}
                 }
-        })))
+        }))
     }, [value])
     const onUnselect = useCallback(() => {
-        onChange(maybeGenericIDFromTree(value.map((child) => {
+        onChange(value.map((child) => {
             if (!treeNodeTypeguard(isSchemaConditionFallthrough)(child)) {
                 if (treeNodeTypeguard(isSchemaConditionStatement)(child)) {
                     return { ...child, data: { ...child.data, selected: undefined }}
@@ -181,14 +180,14 @@ export const IfElseTreeStatements: FunctionComponent<IfElseTreeStatementsProps> 
             else {
                 return { ...child, data: { ...child.data, selected: true }}
             }
-        })))
+        }))
     }, [value])
     const addElseIf = useCallback((afterIndex: number) => (
         <AddItemButton
             key={`elseIf-${afterIndex}`}
             addItemIcon={<React.Fragment>elseIf</React.Fragment>}
             onClick={() => {
-                onChange(maybeGenericIDFromTree([...value.slice(0, afterIndex + 1), { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }, ...value.slice(afterIndex + 1)]))
+                onChange([...value.slice(0, afterIndex + 1), { data: { tag: 'Statement', if: '' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }, ...value.slice(afterIndex + 1)])
             }}
         />), [value, onChange])
     const addElse = useMemo(
@@ -197,7 +196,7 @@ export const IfElseTreeStatements: FunctionComponent<IfElseTreeStatementsProps> 
                 key="else"
                 addItemIcon={<React.Fragment>else</React.Fragment>}
                 onClick={() => {
-                    onChange(maybeGenericIDFromTree([...value, { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }]))
+                    onChange([...value, { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: '' }, children: [] }] }])
                 }}
             />
         ),
