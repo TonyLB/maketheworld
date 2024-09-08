@@ -13,7 +13,7 @@ import { SerializableStandardComponent, SerializableStandardForm, StandardCompon
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
-import { unwrapSubject, wrappedNodeTypeGuard } from '../schema/utils'
+import { wrappedNodeTypeGuard } from '../schema/utils'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -689,11 +689,7 @@ export class StandardizerAbstract {
                 const characterNode = tree.find(({ data }) => (isSchemaCharacter(data) && data.key === characterKey))
                 return characterNode ? [characterNode] : []
             }).flat(1))
-            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
-                inheritedA && !inheritedB
-                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
-                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
-            )
+            tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
             const characterTree = tagTree.tree
             if (characterTree.length !== 1) {
                 throw new Error('Too many characters in Standarizer')
@@ -725,11 +721,7 @@ export class StandardizerAbstract {
                 const assetNode = tree.find(({ data }) => (isSchemaAsset(data) && data.key === assetKey))
                 return assetNode ? [assetNode] : []
             }).flat(1))
-            tagTree._merge = ({ data: dataA, id: idA, inherited: inheritedA }, { data: dataB, id: idB, inherited: inheritedB }) => (
-                inheritedA && !inheritedB
-                    ? { data: { ...dataA, ...dataB }, id: idB ?? idA }
-                    : { data: { ...dataA, ...dataB }, id: idA ?? idB }
-            )
+            tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
 
             //
             // Add standardized view of all Imports to the results

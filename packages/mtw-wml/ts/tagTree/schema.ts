@@ -1,10 +1,10 @@
 import TagTree, { TagTreeFilterArguments, TagTreePruneArgs } from "."
 import { deepEqual } from "../lib/objects"
-import { GenericTree, TreeId, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaWithKey } from "../schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
 
-const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>): GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>> => {
+const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
     return tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
             return { ...node, data: { ...node.data, wrapperKey: node.data.wrapperKey ?? uuidv4() }, children: addWrapperKey(node.children) }
@@ -13,7 +13,7 @@ const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<TreeId & { inherited
     })
 }
 
-const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>): GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>> => {
+const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
     return tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
             const { wrapperKey, ...data } = node.data
@@ -23,8 +23,8 @@ const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<TreeId & { inheri
     })
 }
 
-export class SchemaTagTree extends TagTree<SchemaTag, Partial<TreeId & { inherited: boolean }>> {
-    constructor(tree: GenericTree<SchemaTag, Partial<TreeId & { inherited: boolean }>>) {
+export class SchemaTagTree extends TagTree<SchemaTag, Partial<{ inherited: boolean }>> {
+    constructor(tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>) {
         super({
             tree: addWrapperKey(tree),
             compare: ({ data: A }, { data: B }) => {
@@ -43,7 +43,7 @@ export class SchemaTagTree extends TagTree<SchemaTag, Partial<TreeId & { inherit
                 return deepEqual(A, B)
             },
             classify: ({ tag }) => (tag),
-            merge: ({ data: dataA, id: idA }, { data: dataB, id: idB }) => ({ data: { ...dataA, ...dataB }, id: idA ?? idB }),
+            merge: ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } }),
             orderIndependence: [['Description', 'Summary', 'Name', 'ShortName', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']],
             orderIndependenceIgnore: ['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove']
         })

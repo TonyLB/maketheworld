@@ -1,7 +1,6 @@
 import { deepEqual } from "../../lib/objects"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "../../tree/baseClasses"
-import { maybeGenericIDFromTree, stripIDFromTree } from "../../tree/genericIDTree";
 import { isSchemaOutputTag, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaString, isSchemaWithKey, SchemaSpacerTag, SchemaStringTag, SchemaTag } from "../baseClasses"
 import { unwrapSubject } from "../utils";
 
