@@ -61,14 +61,12 @@ Array [
                 "tag": "String",
                 "value": "with an If",
               },
-              "id": "",
             },
           ],
           "data": Object {
             "if": "testVariable",
             "tag": "Statement",
           },
-          "id": "",
         },
         Object {
           "children": Array [
@@ -78,20 +76,17 @@ Array [
                 "tag": "String",
                 "value": "and an Else",
               },
-              "id": "",
             },
           ],
           "data": Object {
             "tag": "Fallthrough",
           },
-          "id": "",
         },
       ],
       "data": Object {
         "tag": "If",
       },
     },
-    "treeId": "ABC",
     "type": "ifWrapper",
   },
   Object {

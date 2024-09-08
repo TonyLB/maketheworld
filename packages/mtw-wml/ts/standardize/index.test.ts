@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from '../schema'
 import { Standardizer, defaultSelected } from '.'
 import { deIndentWML } from '../schema/utils'
-import { GenericTree, TreeId } from '../tree/baseClasses'
+import { GenericTree } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
 import { stripIDFromTree } from '../tree/genericIDTree'
@@ -983,9 +983,7 @@ describe('standardizeSchema', () => {
             </Asset>
         `)
         const test = schemaTestStandarized(testSource)
-        console.log('assigning dependencies')
         test.assignDependencies(extract)
-        console.log(`dependencies assigned`)
         expect(test.standardForm.byId.testRoomOne).toEqual({
             tag: 'Room',
             key: 'testRoomOne',
