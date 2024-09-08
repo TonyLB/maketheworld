@@ -34,7 +34,6 @@ import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
-import { v4 as uuidv4 } from 'uuid'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -266,7 +265,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             type: 'replaceMetaData',
             metaData: [
                 ...standard.metaData,
-                { data: { tag: 'Import', from: fromAsset, mapping: {} }, children: key ? [{ data: { tag: type, key, as }, children: [], id: uuidv4() }] : [], id: uuidv4() }
+                { data: { tag: 'Import', from: fromAsset, mapping: {} }, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
             ]
         }))
     }
@@ -280,7 +279,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
                     ...node,
                     children: [
                         ...node.children.filter((child) => (!(treeNodeTypeguard(isSchemaWithKey)(child) && child.data.key === key))),
-                        { data: { tag: type, key, as }, children: [], id: uuidv4() }
+                        { data: { tag: type, key, as }, children: [] }
                     ]
                 }
             }

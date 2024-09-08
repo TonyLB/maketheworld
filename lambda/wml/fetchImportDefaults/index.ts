@@ -8,7 +8,6 @@ import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
-import { stripIDFromTree } from "@tonylb/mtw-wml/ts/tree/genericIDTree"
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -32,7 +31,7 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
                 key: splitType(assetId)[1]
             }
             const standardizer = new Standardizer([{ data: assetSchema, children: schemaTags }])
-            const wrappedWithInheritedTag = stripIDFromTree(standardizer.schema).map(({ data, children }) => ({
+            const wrappedWithInheritedTag = standardizer.schema.map(({ data, children }) => ({
                 data,
                 children: [{
                     data: { tag: 'Inherited' as const },

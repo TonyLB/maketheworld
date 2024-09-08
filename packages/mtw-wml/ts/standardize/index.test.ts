@@ -4,7 +4,6 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
-import { stripIDFromTree } from '../tree/genericIDTree'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
