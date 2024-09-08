@@ -289,8 +289,7 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
                 key: id.split('#')[1],
                 Story: undefined
             },
-            children: [],
-            id: uuidv4()
+            children: []
         }]
     }
     else if (isEphemeraCharacterId(id)) {
@@ -307,7 +306,7 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
                 }
             },
             children: [
-                { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Unknown' }, children: [], id: uuidv4() }], id: uuidv4() },
+                { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Unknown' }, children: [] }] },
                 {
                     data: {
                         tag: 'Pronouns',
@@ -317,11 +316,9 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
                         adjective: 'their',
                         reflexive: 'themself'
                     },
-                    children: [],
-                    id: uuidv4()
+                    children: []
                 },
-            ],
-            id: uuidv4()
+            ]
         }]
     }
     else {

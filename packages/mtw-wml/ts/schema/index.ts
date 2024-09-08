@@ -3,11 +3,10 @@ import { ParseItem, ParseTagClose, ParseTagOpen, ParseTagSelfClosure, ParseTypes
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
-import { GenericTree, GenericTreeNode, TreeId } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "../tree/baseClasses"
 import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
-import { genericIDFromTree } from "../tree/genericIDTree"
 import { lineLengthAfterIndent } from "./converters/printUtils"
 import { maxLineLength } from "./converters/quantumRender/freeText"
 
@@ -315,16 +314,12 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
 }
 
 export class Schema {
-    _schema: GenericTree<SchemaTag, TreeId> = [];
+    _schema: GenericTree<SchemaTag> = [];
 
     loadWML(wml: string): void {
-        const bareSchema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
-        this._schema = genericIDFromTree(bareSchema)
+        this._schema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
     }
 
     get schema() { return this._schema }
 
-    //
-    // TODO: Copy standardize functionality from normalize to schema structure, and refactor
-    //
 }

@@ -11,7 +11,6 @@ import standardSubset from "./standardSubset"
 import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
-import { stripIDFromTree } from "@tonylb/mtw-wml/ts/tree/genericIDTree"
 
 //
 // The translateToFinal class accepts:
@@ -163,7 +162,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
 
     const deserializeStandardizer = new Standardizer()
     deserializeStandardizer.deserialize({ ...newStandard, metaData: [] })
-    const rawSchema = stripIDFromTree(deserializeStandardizer.schema)
+    const rawSchema = deserializeStandardizer.schema
     const translatedSchema = [{ ...rawSchema[0], children: rawSchema[0].children.map((tag) => (translate.translateSchemaTag(tag))) }]
     const mergeStandardizer = new Standardizer([{
         ...translatedSchema[0],
@@ -173,7 +172,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
         ]
     }])
 
-    return stripIDFromTree(mergeStandardizer.schema[0].children)
+    return mergeStandardizer.schema[0].children
 
 }
 

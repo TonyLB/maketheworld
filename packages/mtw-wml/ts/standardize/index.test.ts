@@ -4,12 +4,11 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
-import { stripIDFromTree } from '../tree/genericIDTree'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
     schema.loadWML(wml)
-    const standardized = new Standardizer(stripIDFromTree(schema.schema))
+    const standardized = new Standardizer(schema.schema)
     return standardized
 }
 
@@ -876,7 +875,7 @@ describe('standardizeSchema', () => {
         `)
         const inheritedSchema = new Schema()
         inheritedSchema.loadWML(inheritedSource)
-        const inheritedStandard = new Standardizer(stripIDFromTree(inheritedSchema.schema))
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
         const testStandard = new StandardizerAbstract()
         testStandard.loadStandardForm({
             key: 'Test',

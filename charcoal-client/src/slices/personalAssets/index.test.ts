@@ -53,10 +53,9 @@ describe('personalAssets slice', () => {
                 metaData: [{
                     data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
                     children: [
-                        { data: { tag: 'Room', key: 'testRoom' }, children: [], id: expect.any(String) },
-                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [], id: expect.any(String) }
-                    ],
-                    id: expect.any(String)
+                        { data: { tag: 'Room', key: 'testRoom' }, children: [] },
+                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [] }
+                    ]
                 }]
             })
         })
@@ -73,16 +72,14 @@ describe('personalAssets slice', () => {
                 metaData: [{
                     data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
                     children: [
-                        { data: { tag: 'Room', key: 'testRoom' }, children: [], id: expect.any(String) },
-                    ],
-                    id: expect.any(String)
+                        { data: { tag: 'Room', key: 'testRoom' }, children: [] },
+                    ]
                 },
                 {
                     data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
                     children: [
-                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [], id: expect.any(String) },
-                    ],
-                    id: expect.any(String)
+                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [] },
+                    ]
                 }]
             })
         })
@@ -103,13 +100,11 @@ describe('personalAssets slice', () => {
                 type: 'replaceMetaData',
                 metaData: [{
                     data: { tag: 'Import', from: 'testImportOne', mapping: expect.any(Object) },
-                    children: [],
-                    id: expect.any(String)
+                    children: []
                 },
                 {
                     data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
-                    children: [],
-                    id: expect.any(String)
+                    children: []
                 }]
             })
         })
