@@ -143,6 +143,46 @@ describe('standardizeSchema', () => {
         })
     })
 
+    it('should accept condition tags without including wrapperKey', () => {
+        const standardizer = schemaTestStandarized(`<Asset key=(Test)>
+            <Room key=(Room1)>
+                <Description>
+                    <If {true}>True</If><Else>False</Else>
+                </Description>
+            </Room>
+        </Asset>`)
+
+        expect(standardizer.standardForm).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [],
+            byId: {
+                "Room1": {
+                    tag: 'Room',
+                    key: 'Room1',
+                    name: { data: { tag: 'Name' }, children: [] },
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    exits: [],
+                    themes: [],
+                    description: { data: { tag: 'Description' }, children: [{
+                        data: { tag: 'If' },
+                        children: [
+                            {
+                                data: { tag: 'Statement', if: 'true', selected: false },
+                                children: [{ data: { tag: 'String', value: 'True' }, children: [] }]
+                            },
+                            {
+                                data: { tag: 'Fallthrough', selected: true },
+                                children: [{ data: { tag: 'String', value: 'False' }, children: [] }]
+                            }
+                        ]
+                    }] },
+                }
+            }
+        })
+    })
+
     it('should combine descriptions in rooms and features', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Room key=(test)>
@@ -943,7 +983,9 @@ describe('standardizeSchema', () => {
             </Asset>
         `)
         const test = schemaTestStandarized(testSource)
+        console.log('assigning dependencies')
         test.assignDependencies(extract)
+        console.log(`dependencies assigned`)
         expect(test.standardForm.byId.testRoomOne).toEqual({
             tag: 'Room',
             key: 'testRoomOne',

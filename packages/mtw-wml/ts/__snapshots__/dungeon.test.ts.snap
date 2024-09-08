@@ -7200,6 +7200,14 @@ Object {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8075,6 +8083,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8163,7 +8179,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": false,
+                "selected": true,
                 "tag": "Fallthrough",
               },
               "id": undefined,
@@ -8654,6 +8670,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8707,6 +8731,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8803,6 +8835,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8826,6 +8866,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8849,6 +8897,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -8872,6 +8928,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9059,6 +9123,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9082,6 +9154,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9105,6 +9185,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9128,6 +9216,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9151,6 +9247,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9174,6 +9278,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9409,6 +9521,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9432,6 +9552,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9455,6 +9583,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9478,6 +9614,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9501,6 +9645,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9524,6 +9676,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9774,6 +9934,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -9903,6 +10071,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10134,6 +10310,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10157,6 +10341,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10180,6 +10372,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10203,6 +10403,14 @@ trapDoorOpen = false
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10535,6 +10743,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10601,6 +10817,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10624,6 +10848,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10647,6 +10879,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10670,6 +10910,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10693,6 +10941,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -10716,6 +10972,14 @@ if (robedStatueActive) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11398,6 +11662,14 @@ switch(glowingColumns) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11421,6 +11693,14 @@ switch(glowingColumns) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11444,6 +11724,14 @@ switch(glowingColumns) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11467,6 +11755,14 @@ switch(glowingColumns) {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -11810,6 +12106,14 @@ else {
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12041,6 +12345,14 @@ determinedStatueHead = !determinedStatueHead
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12064,6 +12376,14 @@ determinedStatueHead = !determinedStatueHead
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12087,6 +12407,14 @@ determinedStatueHead = !determinedStatueHead
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12110,6 +12438,14 @@ determinedStatueHead = !determinedStatueHead
               },
               "id": undefined,
             },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
             Object {
               "children": Array [
                 Object {
@@ -12300,6 +12636,23 @@ determinedStatueHead = !determinedStatueHead
                     "value": "weeping,",
                   },
                 },
+              ],
+              "data": Object {
+                "selected": true,
+                "tag": "Fallthrough",
+              },
+              "wrapperTag": undefined,
+            },
+          ],
+          "data": Object {
+            "tag": "If",
+          },
+          "id": undefined,
+        },
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [
                 Object {
                   "children": Array [],
                   "data": Object {
