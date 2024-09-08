@@ -9,7 +9,7 @@ import { stripIDFromTree } from '../tree/genericIDTree'
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
     schema.loadWML(wml)
-    const standardized = new Standardizer(stripIDFromTree(schema.schema))
+    const standardized = new Standardizer(schema.schema)
     return standardized
 }
 
@@ -876,7 +876,7 @@ describe('standardizeSchema', () => {
         `)
         const inheritedSchema = new Schema()
         inheritedSchema.loadWML(inheritedSource)
-        const inheritedStandard = new Standardizer(stripIDFromTree(inheritedSchema.schema))
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
         const testStandard = new StandardizerAbstract()
         testStandard.loadStandardForm({
             key: 'Test',

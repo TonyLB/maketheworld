@@ -6,7 +6,6 @@ import tokenize from './parser/tokenizer'
 import SourceStream from "./parser/tokenizer/sourceStream"
 import { Standardizer } from "./standardize"
 import { Schema } from "./schema"
-import { stripIDFromTree } from "./tree/genericIDTree"
 const file = path.join(__dirname, "./", "dungeon.wml")
 
 const dungeonSource = fs.readFileSync(file, "utf8")
@@ -24,7 +23,7 @@ describe('large WML test', () => {
     it('should standardize properly', () => {
         const schema = new Schema()
         schema.loadWML(dungeonSource)
-        const standardizer = new Standardizer(stripIDFromTree(schema.schema))
+        const standardizer = new Standardizer(schema.schema)
         expect(standardizer.stripped.byId).toMatchSnapshot()
     })
 })

@@ -12,13 +12,4 @@ describe('tree filter', () => {
         ])
     })
 
-    it('should filter a GenericIDTree', () => {
-        const testTree: GenericTree<string, TreeId> = [
-            { data: 'A', id: 'A', children: [{ data: 'B', id: 'AB', children: [] }, { data: 'C', id: 'C', children: [] }]},
-            { data: 'D', id: 'D', children: [] }
-        ]
-        expect(filter({ tree: testTree, callback: (value: string, { id }: TreeId): boolean => (id.startsWith('A'))})).toEqual([
-            { data: 'A', id: 'A', children: [{ data: 'B', id: 'AB', children: [] }] }
-        ])
-    })
 })
