@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 
-import { GenericTree, GenericTreeID, GenericTreeIDNode, GenericTreeNode, TreeId } from './baseClasses'
+import { GenericTree } from './baseClasses'
 import dfsWalk from './dfsWalk'
 
 describe('dfsWalk', () => {
@@ -109,31 +109,6 @@ describe('dfsWalk', () => {
             children: []
         }]
         expect(verboseTestWalk(incomingTree)).toEqual(['Test-1, Test-1a, Test-1b, Test-1bi, Test-1bii, Test-2'])
-    })
-
-    it('should handle GenericIDTree inputs', () => {
-        const verboseTestWalk = dfsWalk<(previous: { output: string[], state: number }, value: string, extra: TreeId) => { output: string[], state: number }>({
-            default: { output: [], state: 0 },
-            callback: ({ state, output }, value, { id }) => ({ output: [...output, id], state: state + 1 }),
-            aggregate: ({ direct, children }) => ({ output: [[...direct.output, ...children.output].join(', ')], state: children.state })
-        })
-        const incomingTree: GenericTreeID<string> = [{
-            data: 'Test-1',
-            id: 'A',
-            children: [
-                { data: 'Test-1a', children: [], id: 'B' },
-                { data: 'Test-1b', id: 'C', children: [
-                    { data: 'Test-1bi', children: [], id: 'D' },
-                    { data: 'Test-1bii', children: [], id: 'E' }
-                ] }
-            ]
-        },
-        {
-            data: 'Test-2',
-            children: [],
-            id: 'F'
-        }]
-        expect(verboseTestWalk(incomingTree)).toEqual(['A, B, C, D, E, F'])
     })
 
 })

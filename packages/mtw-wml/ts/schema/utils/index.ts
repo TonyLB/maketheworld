@@ -1,5 +1,5 @@
 import { EditWrappedStandardNode } from "../../standardize/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import {
     isSchemaCondition,
     isSchemaDescription,
@@ -7,8 +7,6 @@ import {
     SchemaTag,
     SchemaTaggedMessageLegalContents,
     isSchemaTaggedMessageLegalContents,
-    isSchemaConditionStatement,
-    isSchemaConditionFallthrough,
     isSchemaRemove,
     isSchemaReplace,
     isSchemaReplaceMatch,
@@ -110,7 +108,7 @@ export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (valu
     }
 }
 
-type IgnoreWrappedReturn<WrapType extends EditWrappedStandardNode<SchemaTag, SchemaTag> | undefined> = WrapType extends undefined ? undefined: WrapType extends EditWrappedStandardNode<infer SubType, infer ChildType> ? GenericTreeNodeFiltered<SubType, ChildType, TreeId> : never
+type IgnoreWrappedReturn<WrapType extends EditWrappedStandardNode<SchemaTag, SchemaTag> | undefined> = WrapType extends undefined ? undefined: WrapType extends EditWrappedStandardNode<infer SubType, infer ChildType> ? GenericTreeNodeFiltered<SubType, ChildType> : never
 export const ignoreWrapped = <WrapType extends EditWrappedStandardNode<SchemaTag, SchemaTag> | undefined>(node: WrapType): IgnoreWrappedReturn<WrapType> => {
     if (!node) { return undefined as IgnoreWrappedReturn<WrapType> }
     if (treeNodeTypeguard(isSchemaReplace)(node) || treeNodeTypeguard(isSchemaRemove)(node)) {
