@@ -5,7 +5,7 @@ import MapDThreeTree from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isStandardMap, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
@@ -56,7 +56,7 @@ export class MapDThree extends Object {
         standardForm: StandardForm;
         updateStandard: (action: UpdateStandardPayload) => void;
         mapId: string;
-        tree: GenericTree<SchemaTag, TreeId>;
+        tree: GenericTree<SchemaTag>;
         onStability?: SimCallback;
         onTick?: SimCallback;
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void;

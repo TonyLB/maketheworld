@@ -2,8 +2,8 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
-import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { MapTreeExit } from '../../Controller/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaAssetTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
@@ -13,7 +13,7 @@ type MapAreaProps = {
     editMode?: boolean;
 }
 
-export const treeToExits = (tree: GenericTree<SchemaAssetTag | SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag, TreeId>): MapTreeExit[] => {
+export const treeToExits = (tree: GenericTree<SchemaAssetTag | SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag>): MapTreeExit[] => {
     return tree.reduce<MapTreeExit[]>((
         previous,
         { data, children }

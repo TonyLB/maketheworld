@@ -12,7 +12,7 @@ import PositionIcon from '@mui/icons-material/ControlCamera'
 import EditIcon from '@mui/icons-material/Edit'
 import { grey } from '@mui/material/colors'
 import { useMapContext } from '../../Controller'
-import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
@@ -29,7 +29,6 @@ import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
-import { maybeGenericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 type MapLayersProps = {
     mapId: string;
@@ -43,7 +42,7 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ id, roomId, name, inherited, children, newestRoom }) => {
+const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited, children, newestRoom }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const navigate = useNavigate()
@@ -76,8 +75,10 @@ const RoomLayer: FunctionComponent<{ id: string; roomId: string; name: string; i
     return <React.Fragment>
         <ListItemButton
             dense
-            selected={itemSelected && itemSelected.type === 'Layer' && itemSelected.key === id}
-            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'Layer', key: id }})}}
+            selected={false}
+            onClick={() => {}}
+            // selected={itemSelected && itemSelected.type === 'Layer' && itemSelected.key === id}
+            // onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'Layer', key: id }})}}
         >
             <ListItemIcon>
                 {
@@ -213,7 +214,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 const AddIfButton: FunctionComponent<{}> = () => {
     const { value, onChange } = useEditContext()
     const onClick = useCallback(() => {
-        onChange(maybeGenericIDFromTree([
+        onChange([
             ...value,
             {
                 data: { tag: 'If' },
@@ -222,7 +223,7 @@ const AddIfButton: FunctionComponent<{}> = () => {
                     children: []
                 }]
             }
-        ]))
+        ])
     }, [value, onChange])
     return <ListItem>
         <ListItemText sx={{ textAlign: 'center' }}><Button variant="contained" onClick={onClick}>Add If</Button></ListItemText>
@@ -232,7 +233,7 @@ const AddIfButton: FunctionComponent<{}> = () => {
 const MapStubRender: FunctionComponent<{}> = () => {
     const { value } = useEditContext()
     return <React.Fragment>
-        { maybeGenericIDFromTree(value).map((node) => (<MapItemLayer item={node} key={node.id} />)) }
+        { value.map((node, index) => (<MapItemLayer item={node} key={`MapStub-${index}`} />)) }
         <AddIfButton />
     </React.Fragment>
 }
@@ -242,7 +243,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
-const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>, highlightID?: string }> = ({ item, highlightID }) => {
+const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
     const { standardForm, combinedStandardForm, updateStandard } = useLibraryAsset()
     const { data } = item
@@ -269,7 +270,6 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag, TreeId>
         case 'Room':
             const roomComponent = standardForm.byId[data.key]
             return <RoomLayer
-                id={item.id}
                 roomId={data.key}
                 name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || data.key : data.key}
                 newestRoom={isNewestRoom}

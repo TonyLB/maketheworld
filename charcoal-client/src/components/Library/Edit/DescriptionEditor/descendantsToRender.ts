@@ -9,13 +9,10 @@ import {
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag, SchemaTag, isSchemaCondition, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
-//
-// TODO: Refactor descendantsToRender to return GenericTree<SchemaTag, { id: string }>
-//
 export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
     const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item) => {
         if (isCustomNewIfWrapper(item)) {

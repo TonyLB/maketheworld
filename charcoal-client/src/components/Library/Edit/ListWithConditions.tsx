@@ -13,7 +13,6 @@ import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "@tonylb/mtw-wm
 import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
 import IfElseTree from "./IfElseTree"
-import { maybeGenericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;
@@ -75,7 +74,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
     }, [])
 
     const addButton = <List>
-        <ListItemButton onClick={() => { onChange(maybeGenericIDFromTree([...value, { data: props.defaultNode, children: [] }])) }}>
+        <ListItemButton onClick={() => { onChange([...value, { data: props.defaultNode, children: [] }]) }}>
             <ListItemIcon>
                 <AddIcon />
             </ListItemIcon>
