@@ -30,9 +30,15 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
+    //
     // importData is the set of schemata that are inherited from imports
     //
     importData: Record<string, GenericTree<SchemaTag>>;
+    //
+    // base is the standard form of the pre-existing data be edited (either or both of an asset being
+    // updated, or inherited data from imports)
+    //
+    base: StandardForm;
     //
     // standard is the standard form derived from WML
     //
