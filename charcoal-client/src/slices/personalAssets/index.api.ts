@@ -53,6 +53,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         publicData: {
             originalWML: assetWML,
             currentWML: assetWML,
+            base: standardizer.standardForm,
             standard: standardizer.standardForm,
             serialized: true
         }
