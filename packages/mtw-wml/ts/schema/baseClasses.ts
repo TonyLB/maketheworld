@@ -1,6 +1,6 @@
 import { GenericTree } from "../tree/baseClasses"
 
-export type SchemaAssetLegalContents = SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaAssetLegalContents = SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
 type SchemaBase = {
@@ -79,9 +79,9 @@ export type SchemaOutfitTag = {
 export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag => (
     isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item)
 )
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
-    isSchemaName(item) || isSchemaPronouns(item) || isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item) || isSchemaImage(item) || isSchemaImport(item)
+    isSchemaName(item) || isSchemaPronouns(item) || isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaMeta(item)
 )
 
 export type SchemaCharacterTag = {
@@ -127,6 +127,12 @@ export type SchemaImportTag = {
 export type SchemaExportTag = {
     tag: 'Export';
     mapping: Record<string, SchemaImportMapping>
+} & SchemaBase
+
+export type SchemaMetaTag = {
+    tag: 'Meta';
+    key: string;
+    time: number;
 } & SchemaBase
 
 export type SchemaInheritedTag = {
@@ -307,6 +313,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaActionTag |
     SchemaImportTag |
     SchemaExportTag |
+    SchemaMetaTag |
     SchemaInheritedTag |
     SchemaSelectedTag |
     SchemaConditionTag |
@@ -387,7 +394,7 @@ export const isSchemaPrompt = (value: SchemaTag): value is SchemaPromptTag => (v
 export const isSchemaMap = (value: SchemaTag): value is SchemaMapTag => (value.tag === 'Map')
 export const isSchemaMessage = (value: SchemaTag): value is SchemaMessageTag => (value.tag === 'Message')
 export const isSchemaMoment = (value: SchemaTag): value is SchemaMomentTag => (value.tag === 'Moment')
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaInherited(value) || isSchemaSelected(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMeta(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaInherited(value) || isSchemaSelected(value))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If', 'Name', 'Theme'].includes(value.tag))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
@@ -410,6 +417,7 @@ export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag =
 
 export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
 export const isSchemaExport = (value: SchemaTag): value is SchemaExportTag => (value.tag === 'Export')
+export const isSchemaMeta = (value: SchemaTag): value is SchemaMetaTag => (value.tag === 'Meta')
 export const isSchemaInherited = (value: SchemaTag): value is SchemaInheritedTag => (value.tag === 'Inherited')
 export const isSchemaSelected = (value: SchemaTag): value is SchemaSelectedTag => (value.tag === 'Selected')
 

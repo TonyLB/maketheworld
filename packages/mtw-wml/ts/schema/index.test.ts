@@ -14,6 +14,7 @@ describe('schemaFromParse', () => {
     it('should make a schema from parse elements correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
+                <Meta key=(ABC) time="1234" />
                 <Import from=(BASE)>
                     <Variable key=(power) from=(basePower) />
                     <Room key=(overview) />
@@ -76,6 +77,10 @@ describe('schemaFromParse', () => {
                 tag: "Asset"
             },
             children: [
+                {
+                    data: { tag: 'Meta', key: "ABC", time: 1234 },
+                    children: []
+                },
                 {
                     data: {
                         from: "BASE",
@@ -684,6 +689,7 @@ describe('schemaToWML', () => {
     it('should correctly round-trip an asset update', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test) update>
+                <Meta key=(ABC) time="1234" />
                 <Room key=(VORTEX)><Description>Test Room Update</Description></Room>
             </Asset>`)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
