@@ -1,4 +1,4 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaSelected } from "../baseClasses"
+import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaMeta, isSchemaSelected } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -10,6 +10,10 @@ const importExportTemplates = {
         from: { required: true, type: ParsePropertyTypes.Key },
     },
     Export: {},
+    Meta: {
+        key: { required: true, type: ParsePropertyTypes.Key },
+        time: { required: true, type: ParsePropertyTypes.Literal }
+    },
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key }
     },
@@ -38,6 +42,19 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
                     }), {})
                 },
                 children
+            }
+        }
+    },
+    Meta: {
+        initialize: ({ parseOpen }): SchemaMetaTag => {
+            const { time, ...rest } = validateProperties(importExportTemplates.Meta)(parseOpen)
+            if (typeof time === 'undefined' || Number.isNaN(parseInt(time))) {
+                throw new Error(`Property 'time' must be a number`)
+            }
+            return {
+                tag: 'Meta',
+                ...rest,
+                time: parseInt(time)
             }
         }
     },
@@ -92,6 +109,19 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Import',
                 properties: [
                     { key: 'from', type: 'key', value: tag.from },
+                ],
+                node: { data: tag, children }
+            })
+            : [{ printMode: PrintMode.naive, output: '' }]
+    ),
+    Meta: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
+        isSchemaMeta(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Meta',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'time', type: 'literal', value: `${tag.time}` }
                 ],
                 node: { data: tag, children }
             })
