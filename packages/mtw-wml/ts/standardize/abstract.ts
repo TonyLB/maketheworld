@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns } from "../schema/baseClasses"
+import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns, isSchemaMeta } from "../schema/baseClasses"
 import { markInherited } from "../schema/treeManipulation/inherited"
 import { TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -712,7 +712,10 @@ export class StandardizerAbstract {
                 outfit,
                 image
             }
-            this.metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
+            this.metaData = [
+                ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta }),
+                ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
+            ]
             standardizeComponentTagType(['Image'], tagTree)
             return character
         })
@@ -745,7 +748,11 @@ export class StandardizerAbstract {
                 ]})
             const importItems = importTagTree.tree.filter(({ children }) => (children.length))
         
-            this.metaData = [...this.metaData, ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag>]
+            this.metaData = [
+                ...this.metaData,
+                ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree,
+                ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag>
+            ]
 
             const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
@@ -804,6 +811,7 @@ export class StandardizerAbstract {
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = [
+                ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...imports,
                 ...componentKeys
                     .map((tagToList) => (
@@ -826,6 +834,7 @@ export class StandardizerAbstract {
                 ...character,
                 children: defaultSelected([
                     ...character.children,
+                    ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                     ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
                 ])
             }]
