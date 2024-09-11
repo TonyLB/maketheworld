@@ -142,6 +142,33 @@ describe('standardizeSchema', () => {
         })
     })
 
+    it('should accept meta tags', () => {
+        const test = schemaTestStandarized(`<Asset key=(Test)>
+            <Meta key=(ABC) time="1234" />
+            <Room key=(testRoom)>
+                <Description>Test Description</Description>
+            </Room>
+        </Asset>`)
+
+        expect(test.standardForm).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
+            byId: {
+                testRoom: {
+                    tag: 'Room',
+                    key: 'testRoom',
+                    name: { data: { tag: 'Name' }, children: [] },
+                    themes: [],
+                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }] },
+                    exits: [],
+                }
+            }
+        })
+    })
+
     it('should accept condition tags without including wrapperKey', () => {
         const standardizer = schemaTestStandarized(`<Asset key=(Test)>
             <Room key=(Room1)>
