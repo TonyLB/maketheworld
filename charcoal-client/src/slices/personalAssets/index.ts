@@ -56,6 +56,8 @@ export const {
             properties: {},
             loadedImages: {},
             base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+            pendingEdits: [],
+            edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
         }
@@ -81,6 +83,8 @@ export const {
                 properties: {},
                 loadedImages: {},
                 base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+                pendingEdits: [],
+                edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
             }
