@@ -383,6 +383,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         // Add a default component
         //
         state.standard.byId[payload.key ?? syntheticKey] = defaultComponentFromTag(payload.tag, payload.key ?? syntheticKey)
+        state.edit.byId[payload.key ?? syntheticKey] = state.standard.byId[payload.key ?? syntheticKey]
     }
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]
