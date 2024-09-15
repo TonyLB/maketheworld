@@ -191,7 +191,9 @@ describe('personalAsset slice reducers', () => {
                     </Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset key=(testAsset) />
+                    <Asset key=(testAsset)>
+                        <Remove><Exit to=(testDestination)>out</Exit></Remove>
+                    </Asset>
                 `)
             })
 
@@ -232,7 +234,10 @@ describe('personalAsset slice reducers', () => {
                     </Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset key=(testAsset) />
+                    <Asset key=(testAsset)>
+                        <Replace><Exit to=(testDestination)>out</Exit></Replace>
+                        <With><Exit to=(testDestination)>depart</Exit></With>
+                    </Asset>
                 `)
             })
 

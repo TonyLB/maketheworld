@@ -388,12 +388,17 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]
         if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
+            const oldList = JSON.parse(JSON.stringify(component[payload.itemKey]))
             if (payload.produce) {
                 payload.produce(component[payload.itemKey])
             }
             else {
                 component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
             }
+            //
+            // TODO: Compare the sublists before and after, and deduce Removes, Adds, and Replaces in
+            // order.
+            //
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
