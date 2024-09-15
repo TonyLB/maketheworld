@@ -9,16 +9,27 @@ import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
 
 describe('personalAsset slice reducers', () => {
 
-    const transformWML = (wml: string, payload: UpdateStandardPayload): string => {
+    const transformWML = (wml: string, editWML: string, payload: UpdateStandardPayload): { standard: string, edit: string } => {
         const schema = new Schema()
         schema.loadWML(wml)
         const standardizer = new Standardizer(schema.schema)
+        const editSchema = new Schema()
+        editSchema.loadWML(editWML)
+        const editStandardizer = new Standardizer(editSchema.schema)
         const newState = produce(
-            { standard: standardizer.standardForm, inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] } },
+            {
+                standard: standardizer.standardForm,
+                edit: editStandardizer.standardForm,
+                inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
+            },
             (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
         )
         standardizer.loadStandardForm(newState.standard)
-        return schemaToWML(standardizer.schema)
+        editStandardizer.loadStandardForm(newState.edit)
+        return {
+            standard: schemaToWML(standardizer.schema),
+            edit: schemaToWML(editStandardizer.schema)
+        }
     }
 
     const schemaFromStandard = (standardForm: StandardForm): GenericTree<SchemaTag> => {
@@ -29,7 +40,8 @@ describe('personalAsset slice reducers', () => {
 
     describe('updateStandard', () => {
         it('should replace schema content', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                     <Asset key=(testAsset)>
                         <Room key=(testRoom)>
                             <Name>Test Room</Name>
@@ -37,30 +49,47 @@ describe('personalAsset slice reducers', () => {
                         </Room>
                     </Asset>
                 `,
+                `
+                    <Asset key=(testAsset) />
+                `,
                 {
                     type: 'replaceItem',
                     componentKey: 'testRoom',
                     itemKey: 'name',
                     item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Name>Test Update</Name>
-                        <Description>Test Description</Description>
-                    </Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Update</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Replace><Name>Test Room</Name></Replace>
+                            <With><Name>Test Update</Name></With>
+                        </Room>
+                    </Asset>
+                `)
+            })
         })
 
         it('should replace schema content using an immer produce', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testRoom)>
                         <Name>Test Room</Name>
                         <Description>Test Description</Description>
                     </Room>
                 </Asset>
+                `,
+                `
+                    <Asset key=(testAsset) />
                 `,
                 {
                     type: 'replaceItem',
@@ -72,18 +101,29 @@ describe('personalAsset slice reducers', () => {
                         })
                     }
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Functional update</Description>
-                    </Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Functional update</Description>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Replace><Description>Test Description</Description></Replace>
+                            <With><Description>Functional update</Description></With>
+                        </Room>
+                    </Asset>
+                `)
+            })
         })
 
         it('should add a component', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testRoom)>
                         <Name>Test Room</Name>
@@ -91,26 +131,35 @@ describe('personalAsset slice reducers', () => {
                     </Room>
                 </Asset>
                 `,
+                `
+                    <Asset key=(testAsset) />
+                `,
                 {
                     type: 'addComponent',
                     tag: 'Variable'
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                    </Room>
-                    <Variable key=(Variable1) default={false} />
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                        <Variable key=(Variable1) default={false} />
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)><Variable key=(Variable1) default={false} /></Asset>
+                `)
+            })
         })
 
         it('should splice a component list', () => {
             //
             // Test removing an item from a list
             //
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testDestination) />
                     <Room key=(testRoom)>
@@ -119,6 +168,9 @@ describe('personalAsset slice reducers', () => {
                         <Exit to=(testDestination)>out</Exit>
                     </Room>
                 </Asset>
+                `,
+                `
+                <Asset key=(testAsset) />
                 `,
                 {
                     type: 'spliceList',
@@ -128,20 +180,28 @@ describe('personalAsset slice reducers', () => {
                     replace: 1,
                     items: []
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                    </Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Remove><Exit to=(testDestination)>out</Exit></Remove>
+                    </Asset>
+                `)
+            })
 
             //
             // Test replacing an item in a list
             //
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testDestination) />
                     <Room key=(testRoom)>
@@ -151,6 +211,9 @@ describe('personalAsset slice reducers', () => {
                     </Room>
                 </Asset>
                 `,
+                `
+                    <Asset key=(testAsset) />
+                `,
                 {
                     type: 'spliceList',
                     componentKey: 'testRoom',
@@ -159,21 +222,30 @@ describe('personalAsset slice reducers', () => {
                     replace: 1,
                     items: [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(testDestination)>depart</Exit>
-                    </Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(testDestination)>depart</Exit>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Replace><Exit to=(testDestination)>out</Exit></Replace>
+                        <With><Exit to=(testDestination)>depart</Exit></With>
+                    </Asset>
+                `)
+            })
 
         })
 
         it('should splice a component list with immer producer', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testDestination) />
                     <Room key=(testRoom)>
@@ -182,6 +254,9 @@ describe('personalAsset slice reducers', () => {
                         <Exit to=(testDestination)>out</Exit>
                     </Room>
                 </Asset>
+                `,
+                `
+                    <Asset key=(testAsset) />
                 `,
                 {
                     type: 'spliceList',
@@ -195,26 +270,35 @@ describe('personalAsset slice reducers', () => {
                         })
                     }
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(testDestination)>Test Update</Exit>
-                    </Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(testDestination)>Test Update</Exit>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset) />
+                `)
+            })
         })
 
         it('should delete schema content', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(testRoom)>
                         <Name>Test Room</Name>
                         <Description>Test Description</Description>
                     </Room>
                 </Asset>
+                `,
+                `
+                <Asset key=(testAsset) />
                 `,
                 {
                     type: 'replaceItem',
@@ -222,16 +306,27 @@ describe('personalAsset slice reducers', () => {
                     itemKey: 'name',
                     item: undefined
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(testRoom)><Description>Test Description</Description></Room>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)><Description>Test Description</Description></Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)><Remove><Name>Test Room</Name></Remove></Room>
+                    </Asset>
+                `)
+            })
         })
 
         it('should update a non-tree field in a standardComponent', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)><Computed key=(testComputed) src={!testVar} /></Asset>
+                `,
+                `
+                    <Asset key=(testAsset) />
                 `,
                 {
                     type: 'updateField',
@@ -239,14 +334,23 @@ describe('personalAsset slice reducers', () => {
                     itemKey: 'src',
                     value: 'testVar'
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset) />
+                `)
+            })
         })
 
         it('should replace metaData', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Character key=(testCharacter)><Import from=(testImport) /></Character>
+                `,
+                `
+                    <Character key=(testCharacter) />
                 `,
                 {
                     type: 'replaceMetaData',
@@ -255,13 +359,19 @@ describe('personalAsset slice reducers', () => {
                         children: []
                     }]
                 }
-            )).toEqual(deIndentWML(`
-                <Character key=(testCharacter)><Import from=(differentImport) /></Character>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Character key=(testCharacter)><Import from=(differentImport) /></Character>
+                `),
+                edit: deIndentWML(`
+                    <Character key=(testCharacter) />
+                `)
+            })
         })
 
         it('should rename exit targets on rename of room', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Room key=(Room1)>
                         <Name>Test Room</Name>
@@ -274,48 +384,66 @@ describe('personalAsset slice reducers', () => {
                     </Room>
                 </Asset>
                 `,
-                {
-                    type: 'renameKey',
-                    from: 'Room2',
-                    to: 'garden'
-                }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(Room1)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(garden)>out</Exit>
-                    </Room>
-                    <Room key=(garden)>
-                        <Name>Garden</Name>
-                        <Exit to=(Room1)>text</Exit>
-                    </Room>
-                </Asset>
-            `))
-        })
-
-        it('should rename map references on rename of room', () => {
-            expect(transformWML(`
-                <Asset key=(testAsset)>
-                    <Room key=(Room2)><Name>Garden</Name></Room>
-                    <Map key=(testMap)><Room key=(Room2)><Position x="0" y="0" /></Room></Map>
-                </Asset>
+                `
+                <Asset key=(testAsset) />
                 `,
                 {
                     type: 'renameKey',
                     from: 'Room2',
                     to: 'garden'
                 }
-            )).toEqual(deIndentWML(`
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(Room1)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(garden)>out</Exit>
+                        </Room>
+                        <Room key=(garden)>
+                            <Name>Garden</Name>
+                            <Exit to=(Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset) />
+                `)
+            })
+        })
+
+        it('should rename map references on rename of room', () => {
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
-                    <Room key=(garden)><Name>Garden</Name></Room>
-                    <Map key=(testMap)><Room key=(garden)><Position x="0" y="0" /></Room></Map>
+                    <Room key=(Room2)><Name>Garden</Name></Room>
+                    <Map key=(testMap)><Room key=(Room2)><Position x="0" y="0" /></Room></Map>
                 </Asset>
-            `))
+                `,
+                `
+                    <Asset key=(testAsset) />
+                `,
+                {
+                    type: 'renameKey',
+                    from: 'Room2',
+                    to: 'garden'
+                }
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(garden)><Name>Garden</Name></Room>
+                        <Map key=(testMap)><Room key=(garden)><Position x="0" y="0" /></Room></Map>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset) />
+                `)
+            })
         })
 
         it('should rename link targets on rename of feature', () => {
-            expect(transformWML(`
+            expect(transformWML(
+                `
                 <Asset key=(testAsset)>
                     <Feature key=(Feature1)>
                         <Name>Test Feature</Name>
@@ -323,19 +451,27 @@ describe('personalAsset slice reducers', () => {
                     </Feature>
                 </Asset>
                 `,
+                `
+                    <Asset key=(testAsset) />
+                `,
                 {
                     type: 'renameKey',
                     from: 'Feature1',
                     to: 'clockTower'
                 }
-            )).toEqual(deIndentWML(`
-                <Asset key=(testAsset)>
-                    <Feature key=(clockTower)>
-                        <Name>Test Feature</Name>
-                        <Description><Link to=(clockTower)>Link</Link></Description>
-                    </Feature>
-                </Asset>
-            `))
+            )).toEqual({
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Feature key=(clockTower)>
+                            <Name>Test Feature</Name>
+                            <Description><Link to=(clockTower)>Link</Link></Description>
+                        </Feature>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset) />
+                `)
+            })
         })        
     })
 })
