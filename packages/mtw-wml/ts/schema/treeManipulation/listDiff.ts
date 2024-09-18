@@ -1,7 +1,11 @@
 import { diffTrees } from '../../tree/diff'
-import { GenericTree, GenericTreeDiffAction } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeDiffAction, GenericTreeDiffNode } from "../../tree/baseClasses"
 import { isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaWithKey, SchemaTag } from "../baseClasses"
 import { deepEqual } from '../../lib/objects'
+
+const diffTreeIncludesChange = (node: GenericTreeDiffNode<SchemaTag>): boolean => {
+    return [GenericTreeDiffAction.Add, GenericTreeDiffAction.Delete, GenericTreeDiffAction.Set].includes(node.action) || Boolean(node.children.find((child) => (diffTreeIncludesChange(child))))
+}
 
 export const listDiff = (a: GenericTree<SchemaTag>, b: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     const diff = diffTrees<SchemaTag, SchemaTag>({
@@ -21,7 +25,8 @@ export const listDiff = (a: GenericTree<SchemaTag>, b: GenericTree<SchemaTag>): 
             return deepEqual(a, b)
         },
         extractProperties: (value) => (value),
-        rehydrateProperties: (base, properties) => ({ ...base, ...properties })
+        rehydrateProperties: (base, properties) => ({ ...base, ...properties[0] }),
+        verbose: true
     })(a, b)
     let aIndex = 0
     let bIndex = 0
@@ -32,7 +37,33 @@ export const listDiff = (a: GenericTree<SchemaTag>, b: GenericTree<SchemaTag>): 
                 returnValue = [...returnValue, b[bIndex]]
                 bIndex++
                 break
-            // case GenericTreeDiffAction.Exclude:
+            case GenericTreeDiffAction.Delete:
+                returnValue = [
+                    ...returnValue,
+                    {
+                        data: { tag: 'Remove' },
+                        children: [a[aIndex]]
+                    }
+                ]
+                aIndex++
+                break
+            case GenericTreeDiffAction.Context:
+            case GenericTreeDiffAction.Set:
+                if (diffNode.action === GenericTreeDiffAction.Set || diffTreeIncludesChange(diffNode)) {
+                    returnValue = [
+                        ...returnValue,
+                        {
+                            data: { tag: 'Replace' },
+                            children: [
+                                { data: { tag: 'ReplaceMatch' }, children: [a[aIndex]] },
+                                { data: { tag: 'ReplacePayload' }, children: [b[bIndex]] }
+                            ]
+                        }
+                    ]
+                }
+                aIndex++
+                bIndex++
+                break
             default:
                 aIndex++
                 bIndex++
