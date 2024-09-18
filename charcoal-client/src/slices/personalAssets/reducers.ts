@@ -10,7 +10,7 @@ import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema
 import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardForm, StandardKnowledge, StandardMap, StandardRoom, StandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
-import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import { listDiff } from '@tonylb/mtw-wml/ts/schema/treeManipulation/listDiff'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -182,8 +182,8 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const mergedStandardizer = editStandardizer.merge(deltaStandardizer)
         state.edit = mergedStandardizer.standardForm
     }
-    const mergeFieldToEdit = <T extends StandardComponent, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
-        componentKey: string; tag: T["tag"], key: K, oldValue: T[K]; newValue: T[K]
+    const mergeFieldToEdit = <T extends StandardComponent, K extends keyof T>({ componentKey, tag, key, oldValue }: {
+        componentKey: string; tag: T["tag"], key: K, oldValue: T[K];
     }) => {
         const typedComponent = component as T
         mergeToEdit({
@@ -228,8 +228,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: 'Room',
                             key: 'shortName',
-                            oldValue: oldShortName,
-                            newValue: component.shortName
+                            oldValue: oldShortName
                         })
                         break
                     case 'name':
@@ -244,8 +243,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: 'Room',
                             key: 'name',
-                            oldValue: oldName,
-                            newValue: component.name
+                            oldValue: oldName
                         })
                         break
                     case 'summary':
@@ -260,8 +258,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: 'Room',
                             key: 'summary',
-                            oldValue: oldSummary,
-                            newValue: component.summary
+                            oldValue: oldSummary
                         })
                         break
                     case 'description':
@@ -276,8 +273,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: 'Room',
                             key: 'description',
-                            oldValue: oldDescription,
-                            newValue: component.description
+                            oldValue: oldDescription
                         })
                         break
                 }
@@ -297,8 +293,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: component?.tag,
                             key: 'name',
-                            oldValue: oldName,
-                            newValue: component.name
+                            oldValue: oldName
                         })
                         break
                     case 'description':
@@ -313,8 +308,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: component?.tag,
                             key: 'description',
-                            oldValue: oldDescription,
-                            newValue: component.description
+                            oldValue: oldDescription
                         })
                         break
                 }
@@ -334,8 +328,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: component?.tag,
                             key: 'name',
-                            oldValue: oldName,
-                            newValue: component.name
+                            oldValue: oldName
                         })
                         break
                 }
@@ -354,8 +347,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             componentKey: component.key,
                             tag: component?.tag,
                             key: 'name',
-                            oldValue: oldName,
-                            newValue: component.name
+                            oldValue: oldName
                         })
                         break
                 }
@@ -388,7 +380,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadSpliceList(payload)) {
         const component = state.standard?.byId?.[payload.componentKey]
         if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
-            const oldList = JSON.parse(JSON.stringify(component[payload.itemKey]))
+            const oldList = JSON.parse(JSON.stringify(component[payload.itemKey])) as GenericTree<SchemaTag>
             if (payload.produce) {
                 payload.produce(component[payload.itemKey])
             }
@@ -396,9 +388,23 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 component[payload.itemKey].splice(payload.at, payload.replace ?? 0, ...payload.items)
             }
             //
-            // TODO: Compare the sublists before and after, and deduce Removes, Adds, and Replaces in
+            // Compare the sublists before and after, and deduce Removes, Adds, and Replaces in
             // order.
             //
+            const editChildren = listDiff(oldList, component[payload.itemKey])
+            if (editChildren.length) {
+                mergeToEdit({
+                    ...state.edit,
+                    byId: {
+                        [payload.componentKey]: {
+                            ...(defaultComponentFromTag(component.tag, payload.componentKey)),
+                            key: payload.componentKey,
+                            tag: component.tag,
+                            [payload.itemKey]: editChildren
+                        } as StandardComponent
+                    }
+                })
+            }
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
