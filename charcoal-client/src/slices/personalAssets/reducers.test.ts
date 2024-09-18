@@ -192,7 +192,9 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Remove><Exit to=(testDestination)>out</Exit></Remove>
+                        <Room key=(testRoom)>
+                            <Remove><Exit to=(testDestination)>out</Exit></Remove>
+                        </Room>
                     </Asset>
                 `)
             })
@@ -235,8 +237,10 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Replace><Exit to=(testDestination)>out</Exit></Replace>
-                        <With><Exit to=(testDestination)>depart</Exit></With>
+                        <Room key=(testRoom)>
+                            <Replace><Exit to=(testDestination)>out</Exit></Replace>
+                            <With><Exit to=(testDestination)>depart</Exit></With>
+                        </Room>
                     </Asset>
                 `)
             })
@@ -282,7 +286,12 @@ describe('personalAsset slice reducers', () => {
                     </Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset key=(testAsset) />
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Replace><Exit to=(testDestination)>out</Exit></Replace>
+                            <With><Exit to=(testDestination)>Test Update</Exit></With>
+                        </Room>
+                    </Asset>
                 `)
             })
         })
