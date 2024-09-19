@@ -408,7 +408,16 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
+        const oldList = JSON.parse(JSON.stringify(state.standard.metaData)) as GenericTree<SchemaTag>
         state.standard.metaData = payload.metaData
+        const editChildren = listDiff(oldList, state.standard.metaData)
+        if (editChildren.length) {
+            mergeToEdit({
+                ...state.edit,
+                byId: {},
+                metaData: editChildren
+            })
+        }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
         const recursiveRenameWalk = <T extends SchemaTag>(props: {
