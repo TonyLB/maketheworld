@@ -714,7 +714,7 @@ export class StandardizerAbstract {
             }
             this.metaData = [
                 ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta }),
-                ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaImport })
+                ...character.children.filter(wrappedNodeTypeGuard(isSchemaImport))
             ]
             standardizeComponentTagType(['Image'], tagTree)
             return character
@@ -732,7 +732,10 @@ export class StandardizerAbstract {
             const importTagTree = tagTree
                 .filter({ match: 'Import' })
                 .prune({ or: [
-                    { before: { match: 'Import' } },
+                    { and: [
+                        { before: { match: 'Import' } },
+                        { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove' }]}}
+                    ] },
                     { after: { or: [
                         { match: 'Room' },
                         { match: 'Feature' },
@@ -751,7 +754,7 @@ export class StandardizerAbstract {
             this.metaData = [
                 ...this.metaData,
                 ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree,
-                ...importItems.filter(treeNodeTypeguard(isSchemaImport)) as GenericTree<SchemaTag>
+                ...importItems.filter(wrappedNodeTypeGuard(isSchemaImport)) as GenericTree<SchemaTag>
             ]
 
             const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
@@ -835,7 +838,7 @@ export class StandardizerAbstract {
                 children: defaultSelected([
                     ...character.children,
                     ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
-                    ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
+                    ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
                 ])
             }]
         }

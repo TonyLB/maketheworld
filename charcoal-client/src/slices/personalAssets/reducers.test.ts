@@ -373,7 +373,10 @@ describe('personalAsset slice reducers', () => {
                     <Character key=(testCharacter)><Import from=(differentImport) /></Character>
                 `),
                 edit: deIndentWML(`
-                    <Character key=(testCharacter) />
+                    <Character key=(testCharacter)>
+                        <Remove><Import from=(testImport) /></Remove>
+                        <Import from=(differentImport) />
+                    </Character>
                 `)
             })
         })
