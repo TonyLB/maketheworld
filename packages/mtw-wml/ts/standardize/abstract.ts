@@ -9,7 +9,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
@@ -408,7 +408,7 @@ const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag>): GenericTr
     field ? [field] : []
 )
 
-const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag> => {
+const standardItemToSchemaItem = (item: StandardComponentNonEdit): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':
             const pronounsItem = item.pronouns
@@ -820,6 +820,7 @@ export class StandardizerAbstract {
                     .map((tagToList) => (
                         Object.values(this._byId)
                             .filter(({ tag }) => (tag === tagToList))
+                            .filter(isStandardNonEdit)
                             .map(standardItemToSchemaItem)
                             .filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key))))
                     ))
@@ -832,7 +833,7 @@ export class StandardizerAbstract {
             }]
         }
         if (this._assetTag === 'Character') {
-            const character = standardItemToSchemaItem(this._byId[this._assetKey])
+            const character = standardItemToSchemaItem(this._byId[this._assetKey] as StandardComponentNonEdit)
             return [{
                 ...character,
                 children: defaultSelected([

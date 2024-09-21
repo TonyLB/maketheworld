@@ -132,7 +132,7 @@ export type StandardImage = {
 
 export type StandardImageUpdate = StandardUpdateItem<StandardImage>
 
-export type StandardComponent =
+export type StandardComponentNonEdit =
     StandardCharacter |
     StandardRoom |
     StandardFeature |
@@ -146,6 +146,13 @@ export type StandardComponent =
     StandardComputed |
     StandardAction |
     StandardImage
+
+export type StandardRemove = {
+    tag: 'Remove';
+    component: StandardComponentNonEdit;
+} & StandardBase
+
+export type StandardComponent = StandardComponentNonEdit | StandardRemove
 
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
 
@@ -162,6 +169,10 @@ export const isStandardAction = isStandardFactory<StandardAction>("Action")
 export const isStandardVariable = isStandardFactory<StandardVariable>("Variable")
 export const isStandardComputed = isStandardFactory<StandardComputed>("Computed")
 export const isStandardImage = isStandardFactory<StandardImage>("Image")
+
+export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
+
+export const isStandardNonEdit = (value: StandardComponent): value is StandardComponentNonEdit => (!["Remove"].includes(value.tag))
 
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = GenericTreeNodeFiltered<T, ChildType, Extra>
 
