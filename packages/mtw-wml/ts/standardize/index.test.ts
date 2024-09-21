@@ -699,6 +699,16 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(testSource)
     })
 
+    it('should render Remove tags correctly', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Remove><Room key=(testRoomTwo)><Name>Test To Delete</Name></Room></Remove>
+            </Asset>
+        `)
+        const test = schemaTestStandarized(testSource)
+        expect(schemaToWML(test.schema)).toEqual(testSource)
+    })
 
     it('should handle characters correctly', () => {
         const testSource = deIndentWML(`

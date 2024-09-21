@@ -634,11 +634,12 @@ export class StandardizerAbstract {
                     //
                     const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (data.key === key)) }
                     const nodeMatchImport: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (((Boolean(stack.find(isSchemaImport)) && isImportable(data)) ? data.as ?? data.key : data.key) === key)) }
+                    const editTag: TagTreeMatchOperation<SchemaTag> = { or: [{ match: 'Replace' }, { match: 'Remove' }] }
                     const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                         const prunedTagTree = tagTree
                             .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
                             .reordered([{ match: tag }, { connected: [{ match: 'Replace'}, { or: [{ match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] }]}, { match: 'Remove' }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
-                            .prune({ and: [{ before: nodeMatch }, { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove'} ]} }] })
+                            .prune({ and: [{ before: nodeMatch }, { not: { or: [editTag, { after: editTag }] }}] })
                             .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
                         switch(tag) {
                             case 'Room':
