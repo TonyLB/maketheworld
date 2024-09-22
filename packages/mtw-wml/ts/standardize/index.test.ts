@@ -783,7 +783,7 @@ describe('standardizeSchema', () => {
         `))
     })
 
-    it('should merge edit tags correctly', () => {
+    it('should merge edit value tags correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
@@ -813,6 +813,96 @@ describe('standardizeSchema', () => {
                     <Name>Darkened lobby</Name>
                     <Description>A plain lobby.</Description>
                 </Room>
+            </Asset>
+        `))
+    })
+
+    it('should merge edit component remove of plain base component correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                </Remove>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)><Room key=(testRoomTwo) /></Asset>
+        `))
+    })
+
+    it('should merge edit component remove of replace base component correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)><Name>Changed</Name></Room>
+                </Remove>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
+
+    it('should merge edit component remove of empty base component correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)><Name>Lobby</Name></Room>
+                </Remove>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+                <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
             </Asset>
         `))
     })
