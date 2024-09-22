@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { objectMap } from "../lib/objects"
+import { deepEqual, objectMap } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns, isSchemaMeta } from "../schema/baseClasses"
@@ -9,7 +9,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit } from "./baseClasses"
+import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit, MergeConflictError, StandardizerError, isStandardRemove, isStandardReplace, unwrapStandardComponent } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
@@ -198,8 +198,26 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => 
     }
 }
 
-const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent => {
+const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent | undefined => {
     switch(base.tag) {
+        case 'Remove':
+            if (incoming) {
+                if (!deepEqual(base.component, incoming)) {
+                    throw new MergeConflictError()
+                }
+                return undefined
+            }
+            else {
+                const { component } = base
+                if (!isStandardNonEdit(component)) {
+                    throw new StandardizerError('Illegal contents in Remove')
+                }
+                return {
+                    key: component.key,
+                    tag: 'Remove',
+                    component
+                }    
+            }
         case 'Room':
             if (!isStandardRoom(incoming)) { throw new Error('Type mismatch') }
             return {
@@ -288,6 +306,20 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
 }
 
 const schemaItemToStandardItem = ({ data, children }: GenericTreeNode<SchemaTag>, fullSchema: GenericTree<SchemaTag>, imported: boolean): StandardComponent | undefined => {
+    if (isSchemaRemove(data)) {
+        if (!(children.length === 1)) {
+            throw new Error('Illegal number of children in remove tag')
+        }
+        const component = schemaItemToStandardItem(children[0], fullSchema, imported)
+        if (!(component && isStandardNonEdit(component))) {
+            throw new Error('Illegal non-content argument in remove tag')
+        }
+        return {
+            key: component.key,
+            tag: 'Remove',
+            component
+        }
+    }
     if (isSchemaRoom(data)) {
         const tagTree = new SchemaTagTree(children)
         const shortNameItem = tagTree.filter({ match: 'ShortName' }).tree.find(wrappedNodeTypeGuard(isSchemaShortName))
@@ -643,7 +675,7 @@ export class StandardizerAbstract {
                                 (tagItem) => {
                                     const isEditTag = (value: TagListItem<SchemaTag, {}>): boolean => (['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove'].includes(value.data.tag))
                                     const isConditionalTag = (value: TagListItem<SchemaTag, {}>): boolean => (['If', 'Statement', 'Fallthrough'].includes(value.data.tag))
-                                    const { componentTags, valueTags, contentTags } = tagItem.reduce<{ componentTags: TagListItem<SchemaTag>[]; valueTags: TagListItem<SchemaTag>[]; contentTags: TagListItem<SchemaTag>[]; matchedAlready: boolean }>((previous, subItem) => {
+                                    const { componentTags, valueTags, conditionalTags } = tagItem.reduce<{ componentTags: TagListItem<SchemaTag>[]; valueTags: TagListItem<SchemaTag>[]; conditionalTags: TagListItem<SchemaTag>[]; matchedAlready: boolean }>((previous, subItem) => {
                                         if (subItem.data.tag === tag) {
                                             return {
                                                 ...previous,
@@ -668,7 +700,7 @@ export class StandardizerAbstract {
                                         if (isConditionalTag(subItem)) {
                                             return {
                                                 ...previous,
-                                                contentTags: [...previous.contentTags, subItem]
+                                                conditionalTags: [...previous.conditionalTags, subItem]
                                             }
                                         }
                                         else {
@@ -677,7 +709,7 @@ export class StandardizerAbstract {
                                                 valueTags: [...previous.valueTags, subItem]
                                             }
                                         }
-                                    }, { componentTags: [], valueTags: [], contentTags: [], matchedAlready: false })
+                                    }, { componentTags: [], valueTags: [], conditionalTags: [], matchedAlready: false })
                                     const relativeOrder: Partial<Record<SchemaTag["tag"], number>> = {
                                         Remove: 1,
                                         Replace: 1,
@@ -687,16 +719,12 @@ export class StandardizerAbstract {
                                         Name: 4,
                                         ShortName: 4,
                                         Description: 4,
-                                        Summary: 4,
-                                        If: 5,
-                                        Statement: 6,
-                                        Fallthrough: 6,
-                                        Inherited: 7
+                                        Summary: 4
                                     }
                                     const sortInPlace = (tags: TagListItem<SchemaTag>[]): TagListItem<SchemaTag>[] => (
                                         [...tags].sort((a, b) => ((relativeOrder[a.data.tag] ?? Infinity) - (relativeOrder[b.data.tag] ?? Infinity)))
                                     )
-                                    return [...sortInPlace(componentTags), ...sortInPlace(valueTags), ...sortInPlace(contentTags)]
+                                    return [...sortInPlace(componentTags), ...sortInPlace(valueTags), ...conditionalTags]
                                 }
                             )
                             .prune({ and: [{ before: nodeMatch }, { not: { or: [editTag, { after: editTag }] }}] })
@@ -717,21 +745,37 @@ export class StandardizerAbstract {
                     const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatchImport, { match: 'Import' }] }), nodeMatchImport)
 
                     applyEdits(filteredTagTree.tree).forEach((item) => {
-                        // console.log(`componentItem: ${JSON.stringify(item)}`)
                         const standardItem = schemaItemToStandardItem(item, tagTree.tree, false)
-                        // console.log(`standardItem: ${JSON.stringify(standardItem)}`)
                         if (standardItem) {
-                            this._byId[key] = key in this._byId
-                                ? mergeStandardComponents(this._byId[key], standardItem)
-                                : standardItem
+                            if (this._byId[key]) {
+                                const merged = mergeStandardComponents(this._byId[key], standardItem)
+                                if (merged) {
+                                    this._byId[key] = merged
+                                }
+                                else {
+                                    delete this._byId[key]
+                                }
+                            }
+                            else {
+                                this._byId[key] = standardItem
+                            }
                         }
                     })
                     applyEdits(markInherited(importedTagTree.tree)).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, tagTree.tree, true)
                         if (standardItem) {
-                            this._byId[key] = key in this._byId
-                                ? mergeStandardComponents(this._byId[key], standardItem)
-                                : standardItem
+                            if (this._byId[key]) {
+                                const merged = mergeStandardComponents(this._byId[key], standardItem)
+                                if (merged) {
+                                    this._byId[key] = merged
+                                }
+                                else {
+                                    delete this._byId[key]
+                                }
+                            }
+                            else {
+                                this._byId[key] = standardItem
+                            }
                         }
                     })
                 })
@@ -882,9 +926,28 @@ export class StandardizerAbstract {
                 ...componentKeys
                     .map((tagToList) => (
                         Object.values(this._byId)
-                            .filter(({ tag }) => (tag === tagToList))
-                            .filter(isStandardNonEdit)
-                            .map(standardItemToSchemaItem)
+                            .filter((component) => (unwrapStandardComponent(component).tag === tagToList))
+                            .map<GenericTreeNode<SchemaTag>>((component) => {
+                                if (isStandardNonEdit(component)) {
+                                    return standardItemToSchemaItem(component)
+                                }
+                                else if (isStandardRemove(component)) {
+                                    return {
+                                        data: { tag: 'Remove' },
+                                        children: [standardItemToSchemaItem(component.component)]
+                                    }
+                                }
+                                else if (isStandardReplace(component)) {
+                                    return {
+                                        data: { tag: 'Replace' },
+                                        children: [
+                                            { data: { tag: 'ReplaceMatch' }, children: [standardItemToSchemaItem(component.match)] },
+                                            { data: { tag: 'ReplacePayload' }, children: [standardItemToSchemaItem(component.payload)] }
+                                        ]
+                                    }
+                                }
+                                throw new StandardizerError()
+                            })
                             .filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key))))
                     ))
                     .flat(1),
