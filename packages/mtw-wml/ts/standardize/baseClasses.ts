@@ -1,6 +1,9 @@
 import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
 import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../tree/baseClasses";
 
+export class StandardizerError extends Error {}
+export class MergeConflictError extends StandardizerError {}
+
 type StandardBase = {
     key: string;
     update?: boolean;
@@ -158,6 +161,18 @@ export type StandardReplace = {
     payload: StandardComponentNonEdit;
 } & StandardBase
 
+export const unwrapStandardComponent = (component: StandardComponent): StandardComponentNonEdit => {
+    if (isStandardNonEdit(component)) {
+        return component
+    }
+    else if (isStandardRemove(component)) {
+        return component.component
+    }
+    else {
+        return component.payload
+    }
+}
+
 export type StandardComponent = StandardComponentNonEdit | StandardRemove | StandardReplace
 
 export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
@@ -190,7 +205,6 @@ export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends Schem
     data: SchemaReplaceTag;
     children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[] }[];
 } | EditInternalStandardNode<T, ChildType, Extra>
-
 
 export type StandardForm = {
     key: string;

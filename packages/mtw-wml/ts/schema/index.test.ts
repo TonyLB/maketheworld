@@ -421,7 +421,7 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    it('should correctly parse replace tags', () => {
+    it('should correctly parse property replace tags', () => {
         const testWML = `
             <Asset key=(test)>
                 <Room key=(room1)>
@@ -457,7 +457,44 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    it('should correctly parse remove tags', () => {
+    it('should correctly parse component replace tags', () => {
+        const testWML = `
+            <Asset key=(test)>
+                <Replace><Room key=(room1)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(room1)><Name>Foyer</Name></Room></With>
+            </Asset>
+        `
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "test"
+            },
+            children: [
+                {
+                    data: { tag: 'Replace' },
+                    children: [
+                        {
+                            data: { tag: 'ReplaceMatch' },
+                            children: [{
+                                data: { tag: 'Room', key: 'room1' },
+                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                            }]
+                        },
+                        {
+                            data: { tag: 'ReplacePayload' },
+                            children: [{
+                                data: { tag: 'Room', key: 'room1' },
+                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
+                            }]
+                        }
+                    ]
+                }
+            ]
+        }])
+    })
+
+    it('should correctly parse property remove tags', () => {
         const testWML = `
             <Asset key=(test)>
                 <Room key=(room1)>
@@ -480,6 +517,30 @@ describe('schemaFromParse', () => {
                     }]
                 }
             ]
+        }])
+    })
+
+    it('should correctly parse component remove tags', () => {
+        const testWML = `
+            <Asset key=(test)>
+                <Remove>
+                    <Room key=(room1)><Exit to=(room2)>out</Exit></Room>
+                </Remove>
+            </Asset>
+        `
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "test"
+            },
+            children: [{
+                data: { tag: 'Remove' },
+                children: [{
+                    data: { tag: 'Room', key: 'room1' },
+                    children: [{ data: { tag: 'Exit', from: 'room1', key: 'room1#room2', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                }]
+            }]
         }])
     })
 

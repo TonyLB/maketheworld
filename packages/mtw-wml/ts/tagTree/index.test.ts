@@ -237,6 +237,51 @@ describe('TagTree', () => {
         `))
     })
 
+    it('should reorder tags with a functional callback', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>An institutional lobby.</Description>
+                </Room>
+                <If {true}>
+                    <Room key=(room1)>
+                        <Name><Space />at night</Name>
+                        <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                    </Room>
+                </If>
+            </Asset>
+        `))))
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+        const reorderedTree = tagTree.reorderFunctional(
+            [{ match: 'Room' }, { match: 'Description' }, { match: 'Name' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }],
+            (tags) => {
+                const order: Record<string, number> = {
+                    Room: 1,
+                    Name: 2,
+                    Description: 2,
+                    If: 3,
+                    Statement: 4,
+                    Fallthrough: 4
+                }
+                return [...tags].sort((a, b) => (order[a.data.tag] - order[b.data.tag]))
+            }
+        )
+        expect(schemaToWML(reorderedTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby<If {true}><Space />at night</If></Name>
+                    <Description>
+                        An institutional lobby.<If {true}>
+                            <Space />The lights are out, and shadows stretch along the
+                            walls.
+                        </If>
+                    </Description>
+                </Room>
+            </Asset>
+        `))
+    })
+
     it('should reorder siblings correctly', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
