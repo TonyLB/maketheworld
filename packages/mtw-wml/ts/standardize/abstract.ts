@@ -320,6 +320,31 @@ const schemaItemToStandardItem = ({ data, children }: GenericTreeNode<SchemaTag>
             component
         }
     }
+    if (isSchemaReplace(data)) {
+        if (!(children.length === 2)) {
+            throw new StandardizerError('Illegal number of children in replace tag')
+        }
+        if (!(treeNodeTypeguard(isSchemaReplaceMatch)(children[0]) && children[0].children.length === 1)) {
+            throw new StandardizerError('Malformed replace tag')
+        }
+        const match = schemaItemToStandardItem(children[0].children[0], fullSchema, imported)
+        if (!(match && isStandardNonEdit(match))) {
+            throw new StandardizerError('Illegal non-content match argument in replace tag')
+        }
+        if (!(treeNodeTypeguard(isSchemaReplacePayload)(children[1]) && children[1].children.length === 1)) {
+            throw new StandardizerError('Malformed replace tag')
+        }
+        const payload = schemaItemToStandardItem(children[1].children[0], fullSchema, imported)
+        if (!(payload && isStandardNonEdit(payload))) {
+            throw new StandardizerError('Illegal non-content payload argument in replace tag')
+        }
+        return {
+            key: match.key,
+            tag: 'Replace',
+            match,
+            payload
+        }
+    }
     if (isSchemaRoom(data)) {
         const tagTree = new SchemaTagTree(children)
         const shortNameItem = tagTree.filter({ match: 'ShortName' }).tree.find(wrappedNodeTypeGuard(isSchemaShortName))

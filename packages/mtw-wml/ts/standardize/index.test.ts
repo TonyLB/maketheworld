@@ -710,6 +710,18 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(testSource)
     })
 
+    it('should render Replace tags correctly', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Replace><Variable key=(testVariable) default={true} /></Replace>
+                <With><Variable key=(testVariable) default={false} /></With>
+            </Asset>
+        `)
+        const test = schemaTestStandarized(testSource)
+        expect(schemaToWML(test.schema)).toEqual(testSource)
+    })
+
     it('should handle characters correctly', () => {
         const testSource = deIndentWML(`
             <Character key=(Tess)>
