@@ -199,25 +199,50 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => 
 }
 
 const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent | undefined => {
-    switch(base.tag) {
-        case 'Remove':
-            if (incoming) {
-                if (!deepEqual(base.component, incoming)) {
-                    throw new MergeConflictError()
-                }
-                return undefined
-            }
-            else {
-                const { component } = base
-                if (!isStandardNonEdit(component)) {
-                    throw new StandardizerError('Illegal contents in Remove')
-                }
+    if (isStandardRemove(base)) {
+        return incoming
+    }
+    if (isStandardReplace(base)) {
+        const recursed = mergeStandardComponents(base.payload, incoming)
+        if (recursed) {
+            if (isStandardNonEdit(recursed)) {
                 return {
-                    key: component.key,
-                    tag: 'Remove',
-                    component
+                    ...base,
+                    payload: recursed
                 }    
             }
+            else {
+                throw new MergeConflictError()
+            }    
+        }
+        else {
+            return {
+                key: base.key,
+                tag: 'Remove',
+                component: base.match
+            }
+        }
+    }
+    if (isStandardRemove(incoming)) {
+        if (base) {
+            if (!deepEqual(base, incoming.component)) {
+                throw new MergeConflictError()
+            }
+            return undefined
+        }
+        else {
+            const { component } = incoming
+            if (!isStandardNonEdit(component)) {
+                throw new StandardizerError('Illegal contents in Remove')
+            }
+            return {
+                key: component.key,
+                tag: 'Remove',
+                component
+            }    
+        }
+    }
+    switch(base.tag) {
         case 'Room':
             if (!isStandardRoom(incoming)) { throw new Error('Type mismatch') }
             return {
@@ -358,9 +383,6 @@ const schemaItemToStandardItem = ({ data, children }: GenericTreeNode<SchemaTag>
         return {
             tag: 'Room',
             key: imported ? data.as ?? data.key : data.key,
-            //
-            // TODO: Refactor outputNodeToStandardItem to gracefully handle when the incoming item is wrapped in edit tags
-            //
             shortName: outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }),
             name: outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
             summary: outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }),
@@ -951,6 +973,7 @@ export class StandardizerAbstract {
                 ...componentKeys
                     .map((tagToList) => (
                         Object.values(this._byId)
+                            .filter(excludeUndefined)
                             .filter((component) => (unwrapStandardComponent(component).tag === tagToList))
                             .map<GenericTreeNode<SchemaTag>>((component) => {
                                 if (isStandardNonEdit(component)) {
