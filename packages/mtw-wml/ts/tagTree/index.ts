@@ -67,17 +67,20 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
 } & Extra
 
 type TagTreeActionReorder<NodeData extends {}, Extra extends {} = {}> = { reorder: TagTreePruneArgs<NodeData, Extra>[] }
+type TagTreeActionReorderFunctional<NodeData extends {}, Extra extends {} = {}> = { matches: TagTreeMatchOperation<NodeData, Extra>[], reorder: (tags: TagListItem<NodeData, Extra>[]) => TagListItem<NodeData, Extra>[] }
 type TagTreeActionReorderSiblings = { reorderSiblings: string[][] }
 type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
 type TagTreeActionPrune<NodeData extends {}, Extra extends {} = {}> = { prune: TagTreePruneArgs<NodeData, Extra> }
 
 export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
     TagTreeActionReorder<NodeData, Extra> |
+    TagTreeActionReorderFunctional<NodeData, Extra> |
     TagTreeActionReorderSiblings |
     TagTreeActionFilter<NodeData, Extra> |
     TagTreeActionPrune<NodeData, Extra>
 
-const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder<NodeData, Extra> => ('reorder' in action)
+const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder<NodeData, Extra> => ('reorder' in action && Array.isArray(action.reorder))
+const isTagTreeActionReorderFunctional = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderFunctional<NodeData, Extra> => ('reorder' in action && typeof action.reorder === 'function')
 const isTagTreeActionReorderSiblings = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderSiblings => ('reorderSiblings' in action)
 const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
 const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
@@ -407,7 +410,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     // Create a new TagTree with tags ordered (and therefore grouped) in a new way. The orderGroups will specify
     // how to internally reorder tags.
     //
-    _reorderTags(order: TagTreePruneArgs<NodeData, Extra>[]) {
+    _reorderTags(arg: TagTreeActionReorder<NodeData, Extra> | TagTreeActionReorderFunctional<NodeData, Extra>) {
         return (tags: TagListItem<NodeData, Extra>[]): TagListItem<NodeData, Extra>[] => {
             //
             // Percolate groups of tags to the top of the list, in right-to-left order, so that the highest
@@ -419,7 +422,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             // outside of that range alone.
             //
             
-            const { minIndex, maxIndex } = order.reduce<{ minIndex: number; maxIndex: number }>(({ minIndex, maxIndex }, reorderArg) => {
+            const matches = isTagTreeActionReorder(arg) ? arg.reorder : arg.matches
+            const { minIndex, maxIndex } = matches.reduce<{ minIndex: number; maxIndex: number }>(({ minIndex, maxIndex }, reorderArg) => {
                 const matchingIndices = this._tagMatch(reorderArg, tags)
                 if (matchingIndices.length) {
                     return {
@@ -437,18 +441,24 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             const untouchedPriorTags = tags.slice(0, minIndex)
             const tagsToConsider = tags.slice(minIndex, maxIndex)
             const untouchedAfterTags = tags.slice(maxIndex)
-            const returnValue = order.reduceRight<TagListItem<NodeData, Extra>[]>((previous, reorderArg) => {
-                const matchingIndices = this._tagMatch(reorderArg, previous)
-                const { percolatedTags, remainingTags } = previous.reduce<{ percolatedTags: TagListItem<NodeData, Extra>[], remainingTags: TagListItem<NodeData, Extra>[] }>(({ percolatedTags, remainingTags }, tag, index) => {
-                    if (matchingIndices.includes(index)) {
-                        return { percolatedTags: [...percolatedTags, tag ], remainingTags }
-                    }
-                    else {
-                        return { percolatedTags, remainingTags: [...remainingTags, tag] }
-                    }
-                }, { percolatedTags: [], remainingTags: [] })
-                return [...percolatedTags, ...remainingTags]
-            }, tagsToConsider)
+            let returnValue: TagListItem<NodeData, Extra>[] = []
+            if (isTagTreeActionReorder(arg)) {
+                returnValue = matches.reduceRight<TagListItem<NodeData, Extra>[]>((previous, reorderArg) => {
+                    const matchingIndices = this._tagMatch(reorderArg, previous)
+                    const { percolatedTags, remainingTags } = previous.reduce<{ percolatedTags: TagListItem<NodeData, Extra>[], remainingTags: TagListItem<NodeData, Extra>[] }>(({ percolatedTags, remainingTags }, tag, index) => {
+                        if (matchingIndices.includes(index)) {
+                            return { percolatedTags: [...percolatedTags, tag ], remainingTags }
+                        }
+                        else {
+                            return { percolatedTags, remainingTags: [...remainingTags, tag] }
+                        }
+                    }, { percolatedTags: [], remainingTags: [] })
+                    return [...percolatedTags, ...remainingTags]
+                }, tagsToConsider)
+            }
+            else {
+                returnValue = arg.reorder(tagsToConsider)
+            }
             return [...untouchedPriorTags, ...returnValue, ...untouchedAfterTags]
         }
     }
@@ -492,8 +502,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
 
     get _transformedTags(): TagListItem<NodeData, Extra>[][] {
         return this._actions.reduce<TagListItem<NodeData, Extra>[][]>((previous, action) => {
-            if (isTagTreeActionReorder(action)) {
-                const reorderedTags = previous.map((tagList) => (this._reorderTags(action.reorder)(tagList)))
+            if (isTagTreeActionReorder(action) || isTagTreeActionReorderFunctional(action)) {
+                const reorderedTags = previous.map((tagList) => (this._reorderTags(action)(tagList)))
                 return reorderedTags
             }
             if (isTagTreeActionReorderSiblings(action)) {
@@ -539,6 +549,12 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     reordered(orderGroups: TagTreePruneArgs<NodeData, Extra>[]): TagTree<NodeData, Extra> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { reorder: orderGroups }]
+        return returnValue
+    }
+
+    reorderFunctional(matches: TagTreePruneArgs<NodeData, Extra>[], reorder: (tags: TagListItem<NodeData, Extra>[]) => TagListItem<NodeData, Extra>[]): TagTree<NodeData, Extra> {
+        const returnValue = this.clone()
+        returnValue._actions = [...this._actions, { matches, reorder }]
         return returnValue
     }
 

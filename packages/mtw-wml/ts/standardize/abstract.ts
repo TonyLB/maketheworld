@@ -4,7 +4,7 @@ import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns, isSchemaMeta } from "../schema/baseClasses"
 import { markInherited } from "../schema/treeManipulation/inherited"
-import { TagTreeMatchOperation } from "../tagTree"
+import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
@@ -638,7 +638,67 @@ export class StandardizerAbstract {
                     const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                         const prunedTagTree = tagTree
                             .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
-                            .reordered([{ match: tag }, { connected: [{ match: 'Replace'}, { or: [{ match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] }]}, { match: 'Remove' }, { or: [{ match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }] }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                            .reorderFunctional(
+                                [{ match: tag }, { match: 'Replace'}, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove' }, { match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Inherited' }],
+                                (tagItem) => {
+                                    const isEditTag = (value: TagListItem<SchemaTag, {}>): boolean => (['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove'].includes(value.data.tag))
+                                    const isConditionalTag = (value: TagListItem<SchemaTag, {}>): boolean => (['If', 'Statement', 'Fallthrough'].includes(value.data.tag))
+                                    const { componentTags, valueTags, contentTags } = tagItem.reduce<{ componentTags: TagListItem<SchemaTag>[]; valueTags: TagListItem<SchemaTag>[]; contentTags: TagListItem<SchemaTag>[]; matchedAlready: boolean }>((previous, subItem) => {
+                                        if (subItem.data.tag === tag) {
+                                            return {
+                                                ...previous,
+                                                componentTags: [...previous.componentTags, subItem],
+                                                matchedAlready: true
+                                            }
+                                        }
+                                        if (isEditTag(subItem)) {
+                                            if (previous.matchedAlready) {
+                                                return {
+                                                    ...previous,
+                                                    valueTags: [...previous.valueTags, subItem]
+                                                }
+                                            }
+                                            else {
+                                                return {
+                                                    ...previous,
+                                                    componentTags: [...previous.componentTags, subItem]
+                                                }
+                                            }
+                                        }
+                                        if (isConditionalTag(subItem)) {
+                                            return {
+                                                ...previous,
+                                                contentTags: [...previous.contentTags, subItem]
+                                            }
+                                        }
+                                        else {
+                                            return {
+                                                ...previous,
+                                                valueTags: [...previous.valueTags, subItem]
+                                            }
+                                        }
+                                    }, { componentTags: [], valueTags: [], contentTags: [], matchedAlready: false })
+                                    const relativeOrder: Partial<Record<SchemaTag["tag"], number>> = {
+                                        Remove: 1,
+                                        Replace: 1,
+                                        ReplaceMatch: 2,
+                                        ReplacePayload: 2,
+                                        [tag]: 3,
+                                        Name: 4,
+                                        ShortName: 4,
+                                        Description: 4,
+                                        Summary: 4,
+                                        If: 5,
+                                        Statement: 6,
+                                        Fallthrough: 6,
+                                        Inherited: 7
+                                    }
+                                    const sortInPlace = (tags: TagListItem<SchemaTag>[]): TagListItem<SchemaTag>[] => (
+                                        [...tags].sort((a, b) => ((relativeOrder[a.data.tag] ?? Infinity) - (relativeOrder[b.data.tag] ?? Infinity)))
+                                    )
+                                    return [...sortInPlace(componentTags), ...sortInPlace(valueTags), ...sortInPlace(contentTags)]
+                                }
+                            )
                             .prune({ and: [{ before: nodeMatch }, { not: { or: [editTag, { after: editTag }] }}] })
                             .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
                         switch(tag) {
@@ -657,7 +717,9 @@ export class StandardizerAbstract {
                     const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatchImport, { match: 'Import' }] }), nodeMatchImport)
 
                     applyEdits(filteredTagTree.tree).forEach((item) => {
+                        // console.log(`componentItem: ${JSON.stringify(item)}`)
                         const standardItem = schemaItemToStandardItem(item, tagTree.tree, false)
+                        // console.log(`standardItem: ${JSON.stringify(standardItem)}`)
                         if (standardItem) {
                             this._byId[key] = key in this._byId
                                 ? mergeStandardComponents(this._byId[key], standardItem)
