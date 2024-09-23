@@ -231,15 +231,18 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
             return undefined
         }
         else {
-            const { component } = incoming
-            if (!isStandardNonEdit(component)) {
-                throw new StandardizerError('Illegal contents in Remove')
+            return incoming
+        }
+    }
+    if (isStandardReplace(incoming)) {
+        if (base) {
+            if (!deepEqual(base, incoming.match)) {
+                throw new MergeConflictError()
             }
-            return {
-                key: component.key,
-                tag: 'Remove',
-                component
-            }    
+            return incoming.payload
+        }
+        else {
+            return incoming
         }
     }
     switch(base.tag) {
