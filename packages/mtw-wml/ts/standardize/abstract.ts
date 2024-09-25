@@ -200,7 +200,17 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => 
 
 const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent | undefined => {
     if (isStandardRemove(base)) {
-        return incoming
+        if (!isStandardNonEdit(incoming)) {
+            throw new MergeConflictError()
+        }
+        else {
+            return {
+                tag: 'Replace',
+                key: base.key,
+                match: base.component,
+                payload: incoming
+            }
+        }
     }
     if (isStandardReplace(base)) {
         const recursed = mergeStandardComponents(base.payload, incoming)
@@ -226,7 +236,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
     if (isStandardRemove(incoming)) {
         if (base) {
             if (!deepEqual(base, incoming.component)) {
-                throw new MergeConflictError(`Merge Conflict: Mismatch between\n${JSON.stringify(base, null, 4)}\n... and ...\n${JSON.stringify(incoming.component, null, 4)}`)
+                throw new MergeConflictError(`Merge Conflict: \n${JSON.stringify(base, null, 4)}\n... and ...\n${JSON.stringify(incoming.component, null, 4)}`)
             }
             return undefined
         }
@@ -256,7 +266,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 name: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'name'),
                 summary: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'summary'),
                 description: combineTagChildren(base as StandardRoom, incoming as StandardRoom, 'description'),
-                exits: [...base.exits, ...incoming.exits],
+                exits: applyEdits([...base.exits, ...incoming.exits]),
                 themes: [...base.themes, ...incoming.themes]
             }
         case 'Feature':
@@ -292,7 +302,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 key: base.key,
                 update: base.update,
                 description: combineTagChildren(base as StandardMessage, incoming as StandardMessage, 'description'),
-                rooms: [...base.rooms, ...incoming.rooms]
+                rooms: applyEdits([...base.rooms, ...incoming.rooms])
             }
         case 'Moment':
             if (!isStandardMoment(incoming)) { throw new Error('Type mismatch') }
@@ -300,7 +310,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 tag: 'Moment',
                 key: base.key,
                 update: base.update,
-                messages: [...base.messages, ...incoming.messages]
+                messages: applyEdits([...base.messages, ...incoming.messages])
             }
         case 'Map':
             if (!isStandardMap(incoming)) { throw new Error('Type mismatch') }
@@ -310,7 +320,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 update: base.update,
                 name: combineTagChildren(base as StandardMap, incoming as StandardMap, 'name'),
                 positions: [...base.positions, ...incoming.positions],
-                images: [...base.images, ...incoming.images],
+                images: applyEdits([...base.images, ...incoming.images]),
                 themes: [...base.themes, ...incoming.themes]
             }
         case 'Theme':
@@ -321,8 +331,8 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 update: base.update,
                 name: combineTagChildren(base as StandardTheme, incoming as StandardTheme, 'name'),
                 prompts: [...base.prompts, ...incoming.prompts],
-                rooms: [...base.rooms, ...incoming.rooms],
-                maps: [...base.maps, ...incoming.maps]
+                rooms: applyEdits([...base.rooms, ...incoming.rooms]),
+                maps: applyEdits([...base.maps, ...incoming.maps])
             }
         case 'Variable':
         case 'Computed':
