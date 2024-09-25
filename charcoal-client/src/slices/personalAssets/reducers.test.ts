@@ -348,7 +348,10 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset key=(testAsset) />
+                    <Asset key=(testAsset)>
+                        <Replace><Computed key=(testComputed) src={!testVar} /></Replace>
+                        <With><Computed key=(testComputed) src={testVar} /></With>
+                    </Asset>
                 `)
             })
         })
