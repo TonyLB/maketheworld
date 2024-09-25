@@ -361,6 +361,20 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             case 'Action':
             case 'Variable':
             case 'Computed':
+                mergeToEdit({
+                    ...state.edit,
+                    byId: {
+                        [payload.itemKey]: {
+                            tag: 'Replace',
+                            key: component.key,
+                            match: { ...component },
+                            payload: {
+                                ...component,
+                                [payload.itemKey]: payload.value
+                            }
+                        }
+                    }
+                })
                 component[payload.itemKey] = payload.value
                 break
         }
