@@ -11,6 +11,8 @@ import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStan
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/ts/schema/treeManipulation/listDiff'
+import { deepEqual } from '../../lib/objects'
+import produce from 'immer'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -420,26 +422,40 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
+        //
+        // TODO: Add a true/false return value to recursiveRenameWalk to
+        // indicate whether it made a change, then use that to track at
+        // each step of renaming, whether a rename has occurred and
+        // add a mergeToEdit to represent the change
+        //
         const recursiveRenameWalk = <T extends SchemaTag>(props: {
-            tree: WritableDraft<GenericTree<SchemaTag>>;
+            tree: GenericTree<SchemaTag>;
             typeGuard: (value: SchemaTag) => value is T;
             transform: (value: WritableDraft<T>) => void;
-        }): void => {
+        }): { changed: Boolean, tree: GenericTree<SchemaTag> } => {
             const { tree, typeGuard, transform } = props
-            tree.forEach(({ data, children }) => {
-                if (typeGuard(data)) {
-                    transform(data as WritableDraft<T>)
+            return tree.reduce<{ changed: Boolean; tree: GenericTree<SchemaTag> }>((previous, { data, children }) => {
+                const recurse = recursiveRenameWalk({ tree: children, typeGuard, transform })
+                const transformedData = typeGuard(data) ? produce(data, transform) : data
+                return {
+                    changed: previous.changed || !deepEqual(data, transformedData) || recurse.changed,
+                    tree: [...previous.tree, { data: transformedData, children: recurse.tree }]
                 }
-                recursiveRenameWalk({ tree: children, typeGuard, transform })
-            })
+            }, { changed: false, tree: [] })
         }
+        const previousComponent = JSON.parse(JSON.stringify(state.standard.byId[payload.from]))
+        state.standard.byId[payload.to] = {
+            ...state.standard.byId[payload.from],
+            key: payload.to
+        }
+        delete state.standard.byId[payload.from]
         Object.values(state.standard.byId).forEach((component) => {
             if (isStandardFeature(component) || isStandardKnowledge(component)) {
                 //
                 // Recursive transform links
                 //
                 if (component.description) {
-                    recursiveRenameWalk({
+                    const { changed, tree: newDescription } = recursiveRenameWalk({
                         tree: [component.description],
                         typeGuard: isSchemaLink,
                         transform: (link) => {
@@ -447,14 +463,20 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                                 link.to = payload.to
                             }
                         }
-                    })    
+                    })
+                    if (changed) {
+                        if (component.key === payload.to) {
+                            component.description = undefined
+                        }
+                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
+                    }
                 }
             }
             if (isStandardRoom(component)) {
                 //
                 // Recursive transform exits
                 //
-                recursiveRenameWalk({
+                const { changed, tree: newExits } = recursiveRenameWalk({
                     tree: component.exits,
                     typeGuard: isSchemaExit,
                     transform: (exit) => {
@@ -463,24 +485,58 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         exit.key = `${exit.from}:${exit.to}`
                     }
                 })
+                if (changed) {
+                    updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'exits', at: 0, replace: component.exits.length, items: newExits } })
+                    if (component.key === payload.to) {
+                        const editComponent = state.edit.byId[component.key]
+                        if (editComponent && isStandardRoom(editComponent)) {
+                            editComponent.exits = []
+                        }
+                    }
+                }
                 //
                 // Recursive transform links
                 //
-                recursiveRenameWalk({
-                    tree: [component.description, component.summary].filter(excludeUndefined),
-                    typeGuard: isSchemaLink,
-                    transform: (link) => {
-                        if (link.to === payload.from) {
-                            link.to = payload.to
+                if (component.description) {
+                    const { changed, tree: newDescription } = recursiveRenameWalk({
+                        tree: [component.description],
+                        typeGuard: isSchemaLink,
+                        transform: (link) => {
+                            if (link.to === payload.from) {
+                                link.to = payload.to
+                            }
                         }
+                    })
+                    if (changed) {
+                        if (component.key === payload.to) {
+                            component.description = undefined
+                        }
+                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
                     }
-                })
+                }
+                if (component.summary) {
+                    const { changed, tree: newSummary } = recursiveRenameWalk({
+                        tree: [component.summary],
+                        typeGuard: isSchemaLink,
+                        transform: (link) => {
+                            if (link.to === payload.from) {
+                                link.to = payload.to
+                            }
+                        }
+                    })
+                    if (changed) {
+                        if (component.key === payload.to) {
+                            component.summary = undefined
+                        }
+                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'summary', item: newSummary[0] } })
+                    }
+                }
             }
             if (isStandardMap(component)) {
                 //
                 // Recursive transform positions
                 //
-                recursiveRenameWalk({
+                const { changed, tree: newPositions } = recursiveRenameWalk({
                     tree: component.positions,
                     typeGuard: isSchemaRoom,
                     transform: (room) => {
@@ -489,11 +545,27 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     }
                 })
+                if (changed) {
+                    if (component.key === payload.to) {
+                        component.positions = []
+                    }
+                    updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'positions', at: 0, replace: component.positions.length, items: newPositions } })
+                }
             }
         })
-        state.standard.byId[payload.to] = state.standard.byId[payload.from]
-        delete state.standard.byId[payload.from]
-        state.standard.byId[payload.to].key = payload.to
+        const renameEditStandard: StandardForm = {
+            ...state.edit,
+            byId: {
+                [payload.from]: {
+                    tag: 'Remove',
+                    key: previousComponent.key,
+                    component: previousComponent
+                },
+                [payload.to]: state.standard.byId[payload.to]
+            },
+            metaData: []
+        }
+        mergeToEdit(renameEditStandard)
     }
 }
 
