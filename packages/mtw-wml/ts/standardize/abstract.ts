@@ -226,7 +226,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
     if (isStandardRemove(incoming)) {
         if (base) {
             if (!deepEqual(base, incoming.component)) {
-                throw new MergeConflictError()
+                throw new MergeConflictError(`Merge Conflict: Mismatch between\n${JSON.stringify(base, null, 4)}\n... and ...\n${JSON.stringify(incoming.component, null, 4)}`)
             }
             return undefined
         }
