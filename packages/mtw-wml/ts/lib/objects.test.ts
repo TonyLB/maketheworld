@@ -57,6 +57,11 @@ describe('Objects utility functions', () => {
             expect(deepEqual({ foo: 'bar' }, 'foobar')).toBe(false)
         })
 
+        it('should correctly compare undefined properties', () => {
+            expect(deepEqual({ foo: 'bar', baz: 'bip', bar: undefined }, { baz: 'bip', foo: 'bar' })).toBe(true)
+            expect(deepEqual({ foo: 'bar', baz: 'bip' }, { baz: 'bip', foo: 'bar', bar: undefined })).toBe(true)
+        })
+
         it('should correctly compare nested structures', () => {
             expect(deepEqual(
                 { foo: 'bar', test: [1, 2, 'test', { baz: 'bip' }]},
