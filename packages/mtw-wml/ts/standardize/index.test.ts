@@ -907,6 +907,34 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should merge edit component replace of plain base component correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>                
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Test</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)><Name>Changed</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
+
     it('should merge edit component replace of replace base component correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>

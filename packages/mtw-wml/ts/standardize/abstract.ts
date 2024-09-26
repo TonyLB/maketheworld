@@ -319,7 +319,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
                 key: base.key,
                 update: base.update,
                 name: combineTagChildren(base as StandardMap, incoming as StandardMap, 'name'),
-                positions: [...base.positions, ...incoming.positions],
+                positions: applyEdits([...base.positions, ...incoming.positions]),
                 images: applyEdits([...base.images, ...incoming.images]),
                 themes: [...base.themes, ...incoming.themes]
             }
@@ -337,9 +337,10 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
         case 'Variable':
         case 'Computed':
         case 'Action':
-            return base
+        case 'Character':
+            return incoming
         default:
-            throw new Error('Invalid incoming StandardComponent')
+            throw new Error(`Invalid incoming StandardComponent: ${JSON.stringify(base, null, 4)}`)
     }
 }
 
