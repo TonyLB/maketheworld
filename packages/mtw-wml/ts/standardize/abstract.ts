@@ -247,7 +247,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
     if (isStandardReplace(incoming)) {
         if (base) {
             if (!deepEqual(base, incoming.match)) {
-                throw new MergeConflictError()
+                throw new MergeConflictError(`Merge Conflict: \n${JSON.stringify(base, null, 4)}\n... and ...\n${JSON.stringify(incoming.match, null, 4)}`)
             }
             return incoming.payload
         }
