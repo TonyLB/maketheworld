@@ -824,7 +824,7 @@ export class StandardizerAbstract {
                     })
                     applyEdits(markInherited(importedTagTree.tree)).forEach((item) => {
                         const standardItem = schemaItemToStandardItem(item, tagTree.tree, true)
-                        if (standardItem) {
+                        if (standardItem && isStandardNonEdit(standardItem)) {
                             if (this._byId[key]) {
                                 const merged = mergeStandardComponents(this._byId[key], standardItem)
                                 if (merged) {
@@ -1199,7 +1199,7 @@ export class StandardizerAbstract {
             byId: combinedById,
             key: this._assetKey,
             tag: this._assetTag,
-            metaData: combinedMetaData.tree
+            metaData: applyEdits(combinedMetaData.tree)
         })
         return returnStandardizer
     }
