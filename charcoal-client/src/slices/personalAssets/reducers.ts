@@ -364,7 +364,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                 mergeToEdit({
                     ...state.edit,
                     byId: {
-                        [payload.itemKey]: {
+                        [payload.componentKey]: {
                             tag: 'Replace',
                             key: component.key,
                             match: { ...component },

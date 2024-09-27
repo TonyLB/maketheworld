@@ -48,10 +48,13 @@ export const deepEqual = (objA: any, objB: any): boolean => {
             objA.every((item, index) => (deepEqual(item, objB[index])))
     }
     if (typeof objA === 'object' && typeof objB === 'object') {
-        if (!deepEqual(Object.keys(objA as Record<string, any>).sort(), Object.keys(objB as Record<string, any>).sort())) {
+        const sortedKeys = (objA: Record<string, any>) => (Object.entries(objA).filter(([_, value]) => (typeof value !== 'undefined')).map(([key]) => (key)).sort())
+        if (!deepEqual(sortedKeys(objA), sortedKeys(objB))) {
             return false
         }
-        return Object.entries(objA as Record<string, any>).every(([key, value]) => (deepEqual(value, objB?.[key])))
+        return Object.entries(objA as Record<string, any>)
+            .filter(([_, value]) => (typeof value !== 'undefined'))
+            .every(([key, value]) => (deepEqual(value, objB?.[key])))
     }
     return false
 }

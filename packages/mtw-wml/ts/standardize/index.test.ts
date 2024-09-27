@@ -907,6 +907,34 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should merge edit component replace of plain base component correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>                
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Test</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)><Name>Changed</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
+
     it('should merge edit component replace of replace base component correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>
@@ -961,6 +989,38 @@ describe('standardizeSchema', () => {
                 <Room key=(testRoomTwo) />
                 <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `))
+    })
+
+    it('should apply edits on merge', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)>
+                    <Exit to=(testRoomOne)>out</Exit>
+                </Room>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo)>
+                    <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
+                    <Exit to=(testRoomOne)>depart</Exit>
+                </Room>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)><Exit to=(testRoomOne)>depart</Exit></Room>
             </Asset>
         `))
     })
@@ -1054,6 +1114,45 @@ describe('standardizeSchema', () => {
                 </Room>
                 <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `))
+    })
+
+    it('should merge edited metadata correctly', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(primitives)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Replace>
+                    <Import from=(primitives)>
+                        <Room key=(testRoomOne) />
+                    </Import>
+                </Replace>
+                <With>
+                    <Import from=(test)>
+                        <Room key=(testRoomOne) />
+                    </Import>
+                </With>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        console.log(`testStandard: ${JSON.stringify(testStandard._byId, null, 4)}`)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(test)><Room key=(testRoomOne) /></Import>
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
             </Asset>
         `))
     })

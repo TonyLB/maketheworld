@@ -5,7 +5,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTreeNode } from "../tree/baseClasses"
 import { StandardComponent, StandardNodeKeys } from "./baseClasses"
 
-export const combineTagChildren = <T extends StandardComponent, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] => {
+export const combineTagChildren = <T extends StandardComponent, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
     if (!excludeUndefined(base[key])) {
         return incoming[key]
     }
@@ -16,5 +16,5 @@ export const combineTagChildren = <T extends StandardComponent, K extends Standa
     const incomingTagTree = new SchemaTagTree([incoming[key] as GenericTreeNode<SchemaTag>])
     tagTree._tagList = [...tagTree._tagList, ...incomingTagTree._tagList]
     const combinedSchema = applyEdits(tagTree.tree)
-    return { ...combinedSchema[0], id: (base[key] as any).id || (incoming[key] as any).id } as T[K]
+    return combinedSchema.length ? { ...combinedSchema[0], id: (base[key] as any).id || (incoming[key] as any).id } as T[K] : undefined
 }

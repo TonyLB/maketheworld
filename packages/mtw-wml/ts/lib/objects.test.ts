@@ -47,6 +47,7 @@ describe('Objects utility functions', () => {
             expect(deepEqual([1, 2, 3], [1, 2, 3])).toBe(true)
             expect(deepEqual([1, 2, 3], [3, 4, 5])).toBe(false)
             expect(deepEqual([1, 2, 3], 1)).toBe(false)
+            expect(deepEqual([], [])).toBe(true)
         })
 
         it('should correctly compare objects', () => {
@@ -54,6 +55,11 @@ describe('Objects utility functions', () => {
             expect(deepEqual({ foo: 'bar', baz: 2 }, { foo: 'bar' })).toBe(false)
             expect(deepEqual({ foo: 'bar' }, [1, 2, 3])).toBe(false)
             expect(deepEqual({ foo: 'bar' }, 'foobar')).toBe(false)
+        })
+
+        it('should correctly compare undefined properties', () => {
+            expect(deepEqual({ foo: 'bar', baz: 'bip', bar: undefined }, { baz: 'bip', foo: 'bar' })).toBe(true)
+            expect(deepEqual({ foo: 'bar', baz: 'bip' }, { baz: 'bip', foo: 'bar', bar: undefined })).toBe(true)
         })
 
         it('should correctly compare nested structures', () => {
@@ -65,6 +71,10 @@ describe('Objects utility functions', () => {
                 { foo: 'bar', test: [1, 2, 'test', { baz: 'bip' }]},
                 { foo: 'bar', test: [1, 2, 'test', { baz: 'test' }]}
             )).toBe(false)
+            expect(deepEqual(
+                { foo: 'bar', test: []},
+                { foo: 'bar', test: []}
+            )).toBe(true)
         })
     })
 

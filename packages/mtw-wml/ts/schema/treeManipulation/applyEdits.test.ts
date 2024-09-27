@@ -39,6 +39,25 @@ describe('applyEdits', () => {
         `))
     })
 
+    it('should correctly remove keyed items', () => {
+        const test = schemaTest(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)>
+                    <Exit to=(testRoomOne)>out</Exit>
+                    <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
+                    <Exit to=(testRoomOne)>depart</Exit>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)><Exit to=(testRoomOne)>depart</Exit></Room>
+            </Asset>
+        `))
+    })
+
     it('should apply replace that exceeds present content', () => {
         const test = schemaTest(`
             <Asset key=(test)>
