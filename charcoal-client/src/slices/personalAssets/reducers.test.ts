@@ -9,7 +9,7 @@ import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
 
 describe('personalAsset slice reducers', () => {
 
-    const transformWML = (wml: string, editWML: string, payload: UpdateStandardPayload): { standard: string, calculated: string, edit: string } => {
+    const transformWML = (wml: string, editWML: string, payload: UpdateStandardPayload): { base: string, standard: string, calculated: string, edit: string } => {
         const schema = new Schema()
         schema.loadWML(wml)
         const base = new Standardizer(schema.schema)
@@ -19,16 +19,19 @@ describe('personalAsset slice reducers', () => {
         const editStandardizer = new Standardizer(editSchema.schema)
         const newState = produce(
             {
+                base: base.standardForm,
                 standard: standardizer.standardForm,
                 edit: editStandardizer.standardForm,
                 inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
             },
             (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
         )
+        base.loadStandardForm(newState.base)
         standardizer.loadStandardForm(newState.standard)
         editStandardizer.loadStandardForm(newState.edit)
         const combinedStandardizer = base.merge(editStandardizer)
         return {
+            base: schemaToWML(base.schema),
             standard: schemaToWML(standardizer.schema),
             calculated: schemaToWML(combinedStandardizer.schema),
             edit: schemaToWML(editStandardizer.schema)
@@ -62,6 +65,14 @@ describe('personalAsset slice reducers', () => {
                     item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testRoom)>
@@ -113,6 +124,14 @@ describe('personalAsset slice reducers', () => {
                     }
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testRoom)>
@@ -158,6 +177,14 @@ describe('personalAsset slice reducers', () => {
                     tag: 'Variable'
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testRoom)>
@@ -209,6 +236,16 @@ describe('personalAsset slice reducers', () => {
                     items: []
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(testDestination)>out</Exit>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testDestination) />
@@ -262,6 +299,16 @@ describe('personalAsset slice reducers', () => {
                     items: [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(testDestination)>out</Exit>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testDestination) />
@@ -322,6 +369,16 @@ describe('personalAsset slice reducers', () => {
                     }
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testDestination) />
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(testDestination)>out</Exit>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testDestination) />
@@ -373,6 +430,14 @@ describe('personalAsset slice reducers', () => {
                     item: undefined
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(testRoom)><Description>Test Description</Description></Room>
@@ -406,6 +471,9 @@ describe('personalAsset slice reducers', () => {
                     value: 'testVar'
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)><Computed key=(testComputed) src={!testVar} /></Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
                 `),
@@ -437,6 +505,9 @@ describe('personalAsset slice reducers', () => {
                     }]
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Character key=(testCharacter)><Import from=(testImport) /></Character>
+                `),
                 standard: deIndentWML(`
                     <Character key=(testCharacter)><Import from=(differentImport) /></Character>
                 `),
@@ -476,6 +547,19 @@ describe('personalAsset slice reducers', () => {
                     to: 'garden'
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(Room1)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                            <Exit to=(Room2)>out</Exit>
+                        </Room>
+                        <Room key=(Room2)>
+                            <Name>Garden</Name>
+                            <Exit to=(Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(Room1)>
@@ -540,6 +624,12 @@ describe('personalAsset slice reducers', () => {
                     to: 'garden'
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(Room2)><Name>Garden</Name></Room>
+                        <Map key=(testMap)><Room key=(Room2)><Position x="0" y="0" /></Room></Map>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Room key=(garden)><Name>Garden</Name></Room>
@@ -584,6 +674,14 @@ describe('personalAsset slice reducers', () => {
                     to: 'clockTower'
                 }
             )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Feature key=(Feature1)>
+                            <Name>Test Feature</Name>
+                            <Description><Link to=(Feature1)>Link</Link></Description>
+                        </Feature>
+                    </Asset>
+                `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Feature key=(clockTower)>
