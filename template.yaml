@@ -219,6 +219,34 @@ Resources:
               Method: post
               RestApiId:
                 Ref: AnonymousAPI
+  SubscriptionsPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      SubscriptionsFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SubscriptionsFunction
+      Principal: apigateway.amazonaws.com
+  SubscriptionsFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: lambda/subscriptions/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+            Variables:
+                TABLE_PREFIX: !Ref TablePrefix
+                EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_connections'
+          - Statement:
+            - Effect: Allow
+              Resource: '*'
+              Action:
+                - events:PutEvents
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
