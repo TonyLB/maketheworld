@@ -58,7 +58,6 @@ export const {
             base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             pendingEdits: [],
             edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-            standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
             inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
         }
     },
@@ -85,7 +84,6 @@ export const {
                 base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 pendingEdits: [],
                 edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
                 inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
             }
         },

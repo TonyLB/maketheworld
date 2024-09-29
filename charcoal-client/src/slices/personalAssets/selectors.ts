@@ -21,9 +21,26 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
-const getStandardForm = ({ standard }: PersonalAssetsPublic) => (standard)
+const getBase = ({ base }: PersonalAssetsPublic) => (base)
+const getEdit = ({ edit }: PersonalAssetsPublic) => (edit)
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
+
+const getStandardForm = createSelector(
+    getInherited,
+    getBase,
+    getEdit,
+    (inherited, base, edit) => {
+        const inheritedStandardizer = new Standardizer()
+        inheritedStandardizer.loadStandardForm(inherited)
+        const baseStandardizer = new Standardizer()
+        baseStandardizer.loadStandardForm(base)
+        const editStandardizer = new Standardizer()
+        editStandardizer.loadStandardForm(edit)
+        const combined = inheritedStandardizer.merge(baseStandardizer).merge(editStandardizer)
+        return combined.standardForm
+    }
+)
 
 const getImportData = ({ importData }: PersonalAssetsPublic) => (importData)
 

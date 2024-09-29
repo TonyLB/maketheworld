@@ -66,6 +66,11 @@ const store = mockStore({
                     currentWML,
                     baseSchema,
                     schema,
+                    base: standardizer.standardForm,
+                    edit: {
+                        ...standardizer.standardForm,
+                        byId: {}
+                    },
                     standard: standardizer.standardForm,
                     inherited: inheritedStandardizer.standardForm,
                     importDefaults: {},
