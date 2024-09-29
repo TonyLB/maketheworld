@@ -6,6 +6,7 @@ import { isSchemaExit, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/sc
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
+import { publicSelectors } from "./selectors"
 
 describe('personalAsset slice reducers', () => {
 
@@ -19,17 +20,21 @@ describe('personalAsset slice reducers', () => {
         const editStandardizer = new Standardizer(editSchema.schema)
         const newState = produce(
             {
+                inherited: {
+                    ...base.standardForm,
+                    byId: {}
+                },
                 base: base.standardForm,
                 standard: standardizer.standardForm,
                 edit: editStandardizer.standardForm,
-                inherited: { key: 'testAsset', tag: 'Asset', byId: {}, metaData: [] }
             },
             (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
         )
         base.loadStandardForm(newState.base)
-        standardizer.loadStandardForm(newState.standard)
         editStandardizer.loadStandardForm(newState.edit)
         const combinedStandardizer = base.merge(editStandardizer)
+        const standardForm = publicSelectors.getStandardForm(newState as any)
+        standardizer.loadStandardForm(standardForm)
         return {
             base: schemaToWML(base.schema),
             standard: schemaToWML(standardizer.schema),
@@ -588,20 +593,20 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(Room1)>
-                            <Remove><Exit to=(Room2)>out</Exit></Remove>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Room key=(garden)>
-                            <Name>Garden</Name>
-                            <Exit to=(Room1)>text</Exit>
-                        </Room>
                         <Remove>
                             <Room key=(Room2)>
                                 <Name>Garden</Name>
                                 <Exit to=(Room1)>text</Exit>
                             </Room>
                         </Remove>
+                        <Room key=(garden)>
+                            <Name>Garden</Name>
+                            <Exit to=(Room1)>text</Exit>
+                        </Room>
+                        <Room key=(Room1)>
+                            <Remove><Exit to=(Room2)>out</Exit></Remove>
+                            <Exit to=(garden)>out</Exit>
+                        </Room>
                     </Asset>
                 `)
             })
@@ -700,16 +705,16 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Feature key=(clockTower)>
-                            <Name>Test Feature</Name>
-                            <Description><Link to=(clockTower)>Link</Link></Description>
-                        </Feature>
                         <Remove>
                             <Feature key=(Feature1)>
                                 <Name>Test Feature</Name>
                                 <Description><Link to=(Feature1)>Link</Link></Description>
                             </Feature>
                         </Remove>
+                        <Feature key=(clockTower)>
+                            <Name>Test Feature</Name>
+                            <Description><Link to=(clockTower)>Link</Link></Description>
+                        </Feature>
                     </Asset>
                 `)
             })

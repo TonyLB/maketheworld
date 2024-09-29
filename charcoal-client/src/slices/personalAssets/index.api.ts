@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
+import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } from './baseClasses'
 import {
     socketDispatchPromise,
     getStatus
@@ -13,6 +13,7 @@ import { getStandardForm, setImport } from '.'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { publicSelectors } from './selectors'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -101,9 +102,10 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
 
 }
 
-export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData: { standard }}) => async (dispatch) => {
+export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch) => {
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
 
-    if (isEphemeraAssetId(id) && standard.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
+    if (isEphemeraAssetId(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
     }
     return {}
@@ -166,7 +168,7 @@ export const parseWML: PersonalAssetsAction = ({
     publicData: {
         loadedImages = {},
         properties = {},
-        standard = { key: '', tag: 'Asset', byId: {}, metaData: [] },
+        base = { key: '', tag: 'Asset', byId: {}, metaData: [] },
         serialized
     }
 }) => async (dispatch, getState) => {
@@ -177,7 +179,7 @@ export const parseWML: PersonalAssetsAction = ({
     const { images = [] } = await dispatch(socketDispatchPromise({
         message: 'parseWML',
         AssetId: id,
-        tag: standard.tag,
+        tag: base.tag,
         uploadName: s3Object,
         images: (saveImages || []).reduce<{ key: string; fileName: string }[]>((previous, { key, s3Object }) => {
             const loadKey = Object.keys(loadedImages).find((loadKey) => (loadedImages[loadKey].loadId === key))
@@ -263,10 +265,11 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { standard }}) => async(dispatch) => {
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData }) => async(dispatch) => {
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
     try {
         const standardizer = new Standardizer()
-        standardizer.loadStandardForm(standard)
+        standardizer.loadStandardForm(standardForm)
         const newWML = schemaToWML(standardizer.schema)
         return {
             publicData: { currentWML: newWML }

@@ -56,10 +56,6 @@ export interface PersonalAssetsPublic {
     edit: StandardForm;
 
     //
-    // standard is the standard form derived from WML
-    //
-    standard: StandardForm;
-    //
     // inherited is the standard form of data inherited from imports
     //
     inherited: StandardForm;
