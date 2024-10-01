@@ -570,6 +570,47 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref AssetRoute
       RouteResponseKey: "$default"
+
+  #
+  # Separate route and integrations for subscriptions service
+  #
+  SubscribeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: subscriptions
+      AuthorizationType: NONE
+      OperationName: SubscribeRoute
+      RouteResponseSelectionExpression: $default
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref SubscribeInteg
+  SubscribeInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Subscriptions Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt SubscriptionsFunction.Arn
+  SubscribeIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref SubscribeInteg
+      IntegrationResponseKey: "/200/"
+  SubscribeResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref SubscribeRoute
+      RouteResponseKey: "$default"
+
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     Properties:
