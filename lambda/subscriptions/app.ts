@@ -3,6 +3,10 @@
 
 export const handler = async (event: any) => {
 
-    return {}
+    console.log(`event: ${JSON.stringify(event, null, 4)}`)
+    return {
+        statusCode: 200,
+        body: "{}"
+    }
 
 }
