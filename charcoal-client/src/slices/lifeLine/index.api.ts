@@ -20,6 +20,7 @@ import { receiveMessages as perceptionCacheReceiveMessages } from '../perception
 
 import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
+import { SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 import { getConfiguration, receiveRefreshToken } from '../configuration'
@@ -109,9 +110,10 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 //
 export function socketDispatch(payload: EphemeraAPIMessage, options?: { service: 'ephemera' }): ThunkAction<void, RootState, unknown, AnyAction>;
 export function socketDispatch(payload: AssetAPIMessage, options: { service: 'asset' }): ThunkAction<void, RootState, unknown, AnyAction>;
+export function socketDispatch(payload: SubscriptionsAPIMessage, options: { service: 'subscriptions' }): ThunkAction<void, RootState, unknown, AnyAction>;
 export function socketDispatch(payload: { messageType: 'ping' }, options: { service: 'ping' }): ThunkAction<void, RootState, unknown, AnyAction>;
-export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | { messageType: 'ping' }, options: { service?: 'ephemera' | 'asset' | 'ping'}): ThunkAction<void, RootState, unknown, AnyAction>
-export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | { messageType: 'ping' }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping'} = {}): ThunkAction<void, RootState, unknown, AnyAction> {
+export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, options: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<void, RootState, unknown, AnyAction>
+export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'} = {}): ThunkAction<void, RootState, unknown, AnyAction> {
     return (dispatch: AppDispatch, getState: AppGetState): void => {
         const { status, webSocket }: any = getLifeLine(getState()) || {}
         if (webSocket && status === 'CONNECTED') {
@@ -160,6 +162,7 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
                 dispatch(disconnectWebSocket(arg))
             }
             const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
+            setTimeout(() => { dispatch(socketDispatch({ message: "subscribe" }, { service: "subscriptions" })) }, 1000)
             const refreshTimeout = setTimeout(() => {
                 dispatch(internalStateChange({ newState: 'STALE' }))
                 dispatch(heartbeat)
