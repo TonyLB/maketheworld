@@ -1,3 +1,5 @@
+import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+
 export class SubscriptionEvent {
     _source: string;
     constructor(args: {
@@ -23,16 +25,13 @@ export class SubscriptionHandler {
         return
     }
     
-    //
-    // TODO: Once mtw-interfaces typeguard exists, create a typeguarded
-    // *isSubscribe* method to this class that tells whether an incoming
-    // request is a subscription for the chosen handler
-    //
+    isSubscribe(event: Record<string, any>): boolean {
+        return isSubscriptionsAPIMessage(event) && isSubscribeAPIMessage(event)
+    }
 
-    //
-    // TODO: After isSubscribe, create a *subscribe* method that adds
-    // the relevant entries to the connections table
-    //
+    async subscribe(message: SubscribeAPIMessage): Promise<void> {
+        
+    }
 }
 
 export class SubscriptionLibrary {

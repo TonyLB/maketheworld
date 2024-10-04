@@ -15,5 +15,9 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
   }
 }
