@@ -31,7 +31,7 @@ export class SubscriptionHandler {
     }
 
     async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
-        const ConnectionId = `STREAM#${message.source}${message.detail ? `::${message.detail}` : ''}`
+        const ConnectionId = `STREAM#${this._source}${message.detail ? `::${message.detail}` : ''}`
         await connectionDB.putItem({
             ConnectionId,
             DataCategory: sessionId
@@ -48,9 +48,12 @@ export class SubscriptionLibrary {
         this._library = args.library
     }
 
-    match(event: Record<string, any>): SubscriptionEvent | undefined {
-        return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
-            return previous ?? handler.match(event)
+    match(event: Record<string, any>): SubscriptionHandler | undefined {
+        return this._library.reduce<SubscriptionHandler | undefined>((previous, handler) => {
+            if (!previous && handler.match(event)) {
+                return handler
+            }
+            return previous
         }, undefined)
     }
 }
