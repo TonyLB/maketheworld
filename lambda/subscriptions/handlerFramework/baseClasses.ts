@@ -1,4 +1,5 @@
 import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export class SubscriptionEvent {
     _source: string;
@@ -29,8 +30,12 @@ export class SubscriptionHandler {
         return isSubscriptionsAPIMessage(event) && isSubscribeAPIMessage(event)
     }
 
-    async subscribe(message: SubscribeAPIMessage): Promise<void> {
-        
+    async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
+        const ConnectionId = `STREAM#${this._source}${message.detail ? `::${message.detail}` : ''}`
+        await connectionDB.putItem({
+            ConnectionId,
+            DataCategory: sessionId
+        })
     }
 }
 
@@ -43,9 +48,12 @@ export class SubscriptionLibrary {
         this._library = args.library
     }
 
-    match(event: Record<string, any>): SubscriptionEvent | undefined {
-        return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
-            return previous ?? handler.match(event)
+    match(event: Record<string, any>): SubscriptionHandler | undefined {
+        return this._library.reduce<SubscriptionHandler | undefined>((previous, handler) => {
+            if (!previous && handler.match(event)) {
+                return handler
+            }
+            return previous
         }, undefined)
     }
 }
