@@ -7,8 +7,9 @@ import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
 import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
-import { cognitoClient } from "./clients"
+import { cognitoClient, ebClient } from "./clients"
 import { createCognitoUser } from "./createUser"
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
 export const handler = async (event: any) => {
 
@@ -222,6 +223,14 @@ export const handler = async (event: any) => {
                 }, {
                     retryErrors: ['TransactionCanceledException']
                 })
+                await ebClient.send(new PutEventsCommand({
+                    Entries: [{
+                        EventBusName: process.env.EVENT_BUS_NAME,
+                        Source: 'mtw.connections',
+                        DetailType: 'Session Disconnect',
+                        Detail: JSON.stringify({ sessionId })
+                    }]
+                }))
             })
         }
         return
