@@ -30,7 +30,10 @@ export const handler = async (event: any) => {
     // Handle EventBridge events that may need to be forwarded to subscribers
     //
     if (event?.source) {
-
+        const match = subscriptionLibrary.matchEvent(event)
+        if (match) {
+            await match.publish()
+        }
     }
     return {
         statusCode: 200,

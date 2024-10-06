@@ -239,6 +239,7 @@ Resources:
             Variables:
                 TABLE_PREFIX: !Ref TablePrefix
                 EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_connections'
@@ -247,6 +248,20 @@ Resources:
               Resource: '*'
               Action:
                 - events:PutEvents
+          - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+        Events:
+          Coordination:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - pong
+                detail-type:
+                  - pong
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
