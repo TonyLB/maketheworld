@@ -4,6 +4,7 @@
 import { isSubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
 import { subscriptionLibrary } from "./handlerFramework"
 import internalCache from "./internalCache"
+import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 export const handler = async (event: any) => {
 
@@ -29,7 +30,20 @@ export const handler = async (event: any) => {
     //
     // Handle EventBridge events that may need to be forwarded to subscribers
     //
-    if (event?.source) {
+    if (event.source === 'mtw.connections') {
+        if (event["detail-type"] === 'Session Disconnect') {
+            const DataCategory = `SESSION#${event.detail?.sessionId}`
+            const subscriptionDisconnects = (await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
+                IndexName: 'DataCategoryIndex',
+                Key: { DataCategory },
+                KeyConditionExpression: 'begins_with(ConnectionId, :streamPrefix)',
+                ExpressionAttributeValues: { [':streamPrefix']: 'STREAM#' },
+                ProjectionFields: ['ConnectionId']
+            }) || []).map(({ ConnectionId }) => (ConnectionId))
+            await Promise.all(subscriptionDisconnects.map((ConnectionId) => (connectionDB.deleteItem({ ConnectionId, DataCategory }))))
+        }
+    }
+    else if (event?.source) {
         const match = subscriptionLibrary.matchEvent(event)
         if (match) {
             await match.publish()
