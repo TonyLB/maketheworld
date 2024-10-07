@@ -8,6 +8,7 @@ import { parseWMLHandler } from './parseWML'
 import copyWML from './copyWML';
 import { resetWML } from './resetWML';
 import backupWML from "./backupWML";
+import applyEdit from "./applyEdit";
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -66,5 +67,7 @@ export const handler = async (event: any) => {
             }
         case 'fetchImports':
             return await fetchImportsHandler(event)
+        case 'applyEdit':
+            return await applyEdit(event)
     }
 }
