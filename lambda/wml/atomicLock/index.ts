@@ -3,8 +3,10 @@ import { exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import assetDB from "./mockableAssetDB"
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise"
 import now from "./mockableTime"
+import { v4 as uuidv4 } from 'uuid'
 
-export const assetAtomicLock = async (AssetId: EphemeraAssetId, key: string): Promise<void> => {
+export const assetAtomicLock = async (AssetId: EphemeraAssetId): Promise<string> => {
+    const key = uuidv4()
     //
     // Append key to the "locks" property on Meta::Asset record for this AssetId.
     //
@@ -55,7 +57,7 @@ export const assetAtomicLock = async (AssetId: EphemeraAssetId, key: string): Pr
                         }
                     })
                 }, { retryErrors: ['ConditionalCheckFailedException'] })
-                return
+                return key
             }
 
             //
@@ -81,7 +83,7 @@ export const assetAtomicLock = async (AssetId: EphemeraAssetId, key: string): Pr
                         }
                     })
                 }, { retryErrors: ['ConditionalCheckFailedException'] })
-                return
+                return key
             }
 
             //
