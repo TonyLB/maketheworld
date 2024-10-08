@@ -67,6 +67,12 @@ export const handler = async (event: any) => {
             }
         case 'fetchImports':
             return await fetchImportsHandler(event)
+        case 'requestLock':
+            return {}
+        case 'recheckLock':
+            return {}
+        case 'yieldLock':
+            return {}
         case 'applyEdit':
             return await applyEdit(event)
     }
