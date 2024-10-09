@@ -9,6 +9,8 @@ import copyWML from './copyWML';
 import { resetWML } from './resetWML';
 import backupWML from "./backupWML";
 import applyEdit from "./applyEdit";
+import { checkLock, requestLock } from "./atomicLock";
+import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -68,9 +70,11 @@ export const handler = async (event: any) => {
         case 'fetchImports':
             return await fetchImportsHandler(event)
         case 'requestLock':
-            return {}
-        case 'recheckLock':
-            return {}
+            const lock = await requestLock(event.AssetId)
+            return await checkLock(event.AssetId, lock)
+        case 'checkLock':
+            await delayPromise(500)
+            return await checkLock(event.AssetId, event.lock, event.timeoutCounter)
         case 'yieldLock':
             return {}
         case 'applyEdit':

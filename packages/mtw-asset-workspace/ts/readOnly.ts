@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { SerializableStandardAsset, SerializableStandardCharacter, SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardAsset, SerializableStandardCharacter, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -134,7 +134,7 @@ export class ReadOnlyAssetWorkspace {
         json: 'Initial',
         wml: 'Initial'
     };
-    standard?: SerializableStandardForm;
+    standard?: StandardForm;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
