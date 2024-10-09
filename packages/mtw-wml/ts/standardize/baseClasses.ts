@@ -344,4 +344,4 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (SerializableStandardAsset | (SerializableStandardComponent & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset' } & StandardBase) | (StandardComponent & SerializeNDJSONMixin))[]
