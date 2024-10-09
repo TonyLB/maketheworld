@@ -1578,6 +1578,34 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref WMLFunction
         - CloudWatchLogsFullAccess
+  ApplyWMLEditStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  ApplyWMLEditStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_apply_wml_edit_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/applyWMLEdit.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt ApplyWMLEditStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
+        WMLFunctionArn: !GetAtt WMLFunction.Arn
+        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref WMLFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AddressLookupFunction
+        - CloudWatchLogsFullAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MTWFeedbackTopic.TopicName
   DropConnectionStateMachineLogs:
     Type: AWS::Logs::LogGroup
   DropConnectionStateMachine:

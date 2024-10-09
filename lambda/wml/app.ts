@@ -78,6 +78,7 @@ export const handler = async (event: any) => {
         case 'yieldLock':
             return {}
         case 'applyEdit':
-            return await applyEdit(event)
+            // return await applyEdit(event)
+            return {}
     }
 }

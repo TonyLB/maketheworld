@@ -66,29 +66,31 @@ States:
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "requestLock"
-            "AssetId.$": "$.args.AssetId"
+            "AssetId.$": "$.args.assetId"
         ResultPath: "$.lockResult"
         Next: Is Lock Secured
     "Is Lock Secured":
         Type: Choice
         Choices:
-            Variable: "$.lockResult.seecured"
-            BooleanEquals: true
-            Next: Apply Edit
+            -
+                Variable: "$.lockResult.secured"
+                BooleanEquals: true
+                Next: Apply Edit
         Default: Check For Timeout
     "Check For Timeout":
         Type: Choice
         Choices:
-            Variable: "$.lockResult.timeoutCounter"
-            NumericGreaterThan: 5
-            Next: Timeout
+            -
+                Variable: "$.lockResult.timeoutCounter"
+                NumericGreaterThan: 5
+                Next: Timeout
         Default: Recheck Lock
     "Recheck Lock":
         Type: Task
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "checkLock"
-            "AssetId.$": "$args.AssetId"
+            "AssetId.$": "$.args.assetId"
             "lock.$": "$.lockResult.lock"
             "timeoutCounter.$": "$.lockResult.timeoutCounter"
         ResultPath: "$.lockResult"
