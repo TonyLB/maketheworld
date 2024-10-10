@@ -1,0 +1,433 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`standard form serialize should serialize a character 1`] = `
+Array [
+  Object {
+    "fileName": undefined,
+    "firstImpression": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "FirstImpression",
+        "value": "Frumpy Goth",
+      },
+    },
+    "image": Object {
+      "children": Array [],
+      "data": Object {
+        "key": "TessIcon",
+        "tag": "Image",
+      },
+    },
+    "key": "Tess",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Tess",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "oneCoolThing": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "OneCoolThing",
+        "value": "Fuchsia eyes",
+      },
+    },
+    "outfit": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Outfit",
+        "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+      },
+    },
+    "pronouns": Object {
+      "children": Array [],
+      "data": Object {
+        "adjective": "hers",
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+    },
+    "tag": "Character",
+    "universalKey": "CHARACTER#001",
+  },
+  Object {
+    "fileName": "IMAGE-002",
+    "key": "TessIcon",
+    "tag": "Image",
+    "universalKey": "IMAGE#002",
+  },
+]
+`;
+
+exports[`standard form serialize should serialize all component types 1`] = `
+Array [
+  Object {
+    "key": "test",
+    "tag": "Asset",
+    "universalId": "ASSET#test",
+  },
+  Object {
+    "fileName": "IMAGE-001",
+    "key": "testBackground",
+    "tag": "Image",
+    "universalKey": "IMAGE#001",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex Desc",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+      "wrapperTag": undefined,
+    },
+    "exits": Array [],
+    "fileName": undefined,
+    "key": "testRoom",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+      "wrapperTag": undefined,
+    },
+    "shortName": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "ShortName",
+      },
+      "wrapperTag": undefined,
+    },
+    "summary": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Summary",
+      },
+    },
+    "tag": "Room",
+    "themes": Array [],
+    "universalKey": "ROOM#002",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "A tower built of white sandstone blocks, with an ornate clock set on the northern face.",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+      "wrapperTag": undefined,
+    },
+    "fileName": undefined,
+    "key": "testFeature",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Clocktower",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+      "wrapperTag": undefined,
+    },
+    "tag": "Feature",
+    "universalKey": "FEATURE#003",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "There is so much to know!",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+      "wrapperTag": undefined,
+    },
+    "fileName": undefined,
+    "key": "testKnowledge",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Learn",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+      "wrapperTag": undefined,
+    },
+    "tag": "Knowledge",
+    "universalKey": "KNOWLEDGE#004",
+  },
+  Object {
+    "fileName": undefined,
+    "images": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "testBackground",
+          "tag": "Image",
+        },
+      },
+    ],
+    "key": "testMap",
+    "name": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Name",
+      },
+    },
+    "positions": Array [
+      Object {
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "Position",
+              "x": 0,
+              "y": 100,
+            },
+          },
+        ],
+        "data": Object {
+          "key": "testRoom",
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        "wrapperTag": undefined,
+      },
+    ],
+    "tag": "Map",
+    "themes": Array [],
+    "universalKey": "MAP#005",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "The door opens!",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+    },
+    "fileName": undefined,
+    "key": "openDoor",
+    "rooms": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "testRoom",
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+      },
+    ],
+    "tag": "Message",
+    "universalKey": "MESSAGE#006",
+  },
+  Object {
+    "fileName": undefined,
+    "key": "openDoorMoment",
+    "messages": Array [
+      Object {
+        "children": Array [],
+        "data": Object {
+          "key": "openDoor",
+          "tag": "Message",
+        },
+      },
+    ],
+    "tag": "Moment",
+    "universalKey": "MOMENT#007",
+  },
+  Object {
+    "default": "false",
+    "fileName": undefined,
+    "key": "open",
+    "tag": "Variable",
+    "universalKey": "VARIABLE#008",
+  },
+  Object {
+    "fileName": undefined,
+    "key": "closed",
+    "src": "!open",
+    "tag": "Computed",
+    "universalKey": "COMPUTED#009",
+  },
+  Object {
+    "fileName": undefined,
+    "key": "toggleOpen",
+    "src": "open = !open",
+    "tag": "Action",
+    "universalKey": "ACTION#010",
+  },
+]
+`;
+
+exports[`standard form serialize should serialize universal keys 1`] = `
+Array [
+  Object {
+    "key": "test",
+    "tag": "Asset",
+    "universalId": "ASSET#test",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex Desc",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+      "wrapperTag": undefined,
+    },
+    "exits": Array [],
+    "fileName": undefined,
+    "key": "testRoom",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+      "wrapperTag": undefined,
+    },
+    "shortName": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "ShortName",
+      },
+      "wrapperTag": undefined,
+    },
+    "summary": Object {
+      "children": Array [],
+      "data": Object {
+        "tag": "Summary",
+      },
+    },
+    "tag": "Room",
+    "themes": Array [],
+    "universalKey": "ROOM#UUID",
+  },
+  Object {
+    "description": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "A tower built of white sandstone blocks, with an ornate clock set on the northern face.",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Description",
+      },
+      "wrapperTag": undefined,
+    },
+    "fileName": undefined,
+    "key": "testFeature",
+    "name": Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "tag": "String",
+            "value": "Clocktower",
+          },
+        },
+      ],
+      "data": Object {
+        "tag": "Name",
+      },
+      "wrapperTag": undefined,
+    },
+    "tag": "Feature",
+    "universalKey": "FEATURE#UUID",
+  },
+]
+`;
