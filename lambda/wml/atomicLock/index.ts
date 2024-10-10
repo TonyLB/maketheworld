@@ -116,7 +116,25 @@ export const assetAtomicLock = async (AssetId: EphemeraAssetId): Promise<string>
 }
 
 export const yieldAtomicLock = async (AssetId: EphemeraAssetId, key: string): Promise<void> => {
-
+    await exponentialBackoffWrapper(async () => {
+        await assetDB.optimisticUpdate({
+            Key: {
+                AssetId,
+                DataCategory: 'Meta::Asset'
+            },
+            updateKeys: ['atomicLocks', 'timeToUnlock'],
+            updateReducer: (state) => {
+                if (state.atomicLocks.length > 1 && state.atomicLocks[0] === key) {
+                    state.timeToUnlock = now() + 5000
+                }
+                state.atomicLocks = state.atomicLocks.filter((lock) => (lock !== key))
+                if (state.atomicLocks.length === 0) {
+                    state.timeToUnlock = 0
+                }
+            },
+            
+        })
+    }, { retryErrors: ['ConditionalCheckFailedException'] })
 }
 
 export default assetAtomicLock
