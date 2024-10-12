@@ -161,7 +161,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
     }))).flat()
 
     const deserializeStandardizer = new Standardizer()
-    deserializeStandardizer.deserialize({ ...newStandard, metaData: [] })
+    deserializeStandardizer.loadStandardForm({ ...newStandard, metaData: [] })
     const rawSchema = deserializeStandardizer.schema
     const translatedSchema = [{ ...rawSchema[0], children: rawSchema[0].children.map((tag) => (translate.translateSchemaTag(tag))) }]
     const mergeStandardizer = new Standardizer([{

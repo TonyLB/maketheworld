@@ -1079,71 +1079,71 @@ export class StandardizerAbstract {
         this.loadStandardForm({ ...assignedStandardizer.standardForm, update: assignedStandardizer._update })
     }
 
-    deserialize(standard: SerializableStandardForm): void {
-        const byId: StandardForm["byId"] = objectMap(standard.byId, (value): StandardComponent => {
-            const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never => {
-                const subItem = item[key] as EditWrappedStandardNode<FilterType, InnerType, {}>
-                return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: subItem.children as unknown as EditWrappedStandardNode<FilterType, InnerType> } as unknown as T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never
-            }
-            if (value.tag === 'Bookmark') {
-                return {
-                    ...value,
-                    description: deserializeValue(value, 'description')
-                }
-            }
-            if (value.tag === 'Feature' || value.tag === 'Knowledge') {
-                return {
-                    ...value,
-                    name: deserializeValue(value, 'name'),
-                    description: deserializeValue(value, 'description')
-                }
-            }
-            if (value.tag === 'Map') {
-                return {
-                    ...value,
-                    name: deserializeValue(value, 'name'),
-                    themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
-                }
-            }
-            if (value.tag === 'Theme') {
-                return {
-                    ...value,
-                    name: deserializeValue(value, 'name'),
-                    prompts: value.prompts.filter(treeNodeTypeguard(isSchemaPrompt)),
-                }
-            }
-            if (value.tag === 'Room') {
-                return {
-                    ...value,
-                    shortName: deserializeValue(value, 'shortName'),
-                    name: deserializeValue(value, 'name'),
-                    summary: deserializeValue(value, 'summary'),
-                    description: deserializeValue(value, 'description'),
-                    themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
-                }
-            }
-            if (value.tag === 'Message') {
-                return {
-                    ...value,
-                    description: deserializeValue(value, 'description'),
-                }
-            }
-            if (value.tag === 'Moment') {
-                return value
-            }
-            if (value.tag === 'Character') {
-                return {
-                    ...value,
-                    name: deserializeValue(value, 'name')
-                }
-            }
-            return value
-        })
-        this._assetKey = standard.key
-        this._assetTag = standard.tag
-        this._byId = byId
-        this.metaData = standard.metaData
-    }
+    // deserialize(standard: SerializableStandardForm): void {
+    //     const byId: StandardForm["byId"] = objectMap(standard.byId, (value): StandardComponent => {
+    //         const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never => {
+    //             const subItem = item[key] as EditWrappedStandardNode<FilterType, InnerType, {}>
+    //             return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: subItem.children as unknown as EditWrappedStandardNode<FilterType, InnerType> } as unknown as T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never
+    //         }
+    //         if (value.tag === 'Bookmark') {
+    //             return {
+    //                 ...value,
+    //                 description: deserializeValue(value, 'description')
+    //             }
+    //         }
+    //         if (value.tag === 'Feature' || value.tag === 'Knowledge') {
+    //             return {
+    //                 ...value,
+    //                 name: deserializeValue(value, 'name'),
+    //                 description: deserializeValue(value, 'description')
+    //             }
+    //         }
+    //         if (value.tag === 'Map') {
+    //             return {
+    //                 ...value,
+    //                 name: deserializeValue(value, 'name'),
+    //                 themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
+    //             }
+    //         }
+    //         if (value.tag === 'Theme') {
+    //             return {
+    //                 ...value,
+    //                 name: deserializeValue(value, 'name'),
+    //                 prompts: value.prompts.filter(treeNodeTypeguard(isSchemaPrompt)),
+    //             }
+    //         }
+    //         if (value.tag === 'Room') {
+    //             return {
+    //                 ...value,
+    //                 shortName: deserializeValue(value, 'shortName'),
+    //                 name: deserializeValue(value, 'name'),
+    //                 summary: deserializeValue(value, 'summary'),
+    //                 description: deserializeValue(value, 'description'),
+    //                 themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
+    //             }
+    //         }
+    //         if (value.tag === 'Message') {
+    //             return {
+    //                 ...value,
+    //                 description: deserializeValue(value, 'description'),
+    //             }
+    //         }
+    //         if (value.tag === 'Moment') {
+    //             return value
+    //         }
+    //         if (value.tag === 'Character') {
+    //             return {
+    //                 ...value,
+    //                 name: deserializeValue(value, 'name')
+    //             }
+    //         }
+    //         return value
+    //     })
+    //     this._assetKey = standard.key
+    //     this._assetTag = standard.tag
+    //     this._byId = byId
+    //     this.metaData = standard.metaData
+    // }
 
     transform(callback: (schema: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardizerAbstract {
         const mappedByIdEntries = Object.entries(this._byId)

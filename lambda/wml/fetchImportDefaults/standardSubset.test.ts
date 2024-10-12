@@ -27,7 +27,7 @@ describe('standardSubset', () => {
     const schema = new Schema()
     schema.loadWML(testSource)
     const standardizer = new Standardizer(schema.schema)
-    const testStandard = standardizer.stripped
+    const testStandard = standardizer.standardForm
 
     it('should return only a wrapper when passed no keys', () => {
         expect(standardSubset({ standard: testStandard, keys: [], stubKeys: [] })).toEqual({ newStubKeys: [], standard: { key: 'Test', tag: 'Asset', byId: {}, metaData: [] } })

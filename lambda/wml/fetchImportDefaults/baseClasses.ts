@@ -3,10 +3,10 @@ import { Graph } from "@tonylb/mtw-utilities/dist/graphStorage/utils/graph"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/ts/"
 import { NamespaceMapping } from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { SerializableStandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 
 type JSONFileCache = {
-    standard: SerializableStandardForm;
+    standard: StandardForm;
     namespaceIdToDB: NamespaceMapping;
 }
 

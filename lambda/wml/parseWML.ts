@@ -49,9 +49,9 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
             if (!assetWorkspace.standard) {
                 return
             }
-            standardizer.deserialize(assetWorkspace.standard)
+            standardizer.loadStandardForm(assetWorkspace.standard)
             standardizer.assignDependencies(extractDependenciesFromJS)
-            assetWorkspace.standard = standardizer.stripped
+            assetWorkspace.standard = standardizer.standardForm
             await Promise.all([
                 assetWorkspace.pushJSON(),
                 assetWorkspace.pushWML(),

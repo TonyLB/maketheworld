@@ -10,11 +10,11 @@ import {
     isSchemaExit
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
-import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, SerializableStandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
-export const standardSubset = ({ standard, keys, stubKeys }: { standard: SerializableStandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: SerializableStandardForm } => {
+export const standardSubset = ({ standard, keys, stubKeys }: { standard: StandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: StandardForm } => {
     const standardizer = new Standardizer()
     standardizer.loadStandardForm(standard)
 
@@ -125,7 +125,7 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
 
     standardizer._byId = newById
 
-    return { newStubKeys: newExitKeys, standard: standardizer.stripped }
+    return { newStubKeys: newExitKeys, standard: standardizer.standardForm }
 }
 
 export default standardSubset
