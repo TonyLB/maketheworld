@@ -16,7 +16,7 @@ import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 export const standardSubset = ({ standard, keys, stubKeys }: { standard: SerializableStandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: SerializableStandardForm } => {
     const standardizer = new Standardizer()
-    standardizer.deserialize(standard)
+    standardizer.loadStandardForm(standard)
 
     //
     // Extend the incoming stubKeys with any that need to be added because of connection to first-class
@@ -96,16 +96,16 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
             if (isStandardRoom(item)) {
                 return [{
                     ...item,
-                    name: { data: { tag: 'Name' }, children: [], id: '' },
-                    summary: { data: { tag: 'Summary' }, children: [], id: '' },
-                    description: { data: { tag: 'Description' }, children: [], id: '' },
+                    name: { data: { tag: 'Name' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
                 }]
             }
             else if (isStandardFeature(item) || isStandardKnowledge(item)) {
                 return [{
                     ...item,
-                    name: { data: { tag: 'Name' }, children: [], id: '' },
-                    description: { data: { tag: 'Description' }, children: [], id: '' }
+                    name: { data: { tag: 'Name' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] }
                 }]
             }
             else if (isStandardAction(item)) {
