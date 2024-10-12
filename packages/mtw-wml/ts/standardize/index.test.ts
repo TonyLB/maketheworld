@@ -1317,7 +1317,7 @@ describe('standardizeSchema', () => {
                 <Room key=(testTwo)><Position x="100" y="0" /></Room>
             </Map>
         </Asset>`)
-        expect(test.stripped.byId).toEqual({
+        expect(test.standardForm.byId).toEqual({
             test: {
                 key: 'test',
                 tag: 'Room',
@@ -1379,7 +1379,7 @@ describe('standardizeSchema', () => {
                 <Map key=(testMap) />
             </Theme>
         </Asset>`)
-        expect(test.stripped.byId).toEqual({
+        expect(test.standardForm.byId).toEqual({
             test: {
                 key: 'test',
                 tag: 'Room',

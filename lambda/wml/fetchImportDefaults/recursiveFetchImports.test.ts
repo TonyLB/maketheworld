@@ -1,15 +1,15 @@
 import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
 
 import { FetchImportsJSONHelper } from './baseClasses'
-import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 
-const testStandardFromWML = (wml: string): SerializableStandardForm => {
+const testStandardFromWML = (wml: string): StandardForm => {
     const schema = new Schema()
     schema.loadWML(wml)
     const standardizer = new Standardizer(schema.schema)
-    return standardizer.stripped
+    return standardizer.standardForm
 }
 
 describe('recursiveFetchImports', () => {
@@ -104,7 +104,7 @@ describe('recursiveFetchImports', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jsonHelper.get.mockImplementation(async (assetId: string) => {
-            let standard: SerializableStandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
+            let standard: StandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
             switch(assetId) {
                 case 'ASSET#testFinal':
                     standard = testFinal

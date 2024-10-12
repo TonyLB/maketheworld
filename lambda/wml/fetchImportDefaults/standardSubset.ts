@@ -10,13 +10,13 @@ import {
     isSchemaExit
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
-import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, SerializableStandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardForm } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
 import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
-export const standardSubset = ({ standard, keys, stubKeys }: { standard: SerializableStandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: SerializableStandardForm } => {
+export const standardSubset = ({ standard, keys, stubKeys }: { standard: StandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: StandardForm } => {
     const standardizer = new Standardizer()
-    standardizer.deserialize(standard)
+    standardizer.loadStandardForm(standard)
 
     //
     // Extend the incoming stubKeys with any that need to be added because of connection to first-class
@@ -96,16 +96,16 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
             if (isStandardRoom(item)) {
                 return [{
                     ...item,
-                    name: { data: { tag: 'Name' }, children: [], id: '' },
-                    summary: { data: { tag: 'Summary' }, children: [], id: '' },
-                    description: { data: { tag: 'Description' }, children: [], id: '' },
+                    name: { data: { tag: 'Name' }, children: [] },
+                    summary: { data: { tag: 'Summary' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] },
                 }]
             }
             else if (isStandardFeature(item) || isStandardKnowledge(item)) {
                 return [{
                     ...item,
-                    name: { data: { tag: 'Name' }, children: [], id: '' },
-                    description: { data: { tag: 'Description' }, children: [], id: '' }
+                    name: { data: { tag: 'Name' }, children: [] },
+                    description: { data: { tag: 'Description' }, children: [] }
                 }]
             }
             else if (isStandardAction(item)) {
@@ -125,7 +125,7 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Seriali
 
     standardizer._byId = newById
 
-    return { newStubKeys: newExitKeys, standard: standardizer.stripped }
+    return { newStubKeys: newExitKeys, standard: standardizer.standardForm }
 }
 
 export default standardSubset

@@ -24,6 +24,6 @@ describe('large WML test', () => {
         const schema = new Schema()
         schema.loadWML(dungeonSource)
         const standardizer = new Standardizer(schema.schema)
-        expect(standardizer.stripped.byId).toMatchSnapshot()
+        expect(standardizer.standardForm.byId).toMatchSnapshot()
     })
 })

@@ -110,7 +110,7 @@ describe('standard form serialize' ,() => {
             return fileAssociations[key]
         }
         const standard = new Standardizer(schema.schema)
-        expect(serialize(standard.stripped, universalKey, fileAssociation)).toMatchSnapshot()
+        expect(serialize(standard.standardForm, universalKey, fileAssociation)).toMatchSnapshot()
     })
     it('should serialize universal keys', () => {
         const schema = new Schema()
@@ -128,7 +128,7 @@ describe('standard form serialize' ,() => {
             </Asset>
         `))
         const standard = new Standardizer(schema.schema)
-        expect(serialize(standard.stripped, (key, tag) => (`${tag.toUpperCase()}#UUID`))).toMatchSnapshot()
+        expect(serialize(standard.standardForm, (key, tag) => (`${tag.toUpperCase()}#UUID`))).toMatchSnapshot()
     })
     it('should serialize imports', () => {
         const schema = new Schema()
@@ -141,7 +141,7 @@ describe('standard form serialize' ,() => {
             </Asset>
         `))
         const standard = new Standardizer(schema.schema)
-        expect(serialize(standard.stripped)).toEqual([
+        expect(serialize(standard.standardForm)).toEqual([
             { tag: 'Asset', key: 'test', universalId: 'ASSET#test' },
             {
                 tag: 'Room',
@@ -167,7 +167,7 @@ describe('standard form serialize' ,() => {
             </Asset>
         `))
         const standard = new Standardizer(schema.schema)
-        expect(serialize(standard.stripped)).toEqual([
+        expect(serialize(standard.standardForm)).toEqual([
             { tag: 'Asset', key: 'test', universalId: 'ASSET#test' },
             {
                 tag: 'Room',
@@ -250,7 +250,7 @@ describe('standard form deserialize' ,() => {
             return fileAssociations[key]
         }
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped, universalKey, fileAssociation)
+        const ndjson = serialize(standard.standardForm, universalKey, fileAssociation)
         const deserialized = new Standardizer()
         const results = deserialize(ndjson)
         deserialized.loadStandardForm(results.standardForm)
@@ -296,7 +296,7 @@ describe('standard form deserialize' ,() => {
             return fileAssociations[key]
         }
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped, universalKey, fileAssociation)
+        const ndjson = serialize(standard.standardForm, universalKey, fileAssociation)
         const deserialized = new Standardizer()
         const results = deserialize(ndjson)
         deserialized.loadStandardForm(results.standardForm)
@@ -314,7 +314,7 @@ describe('standard form deserialize' ,() => {
         const schema = new Schema()
         schema.loadWML(testWML)
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped)
+        const ndjson = serialize(standard.standardForm)
         const deserialized = new Standardizer()
         deserialized.loadStandardForm(deserialize(ndjson).standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
@@ -329,7 +329,7 @@ describe('standard form deserialize' ,() => {
         const schema = new Schema()
         schema.loadWML(testWML)
         const standard = new Standardizer(schema.schema)
-        const ndjson = serialize(standard.stripped)
+        const ndjson = serialize(standard.standardForm)
         const deserialized = new Standardizer()
         deserialized.loadStandardForm(deserialize(ndjson).standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
