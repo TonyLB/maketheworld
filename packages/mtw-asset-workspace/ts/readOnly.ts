@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { SerializableStandardAsset, SerializableStandardCharacter, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { SerializableStandardAsset, StandardCharacter, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -259,7 +259,7 @@ export class ReadOnlyAssetWorkspace {
         this.status.json = 'Clean'
     }
 
-    get rootNodes(): (SerializableStandardAsset | SerializableStandardCharacter)[] {
+    get rootNodes(): (SerializableStandardAsset | StandardCharacter)[] {
         const { tag, key } = this.standard ?? {}
         switch(tag) {
             case 'Asset':
