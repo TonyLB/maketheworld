@@ -79,7 +79,6 @@ export const handler = async (event: any) => {
             await yieldAtomicLock(event.AssetId, event.lock)
             return {}
         case 'applyEdit':
-            console.log(`event: ${JSON.stringify(event, null, 4)}`)
             return await applyEdit(event)
     }
 }

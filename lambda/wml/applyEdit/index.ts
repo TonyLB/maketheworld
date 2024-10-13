@@ -3,8 +3,12 @@ import { Standardizer } from "@tonylb/mtw-wml/ts/standardize";
 import assetAtomicLock from "../atomicLock";
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace";
 import { schemaToWML } from "@tonylb/mtw-wml/dist/schema";
+import { ebClient } from "../clients";
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge";
 
 export type ApplyEditArguments = {
+    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    RequestId: string;
     address: AssetWorkspaceAddress;
     schema: string;
 }
@@ -25,10 +29,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     //
     await loadPromise
     if (!assetWorkspace.standard) {
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Error' })
-        }
+        return {}
     }
     const baseStandardizer = new Standardizer()
     baseStandardizer.loadStandardForm(assetWorkspace.standard)
@@ -37,10 +38,18 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         mergedStandardizer = baseStandardizer.merge(editStandardizer) as Standardizer
     }
     catch (err) {
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Error' })
-        }
+        await ebClient.send(new PutEventsCommand({
+            Entries: [{
+                EventBusName: process.env.EVENT_BUS_NAME,
+                Source: 'mtw.wml',
+                DetailType: 'Merge Conflict',
+                Detail: JSON.stringify({
+                    AssetId: args.AssetId,
+                    RequestId: args.RequestId
+                })
+            }]
+        }))
+        return {}
     }
 
     //
@@ -53,10 +62,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         assetWorkspace.pushWML()
     ])
     
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Success' })
-    }
+    return {}
 }
 
 export default applyEdit
