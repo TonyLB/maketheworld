@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema/index'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 import { serialize } from '@tonylb/mtw-wml/ts/standardize/serialize'
 
@@ -134,6 +134,16 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
         await this.setWML(contents)
         this.status.wml = 'Clean'
+    }
+
+    override async loadJSON(): Promise<void> {
+        await super.loadJSON()
+        const standardizer = new Standardizer()
+        if (this.standard) {
+            standardizer.loadStandardForm(this.standard)
+            this.wml = schemaToWML(standardizer.schema)
+            this.status.wml = 'Clean'
+        }
     }
 
     async pushJSON(): Promise<void> {

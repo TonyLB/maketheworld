@@ -101,6 +101,7 @@ States:
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "applyEdit"
+            "address.$": "$.args.address"
             "schema.$": "$.args.schema"
         Catch:
             -
