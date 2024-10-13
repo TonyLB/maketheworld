@@ -49,7 +49,8 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
 
     assetWorkspace.setJSON(mergedStandardizer.standardForm)
     await Promise.all([
-        assetWorkspace.pushJSON()
+        assetWorkspace.pushJSON(),
+        assetWorkspace.pushWML()
     ])
     
     return {
