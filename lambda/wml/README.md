@@ -19,17 +19,17 @@ As with most MTW data products, the WML product consists of the following:
 
 ---
 
-## assetEdited
-- AssetID: `ASSET#{id}` | `CHARACTER#{id}`
-- RequestID: uuid
+## Asset Edited
+- AssetId: `ASSET#{id}` | `CHARACTER#{id}`
+- RequestId: uuid
 - schema: A WML schema with (likely) edit elements such as Replace and Remove, as well as added new
 plain elements, that has been applied to the specified asset.
 
 This event means that an edit has been applied to the asset
 
-## mergeConflict
-- AssetID: `ASSET#{id}` | `CHARACTER#{id}`
-- RequestID: uuid
+## Merge Conflict
+- AssetId: `ASSET#{id}` | `CHARACTER#{id}`
+- RequestId: uuid
 
 This event means that the system tried to apply an edit, but failed because it was in conflict
 with the current state of the asset
