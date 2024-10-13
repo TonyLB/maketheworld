@@ -44,13 +44,14 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     }
 
     //
-    // TODO: Write ndjson
+    // Write ndjson and wml
     //
 
-    //
-    // TODO: Write wml
-    //
-
+    assetWorkspace.setJSON(mergedStandardizer.standardForm)
+    await Promise.all([
+        assetWorkspace.pushJSON()
+    ])
+    
     return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Success' })

@@ -62,7 +62,7 @@ Object {
       "universalKey": "CHARACTER#ABCDEF",
     },
     "TessIon": Object {
-      "fileURL": "abcdef.png",
+      "fileName": "abcdef.png",
       "key": "TessIon",
       "tag": "Image",
       "universalKey": "IMAGE#123456",
@@ -71,6 +71,7 @@ Object {
   "key": "Tess",
   "metaData": Array [],
   "tag": "Character",
+  "update": undefined,
 }
 `;
 
@@ -125,6 +126,7 @@ Object {
   "key": "Test",
   "metaData": Array [],
   "tag": "Asset",
+  "update": undefined,
 }
 `;
 
@@ -164,6 +166,7 @@ Object {
             "tag": "Exit",
             "to": "b456",
           },
+          "wrapperTag": undefined,
         },
       ],
       "key": "a123",
@@ -212,6 +215,7 @@ Object {
             "tag": "Exit",
             "to": "a123",
           },
+          "wrapperTag": undefined,
         },
       ],
       "key": "b456",
@@ -240,6 +244,7 @@ Object {
   "key": "Test",
   "metaData": Array [],
   "tag": "Asset",
+  "update": undefined,
 }
 `;
 
@@ -251,7 +256,7 @@ Array [
   },
   Object {
     "internalKey": "b456",
-    "universalKey": "ROOM#UUID-7",
+    "universalKey": "ROOM#UUID-0",
   },
 ]
 `;
@@ -278,11 +283,11 @@ Array [
   Object {
     "exportAs": "Room2",
     "internalKey": "a123",
-    "universalKey": "ROOM#UUID-9",
+    "universalKey": "ROOM#UUID-0",
   },
   Object {
     "internalKey": "b456",
-    "universalKey": "ROOM#UUID-10",
+    "universalKey": "ROOM#UUID-1",
   },
 ]
 `;
