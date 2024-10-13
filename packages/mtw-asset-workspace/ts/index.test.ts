@@ -6,6 +6,7 @@ import { AssetWorkspaceException } from './errors'
 
 import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
 import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -117,7 +118,7 @@ describe('AssetWorkspace', () => {
                     image: { data: { tag: 'Image', key: 'TessIcon' }, children: [] },
                     universalKey: 'CHARACTER#ABCDEF'
                 },
-                { tag: 'Image', key: 'TessIon', universalKey: 'IMAGE#123456', fileURL: 'abcdef.png' }
+                { tag: 'Image', key: 'TessIon', universalKey: 'IMAGE#123456', fileName: 'abcdef.png' }
             ]
             s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
     
@@ -287,12 +288,8 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
-                    <Room key=(a123)>
-                        <Exit to=(b456)>welcome</Exit>
-                    </Room>
-                    <Room key=(b456)>
-                        <Exit to=(a123)>vortex</Exit>
-                    </Room>
+                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -302,7 +299,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Dirty')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.wml',
-                Body: testSource
+                Body: deIndentWML(testSource)
             })
         })
 
@@ -320,12 +317,8 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
-                    <Room key=(a123)>
-                        <Exit to=(b456)>welcome</Exit>
-                    </Room>
-                    <Room key=(b456)>
-                        <Exit to=(a123)>vortex</Exit>
-                    </Room>
+                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -363,12 +356,8 @@ describe('AssetWorkspace', () => {
                         <Room key=(a123) from=(base) />
                         <Feature key=(c789) from=(Feature2) />
                     </Import>
-                    <Room key=(a123)>
-                        <Exit to=(b456)>welcome</Exit>
-                    </Room>
-                    <Room key=(b456)>
-                        <Exit to=(a123)>vortex</Exit>
-                    </Room>
+                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -384,15 +373,9 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
-                    <Room key=(a123)>
-                        <Exit to=(b456)>welcome</Exit>
-                    </Room>
-                    <Room key=(b456)>
-                        <Exit to=(a123)>vortex</Exit>
-                    </Room>
-                    <Export>
-                        <Room key=(a123) as=(Room2) />
-                    </Export>
+                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
+                    <Export><Room key=(a123) as=(Room2) /></Export>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)

@@ -9,6 +9,7 @@ import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -19,18 +20,13 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.address = address
     }
 
-    //
-    // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
-    // reading in a stream, and processing it as it arrives
-    //
-    async setWML(source: string): Promise<void> {
-        const schema = new Schema()
-        schema.loadWML(source)
-        const standardizer = new Standardizer(schema.schema)
-        if (!(this.standard && deepEqual(standardizer.stripped, this.standard))) {
+    async setJSON(standardForm: StandardForm): Promise<void> {
+        if (!(this.standard && deepEqual(standardForm, this.standard))) {
             this.status.json = 'Dirty'
-            this.standard = standardizer.stripped
+            this.standard = standardForm
         }
+        const standardizer = new Standardizer()
+        standardizer.loadStandardForm(standardForm)
 
         if (this._workspaceFromKey) {
             const exportMapping = standardizer.metaData
@@ -71,7 +67,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             )
         }
 
-        Object.values(this.standard.byId)
+        Object.values(this.standard?.byId ?? {})
             .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
@@ -93,11 +89,22 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         }
 
         //
-        // TODO: Extend setWML to check for entries in namespaceIdToDB that no longer have a
+        // TODO: Extend setJSON to check for entries in namespaceIdToDB that no longer have a
         // corresponding normal entry, and remove
         //
-        this.wml = source
+        this.wml = schemaToWML(standardizer.schema)
         this.status.wml = 'Dirty'
+
+    }
+    //
+    // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
+    // reading in a stream, and processing it as it arrives
+    //
+    async setWML(source: string): Promise<void> {
+        const schema = new Schema()
+        schema.loadWML(source)
+        const standardizer = new Standardizer(schema.schema)
+        await this.setJSON(standardizer.standardForm)
     }
 
     async loadWML(): Promise<void> {
