@@ -26,6 +26,10 @@ export const handler = async (event: any) => {
         else {
             console.log(`No match: ${JSON.stringify(request, null, 4)}`)
         }
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
+        }
     }
     if (isUnsubscribeAPIMessage(request)) {
         const match = subscriptionLibrary.match(request)
@@ -35,6 +39,10 @@ export const handler = async (event: any) => {
         }
         else {
             console.log(`No match: ${JSON.stringify(request, null, 4)}`)
+        }
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
         }
     }
     //

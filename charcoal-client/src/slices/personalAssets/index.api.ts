@@ -13,7 +13,7 @@ import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces
 import { getStandardForm, setImport } from '.'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { isImportable, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
 import { getPlayer } from '../player'
 
@@ -40,7 +40,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (id === 'ASSET#draft') {
         const state = getState()
         const player = getPlayer(state)
-        dispatch(socketDispatch({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
+        await dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
