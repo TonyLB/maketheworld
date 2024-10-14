@@ -28,7 +28,18 @@ export type SubscriptionClientMergeConflictMessage = {
     AssetId: string;
 }
 
-export type SubscriptionClientMessage = { messageType: 'Subscription' } & (SubscriptionClientMergeConflictMessage)
+export type SubscriptionClientAssetEditedMessage = {
+    source: 'mtw.wml';
+    detailType: 'Asset Edited';
+    RequestId: string;
+    AssetId: string;
+    schema: string;
+}
+
+export type SubscriptionClientMessage = { messageType: 'Subscription' } & (
+    SubscriptionClientMergeConflictMessage |
+    SubscriptionClientAssetEditedMessage
+)
 
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
     if (!('messageType' in message && message.messageType === 'Subscription')) {
