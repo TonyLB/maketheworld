@@ -61,6 +61,18 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         assetWorkspace.pushJSON(),
         assetWorkspace.pushWML()
     ])
+    await ebClient.send(new PutEventsCommand({
+        Entries: [{
+            EventBusName: process.env.EVENT_BUS_NAME,
+            Source: 'mtw.wml',
+            DetailType: 'Asset Edited',
+            Detail: JSON.stringify({
+                AssetId: args.AssetId,
+                RequestId: args.RequestId,
+                schema: args.schema
+            })
+        }]
+    }))
     
     return {}
 }

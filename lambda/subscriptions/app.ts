@@ -46,7 +46,7 @@ export const handler = async (event: any) => {
     else if (event?.source) {
         const match = subscriptionLibrary.matchEvent(event)
         if (match) {
-            await match.publish()
+            await match.publish(event)
         }
     }
     return {
