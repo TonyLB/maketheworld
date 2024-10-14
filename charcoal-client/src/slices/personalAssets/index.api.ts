@@ -2,7 +2,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } from './baseClasses'
 import {
     socketDispatchPromise,
-    getStatus
+    getStatus,
+    socketDispatch
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
@@ -14,6 +15,7 @@ import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
+import { getPlayer } from '../player'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -31,9 +33,14 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
     return { internalData: { fetchURL: url }, publicData: { properties } }
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async () => {
+export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
     if (!fetchURL) {
         throw new Error()
+    }
+    if (id === 'ASSET#draft') {
+        const state = getState()
+        const player = getPlayer(state)
+        dispatch(socketDispatch({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
