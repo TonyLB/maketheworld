@@ -40,7 +40,10 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (id === 'ASSET#draft') {
         const state = getState()
         const player = getPlayer(state)
-        await dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
+        await Promise.all([
+            dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' })),
+            dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
+        ])
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
