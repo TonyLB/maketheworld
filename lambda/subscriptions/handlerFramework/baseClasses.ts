@@ -6,15 +6,22 @@ import { apiClient } from '../apiClient';
 
 export class SubscriptionEvent {
     _source: string;
+    _detailType?: string;
+    _detailExtract?: string;
     constructor(args: {
         source: string;
+        detailType?: string;
+        detailExtract?: string;
     }) {
         this._source = args.source
+        this._detailType = args.detailType
+        this._detailExtract = args.detailExtract
     }
 
     async publish(): Promise<void> {
+        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${this._detailExtract ? `::${this._detailExtract}` : ''}`
         const targetSessions = ((await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
-            Key: { ConnectionId: `STREAM#${this._source}`},
+            Key: { ConnectionId },
             ProjectionFields: ['DataCategory']
         })) || []).map(({ DataCategory }) => (DataCategory))
         const targetConnections = unique((await Promise.all(
@@ -40,16 +47,28 @@ export class SubscriptionEvent {
 
 export class SubscriptionHandler {
     _source: string;
+    _detailType?: string;
+    _detailExtract?: (event: Record<string, any>) => string;
     constructor(args: {
         source: string;
-
+        detailType?: string;
+        detailExtract?: (event: Record<string, any>) => string;
     }) {
         this._source = args.source
+        this._detailType = args.detailType
+        this._detailExtract = args.detailExtract
     }
 
     match(event: Record<string, any>): SubscriptionEvent | undefined {
-        if ("source" in event && event.source === this._source) {
-            return new SubscriptionEvent(event as { source: string })
+        const matchesSource = "source" in event && event.source === this._source
+        const matchesDetailType = (!this._detailType) || this._detailType === event.detailType
+        if (matchesSource && matchesDetailType) {
+            return new SubscriptionEvent({
+                ...event,
+                source: this._source,
+                detailType: this._detailType,
+                detailExtract: this._detailExtract ? this._detailExtract(event) : undefined
+            })
         }
         return
     }
@@ -58,8 +77,9 @@ export class SubscriptionHandler {
         return isSubscriptionsAPIMessage(event) && isSubscribeAPIMessage(event)
     }
 
-    async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
-        const ConnectionId = `STREAM#${this._source}${message.detail ? `::${message.detail}` : ''}`
+    async subscribe(message: Record<string, any> & SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
+        const detailExtract = this._detailExtract ? this._detailExtract(message) : undefined
+        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${detailExtract ? `::${detailExtract}` : ''}`
         await connectionDB.putItem({
             ConnectionId,
             DataCategory: sessionId

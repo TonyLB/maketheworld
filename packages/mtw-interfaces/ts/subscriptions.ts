@@ -1,7 +1,7 @@
 export type SubscribeAPIMessage = {
     message: 'subscribe';
     source: string;
-    detail?: string;
+    detailType?: string;
 }
 
 export type SubscriptionsAPIMessage = SubscribeAPIMessage
@@ -16,7 +16,7 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
         case 'subscribe':
             return ('source' in message)
                 && typeof message.source === 'string'
-                && (!('detail' in message) || typeof message.detail === 'undefined' || typeof message.detail === 'string')
+                && (!('detailType' in message) || typeof message.detailType === 'undefined' || typeof message.detailType === 'string')
         default: return false
     }
 }
