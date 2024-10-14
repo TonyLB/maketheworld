@@ -16,9 +16,6 @@ export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): Subscri
 
 export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
-        source: 'pong'
-    },
-    {
         source: 'mtw.wml',
         detailType: 'Merge Conflict',
         detailExtract: (event) => (event.AssetId),

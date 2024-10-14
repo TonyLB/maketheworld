@@ -162,7 +162,6 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
                 dispatch(disconnectWebSocket(arg))
             }
             const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
-            setTimeout(() => { dispatch(socketDispatch({ message: "subscribe", source: 'pong' }, { service: "subscriptions" })) }, 1000)
             const refreshTimeout = setTimeout(() => {
                 dispatch(internalStateChange({ newState: 'STALE' }))
                 dispatch(heartbeat)
