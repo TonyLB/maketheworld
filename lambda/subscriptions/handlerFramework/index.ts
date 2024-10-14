@@ -29,5 +29,18 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
             AssetId: event.AssetId,
             RequestId: event.RequestId
         })
+    },
+    {
+        source: 'mtw.wml',
+        detailType: 'Asset Edited',
+        detailExtract: (event) => (event.AssetId),
+        transform: (event) => ({
+            messageType: 'Subscription',
+            source: 'mtw.wml',
+            detailType: 'Asset Edited',
+            AssetId: event.AssetId,
+            RequestId: event.RequestId,
+            schema: event.schema
+        })
     }
 ])
