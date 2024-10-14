@@ -1,8 +1,15 @@
+jest.mock('../apiClient')
+import { apiClient } from "../apiClient"
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+jest.mock('../internalCache')
+import internalCache from "../internalCache"
 import { subscriptionLibraryConstructor } from '.'
 
 const connectionDBMock = jest.mocked(connectionDB)
+const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
+// @ts-ignore
+const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('subscription handlerFramework', () => {
     const testLibrary = subscriptionLibraryConstructor([
@@ -12,7 +19,14 @@ describe('subscription handlerFramework', () => {
         {
             source: 'detailsOne',
             detailType: 'TestOne',
-            detailExtract: (event) => (event.AssetId)
+            detailExtract: (event) => (event.AssetId),
+            transform: (event) => ({
+                messageType: 'Subscription',
+                source: 'mtw.wml',
+                detailType: 'Merge Conflict',
+                AssetId: event.AssetId,
+                RequestId: event.RequestId
+            })
         }
     ])
 
@@ -47,6 +61,34 @@ describe('subscription handlerFramework', () => {
             ConnectionId: 'STREAM#detailsOne::TestOne::XYZ',
             DataCategory: 'SESSION#ABCD'
         })
+    })
+
+    it('should publish to subscription with no details', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#noDetails',
+            DataCategory: 'SESSION#ABCD'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
+        await testLibrary.matchEvent({ source: 'noDetails' })?.publish({ messageType: 'Subscription', source: 'noDetails' })
+        expect(connectionDB.query).toHaveBeenCalledWith({
+            Key: { ConnectionId: 'STREAM#noDetails' },
+            ProjectionFields: ["DataCategory"]
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', source: 'noDetails' })
+    })
+
+    it('should publish to subscription with details', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#detailsOne::TestOne::ASSET#XYZ',
+            DataCategory: 'SESSION#ABCD'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
+        await testLibrary.matchEvent({ source: 'detailsOne', detailType: 'TestOne', AssetId: 'ASSET#XYZ' })?.publish({ source: 'detailsOne', detailType: 'TestOne', AssetId: 'ASSET#XYZ', RequestId: 'qrstuv' })
+        expect(connectionDB.query).toHaveBeenCalledWith({
+            Key: { ConnectionId: 'STREAM#detailsOne::TestOne::ASSET#XYZ' },
+            ProjectionFields: ["DataCategory"]
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: 'ASSET#XYZ', RequestId: 'qrstuv' })
     })
 
 })

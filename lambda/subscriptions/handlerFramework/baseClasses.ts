@@ -1,4 +1,4 @@
-import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage, SubscriptionClientMessage, isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import internalCache from '../internalCache';
@@ -8,17 +8,20 @@ export class SubscriptionEvent {
     _source: string;
     _detailType?: string;
     _detailExtract?: string;
+    _transform?: (event: Record<string, any>) => SubscriptionClientMessage;
     constructor(args: {
         source: string;
         detailType?: string;
         detailExtract?: string;
+        transform?: (event: Record<string, any>) => SubscriptionClientMessage;
     }) {
         this._source = args.source
         this._detailType = args.detailType
         this._detailExtract = args.detailExtract
+        this._transform = args.transform
     }
 
-    async publish(): Promise<void> {
+    async publish(event: Record<string, any>): Promise<void> {
         const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${this._detailExtract ? `::${this._detailExtract}` : ''}`
         const targetSessions = ((await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
             Key: { ConnectionId },
@@ -34,11 +37,15 @@ export class SubscriptionEvent {
                 }
             })
         )).flat(1).filter(excludeUndefined)).map((connectionId) => (connectionId.startsWith('CONNECTION#') ? connectionId.slice(11) : connectionId))
+        const message = this._transform ? this._transform(event) : event
+        if (!isSubscriptionClientMessage(message)) {
+            throw new Error('Invalid subscription transform')
+        }
         await Promise.all(
             targetConnections.map(async (connectionId) => {
                 await apiClient.send(
                     connectionId,
-                    { messageType: 'Pong' }
+                    message
                 )
             })
         )
@@ -49,14 +56,17 @@ export class SubscriptionHandler {
     _source: string;
     _detailType?: string;
     _detailExtract?: (event: Record<string, any>) => string;
+    _transform?: (event: Record<string, any>) => SubscriptionClientMessage;
     constructor(args: {
         source: string;
         detailType?: string;
         detailExtract?: (event: Record<string, any>) => string;
+        transform?: (event: Record<string, any>) => SubscriptionClientMessage;
     }) {
         this._source = args.source
         this._detailType = args.detailType
         this._detailExtract = args.detailExtract
+        this._transform = args.transform
     }
 
     match(event: Record<string, any>): SubscriptionEvent | undefined {
@@ -67,7 +77,8 @@ export class SubscriptionHandler {
                 ...event,
                 source: this._source,
                 detailType: this._detailType,
-                detailExtract: this._detailExtract ? this._detailExtract(event) : undefined
+                detailExtract: this._detailExtract ? this._detailExtract(event) : undefined,
+                transform: this._transform
             })
         }
         return
