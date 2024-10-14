@@ -1,4 +1,4 @@
-import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage, SubscriptionClientMessage, isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage, SubscriptionClientMessage, isSubscriptionClientMessage, UnsubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import internalCache from '../internalCache';
@@ -84,14 +84,19 @@ export class SubscriptionHandler {
         return
     }
     
-    isSubscribe(event: Record<string, any>): boolean {
-        return isSubscriptionsAPIMessage(event) && isSubscribeAPIMessage(event)
-    }
-
-    async subscribe(message: Record<string, any> & SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
+    async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
         const detailExtract = this._detailExtract ? this._detailExtract(message) : undefined
         const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${detailExtract ? `::${detailExtract}` : ''}`
         await connectionDB.putItem({
+            ConnectionId,
+            DataCategory: sessionId
+        })
+    }
+
+    async unsubscribe(message: UnsubscribeAPIMessage, sessionId: `SESSION#${string}`): Promise<void> {
+        const detailExtract = this._detailExtract ? this._detailExtract(message) : undefined
+        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${detailExtract ? `::${detailExtract}` : ''}`
+        await connectionDB.deleteItem({
             ConnectionId,
             DataCategory: sessionId
         })

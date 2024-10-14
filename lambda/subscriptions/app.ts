@@ -1,7 +1,7 @@
 // Copyright 2024 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { isSubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
+import { isSubscribeAPIMessage, isUnsubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
 import { subscriptionLibrary } from "./handlerFramework"
 import internalCache from "./internalCache"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
@@ -22,6 +22,16 @@ export const handler = async (event: any) => {
         if (match) {
             const sessionId = await internalCache.Global.get("SessionId")
             await match.subscribe(request, `SESSION#${sessionId}`)
+        }
+        else {
+            console.log(`No match: ${JSON.stringify(request, null, 4)}`)
+        }
+    }
+    if (isUnsubscribeAPIMessage(request)) {
+        const match = subscriptionLibrary.match(request)
+        if (match) {
+            const sessionId = await internalCache.Global.get("SessionId")
+            await match.unsubscribe(request, `SESSION#${sessionId}`)
         }
         else {
             console.log(`No match: ${JSON.stringify(request, null, 4)}`)
