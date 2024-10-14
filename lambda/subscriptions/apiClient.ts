@@ -1,9 +1,10 @@
 import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/ts/ephemera"
+import { SubscriptionClientMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
 import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 export const apiClient = {
-    send: async (ConnectionId: string | undefined, message: EphemeraClientMessage | { messageType: 'Pong' }) => {
+    send: async (ConnectionId: string | undefined, message: EphemeraClientMessage | SubscriptionClientMessage) => {
         if (ConnectionId) {
             try {
                 await rawAPIClient.send({

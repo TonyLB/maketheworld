@@ -1,9 +1,11 @@
+import { SubscriptionClientMessage } from "@tonylb/mtw-interfaces/ts/subscriptions";
 import { SubscriptionHandler, SubscriptionLibrary } from "./baseClasses";
 
 type LibraryEntry = {
     source: string;
     detailType?: string;
     detailExtract?: (event: Record<string, any>) => string;
+    transform?: (event: Record<string, any>) => SubscriptionClientMessage;
 }
 
 export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): SubscriptionLibrary => {
@@ -19,6 +21,13 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         source: 'mtw.wml',
         detailType: 'Merge Conflict',
-        detailExtract: (event) => (event.AssetId)
+        detailExtract: (event) => (event.AssetId),
+        transform: (event) => ({
+            messageType: 'Subscription',
+            source: 'mtw.wml',
+            detailType: 'Merge Conflict',
+            AssetId: event.AssetId,
+            RequestId: event.RequestId
+        })
     }
 ])

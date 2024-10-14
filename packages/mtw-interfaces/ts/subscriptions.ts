@@ -20,3 +20,19 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
         default: return false
     }
 }
+
+export type SubscriptionClientMergeConflictMessage = {
+    source: 'mtw.wml';
+    detailType: 'Merge Conflict';
+    RequestId: string;
+    AssetId: string;
+}
+
+export type SubscriptionClientMessage = { messageType: 'Subscription' } & (SubscriptionClientMergeConflictMessage)
+
+export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
+    if (!('messageType' in message && message.messageType === 'Subscription')) {
+        return false
+    }
+    return true
+}
