@@ -11,7 +11,7 @@ States:
                 check: false
             message: "applyWMLEdit"
             connectionId: ""
-            requestId: ""
+            requestId: "none"
             player: ""
             tag: "Asset"
     "Apply Defaults":
@@ -101,6 +101,8 @@ States:
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "applyEdit"
+            "AssetId.$": "$.args.assetId"
+            "RequestId.$": "$.args.requestId"
             "address.$": "$.args.address"
             "schema.$": "$.args.schema"
         Catch:
