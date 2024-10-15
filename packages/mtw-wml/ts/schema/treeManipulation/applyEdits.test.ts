@@ -105,4 +105,25 @@ describe('applyEdits', () => {
         `)
         expect(applyEdits(testOne)).toEqual(testOne)
     })
+
+    it('should merge with empty values', () => {
+        const testOne = schemaTest(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne)>
+                    <ShortName />
+                    <Replace><ShortName>Test</ShortName></Replace>
+                    <With><ShortName>TestReplace</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(applyEdits(testOne))).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Test</ShortName></Replace>
+                    <With><ShortName>TestReplace</ShortName></With>
+                </Room>
+            </Asset>
+        `))
+    })
+
 })
