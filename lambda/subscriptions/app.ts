@@ -62,9 +62,15 @@ export const handler = async (event: any) => {
         }
     }
     else if (event?.source) {
-        const match = subscriptionLibrary.matchEvent(event)
+        console.log(`Subscription event: ${JSON.stringify(event, null, 4)}`)
+        const transformedEvent = {
+            source: event.source,
+            detailType: event["detail-type"],
+            ...event.detail
+        }
+        const match = subscriptionLibrary.matchEvent(transformedEvent)
         if (match) {
-            await match.publish(event)
+            await match.publish(transformedEvent)
         }
     }
     return {

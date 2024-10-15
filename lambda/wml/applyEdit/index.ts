@@ -1,8 +1,6 @@
 import { Schema } from "@tonylb/mtw-wml/ts/schema";
 import { Standardizer } from "@tonylb/mtw-wml/ts/standardize";
-import assetAtomicLock from "../atomicLock";
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace";
-import { schemaToWML } from "@tonylb/mtw-wml/dist/schema";
 import { ebClient } from "../clients";
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge";
 
@@ -23,9 +21,10 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     const editSchema = new Schema()
     editSchema.loadWML(args.schema)
     const editStandardizer = new Standardizer(editSchema.schema)
+    console.log(`editStandardizer: ${JSON.stringify(editStandardizer.standardForm, null, 4)}`)
 
     //
-    // TODO: Merge incoming changes with ndjson
+    // Merge incoming changes with ndjson
     //
     await loadPromise
     if (!assetWorkspace.standard) {
@@ -33,11 +32,13 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     }
     const baseStandardizer = new Standardizer()
     baseStandardizer.loadStandardForm(assetWorkspace.standard)
+    console.log(`baseStandardizer: ${JSON.stringify(baseStandardizer.standardForm, null, 4)}`)
     let mergedStandardizer = new Standardizer()
     try {
         mergedStandardizer = baseStandardizer.merge(editStandardizer) as Standardizer
     }
     catch (err) {
+        console.log(`Merge Conflict`)
         await ebClient.send(new PutEventsCommand({
             Entries: [{
                 EventBusName: process.env.EVENT_BUS_NAME,
@@ -51,6 +52,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         }))
         return {}
     }
+    console.log(`Merged standard: ${JSON.stringify(mergedStandardizer.standardForm, null, 4)}`)
 
     //
     // Write ndjson and wml

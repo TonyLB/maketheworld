@@ -47,8 +47,8 @@ const compareEditOutput = (a: SchemaStringTag, b: SchemaStringTag): CompareEditO
         }
     }
     if (valueB.length > valueA.length) {
-        if (valueB.slice(-valueA.length) === valueA) {
-            const remainderString = valueB.slice(0, -valueA.length)
+        if (valueA.length === 0 || valueB.slice(-valueA.length) === valueA) {
+            const remainderString = valueA.length ? valueB.slice(0, -valueA.length) : valueB
             return {
                 type: 'B Longer',
                 remainder: remainderString.endsWith(' ')
@@ -100,17 +100,36 @@ const compareEditTrees = (a: SchemaTree, b: SchemaTree): CompareEditTreesResult 
     const tagB = new SchemaTagTree(strippedB)
     const remainderA = new SchemaTagTree(a)
     const remainderB = new SchemaTagTree(b)
-    const minimumLength = Math.min(tagA._tagList.length, tagB._tagList.length)
-    const greaterTree = tagA._tagList.length > minimumLength ? 'A' : tagB._tagList.length > minimumLength ? 'B' : ''
+    const tagListA = tagA._tagList.filter((tags) => (tags.length && isSchemaOutputTag(tags.slice(-1)[0].data)))
+    const tagListB = tagB._tagList.filter((tags) => (tags.length && isSchemaOutputTag(tags.slice(-1)[0].data)))
+    const minimumLength = Math.min(tagListA.length, tagListB.length)
+    const greaterTree = tagListA.length > minimumLength ? 'A' : tagListB.length > minimumLength ? 'B' : ''
+    if (minimumLength === 0) {
+        if (greaterTree === 'A') {
+            return {
+                type: 'A Longer',
+                remainder: tagA.tree
+            }
+        }
+        else if (greaterTree === 'B') {
+            return {
+                type: 'B Longer',
+                remainder: tagB.tree
+            }
+        }
+        else {
+            return { type: 'Equal' }
+        }
+    }
 
     //
     // Use deepEqual to compare all but the boundary element between the two sets
     //
-    if (minimumLength > 1 && !deepEqual(tagA._tagList.slice(-(minimumLength - 1)), tagB._tagList.slice(-(minimumLength - 1)))) {
+    if (minimumLength > 1 && !deepEqual(tagListA.slice(-(minimumLength - 1)), tagListB.slice(-(minimumLength - 1)))) {
         return { type: 'Merge Conflict' }
     }
-    const boundaryElementA = tagA._tagList.slice(-minimumLength)[0].slice(-1)[0]
-    const boundaryElementB = tagB._tagList.slice(-minimumLength)[0].slice(-1)[0]
+    const boundaryElementA = tagListA.slice(-minimumLength)[0].slice(-1)[0]
+    const boundaryElementB = tagListB.slice(-minimumLength)[0].slice(-1)[0]
 
     //
     // If boundary elements are both String tags, use compareEditOutput to generate

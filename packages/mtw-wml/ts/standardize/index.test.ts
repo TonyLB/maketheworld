@@ -1199,6 +1199,60 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should merge with an empty value', () => {
+        const inheritedSource = deIndentWML(`<Asset key=(Test) />`)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        inheritedStandard.loadStandardForm({
+            byId: {
+                testRoomOne: {
+                    key: 'testRoomOne',
+                    tag: 'Room',
+                    shortName: {
+                        data: { tag: 'ShortName' },
+                        children: []
+                    },
+                    exits: [],
+                    themes: []
+                }
+            },
+            key: 'Test',
+            tag: 'Asset',
+            metaData: []
+        })
+        const testStandard = new StandardizerAbstract()
+        testStandard.loadStandardForm({
+            key: 'Test',
+            tag: 'Asset',
+            byId: {
+                testRoomOne: {
+                    tag: 'Room',
+                    key: 'testRoomOne',
+                    exits: [],
+                    themes: [],
+                    shortName: {
+                        data: { tag: 'Replace' },
+                        children: [
+                            { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }] },
+                            { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestReplace' }, children: [] }] }] }
+                        ]
+                    }
+                }
+            },
+            metaData: []
+        })
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Test</ShortName></Replace>
+                    <With><ShortName>TestReplace</ShortName></With>
+                </Room>
+            </Asset>
+        `))
+    })
+
     it('should filter correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>
