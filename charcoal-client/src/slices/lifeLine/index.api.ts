@@ -232,17 +232,17 @@ export function socketDispatchPromise(payload: EphemeraAPIMessage | AssetAPIMess
                         unsubscribe()
                         if (payload.messageType === 'Error') {
                             dispatch(push(payload.error))
-                            reject(rest)
+                            reject(payload)
                         }
                         else {
-                            resolve(rest)
+                            resolve(payload)
                         }
                     }
                 })
                 webSocket.send(JSON.stringify({
                     service,
-                    RequestId,
-                    ...payload
+                    ...payload,
+                    RequestId
                 }))
             })
         }
@@ -271,10 +271,10 @@ export const apiDispatchPromise = (url: string, RequestId: string) => (payload: 
             if (compareRequestId === RequestId) {
                 unsubscribe()
                 if (payload.messageType === 'Error') {
-                    reject(rest)
+                    reject(payload)
                 }
                 else {
-                    resolve(rest)
+                    resolve(payload)
                 }
             }
         })

@@ -3,7 +3,8 @@ import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } f
 import {
     socketDispatchPromise,
     getStatus,
-    socketDispatch
+    socketDispatch,
+    LifeLinePubSub
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
@@ -16,6 +17,7 @@ import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
 import { getPlayer } from '../player'
+import { receiveWMLEvent } from './reducers'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -37,6 +39,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (!fetchURL) {
         throw new Error()
     }
+    let subscription: any = undefined
     if (id === 'ASSET#draft') {
         const state = getState()
         const player = getPlayer(state)
@@ -44,6 +47,11 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' })),
             dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
         ])
+        subscription = LifeLinePubSub.subscribe(({ payload }) => {
+            if (payload.messageType === 'Subscription' && payload.source === 'mtw.wml' && payload.AssetId === `ASSET#draft[${player.PlayerName}]`) {
+                receiveWMLEvent(state, payload)
+            }
+        })
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
@@ -67,7 +75,8 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             base: standardizer.standardForm,
             standard: standardizer.standardForm,
             serialized: true
-        }
+        },
+        internalData: { subscription }
     }
 }
 
