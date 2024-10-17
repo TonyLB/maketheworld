@@ -19,6 +19,7 @@ export interface PersonalAssetsInternal {
         errorEnd?: number;
     };
     standardizer?: Standardizer;
+    subscription?: any;
 }
 
 export type PersonalAssetsLoadedImage = {

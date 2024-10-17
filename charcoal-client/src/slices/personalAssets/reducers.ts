@@ -14,6 +14,7 @@ import { listDiff } from '@tonylb/mtw-wml/dist/schema/treeManipulation/listDiff'
 import { deepEqual } from '../../lib/objects'
 import immerProduce from 'immer'
 import { publicSelectors } from './selectors'
+import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -595,4 +596,19 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
     })
     const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
     state.inherited = inheritedStandardizer.standardForm
+}
+
+export const receiveWMLEvent = (state: PersonalAssetsPublic, event: SubscriptionClientMessage) => {
+    if (event.detailType === 'Asset Edited') {
+        const baseStandardizer = new Standardizer()
+        baseStandardizer.loadStandardForm(state.base)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(event.schema)
+        const incomingStandardizer = new Standardizer(incomingSchema.schema)
+        try {
+            const mergedStandardizer = baseStandardizer.merge(incomingStandardizer)
+            state.base = mergedStandardizer.standardForm
+        }
+        catch (err) {}
+    }
 }
