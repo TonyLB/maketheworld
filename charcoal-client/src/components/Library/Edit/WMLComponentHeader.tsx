@@ -19,8 +19,8 @@ interface WMLComponentHeaderProps {
 }
 
 const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => {
-    const { inheritedStandardForm, combinedStandardForm } = useLibraryAsset()
-    const component = combinedStandardForm.byId[itemId]
+    const { inheritedStandardForm, standardForm } = useLibraryAsset()
+    const component = standardForm.byId[itemId]
     if (!component) {
         return <React.Fragment>Untitled</React.Fragment>
     }

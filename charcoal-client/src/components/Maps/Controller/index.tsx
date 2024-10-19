@@ -94,7 +94,7 @@ const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree
 )
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { AssetId, standardForm, inheritedByAssetId, combinedStandardForm, updateStandard } = useLibraryAsset()
+    const { AssetId, standardForm, inheritedByAssetId, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -133,7 +133,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const roomComponent = combinedStandardForm.byId[data.key]
+            const roomComponent = standardForm.byId[data.key]
             const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
             return children.reduce(extractRoomsHelper(parentId, { ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
@@ -166,7 +166,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             }
         }
         return previous
-    }, [combinedStandardForm.byId])
+    }, [standardForm.byId])
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag>): MapContextPosition[] => {
         const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(
@@ -276,7 +276,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
     }, [inheritedByAssetId, dispatch])
     useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ standardForm, combinedStandardForm, selectedPositions, updateSelected, addImport: addExitImport })
+        const addExitFactoryOutput = addExitFactory({ standardForm, selectedPositions, updateSelected, addImport: addExitImport })
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
@@ -289,7 +289,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             onStability: (value: SimNode[]) => {},
             onAddExit
         })
-    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, combinedStandardForm, updateSelected])
+    }, [addExitImport, dispatch, mapD3, mapId, onTick, standardForm, updateSelected])
     useEffect(() => {
         mapDispatch({ type: 'UpdateTree', tree })
     }, [mapDispatch, tree])

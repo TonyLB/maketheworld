@@ -23,7 +23,7 @@ type UnshownRoomsProps = {
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { standardForm, combinedStandardForm } = useLibraryAsset()
+    const { standardForm } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
@@ -31,12 +31,12 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
         .filter(isStandardRoom)
         .filter(({ key }) => (!shownRooms.includes(key)))
     const nameFromKey = useCallback((key: string): string => {
-        const component = combinedStandardForm.byId[key]
+        const component = standardForm.byId[key]
         if (component && isStandardRoom(component)) {
             return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled'
         }
         return 'Untitled'
-    }, [combinedStandardForm])
+    }, [standardForm])
     const addNewRoomRef = useRef(null)
     return <React.Fragment>
         <List>

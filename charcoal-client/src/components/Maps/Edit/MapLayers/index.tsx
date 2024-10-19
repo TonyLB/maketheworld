@@ -58,7 +58,7 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
             return
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
-        if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) ?? roomId) {
+        if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || roomId) {
             updateStandard({
                 type: 'replaceItem',
                 componentKey: roomId,
@@ -245,7 +245,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
-    const { standardForm, combinedStandardForm, updateStandard } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
     const { data } = item
     const { tree, mapDispatch, mapId } = useMapContext()
     const onClick = useCallback((id: string) => {
@@ -279,7 +279,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
         case 'Position':
             return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
-            const destinationComponent = combinedStandardForm.byId[data.to]
+            const destinationComponent = standardForm.byId[data.to]
             const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
