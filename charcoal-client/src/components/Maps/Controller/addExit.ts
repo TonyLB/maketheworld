@@ -10,8 +10,8 @@ const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<
     }))
 )
 
-export const addExitFactory = ({ standardForm, combinedStandardForm, updateSelected, selectedPositions, addImport }: { standardForm: StandardForm, combinedStandardForm: StandardForm, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag>, addImport: (key: string) => void }) => ({ to, from }: { to: string; from: string }) => {
-    const destinationComponent = combinedStandardForm.byId[to]
+export const addExitFactory = ({ standardForm, updateSelected, selectedPositions, addImport }: { standardForm: StandardForm, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag>, addImport: (key: string) => void }) => ({ to, from }: { to: string; from: string }) => {
+    const destinationComponent = standardForm.byId[to]
     const children = (destinationComponent && isStandardRoom(destinationComponent))
         ? ignoreWrapped(destinationComponent.shortName)?.children ?? []
         : []
