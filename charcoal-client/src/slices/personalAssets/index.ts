@@ -22,7 +22,8 @@ import {
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
-    setImport as setImportReducer
+    setImport as setImportReducer,
+    receiveWMLEvent as receiveWMLEventReducer
 } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
@@ -69,6 +70,7 @@ export const {
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
         setImport: setImportReducer,
+        receiveWMLEvent: receiveWMLEventReducer
     },
     publicSelectors,
     template: {
@@ -225,6 +227,7 @@ export const {
     setLoadedImage,
     updateStandard,
     setImport,
+    receiveWMLEvent,
     onEnter
 } = publicActions
 export const {

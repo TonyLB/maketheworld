@@ -11,13 +11,12 @@ import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { getStandardForm, setImport } from '.'
+import { getStandardForm, setImport, receiveWMLEvent } from '.'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
 import { getPlayer } from '../player'
-import { receiveWMLEvent } from './reducers'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -49,7 +48,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         ])
         subscription = LifeLinePubSub.subscribe(({ payload }) => {
             if (payload.messageType === 'Subscription' && payload.source === 'mtw.wml' && payload.AssetId === `ASSET#draft[${player.PlayerName}]`) {
-                receiveWMLEvent(state, payload)
+                dispatch(receiveWMLEvent('draft')({ assetKey: 'draft', event: payload }))
             }
         })
     }
