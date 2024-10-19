@@ -1025,6 +1025,41 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should correctly merge multiple replaces', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Two</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Two</ShortName></Replace>
+                    <With><ShortName>Three</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Three</ShortName></With>
+                </Room>
+            </Asset>
+        `))
+    })
+
+
     it('should merge multiple standardComponents correctly', () => {
         const inheritedSource = deIndentWML(`
             <Asset key=(Test)>
