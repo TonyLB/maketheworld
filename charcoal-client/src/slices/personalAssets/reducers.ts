@@ -598,7 +598,8 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
     state.inherited = inheritedStandardizer.standardForm
 }
 
-export const receiveWMLEvent = (state: PersonalAssetsPublic, event: SubscriptionClientMessage) => {
+export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
+    const { event } = action.payload
     if (event.detailType === 'Asset Edited') {
         const baseStandardizer = new Standardizer()
         baseStandardizer.loadStandardForm(state.base)
