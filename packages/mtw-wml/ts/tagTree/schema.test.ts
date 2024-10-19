@@ -94,4 +94,30 @@ describe('SchemaTagTree', () => {
         `))
     })
 
+    it('should not condense adjacent replace statements', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>One</Description>
+                    <Replace><Description>One</Description></Replace>
+                    <With><Description>Two</Description></With>
+                    <Replace><Description>Two</Description></Replace>
+                    <With><Description>Three</Description></With>
+                </Room>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree)
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Description>One</Description>
+                    <Replace><Description>One</Description></Replace>
+                    <With><Description>Two</Description></With>
+                    <Replace><Description>Two</Description></Replace>
+                    <With><Description>Three</Description></With>
+                </Room>
+            </Asset>
+        `))
+    })
+
 })

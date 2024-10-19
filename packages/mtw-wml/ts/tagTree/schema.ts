@@ -1,12 +1,12 @@
 import TagTree, { TagTreeFilterArguments, TagTreePruneArgs } from "."
 import { deepEqual } from "../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
-import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaWithKey } from "../schema/baseClasses"
+import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaReplace, isSchemaWithKey } from "../schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
 
 const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
     return tree.map((node) => {
-        if (treeNodeTypeguard(isSchemaCondition)(node)) {
+        if (treeNodeTypeguard(isSchemaCondition)(node) || treeNodeTypeguard(isSchemaReplace)(node)) {
             return { ...node, data: { ...node.data, wrapperKey: node.data.wrapperKey ?? uuidv4() }, children: addWrapperKey(node.children) }
         }
         return { ...node, children: addWrapperKey(node.children) }
@@ -15,7 +15,7 @@ const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean
 
 const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
     return tree.map((node) => {
-        if (treeNodeTypeguard(isSchemaCondition)(node)) {
+        if (treeNodeTypeguard(isSchemaCondition)(node) || treeNodeTypeguard(isSchemaReplace)(node)) {
             const { wrapperKey, ...data } = node.data
             return { ...node, data, children: removeWrapperKey(node.children) }
         }
@@ -35,6 +35,9 @@ export class SchemaTagTree extends TagTree<SchemaTag, Partial<{ inherited: boole
                     return A.if === B.if
                 }
                 if (isSchemaCondition(A) && isSchemaCondition(B)) {
+                    return A.wrapperKey === B.wrapperKey
+                }
+                if (isSchemaReplace(A) && isSchemaReplace(B)) {
                     return A.wrapperKey === B.wrapperKey
                 }
                 if (isSchemaImport(A) && isSchemaImport(B)) {

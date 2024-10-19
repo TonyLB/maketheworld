@@ -20,7 +20,7 @@ import { receiveMessages as perceptionCacheReceiveMessages } from '../perception
 
 import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
-import { SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
+import { isSubscriptionClientMessage, SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 import { getConfiguration, receiveRefreshToken } from '../configuration'
@@ -182,7 +182,7 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
             const payload = JSON.parse(event.data || {})
             const isEmptyClientMessage = (payload: any) => (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && 'RequestId' in payload))
             const isPongMessage = (payload: any) => ('type' in payload && payload.type === 'pong')
-            if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload)) {
+            if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload) || isSubscriptionClientMessage(payload)) {
                 LifeLinePubSub.publish(payload)
             }
             else {
