@@ -15,6 +15,7 @@ export type PublicSelectors = {
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
+    getEdit: (state: PersonalAssetsPublic) => PersonalAssetsPublic["edit"];
     getPendingEdits: (state: PersonalAssetsPublic) => PersonalAssetsPublic["pendingEdits"];
 }
 
@@ -23,7 +24,7 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
 const getBase = ({ base }: PersonalAssetsPublic) => (base)
-const getEdit = ({ edit }: PersonalAssetsPublic) => (edit)
+export const getEdit = ({ edit }: PersonalAssetsPublic) => (edit)
 const getPendingEdits = ({ pendingEdits }: PersonalAssetsPublic) => (pendingEdits)
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
@@ -73,5 +74,6 @@ export const publicSelectors: PublicSelectors = {
     getProperties,
     getLoadedImages,
     getSerialized,
-    getPendingEdits
+    getPendingEdits,
+    getEdit
 }

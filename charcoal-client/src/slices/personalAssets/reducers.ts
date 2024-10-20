@@ -617,3 +617,9 @@ export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadActi
         state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
     }
 }
+
+export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
+    state.pendingEdits = [...state.pendingEdits, { meta: { tag: 'Meta', key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
+    state.edit.byId = {}
+    state.edit.metaData = []
+}
