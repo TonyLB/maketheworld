@@ -19,7 +19,8 @@ import {
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage,
-    isAssetLLMGenerateAPIMessage
+    isAssetLLMGenerateAPIMessage,
+    isApplyEditAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -316,6 +317,23 @@ export const handler = async (event, context) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
+            }
+        }
+        if (isApplyEditAPIMessage(request)) {
+            const player = await internalCache.Connection.get('player')
+            await sfnClient.send(new StartExecutionCommand({
+                stateMachineArn: process.env.APPLY_EDIT_SFN,
+                input: JSON.stringify({
+                    requestId: request.RequestId,
+                    connectionId,
+                    assetId: request.AssetId,
+                    player,
+                    schema: request.schema
+                })
+            }))
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: 'Success' })
             }
         }
     }
