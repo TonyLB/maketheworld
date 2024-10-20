@@ -35,6 +35,8 @@ import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
+import { push } from '../UI/feedback'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -227,7 +229,6 @@ export const {
     setLoadedImage,
     updateStandard,
     setImport,
-    receiveWMLEvent,
     onEnter
 } = publicActions
 export const {
@@ -241,12 +242,21 @@ export const {
     getLoadedImages,
     getSerialized,
     getError,
-    getAll
+    getAll,
+    getPendingEdits
 } = selectors
 
 export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
     dispatch(addAsset(assetId))
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
+}
+
+export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClientMessage }) => (dispatch: any, getState: any) => {
+    const pendingEdits = getPendingEdits(key)(getState())
+    dispatch(publicActions.receiveWMLEvent(key)(args))
+    if (args.event.detailType === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
+        push('Merge conflict prevented saving your changes')
+    }
 }
 
 //
