@@ -611,5 +611,9 @@ export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadActi
             state.base = mergedStandardizer.standardForm
         }
         catch (err) {}
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
+    }
+    if (event.detailType === 'Merge Conflict') {
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
     }
 }
