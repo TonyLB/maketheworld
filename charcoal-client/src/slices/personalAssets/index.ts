@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
@@ -23,10 +24,11 @@ import {
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
     setImport as setImportReducer,
-    receiveWMLEvent as receiveWMLEventReducer
+    receiveWMLEvent as receiveWMLEventReducer,
+    saveEdit as saveEditReducer
 } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { addAsset } from '../player'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { addAsset, getPlayer } from '../player'
 import { SchemaImportMapping, SchemaStringTag, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -37,6 +39,9 @@ import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/ba
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
 import { push } from '../UI/feedback'
+import { excludeUndefined } from '../../lib/lists'
+import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -72,7 +77,8 @@ export const {
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
         setImport: setImportReducer,
-        receiveWMLEvent: receiveWMLEventReducer
+        receiveWMLEvent: receiveWMLEventReducer,
+        saveEdit: saveEditReducer
     },
     publicSelectors,
     template: {
@@ -256,6 +262,25 @@ export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClie
     dispatch(publicActions.receiveWMLEvent(key)(args))
     if (args.event.detailType === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
         push('Merge conflict prevented saving your changes')
+    }
+}
+
+export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
+    const state = getState()
+    const edit = selectors.getEdit(key)(state)
+    if (Object.values(edit.byId).filter(excludeUndefined).length && (isEphemeraAssetId(key) || isEphemeraCharacterId(key))) {
+        const standardizer = new Standardizer()
+        standardizer.loadStandardForm(edit)
+        const schema = schemaToWML(standardizer.schema)
+        const requestId = uuidv4()
+        await dispatch(socketDispatchPromise({
+            message: 'applyEdit',
+            RequestId: requestId,
+            AssetId: key,
+            tag: isEphemeraCharacterId(key) ? 'Character' : 'Asset',
+            schema
+        }, { service: 'asset'}))
+        dispatch(publicActions.saveEdit(key)({ requestId }))
     }
 }
 
