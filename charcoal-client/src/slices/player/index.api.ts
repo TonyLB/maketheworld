@@ -5,8 +5,8 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings } from './selectors'
-import { addItem, getSerialized } from '../personalAssets'
+import { getMyAssets, getMySettings, getPlayer } from './selectors'
+import { addItem, getSerialized, receiveWMLEvent } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
@@ -60,8 +60,19 @@ export const syncAction: PlayerAction = () => async (dispatch) => {
     return {}
 }
 
-export const fetchDraftAsset: PlayerAction = () => async (dispatch) => {
+export const fetchDraftAsset: PlayerAction = () => async (dispatch, getState) => {
     await dispatch(addItem({ key: 'ASSET#draft' }))
+    const state = getState().player.publicData
+    const player = getPlayer(state)
+    await Promise.all([
+        dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' })),
+        dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
+    ])
+    LifeLinePubSub.subscribe(({ payload }) => {
+        if (payload.messageType === 'Subscription' && payload.source === 'mtw.wml' && payload.AssetId === `ASSET#draft[${player.PlayerName}]`) {
+            dispatch(receiveWMLEvent('ASSET#draft')({ event: payload }))
+        }
+    })
     return {}
 }
 
