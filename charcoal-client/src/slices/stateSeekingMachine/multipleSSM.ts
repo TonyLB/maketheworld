@@ -56,7 +56,7 @@ type multipleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType
     promiseCache: PromiseCache<InferredDataTypeAggregateFromNodes<Nodes>>
 }
 
-const corePublicReducer =
+export const corePublicReducer =
     <Nodes extends Record<string, any>, D>
         (func: multipleSSMPublicReducer<Nodes, Omit<D, "key">>): corePublicReducerType<Nodes, D> => {
         const wrapper = (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>) => {
@@ -69,7 +69,7 @@ const corePublicReducer =
         return wrapper
     }
 
-const publicAction = <D>(func: corePublicAction<D>): wrappedPublicReducer<D> =>
+export const publicAction = <D>(func: corePublicAction<D>): wrappedPublicReducer<D> =>
     {
         const wrapper = (key: string) => (payload: D) => (dispatch: any, getState: any) => {
             dispatch(func({ ...payload, key }))

@@ -2,21 +2,18 @@ import { v4 as uuidv4 } from 'uuid'
 import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } from './baseClasses'
 import {
     socketDispatchPromise,
-    getStatus,
-    socketDispatch,
-    LifeLinePubSub
+    getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { getStandardForm, setImport, receiveWMLEvent } from '.'
+import { getStandardForm, setImport } from '.'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
-import { getPlayer } from '../player'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -39,19 +36,6 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         throw new Error()
     }
     let subscription: any = undefined
-    if (id === 'ASSET#draft') {
-        const state = getState()
-        const player = getPlayer(state)
-        await Promise.all([
-            dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Asset Edited', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' })),
-            dispatch(socketDispatchPromise({ message: 'subscribe', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
-        ])
-        subscription = LifeLinePubSub.subscribe(({ payload }) => {
-            if (payload.messageType === 'Subscription' && payload.source === 'mtw.wml' && payload.AssetId === `ASSET#draft[${player.PlayerName}]`) {
-                dispatch(receiveWMLEvent('draft')({ assetKey: 'draft', event: payload }))
-            }
-        })
-    }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
     const schemaConverter = new Schema()
