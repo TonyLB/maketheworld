@@ -1,5 +1,5 @@
 class Debounce {
-    _timeouts: Record<string, NodeJS.Timeout> = {};
+    _timeouts: Record<string, NodeJS.Timeout | number> = {};
 
     remove(key: string): void {
         if (key in this._timeouts) {
@@ -8,13 +8,13 @@ class Debounce {
         }
     }
 
-    set(key: string, callback: () => void, delay: number): NodeJS.Timeout {
+    set(key: string, callback: () => void, delay: number): void {
         this.remove(key)
         this._timeouts[key] = setTimeout(() => {
+            console.log(`Timeout!`)
             callback()
             this.remove(key)
-        }, delay)
-        return this._timeouts[key]
+        }, delay) ?? 1
     }
 
     clear(): void {
@@ -23,6 +23,4 @@ class Debounce {
     }
 }
 
-export const keyedDebounce = new Debounce()
-
-export default keyedDebounce
+export default Debounce

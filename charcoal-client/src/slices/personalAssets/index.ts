@@ -25,7 +25,8 @@ import {
     updateStandard as updateStandardReducer,
     setImport as setImportReducer,
     receiveWMLEvent as receiveWMLEventReducer,
-    saveEdit as saveEditReducer
+    saveEdit as saveEditReducer,
+    UpdateStandardPayload
 } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset, getPlayer } from '../player'
@@ -42,6 +43,9 @@ import { push } from '../UI/feedback'
 import { excludeUndefined } from '../../lib/lists'
 import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import Debounce from '../../lib/keyedDebounce'
+
+const autoSaveDebounce = new Debounce()
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -233,7 +237,6 @@ export const {
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
-    updateStandard,
     setImport,
     onEnter
 } = publicActions
@@ -263,6 +266,17 @@ export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClie
     if (args.event.detailType === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
         push('Merge conflict prevented saving your changes')
     }
+}
+
+export const updateStandard = (key: string) => (payload: UpdateStandardPayload) => async (dispatch: any, getState: any) => {
+    dispatch(publicActions.updateStandard(key)(payload))
+    autoSaveDebounce.set(
+        key,
+        () => {
+            dispatch(saveEdit(key))
+        },
+        5000
+    )
 }
 
 export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
@@ -303,7 +317,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         return node.data.from === fromAsset
     })
     if (!importItem) {
-        dispatch((options?.overrideUpdateStandard ?? updateStandard)(assetId)({
+        dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
             type: 'replaceMetaData',
             metaData: [
                 ...standard.metaData,
@@ -329,7 +343,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
                 return node
             }
         })
-        dispatch((options?.overrideUpdateStandard ?? updateStandard)(assetId)({
+        dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
             type: 'replaceMetaData',
             metaData: newMetaData
         }))

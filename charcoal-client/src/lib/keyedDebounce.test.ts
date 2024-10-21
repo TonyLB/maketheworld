@@ -1,14 +1,18 @@
-jest.useFakeTimers()
-jest.spyOn(global, 'setTimeout')
-jest.spyOn(global, 'clearTimeout')
-
-import debounce from './keyedDebounce'
+import Debounce from './keyedDebounce'
 
 describe('keyedDebounce', () => {
+    jest.useFakeTimers()
+    jest.spyOn(global, 'setTimeout')
+    jest.spyOn(global, 'clearTimeout')
+    const debounce = new Debounce()
     beforeEach(() => {
+        debounce.clear()
         jest.clearAllMocks()
         jest.resetAllMocks()
-        debounce.clear()
+    })
+
+    afterEach(() => {
+        jest.clearAllTimers()
     })
 
     it('should set a timeout when a debounce is created', () => {
@@ -30,6 +34,14 @@ describe('keyedDebounce', () => {
         expect(setTimeout).toHaveBeenCalledTimes(3)
         expect(clearTimeout).toHaveBeenCalledTimes(1)
         expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 2000)
+    })
+
+    xit('should reset on execute', () => {
+        const testCallback = jest.fn()
+        debounce.set('test', testCallback, 1000)
+        expect(debounce._timeouts).toEqual({ test: expect.any(Number) })
+        jest.advanceTimersByTime(2000)
+        expect(debounce._timeouts).toEqual({})
     })
 
 })
