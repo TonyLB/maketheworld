@@ -32,15 +32,21 @@ const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 const getStandardForm = createSelector(
     getInherited,
     getBase,
+    getPendingEdits,
     getEdit,
-    (inherited, base, edit) => {
+    (inherited, base, pendingEdits, edit) => {
         const inheritedStandardizer = new Standardizer()
         inheritedStandardizer.loadStandardForm(inherited)
-        const baseStandardizer = new Standardizer()
-        baseStandardizer.loadStandardForm(base)
-        const editStandardizer = new Standardizer()
-        editStandardizer.loadStandardForm(edit)
-        const combined = inheritedStandardizer.merge(baseStandardizer).merge(editStandardizer)
+        const combined = [base, ...pendingEdits.map(({ edit }) => (edit)), edit].reduce<Standardizer>((previous, standardForm) => {
+            try {
+                const standardizer = new Standardizer()
+                standardizer.loadStandardForm(standardForm)
+                return previous.merge(standardizer) as Standardizer
+            }
+            catch {
+                return previous
+            }
+        }, inheritedStandardizer)
         return combined.standardForm
     }
 )
