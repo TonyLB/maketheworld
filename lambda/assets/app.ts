@@ -333,7 +333,7 @@ export const handler = async (event, context) => {
             }))
             return {
                 statusCode: 200,
-                body: JSON.stringify({ messageType: 'Success' })
+                body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
             }
         }
     }
