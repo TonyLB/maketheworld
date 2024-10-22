@@ -215,16 +215,16 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // This lets some message types associate an expected round-trip and return a Promise that watches
 // for that (similar to how HTTP calls are processed).
 //
-export function socketDispatchPromise(payload: EphemeraAPIMessage, options?: { service: 'ephemera' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
-export function socketDispatchPromise(payload: AssetAPIMessage, options: { service: 'asset' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
-export function socketDispatchPromise(payload: SubscriptionsAPIMessage, options: { service: 'subscriptions' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
-export function socketDispatchPromise(payload: { messageType: 'ping' }, options: { service: 'ping' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
-export function socketDispatchPromise(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, options: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>
-export function socketDispatchPromise(payload: EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping' } = {}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> {
+export function socketDispatchPromise(payload: EphemeraAPIMessage & { RequestId?: string }, options?: { service: 'ephemera' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: AssetAPIMessage & { RequestId?: string }, options: { service: 'asset' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: SubscriptionsAPIMessage & { RequestId?: string }, options: { service: 'subscriptions' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: { messageType: 'ping', RequestId?: string }, options: { service: 'ping' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, options: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping'}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>
+export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | { messageType: 'ping' }) & { RequestId?: string }, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'subscriptions' | 'ping' } = {}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> {
     return (dispatch, getState) => {
         const { status, webSocket }: any = getLifeLine(getState()) || {}
         if (webSocket && status === 'CONNECTED') {
-            const RequestId = uuidv4()
+            const RequestId = payload.RequestId ?? uuidv4()
             return new Promise((resolve, reject) => {
                 LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
                     const { RequestId: compareRequestId, ...rest } = payload
