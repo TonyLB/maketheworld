@@ -283,14 +283,17 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     const state = getState()
     const edit = selectors.getEdit(key)(state)
     if (Object.values(edit.byId).filter(excludeUndefined).length && (isEphemeraAssetId(key) || isEphemeraCharacterId(key))) {
+        const player = getPlayer(state).PlayerName
+        const adjustedKey: EphemeraAssetId | EphemeraCharacterId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
+        const internalKey = key === 'ASSET#draft' ? 'draft' : key.split('#').slice(1).join('#')
         const standardizer = new Standardizer()
-        standardizer.loadStandardForm(edit)
+        standardizer.loadStandardForm({ ...edit, key: internalKey })
         const schema = schemaToWML(standardizer.schema)
         const requestId = uuidv4()
         await dispatch(socketDispatchPromise({
             message: 'applyEdit',
             RequestId: requestId,
-            AssetId: key,
+            AssetId: adjustedKey,
             tag: isEphemeraCharacterId(key) ? 'Character' : 'Asset',
             schema
         }, { service: 'asset'}))
