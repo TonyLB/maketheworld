@@ -11,7 +11,6 @@ class Debounce {
     set(key: string, callback: () => void, delay: number): void {
         this.remove(key)
         this._timeouts[key] = setTimeout(() => {
-            console.log(`Timeout!`)
             callback()
             this.remove(key)
         }, delay) ?? 1
