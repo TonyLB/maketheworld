@@ -28,7 +28,8 @@ import {
     getSerialized,
     getStandardForm,
     getInherited,
-    getInheritedByAssetId
+    getInheritedByAssetId,
+    getPendingEdits
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
@@ -54,6 +55,7 @@ type LibraryAssetContextType = {
     readonly: boolean;
     serialized: boolean;
     status?: keyof PersonalAssetsNodes;
+    saving: boolean;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -70,7 +72,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     loadedImages: {},
     save: () => {},
     readonly: true,
-    serialized: false
+    serialized: false,
+    saving: false
 })
 
 type LibraryAssetProps = {
@@ -85,6 +88,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
     const standardForm = useSelector(getStandardForm(AssetId))
+    const pendingEdits = useSelector(getPendingEdits(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
     const combinedStandardForm = useMemo((): StandardForm => {
@@ -125,7 +129,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             save,
             readonly: !(assetKey === 'draft'),
             serialized,
-            status
+            status,
+            saving: pendingEdits.length > 0
         }}>
             {children}
         </LibraryAssetContext.Provider>
