@@ -126,4 +126,20 @@ describe('applyEdits', () => {
         `))
     })
 
+    it('should filter no-op replace combinations', () => {
+        const testOne = schemaTest(`
+            <Asset key=(test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Two</ShortName></With>
+                    <Replace><ShortName>Two</ShortName></Replace>
+                    <With><ShortName>One</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(applyEdits(testOne))).toEqual(deIndentWML(`
+            <Asset key=(test)><Room key=(testRoomOne) /></Asset>
+        `))
+    })
+
 })

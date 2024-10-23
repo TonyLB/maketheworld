@@ -298,10 +298,14 @@ export const applyEdits = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag>
                 //
                 if (addTags.length) {
                     if (removeTags.length) {
+                        const compareOperands = compareEditTrees(addTags, removeTags)
+                        if (compareOperands.type === 'Equal') {
+                            return previous.slice(0, -1)
+                        }
                         return [
                             ...previous.slice(0, -1),
                             {
-                                data: { tag: 'Replace' },
+                                data: { tag: 'Replace' as const },
                                 children: [
                                     { data: { tag: 'ReplaceMatch' }, children: removeTags },
                                     { data: { tag: 'ReplacePayload' }, children: addTags }
@@ -321,7 +325,7 @@ export const applyEdits = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag>
                         return [
                             ...previous.slice(0, -1),
                             {
-                                data: { tag: 'Remove' },
+                                data: { tag: 'Remove' as const },
                                 children: removeTags
                             }
                         ]

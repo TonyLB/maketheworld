@@ -1059,6 +1059,34 @@ describe('standardizeSchema', () => {
         `))
     })
 
+    it('should correctly filter no-op replace results', () => {
+        const inheritedSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Two</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const inheritedSchema = new Schema()
+        inheritedSchema.loadWML(inheritedSource)
+        const inheritedStandard = new Standardizer(inheritedSchema.schema)
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Two</ShortName></Replace>
+                    <With><ShortName>One</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new Standardizer(testSchema.schema)
+        const standardizer = inheritedStandard.merge(testStandard)
+        expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)><Room key=(testRoomOne) /></Asset>
+        `))
+    })
 
     it('should merge multiple standardComponents correctly', () => {
         const inheritedSource = deIndentWML(`
