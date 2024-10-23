@@ -142,20 +142,12 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             tag
         })
     }, [updateStandard, dispatch])
-    const innerSaveHandler = useCallback(() => {
-        dispatch(addOnboardingComplete(['saveAsset']))
-        save()
-    }, [save, dispatch])
-    const saveHandler = useCallback(() => {
-        innerSaveHandler()
-    }, [innerSaveHandler])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={standardForm.key || 'Untitled'}
             secondary={'Asset'}
             commands={
                 <React.Fragment>
-                    <Button onClick={saveHandler} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
                     <IconButton onClick={() => { navigate(`WML`) }}>
                         <TextSnippetIcon />
                     </IconButton>

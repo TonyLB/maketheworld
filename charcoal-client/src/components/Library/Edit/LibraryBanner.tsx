@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
 import ExplicitEdit from './ExplicitEdit';
+import { SaveIndicator } from './SaveIndicator';
 
 interface BreadCrumbProps {
     href?: string;
@@ -72,6 +73,7 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
             </Box>
         </Box>
         <Box>
+            <SaveIndicator />
             { commands }
         </Box>
     </Box>
