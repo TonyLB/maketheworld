@@ -3,6 +3,7 @@ import { SchemaTag, isSchemaTheme, isSchemaConditionStatement, isSchemaPrompt, i
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
 import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardCharacter, isStandardAction, isStandardComputed, isStandardVariable, isStandardImage, EditWrappedStandardNode } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
+import { excludeUndefined } from "../lib/lists"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -71,21 +72,21 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
 //     return { ...transformedNode, children: treeTypeGuard({ tree: defaultSelected(transformedNode.children), typeGuard: childTypeGuard }) }
 // }
 
-export const serializedStandardItemToSchemaItem = (item: SerializableStandardComponent): GenericTreeNode<SchemaTag> => {
+export const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':
-            const { tag, ...pronouns } = item.pronouns.data
+            const { tag, ...pronouns } = item.pronouns?.data ?? { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
             return {
                 data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
                 children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit],
+                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit].filter(excludeUndefined),
                 ]
             }
         case 'Room':
             return {
                 data: { tag: 'Room', key: item.key },
                 children: defaultSelected([
-                    ...[item.shortName, item.name, item.summary, item.description],
+                    ...[item.shortName, item.name, item.summary, item.description].filter(excludeUndefined),
                     ...item.exits
                 ])
             }
@@ -93,19 +94,19 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
         case 'Knowledge':
             return {
                 data: { tag: item.tag, key: item.key },
-                children: defaultSelected([item.name, item.description])
+                children: defaultSelected([item.name, item.description].filter(excludeUndefined))
             }
         case 'Bookmark':
             return {
                 data: { tag: 'Bookmark', key: item.key },
-                children: defaultSelected(item.description.children)
+                children: defaultSelected(item.description?.children ?? [])
             }
         case 'Message':
             return {
                 data: { tag: 'Message', key: item.key },
                 children: [
                     ...item.rooms,
-                    ...item.description.children
+                    ...item.description?.children ?? []
                 ]
             }
         case 'Moment':
@@ -120,7 +121,7 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
                     item.name,
                     ...item.images,
                     ...item.positions
-                ])
+                ].filter(excludeUndefined))
             }
         case 'Theme':
             return {
@@ -129,7 +130,7 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
                     item.name,
                     ...item.rooms,
                     ...item.maps
-                ]
+                ].filter(excludeUndefined)
             }
         case 'Variable':
             return {
@@ -150,6 +151,19 @@ export const serializedStandardItemToSchemaItem = (item: SerializableStandardCom
             return {
                 data: { tag: item.tag, key: item.key },
                 children: []
+            }
+        case 'Remove':
+            return {
+                data: { tag: item.tag },
+                children: [standardItemToSchemaItem(item.component)]
+            }
+        case 'Replace':
+            return {
+                data: { tag: item.tag },
+                children: [
+                    { data: { tag: 'ReplaceMatch' }, children: [standardItemToSchemaItem(item.match)] },
+                    { data: { tag: 'ReplacePayload' }, children: [standardItemToSchemaItem(item.payload)] }
+                ]
             }
     }
 }
