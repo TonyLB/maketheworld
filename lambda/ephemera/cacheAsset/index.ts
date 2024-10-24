@@ -33,17 +33,20 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/schema/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/schema/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { SerializableStandardComponent, SerializableStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { serializedStandardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
-import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { EditWrappedStandardNode, StandardComponent, SerializableStandardRoom, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { standardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import TagTree from '@tonylb/mtw-wml/ts/tagTree'
+import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
+import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 
-const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: SerializableStandardComponent): EphemeraItem | undefined => {
+const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponent): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
     const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
@@ -52,7 +55,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
     //
     // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
     //
-    const dependencies = selectDependencies([serializedStandardItemToSchemaItem(item)])
+    const dependencies = selectDependencies([standardItemToSchemaItem(item)])
     const stateMapping = dependencies.reduce<Record<string, StateItemId>>((previous, key) => {
         const universalKey = assetWorkspace.universalKey(key)
         if (universalKey && isStateItemId(universalKey)) {
@@ -63,7 +66,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
     //
     // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
     //
-    const keysReferenced = selectKeysReferenced([serializedStandardItemToSchemaItem(item)])
+    const keysReferenced = selectKeysReferenced([standardItemToSchemaItem(item)])
     const keyMapping = keysReferenced.reduce<Record<string, EphemeraId>>((previous, key) => {
         const universalKey = assetWorkspace.universalKey(key)
         if (universalKey && isEphemeraId(universalKey)) {
@@ -71,14 +74,22 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         }
         return previous
     }, {})
+    const unwrapSchemaOutputField = <T extends SchemaTag>(node: EditWrappedStandardNode<T, SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag> | undefined, tagToRemove: SchemaTag["tag"]): GenericTree<SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag> => {
+        if (!node) {
+            return []
+        }
+        const tagTree = new SchemaTagTree([node])
+        tagTree.prune({ match: tagToRemove })
+        return tagTree.tree as GenericTree<SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag>
+    }
     if (isEphemeraRoomId(EphemeraId) && item.tag === 'Room') {
         return {
             key: item.key,
             EphemeraId: EphemeraId,
-            shortName: item.shortName?.children ?? [],
-            name: item.name?.children ?? [],
-            summary: item.summary?.children ?? [],
-            render: item.description?.children ?? [],
+            shortName: unwrapSchemaOutputField(item.shortName, 'ShortName'),
+            name: unwrapSchemaOutputField(item.name, 'Name'),
+            summary: unwrapSchemaOutputField(item.summary, 'Summary'),
+            render: unwrapSchemaOutputField(item.description, 'Description'),
             exits: item.exits,
             stateMapping,
             keyMapping
@@ -88,8 +99,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name?.children ?? [],
-            render: item.description?.children ?? [],
+            name: unwrapSchemaOutputField(item.name, 'Name'),
+            render: unwrapSchemaOutputField(item.description, 'Description'),
             stateMapping,
             keyMapping
         }
@@ -98,8 +109,8 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name?.children ?? [],
-            render: item.description?.children ?? [],
+            name: unwrapSchemaOutputField(item.name, 'Name'),
+            render: unwrapSchemaOutputField(item.description, 'Description'),
             stateMapping,
             keyMapping
         }
@@ -108,7 +119,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            render: item.description?.children ?? [],
+            render: unwrapSchemaOutputField(item.description, 'Description'),
             stateMapping,
             keyMapping
         }
@@ -129,7 +140,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             key: item.key,
             EphemeraId,
             rooms,
-            render: item.description?.children ?? [],
+            render: unwrapSchemaOutputField(item.description, 'Description'),
             stateMapping,
             keyMapping
         }
@@ -156,7 +167,7 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
         return {
             key: item.key,
             EphemeraId,
-            name: item.name?.children ?? [],
+            name: unwrapSchemaOutputField(item.name, 'Name'),
             images: map(item.images, (node) => {
                 const { data, children } = node
                 if (isSchemaImage(data)) {
@@ -178,10 +189,11 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             keyMapping
         }
     }
-    if (isEphemeraCharacterId(EphemeraId) && item.tag === 'Character') {
+    const unwrappedItem = unwrapStandardComponent(item)
+    if (isEphemeraCharacterId(EphemeraId) && unwrappedItem.tag === 'Character') {
         // const image = item.images.length > 0 && normal[item.images.slice(-1)[0]]
         // const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
-        const { tag, ...pronouns } = item.pronouns.data
+        const { tag, ...pronouns } = unwrappedItem.pronouns?.data ?? { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         const assets = (assetWorkspace.standard?.metaData ?? [])
             .filter(treeNodeTypeguard(isSchemaImport))
             .map(({ data }) => (data.from))
@@ -191,11 +203,11 @@ const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (it
             key: item.key,
             EphemeraId,
             address: assetWorkspace.address,
-            Name: schemaOutputToString(item.name?.children ?? []),
-            Pronouns: pronouns,
-            FirstImpression: item.firstImpression?.data?.value ?? '',
-            OneCoolThing: item.oneCoolThing?.data?.value ?? '',
-            Outfit: item.outfit?.data?.value ?? '',
+            Name: schemaOutputToString(unwrapSubject(unwrappedItem.name ?? { data: { tag: 'String', value: '' }, children: [] })?.children as GenericTree<SchemaOutputTag> ?? []),
+            Pronouns: pronouns as Omit<SchemaPronounsTag, 'tag'>,
+            FirstImpression: (unwrappedItem.firstImpression?.data as SchemaFirstImpressionTag)?.value ?? '',
+            OneCoolThing: (unwrappedItem.oneCoolThing?.data as SchemaOneCoolThingTag)?.value ?? '',
+            Outfit: (unwrappedItem.outfit?.data as SchemaOutfitTag)?.value ?? '',
             // image,
             assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,

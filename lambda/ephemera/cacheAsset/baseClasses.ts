@@ -28,6 +28,8 @@ import { GenericTree } from "@tonylb/mtw-wml/ts/tree/baseClasses";
 import { SchemaOutputTag, SchemaPronouns, SchemaTag } from "@tonylb/mtw-wml/ts/schema/baseClasses";
 import { StateItemId } from "../internalCache/baseClasses"
 
+type WrappedSchemaOutputTag = SchemaOutputTag | { tag: 'Remove' } | { tag: 'Replace' } | { tag: 'ReplaceMatch' } | { tag: 'ReplacePayload' }
+
 export type EphemeraItemDependency = {
     key: string;
     EphemeraId: string;
@@ -44,11 +46,11 @@ export type EphemeraConditionMixin = {
 }
 
 export type EphemeraNameMixin = {
-    name: GenericTree<SchemaOutputTag>;
+    name: GenericTree<WrappedSchemaOutputTag>;
 }
 
 export type EphemeraRenderMixin = {
-    render: GenericTree<SchemaOutputTag>;
+    render: GenericTree<WrappedSchemaOutputTag>;
 }
 
 export type EphemeraStateMappingMixin = {
@@ -77,8 +79,8 @@ export type EphemeraBookmark = {
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
-    shortName: GenericTree<SchemaOutputTag>;
-    summary: GenericTree<SchemaOutputTag>;
+    shortName: GenericTree<WrappedSchemaOutputTag>;
+    summary: GenericTree<WrappedSchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
 } & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
