@@ -173,15 +173,18 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                shortName: [],
-                name: [
-                    { data: { tag: 'String', value: 'Vortex' }, children: [] },
-                    { data: { tag: 'If' }, children: [
-                        { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
-                    ] }
-                ],
-                summary: [],
-                render: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }],
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: {
+                    data: { tag: 'Name' },
+                    children: [
+                        { data: { tag: 'String', value: 'Vortex' }, children: [] },
+                        { data: { tag: 'If' }, children: [
+                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                        ] }
+                    ]
+                },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
                 exits: [],
                 stateMapping: { active: 'COMPUTED#XYZ' },
                 keyMapping: {}
@@ -189,8 +192,8 @@ describe('cacheAsset', () => {
             {
                 EphemeraId: 'KNOWLEDGE#GHI',
                 key: 'testKnowledge',
-                name: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }],
-                render: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }],
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] },
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -288,10 +291,10 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
-                shortName: [],
-                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
-                summary: [],
-                render: [],
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
                 exits: [],
                 stateMapping: {},
                 keyMapping: {}
@@ -384,10 +387,10 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
                 exits: [],
-                shortName: [],
-                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
-                summary: [],
-                render: [],
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -401,10 +404,10 @@ describe('cacheAsset', () => {
                         children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
-                shortName: [],
-                name: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }],
-                summary: [],
-                render: [],
+                shortName: { data: { tag: 'ShortName' }, children: [] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
                 keyMapping: { ABC: 'ROOM#ABC', DEF: 'ROOM#DEF' },
                 stateMapping: { open: 'VARIABLE#QRS' }
             },

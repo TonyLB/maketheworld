@@ -45,6 +45,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml
 import TagTree from '@tonylb/mtw-wml/ts/tagTree'
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
+import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponent): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
@@ -337,10 +338,9 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         }
     
     
-        const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
-        const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.standard.byId || {})
-            .map(ephemeraExtractor)
-            .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
+        // const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
+        const ephemeraItems: StandardComponent[] = Object.values(assetWorkspace.standard.byId || {})
+            .filter(excludeUndefined)
     
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 
