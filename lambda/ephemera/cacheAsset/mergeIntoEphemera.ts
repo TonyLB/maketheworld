@@ -10,12 +10,12 @@ import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import messageBus from "../messageBus"
-import { EphemeraItem } from "./baseClasses"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
 import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
 import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
+import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 
-export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
+export const mergeIntoEphemera = async (assetId: string, items: StandardComponent[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
     //
     // TODO:  Better error handling and validation throughout
     //

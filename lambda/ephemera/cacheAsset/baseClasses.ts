@@ -61,6 +61,10 @@ export type EphemeraKeyMappingMixin = {
     keyMapping: Record<string, EphemeraId>;
 }
 
+export type EphemeraComponentMixin = {
+    EphemeraId: EphemeraId;
+} & Partial<EphemeraStateMappingMixin & EphemeraKeyMappingMixin>
+
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;

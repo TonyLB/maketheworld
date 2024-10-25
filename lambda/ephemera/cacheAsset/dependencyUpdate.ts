@@ -1,13 +1,13 @@
 import { EphemeraActionId, EphemeraBookmarkId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
-import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import internalCache from "../internalCache"
-import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraKnowledgeItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
+import { EphemeraComponentMixin, EphemeraItem, EphemeraKeyMappingMixin, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraKnowledgeItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import { SchemaOutputTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaLink } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { SchemaEditTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaEdit, isSchemaLink } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponent } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||
@@ -46,8 +46,14 @@ const keysToDependencies = (keyMapping: Record<string, EphemeraId>) => (keys: st
     }).flat(1)
 }
 
-const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaOutputTag>, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
+const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
     const returnValue = values.reduce<EphemeraDependency[]>((previous, item) => {
+        if (treeNodeTypeguard(isSchemaEdit)(item)) {
+            return [
+                ...previous,
+                ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+            ]
+        }
         if (treeNodeTypeguard(isSchemaCondition)(item)) {
             return [
                 ...previous,
@@ -80,38 +86,38 @@ const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaOutputTa
     return returnValue
 }
 
-const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraDependency[] => {
+const extractDependenciesFromEphemeraItem = (item: StandardComponent & EphemeraComponentMixin): EphemeraDependency[] => {
     let dependencies: EphemeraDependency[] = []
     if (isEphemeraInternallyBacklinked(item.EphemeraId)) {
-        if (isEphemeraRoomItem(item)) {
+        if (isStandardRoom(item)) {
             dependencies = [
                 ...dependencies,
-                ...extractDependenciesFromTaggedContent(item.render ?? [], item.keyMapping),
-                ...extractDependenciesFromTaggedContent(item.summary ?? [], item.keyMapping)
+                ...extractDependenciesFromTaggedContent([item.description].filter(excludeUndefined), item.keyMapping ?? {}),
+                ...extractDependenciesFromTaggedContent([item.summary].filter(excludeUndefined), item.keyMapping ?? {})
             ]
         }
-        if (isEphemeraFeatureItem(item) || isEphemeraKnowledgeItem(item)) {
+        if (isStandardFeature(item) || isStandardKnowledge(item)) {
             dependencies = [
                 ...dependencies,
-                ...extractDependenciesFromTaggedContent(item.render ?? [], item.keyMapping)
+                ...extractDependenciesFromTaggedContent([item.description].filter(excludeUndefined), item.keyMapping ?? {})
             ]
         }
-        if (isEphemeraMapItem(item)) {
+        if (isStandardMap(item)) {
             dependencies = [
                 ...dependencies,
-                ...Object.entries(item.keyMapping).map(([scopedId, EphemeraId]) => ({ target: EphemeraId, data: { scopedId } }))
+                ...Object.entries(item.keyMapping ?? {}).map(([scopedId, EphemeraId]) => ({ target: EphemeraId, data: { scopedId } }))
             ]
         }
     }
     const deduplicate = Object.values(Object.assign({}, ...dependencies.map((dependency) => ({ [dependency.target]: dependency })))) as EphemeraDependency[]
     return [
-        ...('stateMapping' in item ? Object.entries(item.stateMapping).map(([scopedId, ephemeraId]) => ({ target: ephemeraId, data: { scopedId } })) : []),
+        ...(Object.entries(item.stateMapping ?? {}).map(([scopedId, ephemeraId]) => ({ target: ephemeraId, data: { scopedId } }))),
         ...deduplicate
     ]
 }
 
-const assetBacklink = (context: string) => (item: EphemeraItem) => {
-    if (isEphemeraComputedItem(item) || isEphemeraVariableItem(item) || isEphemeraRoomItem(item)) {
+const assetBacklink = (context: string) => (item: StandardComponent) => {
+    if (isStandardComputed(item) || isStandardVariable(item) || isStandardRoom(item)) {
         return {
             target: AssetKey(context),
             context,
@@ -140,7 +146,7 @@ export const updateDependenciesFromMergeActions = (context: string, graphUpdate:
             if (!mergeAction.action) {
                 return
             }
-            const item = mergeAction.action as unknown as EphemeraItem
+            const item = mergeAction.action as unknown as StandardComponent & EphemeraComponentMixin
             graphUpdate.setEdges([{
                 itemId: EphemeraId,
                 edges: [
