@@ -76,8 +76,9 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    render: [{ data: { tag: 'String', value: 'Test Message' }, children : [] }],
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    tag: 'Message',
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children : [] }] },
+                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
                     key: 'testMessage',
                     stateMapping: {},
                     keyMapping: {}
@@ -127,8 +128,9 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
-                    rooms: ['ROOM#ABC'],
+                    tag: 'Message',
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
+                    rooms: [{ data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
                     key: 'testMessage',
                     stateMapping: {},
                     keyMapping: {}
@@ -159,8 +161,9 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    tag: 'Message',
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
+                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
                     key: 'testMessage',
                     stateMapping: {},
                     keyMapping: {}
@@ -196,8 +199,9 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    tag: 'Message',
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
+                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
                     key: 'testMessage',
                     stateMapping: {},
                     keyMapping: {}
