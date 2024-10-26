@@ -7,7 +7,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardForm, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardForm, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/dist/schema/treeManipulation/listDiff'
@@ -114,65 +114,6 @@ export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTa
     let nextIndex = 1
     while (keysByTag.includes(`${tag}${nextIndex}`)) { nextIndex++ }
     return `${tag}${nextIndex}`
-}
-
-const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponent => {
-    switch(tag) {
-        case 'Room':
-            return {
-                tag,
-                key,
-                exits: [],
-                themes: []
-            }
-        case 'Feature':
-        case 'Knowledge':
-            return {
-                tag,
-                key,
-            }
-        case 'Image':
-            return {
-                tag: 'Image' as const,
-                key,
-            }
-        case 'Variable':
-            return {
-                tag: 'Variable' as const,
-                key,
-                default: 'false',
-            }
-        case 'Computed':
-            return {
-                tag: 'Computed' as const,
-                key,
-                src: '',
-            }
-        case 'Action':
-            return {
-                tag: 'Action' as const,
-                key,
-                src: '',
-            }
-        case 'Map':
-            return {
-                tag: 'Map' as const,
-                key,
-                themes: [],
-                images: [],
-                positions: [],
-            }
-        case 'Theme':
-            return {
-                tag: 'Theme' as const,
-                key,
-                prompts: [],
-                rooms: [],
-                maps: [],
-            }
-        default:
-            throw new Error(`No default component for tag: '${tag}'`)
-    }
 }
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
