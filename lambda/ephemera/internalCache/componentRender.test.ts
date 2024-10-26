@@ -1,6 +1,7 @@
 import { EphemeraMapId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import internalCache from "../internalCache"
 import { ComponentMetaItem } from "./componentMeta"
+import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 // import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
 // import { componentAppearanceReduce } from "./componentRender"
 
@@ -27,16 +28,15 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                shortName: [{
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
                         children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }]
                     }]
-                }],
-                name: [],
-                summary: [],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
@@ -49,8 +49,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testTwo' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
+                }] },
                 exits: [],
+                themes: [],
                 key: 'testRoom',
                 stateMapping: {
                     testOne: 'VARIABLE#One',
@@ -61,16 +62,15 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                shortName: [{
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
-                name: [],
-                summary: [],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
@@ -83,8 +83,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testFour' },
                         children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
                     }]
-                }],
+                }] },
                 exits: [],
+                themes: [],
                 key: 'testRoom',
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
@@ -131,11 +132,12 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                shortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
-                name: [],
-                summary: [{ data: { tag: 'String', value: 'Summary' }, children: [] }],
-                render: [{ data: { tag: 'String', value: 'Description' }, children: [] }],
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
                 exits: [],
+                themes: [],
                 key: 'testRoom',
                 stateMapping: {},
                 keyMapping: {}
@@ -187,14 +189,14 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: [{
+                name: { data: { tag: 'Name' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
                         children: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }]
                     }]
-                }],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
@@ -207,8 +209,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testTwo' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
+                }] },
                 key: 'testFeature',
+                tag: 'Feature',
                 stateMapping: {
                     testOne: 'VARIABLE#One',
                     testTwo: 'VARIABLE#Two'
@@ -218,14 +221,14 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: [{
+                name: { data: { tag: 'Name' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
@@ -238,8 +241,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testFour' },
                         children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
                     }]
-                }],
+                }] },
                 key: 'testFeature',
+                tag: 'Feature',
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
                     testFour: 'VARIABLE#Four'
@@ -281,14 +285,14 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Base',
-                name: [{
+                name: { data: { tag: 'Name' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
                         children: [{ data: { tag: 'String', value: 'TestKnowledge' }, children: [] }]
                     }]
-                }],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testOne' },
@@ -301,8 +305,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testTwo' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
+                }] },
                 key: 'testKnowledge',
+                tag: 'Knowledge',
                 stateMapping: {
                     testOne: 'VARIABLE#One',
                     testTwo: 'VARIABLE#Two'
@@ -312,14 +317,14 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Base',
-                name: [{
+                name: { data: { tag: 'Name' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
                         children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
                     }]
-                }],
-                render: [{
+                }] },
+                description: { data: { tag: 'Description' }, children: [{
                     data: { tag: 'If' },
                     children: [{
                         data: { tag: 'Statement', if: 'testThree' },
@@ -332,8 +337,9 @@ describe('ComponentRender cache handler', () => {
                         data: { tag: 'Statement', if: 'testFour' },
                         children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
                     }]
-                }],
+                }] },
                 key: 'testKnowledge',
+                tag: 'Knowledge',
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
                     testFour: 'VARIABLE#Four'
@@ -378,9 +384,9 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'FEATURE#TestOne',
                             assetId: 'Base',
-                            name: [],
-                            render: [{ data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }],
+                            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }] },
                             key: 'testFeature',
+                            tag: 'Feature',
                             stateMapping: {},
                             keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
@@ -390,7 +396,7 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'BOOKMARK#TestTwo',
                             assetId: 'Base',
-                            render: [{ data: { tag: 'String', value: 'Test' }, children: [] }],
+                            description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
                             key: 'testBookmark',
                             stateMapping: {},
                             keyMapping: {}
@@ -429,12 +435,12 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'FEATURE#TestOne',
                             assetId: 'Base',
-                            name: [],
-                            render: [
+                            description: { data: { tag: 'Description' }, children: [
                                 { data: { tag: 'String', value: 'Test' }, children: [] },
                                 { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
-                            ],
+                            ] },
                             key: 'testFeature',
+                            tag: 'Feature',
                             stateMapping: {},
                             keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
@@ -444,11 +450,12 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'BOOKMARK#TestTwo',
                             assetId: 'Base',
-                            render: [
+                            description: { data: { tag: 'Description' }, children: [
                                 { data: { tag: 'String', value: 'Loop' }, children: [] },
                                 { data: { tag: 'Bookmark', key: 'bookmark2' }, children: [] }
-                            ],
+                            ] },
                             key: 'bookmark1',
+                            tag: 'Feature',
                             stateMapping: {},
                             keyMapping: { "bookmark2": "BOOKMARK#TestThree" }
                         }
@@ -458,9 +465,9 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'BOOKMARK#TestThree',
                             assetId: 'Base',
-                            render: [
+                            description: { data: { tag: 'Description' }, children: [
                                 { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
-                            ],
+                            ] },
                             key: 'bookmark2',
                             stateMapping: {},
                             keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
@@ -499,57 +506,58 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'MAP#TestOne',
                             assetId: 'Base',
-                            name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
+                            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }] },
                             images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
-                            rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
+                            positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
+                            themes: [],
                             key: 'testMap',
+                            tag: 'Map',
                             stateMapping: {},
                             keyMapping: { room1: 'ROOM#TestRoomOne' }
                         },
                         Personal: {
                             EphemeraId: 'MAP#TestOne',
                             assetId: 'Personal',
-                            name: [],
                             images: [],
-                            rooms: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }],
+                            themes: [],
+                            positions: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }],
                             key: 'testMap',
+                            tag: 'Map',
                             stateMapping: {},
                             keyMapping: { room2: 'ROOM#TestRoomTwo' }
                         }
-                    } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraMapId }>
+                    } as Record<string, ComponentMetaItem<StandardMap> & { EphemeraId: EphemeraMapId }>
                 case 'ROOM#TestRoomOne':
                     return {
                         Base: {
                             EphemeraId: 'ROOM#TestRoomOne',
                             assetId: 'Base',
-                            shortName: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }],
-                            name: [],
-                            summary: [],
-                            render: [],
+                            shortName: { data: { tag: 'ShortName'}, children: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }] },
                             exits: [
                                 { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Other Room' }, children: [] }] },
                                 { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Not in Map' }, children: [] }] }
                             ],
+                            themes: [],
                             key: 'room1',
+                            tag: 'Room',
                             stateMapping: {},
                             keyMapping: { room2: 'ROOM#TestRoomTwo', room3: 'ROOM#TestRoomThree' }
                         },
-                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', shortName: [], name: [], summary: [], render: [], exits: [], key: 'room1', stateMapping: {}, keyMapping: {} }
+                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', exits: [], themes: [], key: 'room1', tag: 'Room', stateMapping: {}, keyMapping: {} }
                     } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraRoomId }>
                 case 'ROOM#TestRoomTwo':
                     return {
-                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', shortName: [], name: [], summary: [], render: [], exits: [], key: 'room2', stateMapping: {}, keyMapping: {} },
+                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', exits: [], themes: [], key: 'room2', tag: 'Room', stateMapping: {}, keyMapping: {} },
                         Personal: {
                             EphemeraId: 'ROOM#TestRoomTwo',
                             assetId: 'Personal',
-                            shortName: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }],
-                            name: [],
-                            summary: [],
-                            render: [],
+                            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }] },
                             exits: [
                                 { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2' }, children: [{ data: { tag: 'String', value: 'First Room' }, children: [] }] }
                             ],
+                            themes: [],
                             key: 'room2',
+                            tag: 'Room',
                             stateMapping: {},
                             keyMapping: { room1: 'ROOM#TestRoomOne' }
                         }
@@ -611,10 +619,8 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'ROOM#TestOne',
                             assetId: 'Base',
-                            shortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
-                            name: [],
-                            summary: [],
-                            render: [
+                            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
+                            description: { data: { tag: 'Description' }, children: [
                                 { data: { tag: 'String', value: 'First' }, children: [] },
                                 {
                                     data: { tag: 'If' },
@@ -623,11 +629,13 @@ describe('ComponentRender cache handler', () => {
                                         children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
                                     }]
                                 }
-                            ],
+                            ] },
                             exits: [],
+                            themes: [],
                             stateMapping: { testTwo: 'VARIABLE#testVariable' },
                             keyMapping: {},
-                            key: 'testRoom'
+                            key: 'testRoom',
+                            tag: 'Room'
                         }
                     }
             }
