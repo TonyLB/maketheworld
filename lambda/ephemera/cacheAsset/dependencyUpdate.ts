@@ -4,7 +4,7 @@ import internalCache from "../internalCache"
 import { EphemeraComponentMixin, EphemeraItem, EphemeraKeyMappingMixin, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraKnowledgeItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import { SchemaEditTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaEdit, isSchemaLink } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { SchemaDescriptionTag, SchemaEditTag, SchemaNameTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaDescription, isSchemaEdit, isSchemaLink, isSchemaName, isSchemaSummary } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponent } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
@@ -48,6 +48,12 @@ const keysToDependencies = (keyMapping: Record<string, EphemeraId>) => (keys: st
 
 const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
     const returnValue = values.reduce<EphemeraDependency[]>((previous, item) => {
+        if (treeNodeTypeguard((data: SchemaTag): data is SchemaNameTag | SchemaDescriptionTag | SchemaSummaryTag => (isSchemaName(data) || isSchemaDescription(data) || isSchemaSummary(data)))(item)) {
+            return [
+                ...previous,
+                ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+            ]
+        }
         if (treeNodeTypeguard(isSchemaEdit)(item)) {
             return [
                 ...previous,

@@ -200,6 +200,65 @@ export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
 export const isStandardNonEdit = (value: StandardComponent): value is Exclude<StandardComponent, StandardRemove | StandardReplace> => (!["Remove", "Replace"].includes(value.tag))
 
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponent => {
+    switch(tag) {
+        case 'Room':
+            return {
+                tag,
+                key,
+                exits: [],
+                themes: []
+            }
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                tag,
+                key,
+            }
+        case 'Image':
+            return {
+                tag: 'Image' as const,
+                key,
+            }
+        case 'Variable':
+            return {
+                tag: 'Variable' as const,
+                key,
+                default: 'false',
+            }
+        case 'Computed':
+            return {
+                tag: 'Computed' as const,
+                key,
+                src: '',
+            }
+        case 'Action':
+            return {
+                tag: 'Action' as const,
+                key,
+                src: '',
+            }
+        case 'Map':
+            return {
+                tag: 'Map' as const,
+                key,
+                themes: [],
+                images: [],
+                positions: [],
+            }
+        case 'Theme':
+            return {
+                tag: 'Theme' as const,
+                key,
+                prompts: [],
+                rooms: [],
+                maps: [],
+            }
+        default:
+            throw new Error(`No default component for tag: '${tag}'`)
+    }
+}
+
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = GenericTreeNodeFiltered<T, ChildType, Extra>
 
 export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = {

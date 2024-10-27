@@ -1,6 +1,6 @@
-import { ComponentMeta, ComponentMetaData, ComponentMetaFromId, ComponentMetaId } from './componentMeta'
+import { ComponentMeta, ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraBookmark, EphemeraCondition, EphemeraFeature, EphemeraItem, EphemeraKnowledge, EphemeraMap, EphemeraMessage, EphemeraRoom, isEphemeraMapItem, isEphemeraRoomItem } from '../cacheAsset/baseClasses'
+import { EphemeraCondition } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/ts/lists';
@@ -33,11 +33,13 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
+import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponent, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -191,6 +193,9 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
         if (isSchemaSpacer(data)) {
             return { tag: 'String', value: ' ' }
         }
+        if (isSchemaSelected(data)) {
+            return { tag: 'String', value: ' ' }
+        }
         return data
     })
 }
@@ -214,7 +219,7 @@ const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTr
 
 export class ComponentRenderData {
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
-    _componentMeta: (EphemeraId: ComponentMetaId, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<typeof EphemeraId>>>;
+    _componentMeta: (EphemeraId: ComponentMetaId, assetList: string[]) => Promise<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -380,8 +385,9 @@ export class ComponentRenderData {
                 }
             }).flat(1)
         }
-        const evaluateSchemaOutputPromise = async <T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
+        const evaluateSchemaOutputPromise = async <T extends ComponentMetaItem>(assetData: T[], key: { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
             compressStrings((await Promise.all(assetData.map(async (data) => {
+                const evaluatedConditionals = await evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] ? (unwrapSubject(data[key] as any)?.children ?? []) as GenericTree<SchemaOutputTag> : [], data.stateMapping)
                 const evaluatedOutput = await evaluateSchemaBookmarks(
                     async ({ key }) => {
                         const BookmarkId = data.keyMapping[key]
@@ -389,21 +395,23 @@ export class ComponentRenderData {
                             if ((getOptions?.priorRenderChain ?? []).includes(BookmarkId)) {
                                 return [{ data: { tag: 'String', value: '#CIRCULAR' }, children: [] }]
                             }
-                            return deflattenSchemaOutputTags((await this.get(CharacterId, BookmarkId, { ...getOptions ?? {}, priorRenderChain: [...(getOptions?.priorRenderChain ?? []), BookmarkId] })).Description)
+                            const bookmarkContents = (await this.get(CharacterId, BookmarkId, { ...getOptions ?? {}, priorRenderChain: [...(getOptions?.priorRenderChain ?? []), BookmarkId] })).Description
+                            return deflattenSchemaOutputTags(bookmarkContents)
                         }
                         return []
                     },
                     isSchemaOutputTag
                 )(
-                    await evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping),
+                    evaluatedConditionals,
                     data.stateMapping
                 )
-                return remapKeys(evaluatedOutput, data.keyMapping)
+                const remappedValue = remapKeys(evaluatedOutput, data.keyMapping)
+                return remappedValue
             }))).flat(1))
         )
-        const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(
+        const evaluateSchemaPromise = <T extends ComponentMetaItem>(
             assetData: T[],
-            key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]
+            key: { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]
         ): Promise<GenericTree<SchemaTag>> => (
             Promise.all(assetData.map(async (data) => {
                 const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)
@@ -416,23 +424,23 @@ export class ComponentRenderData {
             })).then((tagLists) => (tagLists.flat(1)))
         )
         const mapEvaluatedSchemaOutputPromise = async <
-            T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>,
+            T extends StandardComponent,
             O extends RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData
         >(
             nameMapping: {
-                [P in { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]]: { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
+                [P in { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]]: { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
             },
-            excluded: ({ [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T])[] = []
+            excluded: ({ [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T])[] = []
         ): Promise<Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>> => {
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as unknown as T[]
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as unknown as ComponentMetaItem<T>[]
             //
             // Extract selectors from storage, and evaluate with local mappings
             //
             const remapped = Object.entries(nameMapping).map(([from, to]) => ({
-                from: from as { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T],
+                from: from as { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T],
                 to: to as { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
             }))
-            const evaluatePromise = await Promise.all(remapped.map(({ from }) => (excluded.includes(from) ? Promise.resolve([]) : evaluateSchemaOutputPromise(assetData, from))))
+            const evaluatePromise = await Promise.all(remapped.map(({ from }) => (excluded.includes(from) ? Promise.resolve([]) : evaluateSchemaOutputPromise(assetData as any, from as any))))
             return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
                 Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>
         }
@@ -440,13 +448,13 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraRoom[]
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1)
             const [roomCharacterList, exits, rest] = (await Promise.all([
                 this._roomCharacterList(EphemeraId),
-                evaluateSchemaPromise(assetData, 'exits'),
+                evaluateSchemaPromise(assetData, 'exits' as any),
                 (getOptions && ('header' in getOptions) && getOptions.header)
-                    ? mapEvaluatedSchemaOutputPromise<EphemeraRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', render: 'Description' }, ['render'])
-                    : mapEvaluatedSchemaOutputPromise<EphemeraRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', render: 'Description' }, ['summary'])
+                    ? mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', description: 'Description' }, ['description' as any])
+                    : mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', description: 'Description' }, ['summary' as any])
             ]))
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
@@ -463,8 +471,8 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraFeature[]
-            const rest = await mapEvaluatedSchemaOutputPromise<EphemeraFeature, FeatureDescribeData>({ name: 'Name', render: 'Description' })
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardFeature>[]
+            const rest = await mapEvaluatedSchemaOutputPromise<StandardFeature, FeatureDescribeData>({ name: 'Name', description: 'Description' })
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
@@ -478,8 +486,8 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraFeature[]
-            const rest = await mapEvaluatedSchemaOutputPromise<EphemeraKnowledge, KnowledgeDescribeData>({ name: 'Name', render: 'Description' })
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardKnowledge>[]
+            const rest = await mapEvaluatedSchemaOutputPromise<StandardKnowledge, KnowledgeDescribeData>({ name: 'Name', description: 'Description' })
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
@@ -493,8 +501,8 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraFeature[]
-            const rest = await mapEvaluatedSchemaOutputPromise<EphemeraBookmark, BookmarkDescribeData>({ render: 'Description' })
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardBookmark>[]
+            const rest = await mapEvaluatedSchemaOutputPromise<StandardBookmark, BookmarkDescribeData>({ description: 'Description' })
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
@@ -508,14 +516,14 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraMessage[]
-            const rest = await mapEvaluatedSchemaOutputPromise<EphemeraMessage, MessageDescribeData>({ render: 'Description' })
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardMessage>[]
+            const rest = await mapEvaluatedSchemaOutputPromise<StandardMessage, MessageDescribeData>({ render: 'Description' })
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
                     MessageId: EphemeraId,
                     assets,
-                    rooms: unique(...assetData.map(({ rooms }) => (rooms))),
+                    rooms: unique(...assetData.map(({ rooms }) => (rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data }) => (data.key)).filter(isEphemeraRoomId)))),
                     ...rest
                 }
             }
@@ -524,17 +532,17 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId].key)))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId]?.key ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraMap[]
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId]?.key ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardMap>[]
             //
             // TODO: Refactor mapRoom handling to use GenericTree<SchemaTag> instead of bespoke MapRoom structures
             //
             const roomPositions = Object.assign({}, ...(await Promise.all(
                 allAssets.map(async (assetId) => {
                     const localAssetData = appearancesByAsset[assetId]
-                    if (!(localAssetData && isEphemeraMapItem(localAssetData))) {
+                    if (!(localAssetData && isStandardMap(localAssetData))) {
                         return {}
                     }
-                    const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(localAssetData.rooms as GenericTree<SchemaTag>, localAssetData.stateMapping)
+                    const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(localAssetData.positions as GenericTree<SchemaTag>, localAssetData.stateMapping)
                     return Object.assign(
                         {},
                         ...evaluatedSchema.map(({ data, children }) => {
@@ -559,11 +567,11 @@ export class ComponentRenderData {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
                 const roomAssetAppearances = allAssets.map((assetId) => {
                     const room = metaByAsset[assetId]
-                    return isEphemeraRoomItem(room) ? [room] : []
+                    return isStandardRoom(room) ? [room as ComponentMetaItem<StandardRoom>] : []
                 }).flat(1)
                 const [name, exits] = await Promise.all([
-                    evaluateSchemaOutputPromise(roomAssetAppearances, 'shortName'),
-                    evaluateSchemaPromise(roomAssetAppearances, 'exits')
+                    evaluateSchemaOutputPromise(roomAssetAppearances, 'shortName' as any),
+                    evaluateSchemaPromise(roomAssetAppearances, 'exits' as any)
                 ])
                 return {
                     roomId: ephemeraId,
@@ -582,12 +590,12 @@ export class ComponentRenderData {
             const [rooms, fileURLs, rest] = await Promise.all([
                 roomMetaPromise,
                 Promise.all(
-                    (allAssets.map((assetId) => (appearancesByAsset[assetId] ? [{ data: appearancesByAsset[assetId], assetId }] : [])).flat(1) as { data: EphemeraMap, assetId }[])
+                    (allAssets.map((assetId) => (appearancesByAsset[assetId] ? [{ data: appearancesByAsset[assetId], assetId }] : [])).flat(1) as { data: ComponentMetaItem<StandardMap>, assetId }[])
                         .map(async ({ data }) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data.images as GenericTree<SchemaTag>, data.stateMapping)))
                         .map((promise) => (promise.then((tagList) => (tagList.map(({ data }) => (isSchemaImage(data) && data.fileURL ? [data.fileURL] : [])).flat(1)))))
                     ).then((tagLists) => (tagLists.flat(1))
                 ),
-                mapEvaluatedSchemaOutputPromise<EphemeraMap, MapDescribeData>({ name: 'name' }),
+                mapEvaluatedSchemaOutputPromise<StandardMap, MapDescribeData>({ name: 'name' }),
             ])
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),

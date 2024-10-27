@@ -171,11 +171,9 @@ export const isEphemeraActionItem = (item: EphemeraItem): item is EphemeraAction
 export const isEphemeraVariableItem = (item: EphemeraItem): item is EphemeraVariable => (isEphemeraVariableId(item.EphemeraId))
 export const isEphemeraComputedItem = (item: EphemeraItem): item is EphemeraComputed => (isEphemeraComputedId(item.EphemeraId))
 
-type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
+const isLegalEphemeraTag = (tag: string): tag is SchemaTag["tag"] => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
 
-const isLegalEphemeraTag = (tag: string): tag is LegalEphemeraTag => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
-
-export const tagFromEphemeraWrappedId = (EphemeraId: string): LegalEphemeraTag => {
+export const tagFromEphemeraWrappedId = (EphemeraId: string): SchemaTag["tag"] => {
     const [upperTag] = splitType(EphemeraId)
     const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
     if (isLegalEphemeraTag(tag)) {

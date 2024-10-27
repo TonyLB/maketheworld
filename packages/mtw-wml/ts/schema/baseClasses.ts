@@ -213,6 +213,8 @@ export type SchemaRemoveTag = {
     tag: 'Remove';
 } & SchemaBase
 
+export type SchemaEditTag = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag
+
 export type SchemaBookmarkTag = {
     tag: 'Bookmark';
     key: string;

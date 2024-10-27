@@ -2,7 +2,9 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import {
     EphemeraCharacter,
     EphemeraItem,
-    EphemeraPushArgs
+    EphemeraKeyMappingMixin,
+    EphemeraPushArgs,
+    EphemeraStateMappingMixin
 } from './baseClasses'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types'
@@ -33,19 +35,19 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import { isSchemaComputed, isSchemaConditionStatement, isSchemaImage, isSchemaImport, isSchemaLink, isSchemaMessage, isSchemaRoom, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/schema/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/schema/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { EditWrappedStandardNode, StandardComponent, SerializableStandardRoom, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { EditWrappedStandardNode, StandardComponent, SerializableStandardRoom, unwrapStandardComponent, isStandardCharacter, isStandardVariable, isStandardComputed, isStandardMap, StandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
-import TagTree from '@tonylb/mtw-wml/ts/tagTree'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
+import { transformStandardComponent } from '@tonylb/mtw-wml/ts/standardize/abstract'
 
 const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponent): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
@@ -337,10 +339,86 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             }
         }
     
-    
         // const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
-        const ephemeraItems: StandardComponent[] = Object.values(assetWorkspace.standard.byId || {})
+        const ephemeraItems: (StandardComponent & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
             .filter(excludeUndefined)
+            .map((item) => {
+                if (isStandardCharacter(item) || isStandardVariable(item)) {
+                    return item
+                }
+                //
+                // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
+                //
+                const dependencies = selectDependencies([standardItemToSchemaItem(item)])
+                const stateMapping = dependencies.reduce<Record<string, StateItemId>>((previous, key) => {
+                    const universalKey = assetWorkspace.universalKey(key)
+                    if (universalKey && isStateItemId(universalKey)) {
+                        return { ...previous, [key]: universalKey }
+                    }
+                    return previous
+                }, {})
+                //
+                // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
+                //
+                const keysReferenced = selectKeysReferenced([standardItemToSchemaItem(item)])
+                const keyMapping = keysReferenced.reduce<Record<string, EphemeraId>>((previous, key) => {
+                    const universalKey = assetWorkspace.universalKey(key)
+                    if (universalKey && isEphemeraId(universalKey)) {
+                        return { ...previous, [key]: universalKey }
+                    }
+                    return previous
+                }, {})
+                const transformDependencies = (keys: string[]): { key: string; EphemeraId?: EphemeraId }[] => (
+                    keys.map((key) => ({ key, EphemeraId: assetWorkspace.universalKey(key) as EphemeraId }))
+                )
+                const recursiveTransformDependencies = (tree: GenericTree<SchemaTag>) => (
+                    tree.map((node) => {
+                        if (treeNodeTypeguard(isSchemaComputed)(node) || treeNodeTypeguard(isSchemaConditionStatement)(node)) {
+                            return {
+                                data: { ...node.data, dependencies: node.data.dependencies ? transformDependencies(node.data.dependencies) : undefined },
+                                children: recursiveTransformDependencies(node.children)
+                            }
+                        }
+                        else {
+                            return { ...node, children: recursiveTransformDependencies(node.children) }
+                        }
+                    })
+                )
+                const transformedComponent = isStandardComputed(item)
+                    ? { ...item, dependencies: item.dependencies ? transformDependencies(item.dependencies) : undefined }
+                    : transformStandardComponent(recursiveTransformDependencies, { defaultSelected: false })(item)
+                if (!transformedComponent) {
+                    throw new Error('Failed transform on cacheAsset')
+                }
+                return {
+                    ...transformedComponent,
+                    keyMapping,
+                    stateMapping,
+                    ...(isStandardMap(transformedComponent as StandardComponent)
+                        ? {
+                            images: map((transformedComponent as StandardMap).images, (node) => {
+                                const { data, children } = node
+                                if (isSchemaImage(data)) {
+                                    const fileLookup = assetWorkspace.properties[data.key]
+                                    if (fileLookup && 'fileName' in fileLookup) {
+                                        return [{
+                                            data: {
+                                                ...data,
+                                                fileURL: data.fileURL ?? fileLookup.fileName
+                                            },
+                                            children
+                                        }]
+                                    }
+                                }
+                                return [{ data, children }]
+                            })
+                        }
+                        : {}
+                    )
+                }
+            })
+            .map((component) => ({ ...component, EphemeraId: assetWorkspace.universalKey(component.key) }))
+            .filter((component): component is (StandardComponent & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & { EphemeraId: EphemeraId }) => (Boolean(component.EphemeraId && isEphemeraId(component.EphemeraId))))
     
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 

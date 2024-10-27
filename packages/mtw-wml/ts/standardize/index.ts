@@ -45,33 +45,6 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
     })
 )
 
-// const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
-//     node: GenericTreeNodeFiltered<T, SchemaTag> | undefined,
-//     typeGuard: (value: SchemaTag) => value is ChildType,
-//     defaultValue: T
-// ): GenericTreeNodeFiltered<T, ChildType> => {
-//     return node
-//         ? { ...node, children: treeTypeGuard({ tree: defaultSelected(node.children), typeGuard }) }
-//         : { data: defaultValue, children: [] }
-// }
-
-// const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>(
-//     callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>,
-//     typeGuard: (value: SchemaTag) => value is T,
-//     childTypeGuard: (value: SchemaTag) => value is ChildType,
-//     defaultValue: T
-// ) => (node: EditWrappedStandardNode<T, SchemaTag> | undefined): EditWrappedStandardNode<T, ChildType> => {
-//     const transformedTree = node ? callback([node]) : []
-//     if (transformedTree.length === 0) {
-//         return { data: defaultValue, children: [] }
-//     }
-//     const transformedNode = transformedTree[0]
-//     if (transformedTree.length > 1 || !treeNodeTypeguard(typeGuard)(transformedNode)) {
-//         throw new Error('Invalid return value in transformStandardItem')
-//     }
-//     return { ...transformedNode, children: treeTypeGuard({ tree: defaultSelected(transformedNode.children), typeGuard: childTypeGuard }) }
-// }
-
 export const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':

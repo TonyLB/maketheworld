@@ -15,6 +15,7 @@ describe('dependencyUpdate', () => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         internalCacheMock.CharacterSessions.get.mockResolvedValue([])
+        // @ts-ignore
         GraphUpdateMock.mockClear()
     })
 
@@ -44,12 +45,17 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#DEF',
                     DataCategory: 'ASSET#test',
                     key: 'ABC',
-                    name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
-                    render: [{
-                        data: { tag: 'If', conditions: [{ if: 'active' }] },
-                        children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
-                    }],
+                    tag: 'Room',
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                    description: {
+                        data: { tag: 'Description' },
+                        children: [{
+                            data: { tag: 'If', conditions: [{ if: 'active' }] },
+                            children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
+                        }]
+                    },
                     exits: [],
+                    themes: [],
                     stateMapping: { active: 'COMPUTED#XYZ' },
                     keyMapping: {}
                 },
@@ -63,7 +69,8 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'MAP#LMNO',
                     DataCategory: 'ASSET#test',
                     key: 'LMNO',
-                    rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [] }],
+                    tag: 'Map',
+                    positions: [{ data: { tag: 'Room', key: 'room1' }, children: [] }],
                     stateMapping: {},
                     keyMapping: { room1: 'ROOM#DEF' }
                 }
@@ -77,7 +84,8 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'KNOWLEDGE#GHI',
                     DataCategory: 'ASSET#test',
                     key: 'testKnowledge',
-                    name: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }],
+                    tag: 'Knowledge',
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
                     render: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }],
                     stateMapping: {},
                     keyMapping: {}
@@ -92,6 +100,7 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'VARIABLE#QRS',
                     DataCategory: 'ASSET#test',
                     key: 'powered',
+                    tag: 'Variable',
                     default: 'false'
                 },
             },
@@ -104,6 +113,7 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'VARIABLE#TUV',
                     DataCategory: 'ASSET#test',
                     key: 'switchedOn',
+                    tag: 'Variable',
                     default: 'true'
                 },
             },
@@ -116,6 +126,7 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'COMPUTED#XYZ',
                     DataCategory: 'ASSET#test',
                     key: 'active',
+                    tag: 'Computed',
                     src: 'powered && switchedOn',
                     // dependencies: [
                     //     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
@@ -154,9 +165,8 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#Base',
                     DataCategory: 'ASSET#test',
                     key: 'Base',
-                    exits: [],
-                    name: [{ tag: 'String', value: 'Feature Base Test' }],
-                    render: [],
+                    tag: 'Feature',
+                    name: { data: { tag: 'Name' }, children: [{ tag: 'String', value: 'Feature Base Test' }] },
                     stateMapping: {},
                     keyMapping: {}
                 }
@@ -170,9 +180,9 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#ABC',
                     DataCategory: 'ASSET#test',
                     key: 'ABC',
-                    exits: [],
-                    name: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }],
-                    render: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }],
+                    tag: 'Feature',
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }] },
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }] },
                     stateMapping: {},
                     keyMapping: { Base: 'FEATURE#Base' }
                 }
@@ -186,9 +196,10 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#DEF',
                     DataCategory: 'ASSET#test',
                     key: 'DEF',
+                    tag: 'Room',
                     exits: [{ tag: 'Exit', from: 'DEF', to: 'GHI', key: 'DEF#GHI' }],
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }],
+                    name: { data: { tag: 'Name' }, children: [{ tag: 'String', value: 'Vortex' }] },
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }] },
                     stateMapping: {},
                     keyMapping: { ABC: 'FEATURE#ABC', GHI: 'ROOM#GHI' }
                 },
@@ -202,9 +213,8 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#GHI',
                     DataCategory: 'ASSET#test',
                     key: 'GHI',
+                    tag: 'Room',
                     exits: [{ tag: 'Exit', from: 'GHI', to: 'DEF', key: 'GHI#DEF' }],
-                    name: [],
-                    render: [],
                     stateMapping: {},
                     keyMapping: { DEF: 'ROOM#DEF' }
                 }
