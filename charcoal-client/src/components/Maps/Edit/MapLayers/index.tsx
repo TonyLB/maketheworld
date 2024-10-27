@@ -285,7 +285,11 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
         case 'If':
             return <EditSchema
                 value={item.children ?? []}
-                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})}}
+                onChange={(value) => { 
+                    if (typeof value !== 'function') {
+                        updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})
+                    }
+                }}
             >
                 <IfElseTree
                     render={render}

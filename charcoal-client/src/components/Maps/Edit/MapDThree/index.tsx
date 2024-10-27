@@ -48,10 +48,6 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    //
-    // TODO: ISS4348: Refactor MapDThree constructor to accept standardForm, updateStandard, and mapID rather
-    // than tree, inherited, and parentId
-    //
     constructor({ standardForm, updateStandard, mapId, tree, onStability, onTick, onExitDrag, onAddExit }: {
         standardForm: StandardForm;
         updateStandard: (action: UpdateStandardPayload) => void;

@@ -125,17 +125,17 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsHelper = useCallback((parentId: string, context?: { roomId?: string, assetId?: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag>): Partial<MapContextPosition>[] => {
+    const extractRoomsHelper = useCallback((context?: { roomId?: string, assetId?: string }) => (previous: Partial<MapContextPosition>[], item: GenericTreeNode<SchemaTag>): Partial<MapContextPosition>[] => {
         const { data, children } = item
         const { roomId: contextRoomId, assetId: contextAssetId } = context ?? {}
         if (isSchemaAsset(data)) {
-            return children.reduce(extractRoomsHelper(parentId, { ...context, assetId: data.key }), previous)
+            return children.reduce(extractRoomsHelper({ ...context, assetId: data.key }), previous)
         }
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = standardForm.byId[data.key]
             const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
-            return children.reduce(extractRoomsHelper(parentId, { ...context, roomId: data.key }), [
+            return children.reduce(extractRoomsHelper({ ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
                     ...previousItem,
@@ -151,7 +151,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     ...previous.filter(({ roomId }) => (roomId !== contextRoomId)),
                     {
                         ...contextItem,
-                        parentId: parentId ? parentId : contextAssetId ? `INHERITED#${contextAssetId}` : 'INHERITED',
+                        parentId: contextAssetId ? `INHERITED#${contextAssetId}` : 'INHERITED',
                         x: data.x,
                         y: data.y
                     }
@@ -162,7 +162,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             const findSelectedSubItem = children.filter(treeNodeTypeguard((data: SchemaTag): data is SchemaConditionStatementTag | SchemaConditionFallthroughTag => (isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data))))
                 .find(({ data }) => (data.selected))
             if (findSelectedSubItem) {
-                return findSelectedSubItem.children.reduce(extractRoomsHelper(parentId, context), previous)
+                return findSelectedSubItem.children.reduce(extractRoomsHelper(context), previous)
             }
         }
         return previous
@@ -170,7 +170,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const extractRoomsById = useCallback((incomingPositions: Record<string, { x: number; y: number }>) => (tree: GenericTree<SchemaTag>): MapContextPosition[] => {
         const basePositions = tree
             .reduce<Partial<MapContextPosition>[]>(
-                extractRoomsHelper(''),
+                extractRoomsHelper(),
                 []
             )
         const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))

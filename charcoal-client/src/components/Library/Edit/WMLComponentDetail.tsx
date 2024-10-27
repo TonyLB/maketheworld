@@ -64,7 +64,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             (isStandardRoom(component)) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
                     value={component?.shortName?.children ?? []}
-                    onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) }}
+                    onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) } }}
                 >
                     <TitledBox title="Short Name">
                         <DescriptionEditor
@@ -78,7 +78,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         <StandardFormSchema componentKey={ComponentId} tag="Name">
             <EditSchema
                 value={component?.name?.children ?? []}
-                onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}
+                onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) } }}
             >
                 <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                     <DescriptionEditor
@@ -96,7 +96,9 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         if (value.length) {
                             dispatch(addOnboardingComplete(['summarizeRoom']))
                         }
-                        updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                        if (typeof value !== 'function') {
+                            updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                        }
                     }}
                 >
                     <TitledBox title="Summary">
@@ -116,7 +118,9 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     if (value.length) {
                         dispatch(addOnboardingComplete(['describeRoom']))
                     }
-                    updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
+                    if (typeof value !== 'function') {
+                        updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
+                    }
                 }}
             >
                 <TitledBox>

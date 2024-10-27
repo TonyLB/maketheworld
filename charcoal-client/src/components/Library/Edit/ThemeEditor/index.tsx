@@ -125,7 +125,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <StandardFormSchema componentKey={ComponentId} tag="Name">
                     <EditSchema
                         value={component?.name?.children ?? []}
-                        onChange={(value) => { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined })}}
+                        onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}}
                     >
                         <TitledBox title="Name">
                             <DescriptionEditor validLinkTags={[]} toolbar={false} />
@@ -135,7 +135,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <SidebarTitle title="Prompts" minHeight="8em">
                     <EditSchema
                         value={component?.prompts ?? []}
-                        onChange={(value) => { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) }}
+                        onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) } }}
                     >
                         <ListWithConditions
                             render={render}
