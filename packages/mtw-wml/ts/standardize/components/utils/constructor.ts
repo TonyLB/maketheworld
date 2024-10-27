@@ -1,13 +1,9 @@
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
-import { treeTypeGuard } from "../../tree/filter"
-import { EditInternalStandardNode, EditWrappedStandardNode } from "../baseClasses"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaTag } from "../../../schema/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../../tree/baseClasses"
+import { treeTypeGuard } from "../../../tree/filter"
+import { EditInternalStandardNode, EditWrappedStandardNode } from "../dataTypes/abstract"
 
-export const isSchemaTreeNode = (value: any): value is GenericTreeNode<SchemaTag> => {
-    return Boolean(value && 'data' in value && 'children' in value)
-}
-
-export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, Extra>): GenericTree<SchemaTag, Extra> => (
+export const defaultSelected = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
     tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
             const indexOfFirstSelected = node.children.findIndex(({ data }) => ((isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) && (data.selected ?? false) ))
@@ -84,7 +80,3 @@ export const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends 
     }
     return { data: defaultValue, children: [] }
 }
-
-export const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> => (
-    field ? [field] : []
-)

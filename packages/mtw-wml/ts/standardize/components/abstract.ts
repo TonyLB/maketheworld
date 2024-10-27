@@ -22,12 +22,16 @@ export class StandardComponentAbstract {
         return this._key
     }
 
-    toJSON(): StandardBaseData {
-        throw new Error('Cannot call toJSON on abstract class')
-    }
-
     get schema(): GenericTreeNode<SchemaTag> {
         throw new Error('Cannot call schema on abstract class')
+    }
+
+    toJSON(): StandardBaseData {
+        return { key: this.key }
+    }
+
+    merge(incoming: StandardComponentAbstract): StandardComponentAbstract {
+        throw new Error('Cannot call merge on abstract class')
     }
 }
 
