@@ -46,4 +46,34 @@ describe('StandardRoom class', () => {
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
+
+    it('should merge correctly', () => {
+        const baseSource = deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Name>Lobby</Name>
+                <Description>A plain lobby.</Description>
+            </Room>
+        `)
+        const baseSchema = new Schema()
+        baseSchema.loadWML(baseSource)
+        const baseStandard = new StandardRoom(baseSchema.schema[0])
+        const testSource = deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
+                <Description><Space />Shadows cling to the corners of the room.</Description>
+            </Room>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new StandardRoom(testSchema.schema[0])
+        const mergedStandard = baseStandard.merge(testStandard)
+        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Name>Spooky Lobby</Name>
+                <Description>
+                    A plain lobby.<Space />Shadows cling to the corners of the room.
+                </Description>
+            </Room>
+        `))
+    })
 })

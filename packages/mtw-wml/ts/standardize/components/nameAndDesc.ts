@@ -5,7 +5,9 @@ import { GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
-import { isSchemaTreeNode, outputNodeToStandardItem } from "./utils"
+import { isSchemaTreeNode } from "./utils"
+import { outputNodeToStandardItem } from "./utils/constructor"
+import { combineTaggedChildren } from "./utils/merge"
 
 type NameAndDesc = {
     name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -36,6 +38,24 @@ export class StandardComponentWithNameAndDesc extends StandardComponentAbstract 
 
     get description() {
         return this._description
+    }
+
+    override toJSON(): StandardBaseData & Partial<NameAndDesc> {
+        const superArgs = super.toJSON()
+        return {
+            ...superArgs,
+            name: this.name,
+            description: this.description
+        }
+    }
+
+    override merge(incoming: StandardComponentWithNameAndDesc): StandardComponentWithNameAndDesc {
+        const args = {
+            key: this.key,
+            name: combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
+            description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+        }
+        return new StandardComponentWithNameAndDesc(args)
     }
 }
 
