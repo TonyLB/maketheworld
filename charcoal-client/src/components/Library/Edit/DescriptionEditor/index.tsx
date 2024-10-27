@@ -40,7 +40,7 @@ import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { EditSchema, useEditContext } from '../EditContext'
+import { useEditContext } from '../EditContext'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
