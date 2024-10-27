@@ -2,6 +2,7 @@ import React, { FunctionComponent, useCallback, useContext, useMemo, useState } 
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
+import { Draft, produce } from "immer"
 
 type EditHighlightContextType = {
     highlightId: string;
@@ -24,7 +25,7 @@ type EditContextType = {
     id: string;
     inherited?: GenericTreeNode<SchemaTag>;
     value: GenericTree<SchemaTag>;
-    onChange: (value: GenericTree<SchemaTag>) => void;
+    onChange: (value: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void;
     highlighted?: boolean;
     setHighlight: (value?: string) => void;
 }
@@ -94,11 +95,18 @@ export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ ind
     return <EditSchema
         value={[value[index]]}
         onChange={(newValue) => {
-            onChange([
-                ...value.slice(0, index),
-                ...newValue,
-                ...value.slice(index + 1)
-            ])
+            if (typeof newValue === 'function') {
+                onChange((draft) => {
+                    newValue([draft[index]])
+                })
+            }
+            else {
+                onChange([
+                    ...value.slice(0, index),
+                    ...newValue,
+                    ...value.slice(index + 1)
+                ])    
+            }
         }}
     >
         { children }
@@ -111,8 +119,15 @@ export const useEditNodeContext = () => {
     return {
         data: value[0]?.data,
         children: value[0]?.children ?? [],
-        onChange: (newValue: GenericTreeNode<SchemaTag>) => {
-            onChange([newValue, ...value.slice(1)])
+        onChange: (newValue: GenericTreeNode<SchemaTag> | ((draft: Draft<GenericTreeNode<SchemaTag>>) => void)) => {
+            if (typeof newValue === 'function') {
+                onChange((draft) => {
+                    newValue(draft[0])
+                })
+            }
+            else {
+                onChange([newValue, ...value.slice(1)])
+            }
         },
         onDelete: () => {
             onChange(value.slice(1))

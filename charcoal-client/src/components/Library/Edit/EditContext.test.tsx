@@ -4,8 +4,10 @@ import React, { FunctionComponent, useEffect } from 'react'
 import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, EditChildren } from './EditContext'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { isSchemaLink, isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaLink, isSchemaOutputTag, isSchemaString, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { DataArray } from '@mui/icons-material'
+import produce from 'immer'
 
 const Render: FunctionComponent<{}> = () => {
     const { value } = useEditContext()
@@ -181,6 +183,47 @@ describe('EditSubListSchema', () => {
         })
         expect(onChange).toHaveBeenCalledTimes(1)
         expect(onChange).toHaveBeenCalledWith([
+            { data: { tag: 'String', value: 'Test1' }, children: [] },
+            { data: { tag: 'String', value: 'Test change' }, children: [] },
+            { data: { tag: 'String', value: 'Test3' }, children: [] }
+        ])
+    })
+
+    it('should bubble up functional onChange events', () => {
+        const ChangeRender: FunctionComponent<{}> = () => {
+            const { onChange } = useEditNodeContext()
+            useEffect(() => {
+                onChange((draft) => {
+                    const { data } = draft
+                    if (isSchemaString(data)) {
+                        data.value = 'Test change'
+                    }
+                })
+            }, [])
+            return <Render />
+        }
+        const onChange = jest.fn()
+        renderer.act(() => {
+            renderer.create(
+                <EditSchema
+                    value={testSchema}
+                    onChange={onChange}
+                >
+                    <EditSubListSchema index={1}>
+                        <ChangeRender />
+                    </EditSubListSchema>
+                </EditSchema>
+            )
+        })
+        expect(onChange).toHaveBeenCalledTimes(1)
+        expect(produce(
+            [
+                { data: { tag: 'String', value: 'Test1' }, children: [] },
+                { data: { tag: 'String', value: 'Test2' }, children: [] },
+                { data: { tag: 'String', value: 'Test3' }, children: [] }
+            ],
+            onChange.mock.calls[0][0]
+        )).toEqual([
             { data: { tag: 'String', value: 'Test1' }, children: [] },
             { data: { tag: 'String', value: 'Test change' }, children: [] },
             { data: { tag: 'String', value: 'Test3' }, children: [] }
