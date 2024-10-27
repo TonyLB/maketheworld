@@ -1,7 +1,7 @@
 ---
 ---
 
-# Standard Form
+# WML Standard Form
 
 ---
 
