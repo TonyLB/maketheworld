@@ -1,7 +1,6 @@
-import { objectMap } from "../lib/objects"
-import { SchemaTag, isSchemaTheme, isSchemaConditionStatement, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardCharacter, isStandardAction, isStandardComputed, isStandardVariable, isStandardImage, EditWrappedStandardNode } from "./baseClasses"
+import { StandardComponent } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 
