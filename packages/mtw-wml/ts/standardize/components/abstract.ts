@@ -1,11 +1,21 @@
 import { SchemaTag } from "../../schema/baseClasses";
-import { GenericTree } from "../../tree/baseClasses";
+import { GenericTreeNode } from "../../tree/baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
+import { isSchemaTreeNode } from "./utils";
 
 export class StandardComponentAbstract {
     _key: string;
-    constructor(args: StandardBaseData) {
-        this._key = args.key
+    constructor(args: StandardBaseData | GenericTreeNode<SchemaTag>) {
+        if (isSchemaTreeNode(args)) {
+            const { data } = args
+            if (!(data && 'key' in data && data.key)) {
+                throw new Error('Cannot convert non-keyed schema item to StandardComponent')
+            }
+            this._key = data.key
+        }
+        else {
+            this._key = args.key
+        }
     }
 
     get key(): string {
@@ -16,8 +26,8 @@ export class StandardComponentAbstract {
         throw new Error('Cannot call toJSON on abstract class')
     }
 
-    get schema(): GenericTree<SchemaTag> {
-        return []
+    get schema(): GenericTreeNode<SchemaTag> {
+        throw new Error('Cannot call schema on abstract class')
     }
 }
 

@@ -1,0 +1,49 @@
+import { Schema, schemaToWML } from "../../schema"
+import { deIndentWML } from "../../schema/utils"
+import { StandardRoomData } from "./dataTypes/room"
+import { StandardRoom } from './room'
+
+describe('StandardRoom class', () => {
+    it('should construct StandardRoom from schema', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
+            <Room key=(test)>
+                <ShortName>ShortName Test</ShortName>
+                <Name>Name Test</Name>
+                <Summary>Summary Test</Summary>
+                <Description>Description Test</Description>
+                <Exit to=(testTwo)>Exit test</Exit>
+            </Room>
+        `)
+        schema.loadWML(testSource)
+        const testRoom = new StandardRoom(schema.schema[0])
+        expect(testRoom.key).toEqual('test')
+        expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
+        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testRoom.summary).toEqual({ data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] })
+        expect(testRoom.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(schemaToWML([testRoom.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardRoom from StandardRoomData', () => {
+        const testRoomData: StandardRoomData = {
+            key: 'test',
+            tag: 'Room',
+            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
+            summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] },
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+            exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
+            themes: []
+        }
+        const testRoom = new StandardRoom(testRoomData)
+        expect(testRoom.key).toEqual('test')
+        expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
+        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testRoom.summary).toEqual({ data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] })
+        expect(testRoom.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.toJSON()).toEqual(testRoomData)
+    })
+})

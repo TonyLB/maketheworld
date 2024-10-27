@@ -1,7 +1,11 @@
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
+import SchemaTagTree from "../../tagTree/schema"
+import { GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
+import { isSchemaTreeNode, outputNodeToStandardItem } from "./utils"
 
 type NameAndDesc = {
     name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -11,10 +15,19 @@ type NameAndDesc = {
 export class StandardComponentWithNameAndDesc extends StandardComponentAbstract {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    constructor(args: StandardBaseData & Partial<NameAndDesc>) {
+    constructor(args: (StandardBaseData & Partial<NameAndDesc>) | GenericTreeNode<SchemaTag>) {
         super(args)
-        this._name = args.name
-        this._description = args.description
+        if (isSchemaTreeNode(args)) {
+            const tagTree = new SchemaTagTree(args.children)
+            const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
+            const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
+            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
+            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+        }
+        else {
+            this._name = args.name
+            this._description = args.description
+        }
     }
 
     get name() {
