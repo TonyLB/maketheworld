@@ -104,7 +104,8 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>,
     typeGuard: (value: SchemaTag) => value is T,
     childTypeGuard: (value: SchemaTag) => value is ChildType,
-    defaultValue: T
+    defaultValue: T,
+    options: { defaultSelected: boolean } = { defaultSelected: true }
 ) => (node: EditWrappedStandardNode<T, SchemaTag> | undefined): EditWrappedStandardNode<T, ChildType> => {
     const transformedTree = node ? callback([node]) : []
     if (transformedTree.length === 0) {
@@ -114,29 +115,29 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     if (transformedTree.length > 1 || !treeNodeTypeguard(typeGuard)(transformedNode)) {
         throw new Error('Invalid return value in transformStandardItem')
     }
-    return { ...transformedNode, children: treeTypeGuard({ tree: defaultSelected(transformedNode.children), typeGuard: childTypeGuard }) }
+    return { ...transformedNode, children: treeTypeGuard({ tree: options.defaultSelected ? defaultSelected(transformedNode.children) : transformedNode.children, typeGuard: childTypeGuard }) }
 }
 
-const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>) => (component: StandardComponent): StandardComponent | undefined => {
+export const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>, options: { defaultSelected: boolean } = { defaultSelected: true }) => (component: StandardComponent): StandardComponent | undefined => {
     switch(component.tag) {
         case 'Room':
             return {
                 tag: 'Room',
                 key: component.key,
                 update: component.update,
-                shortName: transformStandardItem(callback, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' })(component.shortName),
-                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
-                summary: transformStandardItem(callback, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' })(component.summary),
-                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description),
-                exits: defaultSelected(callback(component.exits)).filter(treeNodeTypeguard(isSchemaExit)),
-                themes: defaultSelected(callback(component.themes)).filter(treeNodeTypeguard(isSchemaTheme))
+                shortName: transformStandardItem(callback, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }, options)(component.shortName),
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' }, options)(component.name),
+                summary: transformStandardItem(callback, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }, options)(component.summary),
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }, options)(component.description),
+                exits: (options.defaultSelected ? defaultSelected(callback(component.exits)) : component.exits).filter((node) => (treeNodeTypeguard(isSchemaExit)(node) || treeNodeTypeguard(isSchemaCondition)(node))),
+                themes: (options.defaultSelected ? defaultSelected(callback(component.themes)) : component.themes).filter(treeNodeTypeguard(isSchemaTheme))
             }
         case 'Feature':
             return {
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' }, options)(component.name),
                 description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
             }
         case 'Knowledge':
@@ -144,7 +145,7 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => 
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' }, options)(component.name),
                 description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
             }
         case 'Bookmark':
@@ -152,42 +153,42 @@ const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => 
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description)
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }, options)(component.description)
             }
         case 'Message':
             return {
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })(component.description),
-                rooms: defaultSelected(callback(component.rooms)).filter(treeNodeTypeguard(isSchemaRoom))
+                description: transformStandardItem(callback, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }, options)(component.description),
+                rooms: (options.defaultSelected ? defaultSelected(callback(component.rooms)) : component.rooms).filter(treeNodeTypeguard(isSchemaRoom))
             }
         case 'Moment':
             return {
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                messages: defaultSelected(callback(component.messages)).filter(treeNodeTypeguard(isSchemaMessage))
+                messages: (options.defaultSelected ? defaultSelected(callback(component.messages)) : component.messages).filter(treeNodeTypeguard(isSchemaMessage))
             }
         case 'Map':
             return {
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
-                images: defaultSelected(callback(component.images)).filter(treeNodeTypeguard(isSchemaImage)),
-                positions: defaultSelected(callback(component.positions)).filter(treeNodeTypeguard(isSchemaRoom)),
-                themes: defaultSelected(callback(component.themes)).filter(treeNodeTypeguard(isSchemaTheme))
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' }, options)(component.name),
+                images: (options.defaultSelected ? defaultSelected(callback(component.images)) : component.images).filter(treeNodeTypeguard(isSchemaImage)),
+                positions: (options.defaultSelected ? defaultSelected(callback(component.positions)) : component.positions).filter(treeNodeTypeguard(isSchemaRoom)),
+                themes: (options.defaultSelected ? defaultSelected(callback(component.themes)) : component.themes).filter(treeNodeTypeguard(isSchemaTheme))
             }
         case 'Theme':
             return {
                 tag: component.tag,
                 key: component.key,
                 update: component.update,
-                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' })(component.name),
-                prompts: defaultSelected(callback(component.prompts)).filter(treeNodeTypeguard(isSchemaPrompt)),
-                rooms: defaultSelected(callback(component.rooms)).filter(treeNodeTypeguard(isSchemaRoom)),
-                maps: defaultSelected(callback(component.maps)).filter(treeNodeTypeguard(isSchemaMap))
+                name: transformStandardItem(callback, isSchemaName, isSchemaOutputTag, { tag: 'Name' }, options)(component.name),
+                prompts: (options.defaultSelected ? defaultSelected(callback(component.prompts)) : component.prompts).filter(treeNodeTypeguard(isSchemaPrompt)),
+                rooms: (options.defaultSelected ? defaultSelected(callback(component.rooms)) : component.rooms).filter(treeNodeTypeguard(isSchemaRoom)),
+                maps: (options.defaultSelected ? defaultSelected(callback(component.maps)) : component.maps).filter(treeNodeTypeguard(isSchemaMap))
             }
         case 'Variable':
         case 'Computed':

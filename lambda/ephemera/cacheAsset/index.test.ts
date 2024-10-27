@@ -112,7 +112,8 @@ describe('cacheAsset', () => {
             { internalKey: 'active', universalKey: 'COMPUTED#XYZ' },
             { internalKey: 'powered', universalKey: 'VARIABLE#QRS' },
             { internalKey: 'switchedOn', universalKey: 'VARIABLE#TUV' },
-            { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' }
+            { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' },
+            { internalKey: 'toggleSwitch', universalKey: 'ACTION#JKL' }
         ]
         mockTestAsset = {
             key: 'Test',
@@ -179,19 +180,22 @@ describe('cacheAsset', () => {
                     children: [
                         { data: { tag: 'String', value: 'Vortex' }, children: [] },
                         { data: { tag: 'If' }, children: [
-                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                            { data: { tag: 'Statement', if: 'active', dependencies: [{ key: 'active', EphemeraId: 'COMPUTED#XYZ' }] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
                         ] }
                     ]
                 },
                 summary: { data: { tag: 'Summary' }, children: [] },
                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
                 exits: [],
+                themes: [],
+                tag: 'Room',
                 stateMapping: { active: 'COMPUTED#XYZ' },
                 keyMapping: {}
             },
             {
                 EphemeraId: 'KNOWLEDGE#GHI',
                 key: 'testKnowledge',
+                tag: 'Knowledge',
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] },
                 keyMapping: {},
@@ -200,21 +204,34 @@ describe('cacheAsset', () => {
             {
                 EphemeraId: 'VARIABLE#QRS',
                 key: 'powered',
-                default: 'false'
+                default: 'false',
+                tag: 'Variable'
             },
             {
                 EphemeraId: 'VARIABLE#TUV',
                 key: 'switchedOn',
-                default: 'true'
+                default: 'true',
+                tag: 'Variable'
             },
             {
                 EphemeraId: 'COMPUTED#XYZ',
                 key: 'active',
+                tag: 'Computed',
                 src: 'powered && switchedOn',
                 dependencies: [
                     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
                     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
-                ]
+                ],
+                keyMapping: {},
+                stateMapping: {}
+            },
+            {
+                EphemeraId: 'ACTION#JKL',
+                key: 'toggleSwitch',
+                tag: 'Action',
+                src: 'switchedOn = !switchedOn',
+                keyMapping: {},
+                stateMapping: {}
             }],
             expect.any(Object)
         )
@@ -227,7 +244,8 @@ describe('cacheAsset', () => {
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
                 switchedOn: 'VARIABLE#TUV',
-                testKnowledge: 'KNOWLEDGE#GHI'
+                testKnowledge: 'KNOWLEDGE#GHI',
+                toggleSwitch: 'ACTION#JKL'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
@@ -291,20 +309,24 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
+                tag: 'Room',
                 shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                 summary: { data: { tag: 'Summary' }, children: [] },
                 description: { data: { tag: 'Description' }, children: [] },
                 exits: [],
+                themes: [],
                 stateMapping: {},
                 keyMapping: {}
             },
             {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
-                name: [],
-                rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
+                tag: 'Map',
+                name: { data: { tag: 'Name' }, children: [] },
+                positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
+                themes: [],
                 keyMapping: { room1: 'ROOM#ABC' },
                 stateMapping: {}
             }],
@@ -386,7 +408,9 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
+                tag: 'Room',
                 exits: [],
+                themes: [],
                 shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                 summary: { data: { tag: 'Summary' }, children: [] },
@@ -397,6 +421,7 @@ describe('cacheAsset', () => {
             {
                 EphemeraId: 'ROOM#DEF',
                 key: 'DEF',
+                tag: 'Room',
                 exits: [{
                     data: { tag: 'If' },
                     children: [{
@@ -404,6 +429,7 @@ describe('cacheAsset', () => {
                         children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
+                themes: [],
                 shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
                 summary: { data: { tag: 'Summary' }, children: [] },
@@ -414,6 +440,7 @@ describe('cacheAsset', () => {
             {
                 EphemeraId: 'VARIABLE#QRS',
                 key: 'open',
+                tag: 'Variable',
                 default: 'false'
             }],
             expect.any(Object)
