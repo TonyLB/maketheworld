@@ -9,7 +9,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { map } from "../tree/map"
-import { SerializableStandardComponent, SerializableStandardForm, StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit, MergeConflictError, StandardizerError, isStandardRemove, isStandardReplace, unwrapStandardComponent } from "./baseClasses"
+import { StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardNodeKeys, StandardRoomUpdate, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit, MergeConflictError, StandardizerError, isStandardRemove, isStandardReplace, unwrapStandardComponent } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
@@ -603,89 +603,6 @@ const standardItemToSchemaItem = (item: StandardComponentNonEdit): GenericTreeNo
     }
 }
 
-export const serializedStandardItemToSchemaItem = (item: SerializableStandardComponent): GenericTreeNode<SchemaTag> => {
-    switch(item.tag) {
-        case 'Character':
-            const { tag, ...pronouns } = item.pronouns.data
-            return {
-                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
-                children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit],
-                ]
-            }
-        case 'Room':
-            return {
-                data: { tag: 'Room', key: item.key },
-                children: defaultSelected([
-                    ...[item.shortName, item.name, item.summary, item.description],
-                    ...item.exits
-                ])
-            }
-        case 'Feature':
-        case 'Knowledge':
-            return {
-                data: { tag: item.tag, key: item.key },
-                children: defaultSelected([item.name, item.description])
-            }
-        case 'Bookmark':
-            return {
-                data: { tag: 'Bookmark', key: item.key },
-                children: defaultSelected(item.description.children)
-            }
-        case 'Message':
-            return {
-                data: { tag: 'Message', key: item.key },
-                children: [
-                    ...item.rooms,
-                    ...item.description.children
-                ]
-            }
-        case 'Moment':
-            return {
-                data: { tag: 'Moment', key: item.key },
-                children: item.messages
-            }
-        case 'Map':
-            return {
-                data: { tag: 'Map', key: item.key },
-                children: defaultSelected([
-                    item.name,
-                    ...item.images,
-                    ...item.positions
-                ])
-            }
-        case 'Theme':
-            return {
-                data: { tag: 'Theme', key: item.key },
-                children: [
-                    item.name,
-                    ...item.rooms,
-                    ...item.maps
-                ]
-            }
-        case 'Variable':
-            return {
-                data: { tag: 'Variable', key: item.key, default: item.default },
-                children: []
-            }
-        case 'Computed':
-            return {
-                data: { tag: item.tag, key: item.key, src: item.src, dependencies: item.dependencies },
-                children: []
-            }
-        case 'Action':
-            return {
-                data: { tag: item.tag, key: item.key, src: item.src },
-                children: []
-            }
-        case 'Image':
-            return {
-                data: { tag: item.tag, key: item.key },
-                children: []
-            }
-    }
-}
-
 export class StandardizerAbstract {
     _assetKey: string;
     _assetTag: (SchemaAssetTag | SchemaCharacterTag)["tag"];
@@ -1079,72 +996,6 @@ export class StandardizerAbstract {
         const assignedStandardizer = new StandardizerAbstract(assignedSchema)
         this.loadStandardForm({ ...assignedStandardizer.standardForm, update: assignedStandardizer._update })
     }
-
-    // deserialize(standard: SerializableStandardForm): void {
-    //     const byId: StandardForm["byId"] = objectMap(standard.byId, (value): StandardComponent => {
-    //         const deserializeValue = <T extends SerializableStandardComponent, K extends keyof T, FilterType extends SchemaTag, InnerType extends SchemaTag>(item: T, key: K): T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never => {
-    //             const subItem = item[key] as EditWrappedStandardNode<FilterType, InnerType, {}>
-    //             return { ...subItem, id: subItem.children.length ? uuidv4() : '', children: subItem.children as unknown as EditWrappedStandardNode<FilterType, InnerType> } as unknown as T[K] extends EditWrappedStandardNode<FilterType, InnerType, {}> ? EditWrappedStandardNode<FilterType, InnerType> : never
-    //         }
-    //         if (value.tag === 'Bookmark') {
-    //             return {
-    //                 ...value,
-    //                 description: deserializeValue(value, 'description')
-    //             }
-    //         }
-    //         if (value.tag === 'Feature' || value.tag === 'Knowledge') {
-    //             return {
-    //                 ...value,
-    //                 name: deserializeValue(value, 'name'),
-    //                 description: deserializeValue(value, 'description')
-    //             }
-    //         }
-    //         if (value.tag === 'Map') {
-    //             return {
-    //                 ...value,
-    //                 name: deserializeValue(value, 'name'),
-    //                 themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
-    //             }
-    //         }
-    //         if (value.tag === 'Theme') {
-    //             return {
-    //                 ...value,
-    //                 name: deserializeValue(value, 'name'),
-    //                 prompts: value.prompts.filter(treeNodeTypeguard(isSchemaPrompt)),
-    //             }
-    //         }
-    //         if (value.tag === 'Room') {
-    //             return {
-    //                 ...value,
-    //                 shortName: deserializeValue(value, 'shortName'),
-    //                 name: deserializeValue(value, 'name'),
-    //                 summary: deserializeValue(value, 'summary'),
-    //                 description: deserializeValue(value, 'description'),
-    //                 themes: (value.themes ?? []).filter(treeNodeTypeguard(isSchemaTheme))
-    //             }
-    //         }
-    //         if (value.tag === 'Message') {
-    //             return {
-    //                 ...value,
-    //                 description: deserializeValue(value, 'description'),
-    //             }
-    //         }
-    //         if (value.tag === 'Moment') {
-    //             return value
-    //         }
-    //         if (value.tag === 'Character') {
-    //             return {
-    //                 ...value,
-    //                 name: deserializeValue(value, 'name')
-    //             }
-    //         }
-    //         return value
-    //     })
-    //     this._assetKey = standard.key
-    //     this._assetTag = standard.tag
-    //     this._byId = byId
-    //     this.metaData = standard.metaData
-    // }
 
     transform(callback: (schema: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardizerAbstract {
         const mappedByIdEntries = Object.entries(this._byId)

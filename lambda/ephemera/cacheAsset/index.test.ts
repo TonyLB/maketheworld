@@ -21,7 +21,7 @@ import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/ts/readOnly'
-import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -30,7 +30,7 @@ import { SerializableStandardForm } from '@tonylb/mtw-wml/ts/standardize/baseCla
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
-let mockTestAsset: SerializableStandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
+let mockTestAsset: StandardForm = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
 let mockNamespaceMap: NamespaceMapping = [
     { internalKey: 'Test', universalKey: 'ASSET#Test' },
     { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
