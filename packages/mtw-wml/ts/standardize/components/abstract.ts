@@ -1,3 +1,5 @@
+import { SchemaTag } from "../../schema/baseClasses";
+import { GenericTree } from "../../tree/baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
 
 export class StandardComponentAbstract {
@@ -12,6 +14,10 @@ export class StandardComponentAbstract {
 
     toJSON(): StandardBaseData {
         throw new Error('Cannot call toJSON on abstract class')
+    }
+
+    get schema(): GenericTree<SchemaTag> {
+        return []
     }
 }
 
