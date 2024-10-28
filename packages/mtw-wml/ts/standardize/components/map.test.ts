@@ -22,7 +22,7 @@ describe('StandardMap class', () => {
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
-    it('should construct StandardRoom from StandardRoomData', () => {
+    it('should construct StandardMap from StandardMapData', () => {
         const testMapData: StandardMapData = {
             key: 'test',
             tag: 'Map',
