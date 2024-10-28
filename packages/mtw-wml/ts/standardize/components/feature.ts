@@ -1,18 +1,10 @@
-import { defaultSelected } from ".."
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaFeature, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
-import applyEdits from "../../schema/treeManipulation/applyEdits"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { isSchemaFeature, SchemaTag } from "../../schema/baseClasses"
+import { GenericTreeNode } from "../../tree/baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { StandardRoomData } from "./dataTypes/room"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
-import { outputNodeToStandardItem } from "./utils/constructor"
-import { combineTaggedChildren } from "./utils/merge"
 
 export class StandardFeature extends StandardComponentWithNameAndDesc {
     tag = 'Feature' as const
