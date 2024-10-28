@@ -1,0 +1,51 @@
+import { Schema, schemaToWML } from "../../schema"
+import { deIndentWML } from "../../schema/utils"
+import { StandardBookmarkData } from "./dataTypes/bookmark"
+import { StandardBookmark } from './bookmark'
+
+describe('StandardBookmark class', () => {
+    it('should construct StandardBookmark from schema', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
+            <Bookmark key=(test)>Description Test</Bookmark>
+        `)
+        schema.loadWML(testSource)
+        const testBookmark = new StandardBookmark(schema.schema[0])
+        expect(testBookmark.key).toEqual('test')
+        expect(testBookmark.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(schemaToWML([testBookmark.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardBookmark from StandardBookmarkData', () => {
+        const testBookmarkData: StandardBookmarkData = {
+            key: 'test',
+            tag: 'Bookmark',
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+        }
+        const testBookmark = new StandardBookmark(testBookmarkData)
+        expect(testBookmark.key).toEqual('test')
+        expect(testBookmark.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(testBookmark.toJSON()).toEqual(testBookmarkData)
+    })
+
+    it('should merge correctly', () => {
+        const baseSource = deIndentWML(`
+            <Bookmark key=(test)>A plain lobby.</Bookmark>
+        `)
+        const baseSchema = new Schema()
+        baseSchema.loadWML(baseSource)
+        const baseStandard = new StandardBookmark(baseSchema.schema[0])
+        const testSource = deIndentWML(`
+            <Bookmark key=(test)><Space />Shadows cling to the corners of the room.</Bookmark>
+        `)
+        const testSchema = new Schema()
+        testSchema.loadWML(testSource)
+        const testStandard = new StandardBookmark(testSchema.schema[0])
+        const mergedStandard = baseStandard.merge(testStandard)
+        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            <Bookmark key=(test)>
+                A plain lobby.<Space />Shadows cling to the corners of the room.
+            </Bookmark>
+        `))
+    })
+})
