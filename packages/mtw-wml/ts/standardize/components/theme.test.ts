@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardThemeData } from "./dataTypes/theme"
 import { StandardTheme } from './theme'
+import { mergeTest } from './utils/testing'
 
 describe('StandardTheme class', () => {
     it('should construct StandardTheme from schema', () => {
@@ -42,26 +43,17 @@ describe('StandardTheme class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Theme key=(test)>
+        expect(mergeTest(
+            `<Theme key=(test)>
                 <Name>Test Name</Name>
                 <Room key=(testRoom) />
-            </Theme>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardTheme(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Theme key=(test)>
+            </Theme>`,
+            StandardTheme,
+            `<Theme key=(test)>
                 <Prompt>Cozy</Prompt>
                 <Room key=(testRoomTwo) />
-            </Theme>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardTheme(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            </Theme>`
+        )).toEqual(deIndentWML(`
             <Theme key=(test)>
                 <Name>Test Name</Name>
                 <Prompt>Cozy</Prompt>

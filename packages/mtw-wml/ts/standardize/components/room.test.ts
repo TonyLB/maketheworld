@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardRoom } from './room'
+import { mergeTest } from "./utils/testing"
 
 describe('StandardRoom class', () => {
     it('should construct StandardRoom from schema', () => {
@@ -48,26 +49,17 @@ describe('StandardRoom class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Room key=(testRoomOne)>
+        expect(mergeTest(
+            `<Room key=(testRoomOne)>
                 <Name>Lobby</Name>
                 <Description>A plain lobby.</Description>
-            </Room>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardRoom(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Room key=(testRoomOne)>
+            </Room>`,
+            StandardRoom,
+            `<Room key=(testRoomOne)>
                 <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
                 <Description><Space />Shadows cling to the corners of the room.</Description>
-            </Room>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardRoom(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            </Room>`
+        )).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Name>Spooky Lobby</Name>
                 <Description>

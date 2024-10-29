@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardFeature } from './feature'
+import { mergeTest } from "./utils/testing"
 
 describe('StandardFeature class', () => {
     it('should construct StandardFeature from schema', () => {
@@ -35,26 +36,17 @@ describe('StandardFeature class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Feature key=(testFeature)>
+        expect(mergeTest(
+            `<Feature key=(testFeature)>
                 <Name>Lobby</Name>
                 <Description>A plain lobby.</Description>
-            </Feature>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardFeature(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Feature key=(testFeature)>
+            </Feature>`,
+            StandardFeature,
+            `<Feature key=(testFeature)>
                 <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
                 <Description><Space />Shadows cling to the corners of the room.</Description>
-            </Feature>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardFeature(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            </Feature>`
+        )).toEqual(deIndentWML(`
             <Feature key=(testFeature)>
                 <Name>Spooky Lobby</Name>
                 <Description>
