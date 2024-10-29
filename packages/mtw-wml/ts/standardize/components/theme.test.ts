@@ -25,7 +25,7 @@ describe('StandardTheme class', () => {
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
-    it('should construct StandardMap from StandardMapData', () => {
+    it('should construct StandardTheme from StandardThemeData', () => {
         const testMapData: StandardThemeData = {
             key: 'test',
             tag: 'Theme',
