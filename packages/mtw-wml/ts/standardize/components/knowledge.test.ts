@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { StandardKnowledge } from './knowledge'
+import { mergeTest } from "./utils/testing"
 
 describe('StandardKnowledge class', () => {
     it('should construct StandardKnowledge from schema', () => {
@@ -35,26 +36,17 @@ describe('StandardKnowledge class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Knowledge key=(testKnowledge)>
+        expect(mergeTest(
+            `<Knowledge key=(testKnowledge)>
                 <Name>Lobby</Name>
                 <Description>A plain lobby.</Description>
-            </Knowledge>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardKnowledge(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Knowledge key=(testKnowledge)>
+            </Knowledge>`,
+            StandardKnowledge,
+            `<Knowledge key=(testKnowledge)>
                 <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
                 <Description><Space />Shadows cling to the corners of the room.</Description>
-            </Knowledge>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardKnowledge(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            </Knowledge>`
+        )).toEqual(deIndentWML(`
             <Knowledge key=(testKnowledge)>
                 <Name>Spooky Lobby</Name>
                 <Description>

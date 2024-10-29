@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMapData } from "./dataTypes/map"
 import { StandardMap } from './map'
+import { mergeTest } from "./utils/testing"
 
 describe('StandardMap class', () => {
     it('should construct StandardMap from schema', () => {
@@ -41,25 +42,16 @@ describe('StandardMap class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Map key=(testMap)>
+        expect(mergeTest(
+            `<Map key=(testMap)>
                 <Name>Lobby</Name>
                 <Room key=(testRoom)><Position x="100" y="100" /></Room>
-            </Map>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardMap(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Map key=(testMap)>
+            </Map>`,
+            StandardMap,
+            `<Map key=(testMap)>
                 <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
-            </Map>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardMap(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+            </Map>`
+        )).toEqual(deIndentWML(`
             <Map key=(testMap)>
                 <Name>Lobby</Name>
                 <Room key=(testRoom)><Position x="100" y="100" /></Room>

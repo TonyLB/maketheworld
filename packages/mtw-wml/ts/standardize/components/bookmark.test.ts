@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { StandardBookmark } from './bookmark'
+import { mergeTest } from './utils/testing'
 
 describe('StandardBookmark class', () => {
     it('should construct StandardBookmark from schema', () => {
@@ -29,20 +30,11 @@ describe('StandardBookmark class', () => {
     })
 
     it('should merge correctly', () => {
-        const baseSource = deIndentWML(`
-            <Bookmark key=(test)>A plain lobby.</Bookmark>
-        `)
-        const baseSchema = new Schema()
-        baseSchema.loadWML(baseSource)
-        const baseStandard = new StandardBookmark(baseSchema.schema[0])
-        const testSource = deIndentWML(`
-            <Bookmark key=(test)><Space />Shadows cling to the corners of the room.</Bookmark>
-        `)
-        const testSchema = new Schema()
-        testSchema.loadWML(testSource)
-        const testStandard = new StandardBookmark(testSchema.schema[0])
-        const mergedStandard = baseStandard.merge(testStandard)
-        expect(schemaToWML([mergedStandard.schema])).toEqual(deIndentWML(`
+        expect(mergeTest(
+            '<Bookmark key=(test)>A plain lobby.</Bookmark>',
+            StandardBookmark,
+            '<Bookmark key=(test)><Space />Shadows cling to the corners of the room.</Bookmark>'
+        )).toEqual(deIndentWML(`
             <Bookmark key=(test)>
                 A plain lobby.<Space />Shadows cling to the corners of the room.
             </Bookmark>
