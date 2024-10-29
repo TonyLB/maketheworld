@@ -11,21 +11,21 @@ describe('StandardVariable class', () => {
             <Variable key=(test) default={true} />
         `)
         schema.loadWML(testSource)
-        const testMoment = new StandardVariable(schema.schema[0])
-        expect(testMoment.key).toEqual('test')
-        expect(testMoment.default).toEqual('true')
-        expect(schemaToWML([testMoment.schema])).toEqual(testSource)
+        const testVariable = new StandardVariable(schema.schema[0])
+        expect(testVariable.key).toEqual('test')
+        expect(testVariable.default).toEqual('true')
+        expect(schemaToWML([testVariable.schema])).toEqual(testSource)
     })
 
     it('should construct StandardMoment from StandardMomentData', () => {
-        const testMomentData: StandardVariableData = {
+        const testVariableData: StandardVariableData = {
             key: 'test',
             tag: 'Variable',
             default: 'true'
         }
-        const testMoment = new StandardVariable(testMomentData)
-        expect(testMoment.default).toEqual('true')
-        expect(testMoment.toJSON()).toEqual(testMomentData)
+        const testVariable = new StandardVariable(testVariableData)
+        expect(testVariable.default).toEqual('true')
+        expect(testVariable.toJSON()).toEqual(testVariableData)
     })
 
     it('should merge correctly', () => {
