@@ -7,8 +7,9 @@ import ExitDragD3Layer from './exitDragSimulation'
 import { produce } from 'immer'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { isStandardMap, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -49,7 +50,7 @@ export class MapDThree extends Object {
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
     constructor({ standardForm, updateStandard, mapId, tree, onStability, onTick, onExitDrag, onAddExit }: {
-        standardForm: StandardForm;
+        standardForm: StandardFormData;
         updateStandard: (action: UpdateStandardPayload) => void;
         mapId: string;
         tree: GenericTree<SchemaTag>;
@@ -109,7 +110,7 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, mapId: string): void {
+    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, updateStandard: (action: UpdateStandardPayload) => void, mapId: string): void {
         this.tree.update(tree, standardForm, (newTree) => {
             const mapComponent = standardForm.byId[mapId]
             if (mapComponent && isStandardMap(mapComponent)) {

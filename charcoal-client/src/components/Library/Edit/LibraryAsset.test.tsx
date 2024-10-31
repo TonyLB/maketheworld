@@ -71,6 +71,7 @@ const store = mockStore({
                         ...standardizer.standardForm,
                         byId: {}
                     },
+                    pendingEdits: [],
                     standard: standardizer.standardForm,
                     inherited: inheritedStandardizer.standardForm,
                     importDefaults: {},

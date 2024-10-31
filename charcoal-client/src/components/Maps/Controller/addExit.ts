@@ -1,7 +1,8 @@
 import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses";
-import { isStandardRoom, StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
+import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
 import { isSchemaString, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils";
+import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes";
 
 const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> => (
     tree.map(({ data, children }) => ({
@@ -10,7 +11,7 @@ const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<
     }))
 )
 
-export const addExitFactory = ({ standardForm, updateSelected, selectedPositions, addImport }: { standardForm: StandardForm, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag>, addImport: (key: string) => void }) => ({ to, from }: { to: string; from: string }) => {
+export const addExitFactory = ({ standardForm, updateSelected, selectedPositions, addImport }: { standardForm: StandardFormData, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag>, addImport: (key: string) => void }) => ({ to, from }: { to: string; from: string }) => {
     const destinationComponent = standardForm.byId[to]
     const children = (destinationComponent && isStandardRoom(destinationComponent))
         ? ignoreWrapped(destinationComponent.shortName)?.children ?? []

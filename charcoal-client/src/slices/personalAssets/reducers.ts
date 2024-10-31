@@ -7,7 +7,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardForm, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/dist/schema/treeManipulation/listDiff'
@@ -15,6 +15,7 @@ import { deepEqual } from '../../lib/objects'
 import immerProduce from 'immer'
 import { publicSelectors } from './selectors'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -120,7 +121,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const standardForm = publicSelectors.getStandardForm({ ...state, key: '' })
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? standardForm.byId[payload.componentKey] : undefined
-    const mergeToEdit = (delta: StandardForm): void => {
+    const mergeToEdit = (delta: StandardFormData): void => {
         const editStandardizer = new Standardizer()
         const deltaStandardizer = new Standardizer()
         editStandardizer.loadStandardForm(state.edit)
@@ -403,7 +404,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             ...JSON.parse(JSON.stringify(standardForm.byId[payload.from])),
             key: payload.to
         }
-        const renameEditStandard: StandardForm = {
+        const renameEditStandard: StandardFormData = {
             ...state.edit,
             byId: {
                 [payload.from]: {

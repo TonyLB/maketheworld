@@ -36,7 +36,7 @@ import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 type LibraryAssetContextType = {
@@ -44,10 +44,10 @@ type LibraryAssetContextType = {
     AssetId: EphemeraCharacterId | EphemeraAssetId | null;
     currentWML: string;
     draftWML: string;
-    standardForm: StandardForm;
-    combinedStandardForm: StandardForm;
-    inheritedStandardForm: StandardForm;
-    inheritedByAssetId: { assetId: string; standardForm: StandardForm }[];
+    standardForm: StandardFormData;
+    combinedStandardForm: StandardFormData;
+    inheritedStandardForm: StandardFormData;
+    inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
     updateStandard: (action: UpdateStandardPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -91,7 +91,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const pendingEdits = useSelector(getPendingEdits(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
-    const combinedStandardForm = useMemo((): StandardForm => {
+    const combinedStandardForm = useMemo((): StandardFormData => {
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standardForm)
         const inheritedStandardizer = new Standardizer()

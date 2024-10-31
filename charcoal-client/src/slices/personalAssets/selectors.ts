@@ -1,17 +1,17 @@
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses';
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
 import { createSelector } from '@reduxjs/toolkit';
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize';
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getDraftWML: (state: PersonalAssetsPublic) => string;
-    getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
-    getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardForm;
+    getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
+    getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getImportData: (state: PersonalAssetsPublic & { key: string }) => Record<string, GenericTree<SchemaTag>>;
-    getInheritedByAssetId: (state: PersonalAssetsPublic & { key: string }) => { assetId: string, standardForm: StandardForm }[];
+    getInheritedByAssetId: (state: PersonalAssetsPublic & { key: string }) => { assetId: string, standardForm: StandardFormData }[];
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;

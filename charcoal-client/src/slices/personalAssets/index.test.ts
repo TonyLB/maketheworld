@@ -1,7 +1,7 @@
 import { addImport } from "."
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
@@ -95,7 +95,7 @@ describe('personalAssets slice', () => {
             addImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportTwo'
-            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardForm => (standard.standardForm)), overrideUpdateStandard })(dispatch, getState)
+            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardFormData => (standard.standardForm)), overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'replaceMetaData',
                 metaData: [{

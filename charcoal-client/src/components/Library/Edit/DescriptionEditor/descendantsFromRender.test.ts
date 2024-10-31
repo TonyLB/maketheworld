@@ -1,7 +1,7 @@
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 import descendantsFromRender from "./descendantsFromRender"
 
-const stubStandard: StandardForm = { key: '', tag: 'Asset', byId: {}, metaData: [] }
+const stubStandard: StandardFormData = { key: '', tag: 'Asset', byId: {}, metaData: [] }
 
 describe('descendantsFromRender', () => {
     it('should return an empty paragraph from empty list', () => {

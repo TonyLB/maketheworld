@@ -11,8 +11,9 @@ import { SimNode, SimulationReturn } from './baseClasses'
 import { SimulationLinkDatum } from 'd3-force'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { assertTypeguard, Standardizer } from '@tonylb/mtw-wml/dist/standardize'
-import { isStandardMap, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
 
@@ -64,7 +65,7 @@ describe('mapTreeTranslate', () => {
     })
 
     it('should nest conditionals as children of nodes and links', () => {
-        const testArgs = (selected: boolean): { tree: GenericTree<SchemaTag>, standardForm: StandardForm, onChange: () => void } => {
+        const testArgs = (selected: boolean): { tree: GenericTree<SchemaTag>, standardForm: StandardFormData, onChange: () => void } => {
             const testSchema = new Schema()
             testSchema.loadWML(`
                 <Asset key=(testOne)>

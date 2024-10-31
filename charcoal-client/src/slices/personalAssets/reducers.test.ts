@@ -3,10 +3,10 @@ import { updateStandard, UpdateStandardPayload } from "./reducers"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { isSchemaExit, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
 import { publicSelectors } from "./selectors"
+import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 
 describe('personalAsset slice reducers', () => {
 
@@ -27,6 +27,7 @@ describe('personalAsset slice reducers', () => {
                 base: base.standardForm,
                 standard: standardizer.standardForm,
                 edit: editStandardizer.standardForm,
+                pendingEdits: []
             },
             (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
         )
@@ -43,7 +44,7 @@ describe('personalAsset slice reducers', () => {
         }
     }
 
-    const schemaFromStandard = (standardForm: StandardForm): GenericTree<SchemaTag> => {
+    const schemaFromStandard = (standardForm: StandardFormData): GenericTree<SchemaTag> => {
         const standardizer = new Standardizer()
         standardizer.loadStandardForm(standardForm)
         return standardizer.schema

@@ -9,11 +9,11 @@ import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
 
-const testStandardFromWML = (wml: string): StandardForm => {
+const testStandardFromWML = (wml: string): StandardFormData => {
     const schema = new Schema()
     schema.loadWML(wml)
     const standardizer = new Standardizer(schema.schema)
@@ -125,7 +125,7 @@ describe('fetchImports', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
-            let standard: StandardForm = { key: '', tag: 'Asset', byId: {}, metaData: [] }
+            let standard: StandardFormData = { key: '', tag: 'Asset', byId: {}, metaData: [] }
             switch(assetId) {
                 case 'ASSET#testFinal':
                     standard = testFinal

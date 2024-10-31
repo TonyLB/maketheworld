@@ -3,7 +3,7 @@ import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaMetaTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import {StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -39,7 +39,7 @@ export interface PersonalAssetsPublic {
     // base is the standard form of the pre-existing data be edited (either or both of an asset being
     // updated, or inherited data from imports)
     //
-    base: StandardForm;
+    base: StandardFormData;
     //
     // pendingEdits holds the edit assets that have been streamed out to WML for update into the
     // relevant personalAsset (but which have not yet been reflected back through the asset
@@ -47,19 +47,19 @@ export interface PersonalAssetsPublic {
     //
     pendingEdits: {
         meta: SchemaMetaTag;
-        edit: StandardForm;
+        edit: StandardFormData;
     }[];
 
     //
     // edit holds the current edit asset that reflects the changes made since the last attempt to
     // stream edits out to the WML back end.
     //
-    edit: StandardForm;
+    edit: StandardFormData;
 
     //
     // inherited is the standard form of data inherited from imports
     //
-    inherited: StandardForm;
+    inherited: StandardFormData;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;

@@ -41,10 +41,10 @@ import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 import { useStandardFormContext } from '../StandardFormContext'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 interface DescriptionEditorProps {
     // componentKey: string;
@@ -158,7 +158,7 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 }
 
 type DescriptionEditorSlateComponentProperties = {
-    standard: StandardForm;
+    standard: StandardFormData;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     placeholder?: string;
     toolbar?: boolean;
@@ -166,7 +166,7 @@ type DescriptionEditorSlateComponentProperties = {
     checkPoints?: string[];
 }
 
-const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+const useDescriptionEditorHook = (standard: StandardFormData): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const { onChange: contextOnChange, value: contextValue } = useEditContext()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag>) => {
         contextOnChange(newRender)
