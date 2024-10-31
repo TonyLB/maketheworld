@@ -5,9 +5,10 @@ import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { excludeUndefined, unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
-import { isStandardRoom, StandardForm } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { Draft } from 'immer'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;
@@ -17,7 +18,7 @@ export type SimulationTreeNode = SimulationReturn & {
 type MapDThreeTreeProps = {
     tree: GenericTree<SchemaTag>;
     onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void;
-    standardForm: StandardForm;
+    standardForm: StandardFormData;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
@@ -274,7 +275,7 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
     return { output, visibleLayers: incomingLayersFromSiblings }
 }
 
-export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', visible=true, previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardForm, parentId?: string, previousRoomKeys?: string[], visible?: boolean }): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', visible=true, previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardFormData, parentId?: string, previousRoomKeys?: string[], visible?: boolean }): GenericTree<SimulationTreeNode> => {
     //
     // Create nodes for all top-level Rooms with positions in the tree
     //
@@ -437,7 +438,7 @@ export class MapDThreeTree extends Object {
     // in the incoming map tree.
     //
 
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardForm, onChange: (newTree: GenericTree<SchemaTag>) => void): void {
+    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, onChange: (newTree: GenericTree<SchemaTag>) => void): void {
 
         const translatedTree = mapTreeTranslate({ tree, onChange, standardForm })
         const incomingDiff = diffTrees({

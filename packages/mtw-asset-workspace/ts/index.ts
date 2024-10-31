@@ -9,7 +9,7 @@ import { deepEqual, objectFilterEntries } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -20,7 +20,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.address = address
     }
 
-    async setJSON(standardForm: StandardForm): Promise<void> {
+    async setJSON(standardForm: StandardFormData): Promise<void> {
         if (!(this.standard && deepEqual(standardForm, this.standard))) {
             this.status.json = 'Dirty'
             this.standard = standardForm

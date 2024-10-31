@@ -3,9 +3,10 @@ import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
-import { StandardComponent, StandardForm, SerializeNDJSONMixin, StandardNDJSON, unwrapStandardComponent } from "../baseClasses"
+import { StandardComponent, SerializeNDJSONMixin, StandardNDJSON, unwrapStandardComponent } from "../baseClasses"
+import { StandardFormData } from "../components/dataTypes"
 export const serialize = (
-    standardForm: StandardForm,
+    standardForm: StandardFormData,
     universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined),
     fileAssociation: (searchKey: string) => string | undefined = () => (undefined)
 ): StandardNDJSON => {
@@ -63,7 +64,7 @@ export const serialize = (
         )
     ]
 }
-export const deserialize = (ndjson: StandardNDJSON ): { standardForm: StandardForm, universalKeys: Record<string, string>, fileAssociations: Record<string, string> }  => {
+export const deserialize = (ndjson: StandardNDJSON ): { standardForm: StandardFormData, universalKeys: Record<string, string>, fileAssociations: Record<string, string> }  => {
     let assetKey: string | undefined
     let characterKey: string | undefined
     let byId: Record<string, StandardComponent> = {}

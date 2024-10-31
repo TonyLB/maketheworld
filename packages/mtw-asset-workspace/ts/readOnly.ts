@@ -1,12 +1,13 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { SerializableStandardAsset, StandardCharacter, StandardForm } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardAsset, StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { deserialize } from "@tonylb/mtw-wml/ts/standardize/serialize"
 import { objectMap } from "./objects"
+import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -134,7 +135,7 @@ export class ReadOnlyAssetWorkspace {
         json: 'Initial',
         wml: 'Initial'
     };
-    standard?: StandardForm;
+    standard?: StandardFormData;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
@@ -259,7 +260,7 @@ export class ReadOnlyAssetWorkspace {
         this.status.json = 'Clean'
     }
 
-    get rootNodes(): (SerializableStandardAsset | StandardCharacter)[] {
+    get rootNodes(): (StandardAsset | StandardCharacter)[] {
         const { tag, key } = this.standard ?? {}
         switch(tag) {
             case 'Asset':

@@ -18,15 +18,16 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 import { EditSchema } from './EditContext'
-import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardForm, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaOutputTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
-import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { ignoreWrapped, unwrapSubject } from '@tonylb/mtw-wml/dist/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { StandardFormSchema } from './StandardFormContext'
+import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
@@ -36,7 +37,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
     const dispatch = useDispatch()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
-        const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
+        const extractComponent = (standardForm: StandardFormData): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (ComponentId) {
                 const component = standardForm.byId[ComponentId]
                 if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
@@ -153,10 +154,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         const component = standardForm.byId[ComponentId]
         if (component) {
             if (isStandardRoom(component)) {
-                return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? [])
+                return schemaOutputToString((unwrapSubject(component.shortName)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
             else if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
-                return schemaOutputToString(ignoreWrapped(component.name)?.children ?? [])
+                return schemaOutputToString((unwrapSubject(component.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
         }
         return ''

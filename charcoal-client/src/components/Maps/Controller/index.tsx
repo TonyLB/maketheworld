@@ -14,13 +14,14 @@ import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { StandardForm, StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
 import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
 import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -48,7 +49,7 @@ export const useMapContext = () => (useContext(MapContext))
 //    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
 //    - An onChange function that accepts changes to that mapTree
 //
-const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
+const mapTreeMemo = (standardForm: StandardFormData, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
         isSchemaSelected(item) || isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaConditionStatement(item) || isSchemaConditionFallthrough(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
