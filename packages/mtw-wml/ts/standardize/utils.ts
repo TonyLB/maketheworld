@@ -3,9 +3,9 @@ import { SchemaTag } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTreeNode } from "../tree/baseClasses"
-import { StandardComponent, StandardNodeKeys } from "./baseClasses"
+import { StandardComponentData, StandardNodeKeys } from "./baseClasses"
 
-export const combineTagChildren = <T extends StandardComponent, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
+export const combineTagChildren = <T extends StandardComponentData, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
     if (!excludeUndefined(base[key])) {
         return incoming[key]
     }

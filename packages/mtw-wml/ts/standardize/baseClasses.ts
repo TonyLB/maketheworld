@@ -1,5 +1,5 @@
-import { SchemaDescriptionTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPromptTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../schema/baseClasses";
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../tree/baseClasses";
+import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../schema/baseClasses";
+import { GenericTreeNodeFiltered } from "../tree/baseClasses";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
 import { StandardCharacterData } from "./components/dataTypes/character";
@@ -44,7 +44,7 @@ export type StandardComputed = StandardComputedData
 export type StandardAction = StandardActionData
 export type StandardImage = StandardImageData
 
-export type StandardComponentNonEdit =
+export type StandardComponentDataNonEdit =
     StandardCharacter |
     StandardRoom |
     StandardFeature |
@@ -61,16 +61,16 @@ export type StandardComponentNonEdit =
 
 export type StandardRemove = {
     tag: 'Remove';
-    component: StandardComponentNonEdit;
+    component: StandardComponentDataNonEdit;
 } & StandardBase
 
 export type StandardReplace = {
     tag: 'Replace';
-    match: StandardComponentNonEdit;
-    payload: StandardComponentNonEdit;
+    match: StandardComponentDataNonEdit;
+    payload: StandardComponentDataNonEdit;
 } & StandardBase
 
-export const unwrapStandardComponent = (component: StandardComponent): StandardComponentNonEdit => {
+export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentDataNonEdit => {
     if (isStandardNonEdit(component)) {
         return component
     }
@@ -82,9 +82,9 @@ export const unwrapStandardComponent = (component: StandardComponent): StandardC
     }
 }
 
-export type StandardComponent = StandardComponentNonEdit | StandardRemove | StandardReplace
+export type StandardComponentData = StandardComponentDataNonEdit | StandardRemove | StandardReplace
 
-export const isStandardFactory = <T extends StandardComponent>(tag: T["tag"]) => (value: StandardComponent): value is T => (value.tag === tag)
+export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
 
 export const isStandardCharacter = isStandardFactory<StandardCharacter>("Character")
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
@@ -103,9 +103,9 @@ export const isStandardImage = isStandardFactory<StandardImage>("Image")
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
-export const isStandardNonEdit = (value: StandardComponent): value is Exclude<StandardComponent, StandardRemove | StandardReplace> => (!["Remove", "Replace"].includes(value.tag))
+export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!["Remove", "Replace"].includes(value.tag))
 
-export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponent => {
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponentData => {
     switch(tag) {
         case 'Room':
             return {
@@ -174,14 +174,6 @@ export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends Schem
     children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[] }[];
 } | EditInternalStandardNode<T, ChildType, Extra>
 
-export type StandardForm = {
-    key: string;
-    tag: 'Asset' | 'Character';
-    update?: boolean;
-    byId: Record<string, StandardComponent>;
-    metaData: GenericTree<SchemaTag>;
-}
-
 export type StandardAsset = {
     tag: 'Asset';
 } & StandardBase
@@ -196,4 +188,4 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset' } & StandardBase) | (StandardComponent & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset' } & StandardBase) | (StandardComponentData & SerializeNDJSONMixin))[]

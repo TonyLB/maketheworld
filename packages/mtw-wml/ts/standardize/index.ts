@@ -1,8 +1,31 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough } from "../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
-import { StandardComponent } from "./baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport } from "../schema/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
+import { StandardFormData } from "./components/dataTypes"
+import { unique } from "../list"
+import SchemaTagTree from "../tagTree/schema"
+import { TagListItem, TagTreeMatchOperation } from "../tagTree"
+import applyEdits from "../schema/treeManipulation/applyEdits"
+import StandardRoom from "./components/room"
+import StandardFeature from "./components/feature"
+import StandardKnowledge from "./components/knowledge"
+import StandardBookmark from "./components/bookmark"
+import StandardMap from "./components/map"
+import StandardMessage from "./components/message"
+import StandardMoment from "./components/moment"
+import StandardTheme from "./components/theme"
+import StandardVariable from "./components/variable"
+import StandardComputed from "./components/computed"
+import StandardAction from "./components/action"
+import StandardImage from "./components/image"
+import StandardCharacter from "./components/character"
+import { isSchemaTreeNode } from "./components/utils"
+import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
+import { selectKeysByTag } from "../schema/selectors/keysByTag"
+import { treeTypeGuard } from "../tree/filter"
+import { objectMap } from "../lib/objects"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -44,7 +67,7 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
     })
 )
 
-export const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNode<SchemaTag> => {
+export const standardItemToSchemaItem = (item: StandardComponentData): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':
             const { tag, ...pronouns } = item.pronouns?.data ?? { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
@@ -141,3 +164,328 @@ export const standardItemToSchemaItem = (item: StandardComponent): GenericTreeNo
 }
 
 export class Standardizer extends StandardizerAbstract {}
+
+export type StandardComponent = StandardCharacter |
+    StandardRoom |
+    StandardFeature |
+    StandardKnowledge |
+    StandardBookmark |
+    StandardMap |
+    StandardMessage |
+    StandardMoment |
+    StandardTheme |
+    StandardVariable |
+    StandardComputed |
+    StandardAction |
+    StandardImage
+
+//
+// standardComponentFactory takes an incoming argument that can apply to one of the constructors that inherit from StandardComponentAbstract,
+// finds the correct constructor, and creates the sub-typed class
+//
+export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
+    const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
+        if (isSchemaTreeNode(arg)) {
+            const subject = unwrapSubject(arg)
+            if (subject && typeGuard(subject.data)) {
+                return true
+            }
+        }
+        return false
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || subjectTypeguard(arg, isSchemaCharacter)) {
+        return new StandardCharacter(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || subjectTypeguard(arg, isSchemaRoom)) {
+        return new StandardRoom(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardFeature(arg)) || subjectTypeguard(arg, isSchemaFeature)) {
+        return new StandardFeature(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || subjectTypeguard(arg, isSchemaKnowledge)) {
+        return new StandardKnowledge(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardBookmark(arg)) || subjectTypeguard(arg, isSchemaBookmark)) {
+        return new StandardBookmark(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || subjectTypeguard(arg, isSchemaMap)) {
+        return new StandardMap(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMessage(arg)) || subjectTypeguard(arg, isSchemaMessage)) {
+        return new StandardMessage(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || subjectTypeguard(arg, isSchemaMoment)) {
+        return new StandardMoment(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardTheme(arg)) || subjectTypeguard(arg, isSchemaTheme)) {
+        return new StandardTheme(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || subjectTypeguard(arg, isSchemaVariable)) {
+        return new StandardVariable(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardComputed(arg)) || subjectTypeguard(arg, isSchemaComputed)) {
+        return new StandardComputed(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardAction(arg)) || subjectTypeguard(arg, isSchemaAction)) {
+        return new StandardAction(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || subjectTypeguard(arg, isSchemaImage)) {
+        return new StandardImage(arg)
+    }
+    return undefined
+}
+    
+export class StandardForm {
+    _key: string;
+    tag: 'Asset' | 'Character';
+    _byId: Record<string, StandardComponent>;
+    _metaData: GenericTree<SchemaTag>;
+
+    constructor(args: StandardFormData | GenericTreeNode<SchemaTag>) {
+        if (isSchemaTreeNode(args)) {
+            const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
+                const keysExtract = (imported: boolean) => (
+                    tagTree
+                        .filter({ and: [{ match: tag }, imported ? { match: 'Import' } : { not: { match: 'Import' } }] })
+                        .prune({ after: { match: tag } })
+                        .prune({ before: { match: tag } })
+                        .tree
+                        .map(({ data }) => {
+                            if (data.tag !== tag) {
+                                throw new Error('standardizeSchema tag mismatch')
+                            }
+                            if (imported && isImportable(data)) {
+                                return data.as ?? data.key
+                            }
+                            return data.key
+                        })
+                )
+                return unique(keysExtract(true), keysExtract(false)).sort()
+            }
+            const standardizeComponentTagType = (componentKeys: SchemaWithKey["tag"][], tagTree: SchemaTagTree): void => {
+                //
+                // Loop through each tag in standard order
+                //
+                const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
+                componentKeys.forEach((tag) => {
+                    //
+                    // Loop through each key present for that tag
+                    //
+                    const keys = keysByComponentTypeFactory(tagTree)(tag)
+                    keys.forEach((key) => {
+                        //
+                        // Aggregate and reorder all top-level information
+                        //
+                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (data.key === key)) }
+                        const editTag: TagTreeMatchOperation<SchemaTag> = { or: [{ match: 'Replace' }, { match: 'Remove' }] }
+                        const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
+                            const prunedTagTree = tagTree
+                                .prune({ after: { sequence: [nodeMatch, anyKeyedComponent] } })
+                                .reorderFunctional(
+                                    [{ match: tag }, { match: 'Replace'}, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove' }, { match: 'Name' }, { match: 'ShortName' }, { match: 'Description' }, { match: 'Summary' }, { match: 'If' }, { match: 'Statement' }, { match: 'Fallthrough' }, { match: 'Inherited' }],
+                                    (tagItem) => {
+                                        const isEditTag = (value: TagListItem<SchemaTag, {}>): boolean => (['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove'].includes(value.data.tag))
+                                        const isConditionalTag = (value: TagListItem<SchemaTag, {}>): boolean => (['If', 'Statement', 'Fallthrough'].includes(value.data.tag))
+                                        const { componentTags, valueTags, conditionalTags } = tagItem.reduce<{ componentTags: TagListItem<SchemaTag>[]; valueTags: TagListItem<SchemaTag>[]; conditionalTags: TagListItem<SchemaTag>[]; matchedAlready: boolean }>((previous, subItem) => {
+                                            if (subItem.data.tag === tag) {
+                                                return {
+                                                    ...previous,
+                                                    componentTags: [...previous.componentTags, subItem],
+                                                    matchedAlready: true
+                                                }
+                                            }
+                                            if (isEditTag(subItem)) {
+                                                if (previous.matchedAlready) {
+                                                    return {
+                                                        ...previous,
+                                                        valueTags: [...previous.valueTags, subItem]
+                                                    }
+                                                }
+                                                else {
+                                                    return {
+                                                        ...previous,
+                                                        componentTags: [...previous.componentTags, subItem]
+                                                    }
+                                                }
+                                            }
+                                            if (isConditionalTag(subItem)) {
+                                                return {
+                                                    ...previous,
+                                                    conditionalTags: [...previous.conditionalTags, subItem]
+                                                }
+                                            }
+                                            else {
+                                                return {
+                                                    ...previous,
+                                                    valueTags: [...previous.valueTags, subItem]
+                                                }
+                                            }
+                                        }, { componentTags: [], valueTags: [], conditionalTags: [], matchedAlready: false })
+                                        const relativeOrder: Partial<Record<SchemaTag["tag"], number>> = {
+                                            Remove: 1,
+                                            Replace: 1,
+                                            ReplaceMatch: 2,
+                                            ReplacePayload: 2,
+                                            [tag]: 3,
+                                            Name: 4,
+                                            ShortName: 4,
+                                            Description: 4,
+                                            Summary: 4
+                                        }
+                                        const sortInPlace = (tags: TagListItem<SchemaTag>[]): TagListItem<SchemaTag>[] => (
+                                            [...tags].sort((a, b) => ((relativeOrder[a.data.tag] ?? Infinity) - (relativeOrder[b.data.tag] ?? Infinity)))
+                                        )
+                                        return [...sortInPlace(componentTags), ...sortInPlace(valueTags), ...conditionalTags]
+                                    }
+                                )
+                                .prune({ and: [{ before: nodeMatch }, { not: { or: [editTag, { after: editTag }] }}] })
+                                .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
+                            switch(tag) {
+                                case 'Room':
+                                    return prunedTagTree.prune({ or: [{ match: 'Map' }, { match: 'Position' }]})
+                                case 'Map':
+                                    return tagTree
+                                        .prune({ or: [{ and: [{ after: { sequence: [nodeMatch, anyKeyedComponent] } }, { not: { match: 'Position'} }] }, { match: 'Import' }, { match: 'Export' }] })
+                                        .reordered([{ match: tag }, { or: [{ match: 'Name' }, { match: 'Description' }] }, { or: [{ match: 'Room' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] } ]}, { match: 'Inherited' }])
+                                        .filter({ or: [{ and: [{ match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }]}]}, { not: { match: 'Room' }}]})
+                                        .prune({ before: nodeMatch })
+                            }
+                            return prunedTagTree
+                        }
+
+                        applyEdits(adjustTagTree(tagTree, nodeMatch).tree).forEach((item) => {
+                            const standardItem = standardComponentFactory(item)
+                            if (standardItem) {
+                                if (this._byId[key]) {
+                                    const merged = this._byId[key].merge(standardItem)
+                                    if (merged) {
+                                        this._byId[key] = merged
+                                    }
+                                    else {
+                                        delete this._byId[key]
+                                    }
+                                }
+                                else {
+                                    this._byId[key] = standardItem
+                                }
+                            }
+                        })
+                    })
+                })
+            }
+            this._byId = {}
+            this._metaData = []
+            if (treeNodeTypeguard(isSchemaCharacter)(args)) {
+                this.tag = 'Character'
+                const tagTree = new SchemaTagTree([args])
+                tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
+                const characterTree = tagTree.tree
+                if (characterTree.length !== 1) {
+                    throw new Error('Too many characters in Standarizer')
+                }
+                const character = characterTree[0] as GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag>
+                this._key = character.data.key
+                this._byId[character.data.key] = new StandardCharacter(character)
+                this._metaData = [
+                    ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta }),
+                    ...character.children.filter(wrappedNodeTypeGuard(isSchemaImport))
+                ]
+                standardizeComponentTagType(['Image'], tagTree)
+            }
+            else {
+                this.tag = 'Asset'
+                const tagTree = new SchemaTagTree([args])
+                tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
+                const assetTree = tagTree.tree
+                if (assetTree.length !== 1) {
+                    throw new Error('Too many assets in Standarizer')
+                }
+                const asset = assetTree[0] as GenericTreeNodeFiltered<SchemaAssetTag, SchemaTag>
+                this._key = asset.data.key
+
+                //
+                // Add standardized view of all Imports to the results
+                //
+                const importTagTree = tagTree
+                    .filter({ match: 'Import' })
+                    .prune({ or: [
+                        { and: [
+                            { before: { match: 'Import' } },
+                            { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove' }]}}
+                        ] },
+                        { after: { or: [
+                            { match: 'Room' },
+                            { match: 'Feature' },
+                            { match: 'Knowledge' },
+                            { match: 'Bookmark' },
+                            { match: 'Map' },
+                            { match: 'Message' },
+                            { match: 'Moment' },
+                            { match: 'Variable' },
+                            { match: 'Computed' },
+                            { match: 'Action' }
+                        ]}}
+                    ]})
+                const importItems = importTagTree.tree.filter(({ children }) => (children.length))
+            
+                this._metaData = [
+                    ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree,
+                    ...importItems.filter(wrappedNodeTypeGuard(isSchemaImport)) as GenericTree<SchemaTag>
+                ]
+
+                const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+                const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
+        
+                standardizeComponentTagType(['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'], tagTree)
+
+                //
+                // Add standardized view of all Exports to the results
+                //
+                const exportTagTree = tagTree
+                    .filter({ match: 'Export' })
+                    .prune({ or: [
+                        { before: { match: 'Export' } },
+                        { after: anyKeyedComponent }
+                    ]})
+                const exports = exportTagTree.tree
+                    .filter(treeNodeTypeguard(isSchemaExport))
+                    .filter(({ children }) => (children.length))
+                this._metaData = [...this._metaData, ...exports]
+           }
+        }
+        else {
+            this._key = args.key
+            this.tag = args.tag
+            this._metaData = args.metaData
+            this._byId = Object.entries(args.byId).reduce<Record<string, StandardComponent>>((previous, [key, standardData]) => {
+                const standardItem = standardComponentFactory(standardData)
+                if (standardItem) {
+                    return {
+                        ...previous,
+                        [key]: standardItem
+                    }
+                }
+                else {
+                    return previous
+                }
+            }, {})
+        }
+    }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        if (this.tag === 'Character') {
+            const character = this._byId[this._key]
+            if (!(character instanceof StandardCharacter)) {
+                throw new Error('StandardForm misconfiguration')
+            }
+            return character.schema
+        }
+        else {
+            const children = Object.values(this._byId).map((item) => (item.schema))
+            return {
+                data: { tag: 'Asset', key: this._key, Story: undefined },
+                children
+            }
+        }
+    }
+}
