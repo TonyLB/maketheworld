@@ -1,36 +1,53 @@
 import { excludeUndefined } from "../../lib/lists"
 import { isSchemaKnowledge, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
+import { isStandardKnowledge, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
 export class StandardKnowledge extends StandardComponentWithNameAndDesc {
+    _match?: StandardKnowledge;
     tag = 'Knowledge' as const
-    constructor(args: StandardKnowledgeData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            if (!isSchemaKnowledge(args.data)) {
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardKnowledge(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            if (!isSchemaKnowledge(payload.data)) {
+                throw new Error('Type mismatch in StandardKnowledge constructor')
+            }
+        }
+        else {
+            if (!isStandardKnowledge(payload)) {
                 throw new Error('Type mismatch in StandardKnowledge constructor')
             }
         }
     }
 
-    override toJSON(): StandardKnowledgeData {
-        return {
-            key: this.key,
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
+
+    override toJSON(): StandardKnowledgeData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardKnowledge, StandardKnowledgeData>(this, (value) => ({
+            key: value.key,
             tag: 'Knowledge',
-            name: this.name,
-            description: this.description
-        }
+            name: value.name,
+            description: value.description
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Knowledge', key: this.key },
-            children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
-        }
+        return  wrapSchema(this, (value: StandardKnowledge) => ({
+            data: { tag: 'Knowledge', key: value.key },
+            children: [value.name, value.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardKnowledge {

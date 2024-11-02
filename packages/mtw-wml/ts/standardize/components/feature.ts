@@ -1,36 +1,53 @@
 import { excludeUndefined } from "../../lib/lists"
 import { isSchemaFeature, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
+import { isStandardFeature, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
 export class StandardFeature extends StandardComponentWithNameAndDesc {
+    _match?: StandardFeature;
     tag = 'Feature' as const
-    constructor(args: StandardFeatureData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            if (!isSchemaFeature(args.data)) {
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardFeature(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            if (!isSchemaFeature(payload.data)) {
                 throw new Error('Type mismatch in StandardFeature constructor')
+            }
+        }
+        else {
+            if (!isStandardFeature(payload)) {
+                throw new Error('Type mismatch in StandardAction constructor')
             }
         }
     }
 
-    override toJSON(): StandardFeatureData {
-        return {
-            key: this.key,
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
+
+    override toJSON(): StandardFeatureData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardFeature, StandardFeatureData>(this, (value) => ({
+            key: value.key,
             tag: 'Feature',
-            name: this.name,
-            description: this.description
-        }
+            name: value.name,
+            description: value.description
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Feature', key: this.key },
-            children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
-        }
+        return wrapSchema(this, (value: StandardFeature) => ({
+            data: { tag: 'Feature', key: value.key },
+            children: [value.name, value.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardFeature {

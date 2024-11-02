@@ -1,13 +1,14 @@
-import { defaultSelected } from ".."
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaMap, isSchemaName, isSchemaOutputTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
+import { isSchemaMap, isSchemaName, isSchemaOutputTag, SchemaNameTag, SchemaOutputTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { isStandardMap, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -17,14 +18,20 @@ export class StandardMap extends StandardComponentAbstract {
     _images: GenericTree<SchemaTag>;
     _positions: GenericTree<SchemaTag>;
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
+    _match?: StandardMap;
     tag = 'Map' as const
-    constructor(args: StandardMapData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            if (!isSchemaMap(args.data)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardMap(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            if (!isSchemaMap(payload.data)) {
+                throw new Error('Type mismatch in StandardMap constructor')
             }
-            const tagTree = new SchemaTagTree(args.children)
+            const tagTree = new SchemaTagTree(payload.children)
             const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
             const positionsTagTree = tagTree
                 .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
@@ -40,39 +47,45 @@ export class StandardMap extends StandardComponentAbstract {
             this._themes = []
         }
         else {
-            this._name = args.name
-            this._images = args.images
-            this._positions = args.positions
-            this._themes = args.themes
+            if (!isStandardMap(payload)) {
+                throw new Error('Type mismatch in StandardMap constructor')
+            }
+            this._name = payload.name
+            this._images = payload.images
+            this._positions = payload.positions
+            this._themes = payload.themes
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get name() { return this._name }
     get images() { return this._images }
     get positions() { return this._positions }
     get themes() { return this._themes }
 
-    override toJSON(): StandardMapData {
-        return {
-            key: this.key,
+    override toJSON(): StandardMapData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardMap, StandardMapData>(this, (value) => ({
+            key: value.key,
             tag: 'Map',
-            name: this.name,
-            images: this.images,
-            positions: this.positions,
-            themes: this.themes
-        }
+            name: value.name,
+            images: value.images,
+            positions: value.positions,
+            themes: value.themes
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Map', key: this.key },
+        return wrapSchema(this, (value: StandardMap) => ({
+            data: { tag: 'Map', key: value.key },
             children: [
-                ...[this.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
-                ...this.images,
-                ...this.positions,
-                ...this.themes
+                ...[value.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
+                ...value.images,
+                ...value.positions,
+                ...value.themes
             ]
-        }
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardMap {
