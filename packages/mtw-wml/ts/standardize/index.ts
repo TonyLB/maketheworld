@@ -1,6 +1,6 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
-import { StandardComponentData } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { StandardFormData } from "./components/dataTypes"
@@ -8,6 +8,21 @@ import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import applyEdits from "../schema/treeManipulation/applyEdits"
+import StandardRoom from "./components/room"
+import StandardFeature from "./components/feature"
+import StandardKnowledge from "./components/knowledge"
+import StandardBookmark from "./components/bookmark"
+import StandardMap from "./components/map"
+import StandardMessage from "./components/message"
+import StandardMoment from "./components/moment"
+import StandardTheme from "./components/theme"
+import StandardVariable from "./components/variable"
+import StandardComputed from "./components/computed"
+import StandardAction from "./components/action"
+import StandardImage from "./components/image"
+import StandardCharacter from "./components/character"
+import { isSchemaTreeNode } from "./components/utils"
+import { unwrapSubject } from "../schema/utils"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -147,11 +162,76 @@ export const standardItemToSchemaItem = (item: StandardComponentData): GenericTr
 
 export class Standardizer extends StandardizerAbstract {}
 
-//
-// TODO: Create dispatch function to turn any type of valid SchemaTag tree into a StandardComponent
-//
-// export const standardComponentFromSchemaItem = (item: GenericTreeNode<SchemaTag>)
+export type StandardComponent = StandardCharacter |
+    StandardRoom |
+    StandardFeature |
+    StandardKnowledge |
+    StandardBookmark |
+    StandardMap |
+    StandardMessage |
+    StandardMoment |
+    StandardTheme |
+    StandardVariable |
+    StandardComputed |
+    StandardAction |
+    StandardImage
 
+//
+// standardComponentFactory takes an incoming argument that can apply to one of the constructors that inherit from StandardComponentAbstract,
+// finds the correct constructor, and creates the sub-typed class
+//
+export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
+    const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
+        if (isSchemaTreeNode(arg)) {
+            const subject = unwrapSubject(arg)
+            if (subject && typeGuard(subject.data)) {
+                return true
+            }
+        }
+        return false
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || subjectTypeguard(arg, isSchemaCharacter)) {
+        return new StandardCharacter(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || subjectTypeguard(arg, isSchemaRoom)) {
+        return new StandardRoom(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardFeature(arg)) || subjectTypeguard(arg, isSchemaFeature)) {
+        return new StandardFeature(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || subjectTypeguard(arg, isSchemaKnowledge)) {
+        return new StandardKnowledge(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardBookmark(arg)) || subjectTypeguard(arg, isSchemaBookmark)) {
+        return new StandardBookmark(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || subjectTypeguard(arg, isSchemaMap)) {
+        return new StandardMap(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMessage(arg)) || subjectTypeguard(arg, isSchemaMessage)) {
+        return new StandardMessage(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || subjectTypeguard(arg, isSchemaMoment)) {
+        return new StandardMoment(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardTheme(arg)) || subjectTypeguard(arg, isSchemaTheme)) {
+        return new StandardTheme(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || subjectTypeguard(arg, isSchemaVariable)) {
+        return new StandardVariable(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardComputed(arg)) || subjectTypeguard(arg, isSchemaComputed)) {
+        return new StandardComputed(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardAction(arg)) || subjectTypeguard(arg, isSchemaAction)) {
+        return new StandardAction(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || subjectTypeguard(arg, isSchemaImage)) {
+        return new StandardImage(arg)
+    }
+    return undefined
+}
+    
 // export class StandardForm {
 //     _key: string;
 //     tag: 'Asset' | 'Character';
