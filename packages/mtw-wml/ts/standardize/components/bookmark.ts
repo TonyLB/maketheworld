@@ -47,7 +47,10 @@ export class StandardBookmark extends StandardComponentAbstract {
         }
     }
 
-    override merge(incoming: StandardBookmark): StandardBookmark {
+    override merge(incoming: StandardComponentAbstract): StandardBookmark {
+        if (!(incoming instanceof StandardBookmark)) {
+            throw new Error('Type mistmatch on StandardComponent merge')
+        }
         const args: StandardBookmarkData = {
             key: this.key,
             tag: 'Bookmark',
