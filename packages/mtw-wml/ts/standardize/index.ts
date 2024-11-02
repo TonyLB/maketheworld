@@ -471,4 +471,21 @@ export class StandardForm {
             }, {})
         }
     }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        if (this.tag === 'Character') {
+            const character = this._byId[this._key]
+            if (!(character instanceof StandardCharacter)) {
+                throw new Error('StandardForm misconfiguration')
+            }
+            return character.schema
+        }
+        else {
+            const children = Object.values(this._byId).map((item) => (item.schema))
+            return {
+                data: { tag: 'Asset', key: this._key, Story: undefined },
+                children
+            }
+        }
+    }
 }
