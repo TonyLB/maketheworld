@@ -9,7 +9,7 @@ import {
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/ts/messages"
 import { ComponentMetaItem } from "../internalCache/componentMeta"
-import { isStandardMessage, StandardComponent, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardMessage, StandardComponentData, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 
@@ -24,7 +24,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
 
             if (!characterId) {
                 const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<string, ComponentMetaItem>
-                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponent[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
+                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
                 await Promise.all(
@@ -52,7 +52,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     internalCache.Global.get('assets')
                 ])
                 const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ]) as Record<string, ComponentMetaItem>
-                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponent[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
+                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageRender.find((item) => (isTaggedLink(item) || (isTaggedText(item) && item.value))) && roomsRendered.includes(characterMeta.RoomId)) {

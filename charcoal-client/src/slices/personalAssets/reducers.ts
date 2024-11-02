@@ -7,7 +7,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag
 import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponent, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/dist/schema/treeManipulation/listDiff'
@@ -129,7 +129,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const mergedStandardizer = editStandardizer.merge(deltaStandardizer)
         state.edit = mergedStandardizer.standardForm
     }
-    const mergeFieldToEdit = <T extends StandardComponent, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
+    const mergeFieldToEdit = <T extends StandardComponentData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
         componentKey: string; tag: T["tag"], key: K, oldValue: T[K]; newValue: T[K];
     }) => {
         mergeToEdit({
@@ -152,7 +152,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                                 children: [oldValue]
                             }
                             : undefined
-                } as StandardComponent
+                } as StandardComponentData
             }
         })
     }
@@ -361,7 +361,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                             key: payload.componentKey,
                             tag: component.tag,
                             [payload.itemKey]: editChildren
-                        } as StandardComponent
+                        } as StandardComponentData
                     }
                 })
             }
@@ -400,7 +400,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             }, { changed: false, tree: [] })
         }
         const previousComponent = JSON.parse(JSON.stringify(standardForm.byId[payload.from]))
-        const newComponent: StandardComponent = {
+        const newComponent: StandardComponentData = {
             ...JSON.parse(JSON.stringify(standardForm.byId[payload.from])),
             key: payload.to
         }

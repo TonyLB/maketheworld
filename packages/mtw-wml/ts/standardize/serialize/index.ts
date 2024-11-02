@@ -3,7 +3,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { objectFilter } from "../../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
-import { StandardComponent, SerializeNDJSONMixin, StandardNDJSON, unwrapStandardComponent } from "../baseClasses"
+import { StandardComponentData, SerializeNDJSONMixin, StandardNDJSON, unwrapStandardComponent } from "../baseClasses"
 import { StandardFormData } from "../components/dataTypes"
 export const serialize = (
     standardForm: StandardFormData,
@@ -38,7 +38,7 @@ export const serialize = (
         ))
         .flat(1)
     ) as Record<string, string>
-    const addNDJSONSerializeKeys = (standardComponent: StandardComponent): StandardComponent & SerializeNDJSONMixin => {
+    const addNDJSONSerializeKeys = (standardComponent: StandardComponentData): StandardComponentData & SerializeNDJSONMixin => {
         const unwrappedComponent = unwrapStandardComponent(standardComponent)
         return {
             ...standardComponent,
@@ -67,7 +67,7 @@ export const serialize = (
 export const deserialize = (ndjson: StandardNDJSON ): { standardForm: StandardFormData, universalKeys: Record<string, string>, fileAssociations: Record<string, string> }  => {
     let assetKey: string | undefined
     let characterKey: string | undefined
-    let byId: Record<string, StandardComponent> = {}
+    let byId: Record<string, StandardComponentData> = {}
     let importsBySource: Record<string, { key: string; as?: string }[]> = {}
     let exports: Record<string, string> = {}
     let universalKeys: Record<string, string> = {}

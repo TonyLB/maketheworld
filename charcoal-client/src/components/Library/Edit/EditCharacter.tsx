@@ -42,7 +42,7 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { SchemaPronouns, SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaFirstImpressionTag, SchemaImageTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
@@ -236,7 +236,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const { updateStandard } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return ignoreWrapped(character[tag])?.data?.value || ''
+        return ignoreWrapped<SchemaFirstImpressionTag | SchemaOutfitTag | SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
     })
 
     const debouncedTagValue = useDebounce(currentTagValue, 500)
@@ -411,7 +411,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [standardForm])
 
     const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
-        const { tag, ...rest } = ignoreWrapped(character.pronouns).data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
+        const { tag, ...rest } = ignoreWrapped<SchemaPronounsTag, SchemaTag>(character.pronouns).data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
         return rest
     }, [character])
     const selectValue = useMemo(() => {
@@ -444,8 +444,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             // If an Image exist, but not by the characterIcon default key, use it
             //
             let SCHEMADIRTY = false
-            if (ignoreWrapped(character.image).data.key) {
-                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped(character.image).data.key, file }))
+            if (ignoreWrapped<SchemaImageTag, SchemaTag>(character.image).data.key) {
+                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped<SchemaImageTag, SchemaTag>(character.image).data.key, file }))
             }
             //
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary

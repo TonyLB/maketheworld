@@ -41,7 +41,7 @@ import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/schema/selectors/keysRe
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { EditWrappedStandardNode, StandardComponent, unwrapStandardComponent, isStandardCharacter, isStandardVariable, isStandardComputed, isStandardMap, StandardMap, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { EditWrappedStandardNode, StandardComponentData, unwrapStandardComponent, isStandardCharacter, isStandardVariable, isStandardComputed, isStandardMap, StandardMap, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
@@ -49,7 +49,7 @@ import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { transformStandardComponent } from '@tonylb/mtw-wml/ts/standardize/abstract'
 
-const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponent): EphemeraItem | undefined => {
+const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponentData): EphemeraItem | undefined => {
     const { properties = {} } = assetWorkspace
     const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
@@ -340,7 +340,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         }
     
         // const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
-        const ephemeraItems: (StandardComponent & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
+        const ephemeraItems: (StandardComponentData & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
             .filter(excludeUndefined)
             .map((item) => {
                 if (isStandardCharacter(item) || isStandardVariable(item)) {
@@ -394,7 +394,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                     ...transformedComponent,
                     keyMapping,
                     stateMapping,
-                    ...(isStandardMap(transformedComponent as StandardComponent)
+                    ...(isStandardMap(transformedComponent as StandardComponentData)
                         ? {
                             images: map((transformedComponent as StandardMap).images, (node) => {
                                 const { data, children } = node
@@ -418,7 +418,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                 }
             })
             .map((component) => ({ ...component, EphemeraId: assetWorkspace.universalKey(component.key) }))
-            .filter((component): component is (StandardComponent & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & { EphemeraId: EphemeraId }) => (Boolean(component.EphemeraId && isEphemeraId(component.EphemeraId))))
+            .filter((component): component is (StandardComponentData & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & { EphemeraId: EphemeraId }) => (Boolean(component.EphemeraId && isEphemeraId(component.EphemeraId))))
     
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 

@@ -6,7 +6,7 @@ import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { SchemaDescriptionTag, SchemaEditTag, SchemaNameTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaDescription, isSchemaEdit, isSchemaLink, isSchemaName, isSchemaSummary } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
-import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponent } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
@@ -92,7 +92,7 @@ const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, ke
     return returnValue
 }
 
-const extractDependenciesFromEphemeraItem = (item: StandardComponent & EphemeraComponentMixin): EphemeraDependency[] => {
+const extractDependenciesFromEphemeraItem = (item: StandardComponentData & EphemeraComponentMixin): EphemeraDependency[] => {
     let dependencies: EphemeraDependency[] = []
     if (isEphemeraInternallyBacklinked(item.EphemeraId)) {
         if (isStandardRoom(item)) {
@@ -122,7 +122,7 @@ const extractDependenciesFromEphemeraItem = (item: StandardComponent & EphemeraC
     ]
 }
 
-const assetBacklink = (context: string) => (item: StandardComponent) => {
+const assetBacklink = (context: string) => (item: StandardComponentData) => {
     if (isStandardComputed(item) || isStandardVariable(item) || isStandardRoom(item)) {
         return {
             target: AssetKey(context),
@@ -152,7 +152,7 @@ export const updateDependenciesFromMergeActions = (context: string, graphUpdate:
             if (!mergeAction.action) {
                 return
             }
-            const item = mergeAction.action as unknown as StandardComponent & EphemeraComponentMixin
+            const item = mergeAction.action as unknown as StandardComponentData & EphemeraComponentMixin
             graphUpdate.setEdges([{
                 itemId: EphemeraId,
                 edges: [

@@ -38,7 +38,7 @@ import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponent, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 
 type MessageDescribeData = {
@@ -424,7 +424,7 @@ export class ComponentRenderData {
             })).then((tagLists) => (tagLists.flat(1)))
         )
         const mapEvaluatedSchemaOutputPromise = async <
-            T extends StandardComponent,
+            T extends StandardComponentData,
             O extends RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData
         >(
             nameMapping: {

@@ -9,11 +9,12 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { treeTypeGuard } from "../tree/filter"
 import { map } from "../tree/map"
-import { StandardComponent, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardForm, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentNonEdit, isStandardNonEdit, MergeConflictError, StandardizerError, isStandardRemove, isStandardReplace, unwrapStandardComponent } from "./baseClasses"
+import { StandardComponentData, isStandardTheme, isStandardBookmark, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardRoom, StandardKnowledge, StandardFeature, StandardBookmark, StandardMessage, StandardMap, StandardTheme, EditInternalStandardNode, EditWrappedStandardNode, StandardComponentDataNonEdit, isStandardNonEdit, MergeConflictError, StandardizerError, isStandardRemove, isStandardReplace, unwrapStandardComponent } from "./baseClasses"
 import { excludeUndefined } from '../lib/lists'
 import { combineTagChildren } from './utils'
 import applyEdits from '../schema/treeManipulation/applyEdits'
 import { wrappedNodeTypeGuard } from '../schema/utils'
+import { StandardFormData } from './components/dataTypes'
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -118,7 +119,7 @@ const transformStandardItem = <T extends SchemaTag, ChildType extends SchemaTag>
     return { ...transformedNode, children: treeTypeGuard({ tree: options.defaultSelected ? defaultSelected(transformedNode.children) : transformedNode.children, typeGuard: childTypeGuard }) }
 }
 
-export const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>, options: { defaultSelected: boolean } = { defaultSelected: true }) => (component: StandardComponent): StandardComponent | undefined => {
+export const transformStandardComponent = (callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>, options: { defaultSelected: boolean } = { defaultSelected: true }) => (component: StandardComponentData): StandardComponentData | undefined => {
     switch(component.tag) {
         case 'Room':
             return {
@@ -199,7 +200,7 @@ export const transformStandardComponent = (callback: (tree: GenericTree<SchemaTa
     }
 }
 
-const mergeStandardComponents = (base: StandardComponent, incoming: StandardComponent): StandardComponent | undefined => {
+const mergeStandardComponents = (base: StandardComponentData, incoming: StandardComponentData): StandardComponentData | undefined => {
     if (isStandardRemove(base)) {
         if (!isStandardNonEdit(incoming)) {
             throw new MergeConflictError()
@@ -345,7 +346,7 @@ const mergeStandardComponents = (base: StandardComponent, incoming: StandardComp
     }
 }
 
-const schemaItemToStandardItem = ({ data, children }: GenericTreeNode<SchemaTag>, fullSchema: GenericTree<SchemaTag>, imported: boolean): StandardComponent | undefined => {
+const schemaItemToStandardItem = ({ data, children }: GenericTreeNode<SchemaTag>, fullSchema: GenericTree<SchemaTag>, imported: boolean): StandardComponentData | undefined => {
     if (isSchemaRemove(data)) {
         if (!(children.length === 1)) {
             throw new Error('Illegal number of children in remove tag')
@@ -502,7 +503,7 @@ const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag>): GenericTr
     field ? [field] : []
 )
 
-const standardItemToSchemaItem = (item: StandardComponentNonEdit): GenericTreeNode<SchemaTag> => {
+const standardItemToSchemaItem = (item: StandardComponentDataNonEdit): GenericTreeNode<SchemaTag> => {
     switch(item.tag) {
         case 'Character':
             const pronounsItem = item.pronouns
@@ -607,8 +608,8 @@ export class StandardizerAbstract {
     _assetKey: string;
     _assetTag: (SchemaAssetTag | SchemaCharacterTag)["tag"];
     _update: boolean = false
-    _byId: StandardForm["byId"];
-    metaData: StandardForm["metaData"];
+    _byId: StandardFormData["byId"];
+    metaData: StandardFormData["metaData"];
     constructor(...schemata: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>[]) {
         const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
             const keysExtract = (imported: boolean) => (
@@ -939,7 +940,7 @@ export class StandardizerAbstract {
             }]
         }
         if (this._assetTag === 'Character') {
-            const character = standardItemToSchemaItem(this._byId[this._assetKey] as StandardComponentNonEdit)
+            const character = standardItemToSchemaItem(this._byId[this._assetKey] as StandardComponentDataNonEdit)
             return [{
                 ...character,
                 children: defaultSelected([
@@ -952,7 +953,7 @@ export class StandardizerAbstract {
         throw new Error('Invalid internal tags on Standardizer schema')
     }
 
-    loadStandardForm(standard: StandardForm): void {
+    loadStandardForm(standard: StandardFormData): void {
         this._assetKey = standard.key
         this._assetTag = standard.tag
         this._update = standard.update ?? false
@@ -960,7 +961,7 @@ export class StandardizerAbstract {
         this.metaData = standard.metaData
     }
 
-    get standardForm(): StandardForm {
+    get standardForm(): StandardFormData {
         return {
             key: this._assetKey,
             tag: this._assetTag,

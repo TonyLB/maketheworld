@@ -13,9 +13,9 @@ import messageBus from "../messageBus"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
 import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
 import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
-import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 
-export const mergeIntoEphemera = async (assetId: string, items: StandardComponent[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
+export const mergeIntoEphemera = async (assetId: string, items: StandardComponentData[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
     //
     // TODO:  Better error handling and validation throughout
     //

@@ -28,10 +28,10 @@ import {
     isEphemeraRoomId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import { defaultComponentFromTag, StandardAction, StandardComponent, StandardComputed, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardMoment, StandardRoom, StandardVariable } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import { defaultComponentFromTag, StandardAction, StandardComponentData, StandardComputed, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardMoment, StandardRoom, StandardVariable } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 
 type ComponentMetaMixin = { assetId: string }
-export type ComponentMetaItem<T extends StandardComponent = StandardComponent> = T & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & ComponentMetaMixin
+export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & ComponentMetaMixin
 export type ComponentMetaId =
     EphemeraRoomId |
     EphemeraFeatureId |
