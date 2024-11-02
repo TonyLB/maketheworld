@@ -2,9 +2,10 @@ import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescription
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
+import { unwrapConstructorArgs } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -17,18 +18,22 @@ type NameAndDesc = {
 export class StandardComponentWithNameAndDesc extends StandardComponentAbstract {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    constructor(args: (StandardBaseData & Partial<NameAndDesc>) | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            const tagTree = new SchemaTagTree(args.children)
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload } = unwrapConstructorArgs(args)
+        super(payload)
+        if (isSchemaTreeNode(payload)) {
+            const tagTree = new SchemaTagTree(payload.children)
             const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
             const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
             this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
         }
         else {
-            this._name = args.name
-            this._description = args.description
+            if (!(isStandardRoom(payload) || isStandardFeature(payload) || isStandardKnowledge(payload))) {
+                throw new Error('Invalid argument type to StandardComponent with name and description')
+            }
+            this._name = payload.name
+            this._description = payload.description
         }
     }
 
@@ -52,6 +57,7 @@ export class StandardComponentWithNameAndDesc extends StandardComponentAbstract 
     override merge(incoming: StandardComponentWithNameAndDesc): StandardComponentWithNameAndDesc {
         const args = {
             key: this.key,
+            tag: 'Feature' as const,
             name: combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
             description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         }
