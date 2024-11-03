@@ -16,7 +16,12 @@ export class StandardComponentAbstract {
             if (!(data && 'key' in data && data.key)) {
                 throw new Error('Cannot convert non-keyed schema item to StandardComponent')
             }
-            this._key = data.key
+            if ('as' in data && data.as) {
+                this._key = data.as
+            }
+            else {
+                this._key = data.key
+            }
         }
         else {
             this._key = payload.key
