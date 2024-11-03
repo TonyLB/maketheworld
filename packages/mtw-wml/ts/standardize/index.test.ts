@@ -1666,456 +1666,450 @@ describe('StandardForm', () => {
         })
     })
 
-    // it('should accept meta tags', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Meta key=(ABC) time="1234" />
-    //         <Room key=(testRoom)>
-    //             <Description>Test Description</Description>
-    //         </Room>
-    //     </Asset>`)
+    it('should accept meta tags', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Meta key=(ABC) time="1234" />
+            <Room key=(testRoom)>
+                <Description>Test Description</Description>
+            </Room>
+        </Asset>`)
 
-    //     expect(test.standardForm).toEqual({
-    //         tag: 'Asset',
-    //         key: 'Test',
-    //         metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
-    //         byId: {
-    //             testRoom: {
-    //                 tag: 'Room',
-    //                 key: 'testRoom',
-    //                 name: { data: { tag: 'Name' }, children: [] },
-    //                 themes: [],
-    //                 shortName: { data: { tag: 'ShortName' }, children: [] },
-    //                 summary: { data: { tag: 'Summary' }, children: [] },
-    //                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }] },
-    //                 exits: [],
-    //             }
-    //         }
-    //     })
-    // })
+        expect(test.toJSON()).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
+            byId: {
+                testRoom: {
+                    tag: 'Room',
+                    key: 'testRoom',
+                    themes: [],
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }] },
+                    exits: [],
+                }
+            }
+        })
+    })
 
-    // it('should accept condition tags without including wrapperKey', () => {
-    //     const standardizer = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(Room1)>
-    //             <Description>
-    //                 <If {true}>True</If><Else>False</Else>
-    //             </Description>
-    //         </Room>
-    //     </Asset>`)
+    it('should accept condition tags without including wrapperKey', () => {
+        const standard = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(Room1)>
+                <Description>
+                    <If {true}>True</If><Else>False</Else>
+                </Description>
+            </Room>
+        </Asset>`)
 
-    //     expect(standardizer.standardForm).toEqual({
-    //         tag: 'Asset',
-    //         key: 'Test',
-    //         metaData: [],
-    //         byId: {
-    //             "Room1": {
-    //                 tag: 'Room',
-    //                 key: 'Room1',
-    //                 name: { data: { tag: 'Name' }, children: [] },
-    //                 shortName: { data: { tag: 'ShortName' }, children: [] },
-    //                 summary: { data: { tag: 'Summary' }, children: [] },
-    //                 exits: [],
-    //                 themes: [],
-    //                 description: { data: { tag: 'Description' }, children: [{
-    //                     data: { tag: 'If' },
-    //                     children: [
-    //                         {
-    //                             data: { tag: 'Statement', if: 'true', selected: false },
-    //                             children: [{ data: { tag: 'String', value: 'True' }, children: [] }]
-    //                         },
-    //                         {
-    //                             data: { tag: 'Fallthrough', selected: true },
-    //                             children: [{ data: { tag: 'String', value: 'False' }, children: [] }]
-    //                         }
-    //                     ]
-    //                 }] },
-    //             }
-    //         }
-    //     })
-    // })
+        expect(standard.toJSON()).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [],
+            byId: {
+                "Room1": {
+                    tag: 'Room',
+                    key: 'Room1',
+                    exits: [],
+                    themes: [],
+                    description: { data: { tag: 'Description' }, children: [{
+                        data: { tag: 'If' },
+                        children: [
+                            {
+                                data: { tag: 'Statement', if: 'true', selected: false },
+                                children: [{ data: { tag: 'String', value: 'True' }, children: [] }]
+                            },
+                            {
+                                data: { tag: 'Fallthrough', selected: true },
+                                children: [{ data: { tag: 'String', value: 'False' }, children: [] }]
+                            }
+                        ]
+                    }] },
+                }
+            }
+        })
+    })
 
-    // it('should combine descriptions in rooms and features', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Summary>
-    //                 One
-    //                 <br />
-    //             </Summary>
-    //             <Description>Three</Description>
-    //         </Room>
-    //         <If {false}>
-    //             <Room key=(test)>
-    //                 <Summary>
-    //                     Two
-    //                 </Summary>
-    //             </Room>
-    //             <Feature key=(testFeature)>
-    //                 <Description>
-    //                     Four
-    //                 </Description>
-    //             </Feature>
-    //         </If>
-    //         <Room key=(test)>
-    //             <Name>Test Room</Name>
-    //         </Room>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(test)>
-    //                 <Name>Test Room</Name>
-    //                 <Summary>One<br /><If {false}>Two</If></Summary>
-    //                 <Description>Three</Description>
-    //             </Room>
-    //             <Feature key=(testFeature)>
-    //                 <Description><If {false}>Four</If></Description>
-    //             </Feature>
-    //         </Asset>
-    //     `))
-    // })
+    it('should combine descriptions in rooms and features', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Summary>
+                    One
+                    <br />
+                </Summary>
+                <Description>Three</Description>
+            </Room>
+            <If {false}>
+                <Room key=(test)>
+                    <Summary>
+                        Two
+                    </Summary>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Description>
+                        Four
+                    </Description>
+                </Feature>
+            </If>
+            <Room key=(test)>
+                <Name>Test Room</Name>
+            </Room>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Name>Test Room</Name>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Description>Three</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Description><If {false}>Four</If></Description>
+                </Feature>
+            </Asset>
+        `))
+    })
 
-    // it('should combine exits in rooms', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 One
-    //                 <br />
-    //             </Description>
-    //         </Room>
-    //         <Room key=(testTwo) />
-    //         <If {false}>
-    //             <Room key=(test)>
-    //                 <Exit to=(testTwo)>Test Exit</Exit>
-    //             </Room>
-    //         </If>
-    //         <Room key=(testTwo)>
-    //             <Exit to=(test)>Test Return</Exit>
-    //         </Room>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(test)>
-    //                 <Description>One<br /></Description>
-    //                 <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
-    //             </Room>
-    //             <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should combine exits in rooms', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    One
+                    <br />
+                </Description>
+            </Room>
+            <Room key=(testTwo) />
+            <If {false}>
+                <Room key=(test)>
+                    <Exit to=(testTwo)>Test Exit</Exit>
+                </Room>
+            </If>
+            <Room key=(testTwo)>
+                <Exit to=(test)>Test Return</Exit>
+            </Room>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Description>One<br /></Description>
+                    <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
+                </Room>
+                <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
+            </Asset>
+        `))
+    })
 
-    // it('should combine render in nested rooms', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 One
-    //                 <br />
-    //             </Description>
-    //         </Room>
-    //         <Room key=(testTwo) />
-    //         <Message key=(testMessage)>
-    //             Test message
-    //             <Room key=(test)>
-    //                 <Description>
-    //                     Two
-    //                 </Description>
-    //                 <Exit to=(testTwo)>Test Exit</Exit>
-    //             </Room>
-    //         </Message>
-    //         <Room key=(testTwo)>
-    //             <Exit to=(test)>Test Return</Exit>
-    //         </Room>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(test)>
-    //                 <Description>One<br />Two</Description>
-    //                 <Exit to=(testTwo)>Test Exit</Exit>
-    //             </Room>
-    //             <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
-    //             <Message key=(testMessage)><Room key=(test) />Test message</Message>
-    //         </Asset>
-    //     `))
-    // })
+    it('should combine render in nested rooms', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    One
+                    <br />
+                </Description>
+            </Room>
+            <Room key=(testTwo) />
+            <Message key=(testMessage)>
+                Test message
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                    <Exit to=(testTwo)>Test Exit</Exit>
+                </Room>
+            </Message>
+            <Room key=(testTwo)>
+                <Exit to=(test)>Test Return</Exit>
+            </Room>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Description>One<br />Two</Description>
+                    <Exit to=(testTwo)>Test Exit</Exit>
+                </Room>
+                <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
+                <Message key=(testMessage)><Room key=(test) />Test message</Message>
+            </Asset>
+        `))
+    })
 
-    // it('should render features and links correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 <Link to=(testFeatureOne)>test</Link>
-    //             </Description>
-    //         </Room>
-    //         <Feature key=(testFeatureOne)>
-    //             <Name>TestOne</Name>
-    //             <Description><Link to=(testFeatureTwo)>two</Link></Description>
-    //         </Feature>
-    //         <Feature key=(testFeatureTwo)>
-    //             <Name>TestTwo</Name>
-    //             <Description>Test</Description>
-    //         </Feature>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(test)>
-    //                 <Description><Link to=(testFeatureOne)>test</Link></Description>
-    //             </Room>
-    //             <Feature key=(testFeatureOne)>
-    //                 <Name>TestOne</Name>
-    //                 <Description><Link to=(testFeatureTwo)>two</Link></Description>
-    //             </Feature>
-    //             <Feature key=(testFeatureTwo)>
-    //                 <Name>TestTwo</Name>
-    //                 <Description>Test</Description>
-    //             </Feature>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render features and links correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    <Link to=(testFeatureOne)>test</Link>
+                </Description>
+            </Room>
+            <Feature key=(testFeatureOne)>
+                <Name>TestOne</Name>
+                <Description><Link to=(testFeatureTwo)>two</Link></Description>
+            </Feature>
+            <Feature key=(testFeatureTwo)>
+                <Name>TestTwo</Name>
+                <Description>Test</Description>
+            </Feature>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Description><Link to=(testFeatureOne)>test</Link></Description>
+                </Room>
+                <Feature key=(testFeatureOne)>
+                    <Name>TestOne</Name>
+                    <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                </Feature>
+                <Feature key=(testFeatureTwo)>
+                    <Name>TestTwo</Name>
+                    <Description>Test</Description>
+                </Feature>
+            </Asset>
+        `))
+    })
 
-    // it('should render knowledge correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 <Link to=(testKnowledgeOne)>test</Link>
-    //             </Description>
-    //         </Room>
-    //         <Knowledge key=(testKnowledgeOne)>
-    //             <Name>TestOne</Name>
-    //             <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
-    //         </Knowledge>
-    //         <Knowledge key=(testKnowledgeTwo)>
-    //             <Name>TestTwo</Name>
-    //             <Description>Test</Description>
-    //         </Knowledge>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(test)>
-    //                 <Description><Link to=(testKnowledgeOne)>test</Link></Description>
-    //             </Room>
-    //             <Knowledge key=(testKnowledgeOne)>
-    //                 <Name>TestOne</Name>
-    //                 <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
-    //             </Knowledge>
-    //             <Knowledge key=(testKnowledgeTwo)>
-    //                 <Name>TestTwo</Name>
-    //                 <Description>Test</Description>
-    //             </Knowledge>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render knowledge correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>
+                    <Link to=(testKnowledgeOne)>test</Link>
+                </Description>
+            </Room>
+            <Knowledge key=(testKnowledgeOne)>
+                <Name>TestOne</Name>
+                <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+            </Knowledge>
+            <Knowledge key=(testKnowledgeTwo)>
+                <Name>TestTwo</Name>
+                <Description>Test</Description>
+            </Knowledge>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Description><Link to=(testKnowledgeOne)>test</Link></Description>
+                </Room>
+                <Knowledge key=(testKnowledgeOne)>
+                    <Name>TestOne</Name>
+                    <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+                </Knowledge>
+                <Knowledge key=(testKnowledgeTwo)>
+                    <Name>TestTwo</Name>
+                    <Description>Test</Description>
+                </Knowledge>
+            </Asset>
+        `))
+    })
 
-    // it('should render bookmarks correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Bookmark key=(testOne)>
-    //             TestOne<Bookmark key=(testThree) />
-    //         </Bookmark>
-    //         <Bookmark key=(testTwo)>
-    //             TestTwo<Bookmark key=(testOne) />
-    //         </Bookmark>
-    //         <Bookmark key=(testThree)>
-    //             TestThree
-    //         </Bookmark>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
-    //             <Bookmark key=(testThree)>TestThree</Bookmark>
-    //             <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render bookmarks correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Bookmark key=(testOne)>
+                TestOne<Bookmark key=(testThree) />
+            </Bookmark>
+            <Bookmark key=(testTwo)>
+                TestTwo<Bookmark key=(testOne) />
+            </Bookmark>
+            <Bookmark key=(testThree)>
+                TestThree
+            </Bookmark>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
+                <Bookmark key=(testThree)>TestThree</Bookmark>
+                <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
+            </Asset>
+        `))
+    })
 
-    // it('should render maps correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Map key=(testMap)>
-    //             <Name>Test map</Name>
-    //             <Room key=(testRoomOne)>
-    //                 <Position x="0" y="0" />
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <If {false}>
-    //                 <Room key=(testRoomOne) />
-    //                 <Room key=(testRoomTwo)>
-    //                     <Position x="-100" y="0" />
-    //                     <Description>Test Room Two</Description>
-    //                     <Exit to=(testRoomOne)>one</Exit>
-    //                 </Room>
-    //             </If>
-    //             <If {true} />
-    //             <Room key=(testRoomThree) />
-    //             <Image key=(mapBackground) />
-    //         </Map>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Image key=(mapBackground) />
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Room key=(testRoomThree) />
-    //             <Room key=(testRoomTwo)>
-    //                 <Description><If {false}>Test Room Two</If></Description>
-    //                 <If {false}><Exit to=(testRoomOne)>one</Exit></If>
-    //             </Room>
-    //             <Map key=(testMap)>
-    //                 <Name>Test map</Name>
-    //                 <Image key=(mapBackground) />
-    //                 <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-    //                 <If {false}>
-    //                     <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
-    //                 </If>
-    //                 <If {true} />
-    //             </Map>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render maps correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Name>Test map</Name>
+                <Room key=(testRoomOne)>
+                    <Position x="0" y="0" />
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <If {false}>
+                    <Room key=(testRoomOne) />
+                    <Room key=(testRoomTwo)>
+                        <Position x="-100" y="0" />
+                        <Description>Test Room Two</Description>
+                        <Exit to=(testRoomOne)>one</Exit>
+                    </Room>
+                </If>
+                <If {true} />
+                <Room key=(testRoomThree) />
+                <Image key=(mapBackground) />
+            </Map>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Image key=(mapBackground) />
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Room key=(testRoomThree) />
+                <Room key=(testRoomTwo)>
+                    <Description><If {false}>Test Room Two</If></Description>
+                    <If {false}><Exit to=(testRoomOne)>one</Exit></If>
+                </Room>
+                <Map key=(testMap)>
+                    <Name>Test map</Name>
+                    <Image key=(mapBackground) />
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                    <If {false}>
+                        <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
+                    </If>
+                    <If {true} />
+                </Map>
+            </Asset>
+        `))
+    })
 
-    // it('should render empty maps', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)><Map key=(testMap) /></Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)><Map key=(testMap) /></Asset>
-    //     `))
-    // })
+    it('should render empty maps', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)><Map key=(testMap) /></Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)><Map key=(testMap) /></Asset>
+        `))
+    })
 
-    // it('should render themes correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Map key=(testMap)>
-    //             <Room key=(testRoomOne)>
-    //                 <Position x="0" y="0" />
-    //             </Room>
-    //         </Map>
-    //         <Theme key=(testTheme)>
-    //             <Name>Spooky shenanigans</Name>
-    //             <Prompt>Spooky</Prompt>
-    //             <Room key=(testRoomOne) />
-    //             <Map key=(testMap) />
-    //         </Theme>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Map key=(testMap)>
-    //                 <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-    //             </Map>
-    //             <Theme key=(testTheme)>
-    //                 <Name>Spooky shenanigans</Name>
-    //                 <Prompt>Spooky</Prompt>
-    //                 <Room key=(testRoomOne) />
-    //                 <Map key=(testMap) />
-    //             </Theme>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render themes correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Room key=(testRoomOne)>
+                    <Position x="0" y="0" />
+                </Room>
+            </Map>
+            <Theme key=(testTheme)>
+                <Name>Spooky shenanigans</Name>
+                <Prompt>Spooky</Prompt>
+                <Room key=(testRoomOne) />
+                <Map key=(testMap) />
+            </Theme>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Map key=(testMap)>
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                </Map>
+                <Theme key=(testTheme)>
+                    <Name>Spooky shenanigans</Name>
+                    <Prompt>Spooky</Prompt>
+                    <Room key=(testRoomOne) />
+                    <Map key=(testMap) />
+                </Theme>
+            </Asset>
+        `))
+    })
 
-    // it('should render messages correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Message key=(testMessage)>
-    //             Test message
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Room key=(testRoomTwo)>
-    //                 <Description>Test Room Two</Description>
-    //                 <Exit to=(testRoomOne)>one</Exit>
-    //             </Room>
-    //         </Message>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Room key=(testRoomTwo)>
-    //                 <Description>Test Room Two</Description>
-    //                 <Exit to=(testRoomOne)>one</Exit>
-    //             </Room>
-    //             <Message key=(testMessage)>
-    //                 <Room key=(testRoomOne) />
-    //                 <Room key=(testRoomTwo) />
-    //                 Test message
-    //             </Message>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render messages correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Message key=(testMessage)>
+                Test message
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Room key=(testRoomTwo)>
+                    <Description>Test Room Two</Description>
+                    <Exit to=(testRoomOne)>one</Exit>
+                </Room>
+            </Message>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Room key=(testRoomTwo)>
+                    <Description>Test Room Two</Description>
+                    <Exit to=(testRoomOne)>one</Exit>
+                </Room>
+                <Message key=(testMessage)>
+                    <Room key=(testRoomOne) />
+                    <Room key=(testRoomTwo) />
+                    Test message
+                </Message>
+            </Asset>
+        `))
+    })
 
-    // it('should render moments correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Moment key=(testMoment)>
-    //             <Message key=(testMessage)>
-    //                 Test message
-    //                 <Room key=(testRoomOne)>
-    //                     <Description>Test Room One</Description>
-    //                     <Exit to=(testRoomTwo)>two</Exit>
-    //                 </Room>
-    //             </Message>
-    //         </Moment>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Message key=(testMessage)><Room key=(testRoomOne) />Test message</Message>
-    //             <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render moments correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Moment key=(testMoment)>
+                <Message key=(testMessage)>
+                    Test message
+                    <Room key=(testRoomOne)>
+                        <Description>Test Room One</Description>
+                        <Exit to=(testRoomTwo)>two</Exit>
+                    </Room>
+                </Message>
+            </Moment>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Message key=(testMessage)><Room key=(testRoomOne) />Test message</Message>
+                <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
+            </Asset>
+        `))
+    })
 
-    // it('should render variables correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Variable key=(testVar) default={false} />
-    //         <Room key=(testRoomOne)>
-    //             <Description>Test Room One</Description>
-    //             <Exit to=(testRoomTwo)>two</Exit>
-    //         </Room>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Variable key=(testVar) default={false} />
-    //         </Asset>
-    //     `))
-    // })
+    it('should render variables correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Variable key=(testVar) default={false} />
+            <Room key=(testRoomOne)>
+                <Description>Test Room One</Description>
+                <Exit to=(testRoomTwo)>two</Exit>
+            </Room>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Variable key=(testVar) default={false} />
+            </Asset>
+        `))
+    })
 
-    // it('should render computes', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Computed key=(computeOne) src={computeThree} />
-    //         <Computed key=(computeTwo) src={!computeOne} />
-    //         <Computed key=(computeThree) src={!testVar} />
-    //         <Variable key=(testVar) default={false} />
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Variable key=(testVar) default={false} />
-    //             <Computed key=(computeOne) src={computeThree} />
-    //             <Computed key=(computeThree) src={!testVar} />
-    //             <Computed key=(computeTwo) src={!computeOne} />
-    //         </Asset>
-    //     `))
-    // })
+    it('should render computes', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Computed key=(computeOne) src={computeThree} />
+            <Computed key=(computeTwo) src={!computeOne} />
+            <Computed key=(computeThree) src={!testVar} />
+            <Variable key=(testVar) default={false} />
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Variable key=(testVar) default={false} />
+                <Computed key=(computeOne) src={computeThree} />
+                <Computed key=(computeThree) src={!testVar} />
+                <Computed key=(computeTwo) src={!computeOne} />
+            </Asset>
+        `))
+    })
 
-    // it('should render actions correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Action key=(actionOne) src={testVar = !testVar} />
-    //         <Computed key=(computeOne) src={!testVar} />
-    //         <Variable key=(testVar) default={false} />
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Variable key=(testVar) default={false} />
-    //             <Computed key=(computeOne) src={!testVar} />
-    //             <Action key=(actionOne) src={testVar = !testVar} />
-    //         </Asset>
-    //     `))
-    // })
+    it('should render actions correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Action key=(actionOne) src={testVar = !testVar} />
+            <Computed key=(computeOne) src={!testVar} />
+            <Variable key=(testVar) default={false} />
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Variable key=(testVar) default={false} />
+                <Computed key=(computeOne) src={!testVar} />
+                <Action key=(actionOne) src={testVar = !testVar} />
+            </Asset>
+        `))
+    })
 
     // it('should render imports correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
+    //     const test = schemaTestStandardForm(`<Asset key=(Test)>
     //         <Import from=(vanishingPoint)>
     //             <Variable key=(testVar) from=(power) />
     //             <Room key=(testRoomOne)>
@@ -2129,7 +2123,7 @@ describe('StandardForm', () => {
     //         <Room key=(testRoomTwo) />
     //         <Variable key=(testVar) />
     //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
+    //     expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
     //         <Asset key=(Test)>
     //             <Import from=(vanishingPoint)>
     //                 <Variable key=(testVar) from=(power) />
