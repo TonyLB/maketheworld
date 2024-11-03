@@ -1,3 +1,4 @@
+import { excludeUndefined } from "../../lib/lists"
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
@@ -210,4 +211,85 @@ describe('StandardRoom class', () => {
             </Room>
         `))
     })
+
+    it('should merge a replace component correctly', () => {
+        const testRoomData: StandardRoomData = {
+            key: 'test',
+            tag: 'Room',
+            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName' }, children: [] }] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name' }, children: [] }] },
+            summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
+            exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit' }, children: [] }] }],
+            themes: []
+        }
+        const testReplaceData: StandardReplaceData = {
+            tag: 'Replace',
+            key: 'test',
+            match: {
+                key: 'test',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName' }, children: [] }] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
+                exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit' }, children: [] }] }],
+                themes: []
+            },
+            payload: {
+                key: 'test',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+                exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
+                themes: []
+            }
+        }
+        const baseStandard = new StandardRoom(testRoomData)
+        const testStandard = new StandardRoom(testReplaceData)
+        const mergedStandard = baseStandard.merge(testStandard)
+        expect(schemaToWML([mergedStandard?.schema].filter(excludeUndefined))).toEqual(deIndentWML(`
+            <Room key=(test)>
+                <ShortName>ShortName Test</ShortName>
+                <Name>Name Test</Name>
+                <Summary>Summary Test</Summary>
+                <Description>Description Test</Description>
+                <Exit to=(testTwo)>Exit test</Exit>
+            </Room>
+        `))
+    })
+
+    it('should merge a remove component correctly', () => {
+        const testRoomData: StandardRoomData = {
+            key: 'test',
+            tag: 'Room',
+            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName' }, children: [] }] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name' }, children: [] }] },
+            summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
+            exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit' }, children: [] }] }],
+            themes: []
+        }
+        const testReplaceData: StandardRemoveData = {
+            tag: 'Remove',
+            key: 'test',
+            component: {
+                key: 'test',
+                tag: 'Room',
+                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName' }, children: [] }] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name' }, children: [] }] },
+                summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
+                exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit' }, children: [] }] }],
+                themes: []
+            }
+        }
+        const baseStandard = new StandardRoom(testRoomData)
+        const testStandard = new StandardRoom(testReplaceData)
+        const mergedStandard = baseStandard.merge(testStandard)
+        expect(mergedStandard).toBeUndefined()
+    })
+
 })

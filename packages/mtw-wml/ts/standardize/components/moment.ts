@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { isStandardMoment, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMomentData } from "./dataTypes/moment"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardMoment extends StandardComponentAbstract {
@@ -54,16 +54,18 @@ export class StandardMoment extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMoment {
+    override merge(incoming: StandardComponentAbstract): StandardMoment | undefined {
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardMomentData = {
-            key: this.key,
-            tag: 'Moment',
-            messages: applyEdits([...this.messages, ...incoming.messages])
-        }
-        return new StandardMoment(args)
+        return wrapMerge<StandardMoment>(this, incoming, StandardMoment, (base, incoming) => {
+            const args: StandardMomentData = {
+                key: base.key,
+                tag: 'Moment',
+                messages: applyEdits([...base.messages, ...incoming.messages])
+            }
+            return new StandardMoment(args)
+        })
     }
 }
 

@@ -3,7 +3,7 @@ import { GenericTreeNode } from "../../tree/baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { isStandardVariable, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardVariable extends StandardComponentAbstract {
@@ -52,16 +52,18 @@ export class StandardVariable extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardVariable {
+    override merge(incoming: StandardComponentAbstract): StandardVariable | undefined {
         if (!(incoming instanceof StandardVariable)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardVariableData = {
-            key: this.key,
-            tag: 'Variable',
-            default: incoming.default ?? this.default ?? ''
-        }
-        return new StandardVariable(args)
+        return wrapMerge<StandardVariable>(this, incoming, StandardVariable, (base, incoming) => {
+            const args: StandardVariableData = {
+                key: base.key,
+                tag: 'Variable',
+                default: incoming.default ?? base.default ?? ''
+            }
+            return new StandardVariable(args)
+        })
     }
 }
 

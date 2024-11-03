@@ -7,7 +7,7 @@ import { EditWrappedStandardNode, isStandardMessage } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMessageData } from "./dataTypes/message"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -70,17 +70,19 @@ export class StandardMessage extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMessage {
+    override merge(incoming: StandardComponentAbstract): StandardMessage | undefined {
         if (!(incoming instanceof StandardMessage)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardMessageData = {
-            key: this.key,
-            tag: 'Message',
-            description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>,
-            rooms: applyEdits([...this.rooms, ...incoming.rooms])
-        }
-        return new StandardMessage(args)
+        return wrapMerge<StandardMessage>(this, incoming, StandardMessage, (base, incoming) => {
+            const args: StandardMessageData = {
+                key: base.key,
+                tag: 'Message',
+                description: combineTaggedChildren(base.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>,
+                rooms: applyEdits([...base.rooms, ...incoming.rooms])
+            }
+            return new StandardMessage(args)
+        })
     }
 }
 

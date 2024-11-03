@@ -54,7 +54,7 @@ export class StandardComponentWithNameAndDesc extends StandardComponentAbstract 
         }
     }
 
-    override merge(incoming: StandardComponentWithNameAndDesc): StandardComponentWithNameAndDesc {
+    override merge(incoming: StandardComponentWithNameAndDesc): StandardComponentWithNameAndDesc | undefined {
         const args = {
             key: this.key,
             tag: 'Feature' as const,

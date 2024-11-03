@@ -4,7 +4,7 @@ import { isStandardImage, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardImageData } from "./dataTypes/image"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardImage extends StandardComponentAbstract {
@@ -47,15 +47,17 @@ export class StandardImage extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardImage {
+    override merge(incoming: StandardComponentAbstract): StandardImage | undefined {
         if (!(incoming instanceof StandardImage)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardImageData = {
-            key: this.key,
-            tag: 'Image'
-        }
-        return new StandardImage(args)
+        return wrapMerge<StandardImage>(this, incoming, StandardImage, (base, incoming) => {
+            const args: StandardImageData = {
+                key: base.key,
+                tag: 'Image'
+            }
+            return new StandardImage(args)
+        })
     }
 }
 

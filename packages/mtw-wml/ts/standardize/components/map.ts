@@ -8,7 +8,7 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { isStandardMap, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -88,19 +88,21 @@ export class StandardMap extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMap {
+    override merge(incoming: StandardComponentAbstract): StandardMap | undefined {
         if (!(incoming instanceof StandardMap)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardMapData = {
-            key: this.key,
-            tag: 'Map',
-            name: combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
-            images: applyEdits([...this.images, ...incoming.images]),
-            positions: applyEdits([...this.positions, ...incoming.positions]),
-            themes: [...this.themes, ...incoming.themes]
-        }
-        return new StandardMap(args)
+        return wrapMerge<StandardMap>(this, incoming, StandardMap, (base, incoming) => {
+            const args: StandardMapData = {
+                key: base.key,
+                tag: 'Map',
+                name: combineTaggedChildren(base.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
+                images: applyEdits([...base.images, ...incoming.images]),
+                positions: applyEdits([...base.positions, ...incoming.positions]),
+                themes: [...base.themes, ...incoming.themes]
+            }
+            return new StandardMap(args)
+        })
     }
 }
 

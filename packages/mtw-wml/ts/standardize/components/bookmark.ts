@@ -4,7 +4,7 @@ import { EditWrappedStandardNode, isStandardBookmark, StandardComponentData } fr
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -58,16 +58,18 @@ export class StandardBookmark extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardBookmark {
+    override merge(incoming: StandardComponentAbstract): StandardBookmark | undefined {
         if (!(incoming instanceof StandardBookmark)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardBookmarkData = {
-            key: this.key,
-            tag: 'Bookmark',
-            description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
-        }
-        return new StandardBookmark(args)
+        return wrapMerge<StandardBookmark>(this, incoming, StandardBookmark, (base, incoming) => {
+            const args: StandardBookmarkData = {
+                key: base.key,
+                tag: 'Bookmark',
+                description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+            }
+            return new StandardBookmark(args)
+        })
     }
 }
 

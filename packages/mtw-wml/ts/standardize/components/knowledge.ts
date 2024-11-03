@@ -5,7 +5,7 @@ import { isStandardKnowledge, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
@@ -50,16 +50,21 @@ export class StandardKnowledge extends StandardComponentWithNameAndDesc {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardKnowledge {
+    override merge(incoming: StandardComponentAbstract): StandardKnowledge | undefined {
         if (!(incoming instanceof StandardKnowledge)) {
             throw new Error('Type mismatch on StandardComponent merge')
         }
-        const superMerge = super.merge(incoming)
-        const args: StandardKnowledgeData = {
-            ...superMerge.toJSON(),
-            tag: 'Knowledge',
-        }
-        return new StandardKnowledge(args)
+        return wrapMerge<StandardKnowledge>(this, incoming, StandardKnowledge, (base, incoming) => {
+            const superMerge = super.merge.bind(base)(incoming)
+            if (!superMerge) {
+                throw new Error('Merge failure in StandardRoom')
+            }
+            const args: StandardKnowledgeData = {
+                ...superMerge.toJSON(),
+                tag: 'Knowledge',
+            }
+            return new StandardKnowledge(args)
+        })
     }
 }
 

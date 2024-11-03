@@ -1,6 +1,7 @@
+import { deepEqual } from "../../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { isStandardRemove, isStandardReplace, StandardComponentData } from "../baseClasses";
+import { isStandardRemove, isStandardReplace, MergeConflictError, StandardComponentData } from "../baseClasses";
 import StandardComponentAbstract from "./abstract";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
 import { isSchemaTreeNode } from "./utils";
@@ -89,4 +90,40 @@ export const wrapSchema = <T extends StandardComponentAbstract>(item: T, callbac
         }
     }
     return payload
+}
+
+type MergeCallback<T extends StandardComponentAbstract> = (base: T, incoming: T) => T;
+
+export const wrapMerge = <T extends StandardComponentAbstract>(base: T, incoming: T, classRef: new (...args: any[]) => T, callback: MergeCallback<T>): T | undefined => {
+    if (incoming.isRemove) {
+        const payload = base.payload as T
+        if (base.isRemove || !deepEqual(payload.toJSON(), incoming.payload.toJSON())) {
+            throw new MergeConflictError()
+        }
+        if (base.isReplace) {
+            const match = base.match?.toJSON()
+            return new classRef({
+                tag: 'Remove',
+                key: base.key,
+                component: match
+            })
+        }
+        return undefined
+    }
+    if (incoming.isReplace) {
+        const payload = base.payload as T
+        if (base.isRemove || !deepEqual(payload.toJSON(), incoming.match?.toJSON())) {
+            throw new MergeConflictError()
+        }
+        if (base.isReplace) {
+            return new classRef({
+                tag: 'Replace',
+                key: base.key,
+                match: base.match,
+                payload: incoming.payload
+            })
+        }
+        return incoming.payload as T
+    }
+    return callback(base, incoming)
 }
