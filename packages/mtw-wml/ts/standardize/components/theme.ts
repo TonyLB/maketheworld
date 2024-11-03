@@ -7,7 +7,7 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { isStandardTheme, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardThemeData } from "./dataTypes/theme"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -79,19 +79,21 @@ export class StandardTheme extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardTheme {
+    override merge(incoming: StandardComponentAbstract): StandardTheme | undefined {
         if (!(incoming instanceof StandardTheme)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardThemeData = {
-            key: this.key,
-            tag: 'Theme',
-            name: combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
-            prompts: applyEdits([...this.prompts, ...incoming.prompts]).filter(treeNodeTypeguard(isSchemaPrompt)),
-            rooms: applyEdits([...this.rooms, ...incoming.rooms]),
-            maps: applyEdits([...this.maps, ...incoming.maps])
-        }
-        return new StandardTheme(args)
+        return wrapMerge<StandardTheme>(this, incoming, StandardTheme, (base, incoming) => {
+            const args: StandardThemeData = {
+                key: base.key,
+                tag: 'Theme',
+                name: combineTaggedChildren(base.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
+                prompts: applyEdits([...base.prompts, ...incoming.prompts]).filter(treeNodeTypeguard(isSchemaPrompt)),
+                rooms: applyEdits([...base.rooms, ...incoming.rooms]),
+                maps: applyEdits([...base.maps, ...incoming.maps])
+            }
+            return new StandardTheme(args)
+        })
     }
 }
 

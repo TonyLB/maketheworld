@@ -4,7 +4,7 @@ import { isStandardComputed, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardComputedData } from "./dataTypes/computed"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardComputed extends StandardComponentAbstract {
@@ -58,17 +58,19 @@ export class StandardComputed extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardComputed {
+    override merge(incoming: StandardComponentAbstract): StandardComputed | undefined {
         if (!(incoming instanceof StandardComputed)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardComputedData = {
-            key: this.key,
-            tag: 'Computed',
-            src: incoming.src ?? this.src ?? '',
-            dependencies: incoming.dependencies ?? this.dependencies
-        }
-        return new StandardComputed(args)
+        return wrapMerge<StandardComputed>(this, incoming, StandardComputed, (base, incoming) => {
+            const args: StandardComputedData = {
+                key: base.key,
+                tag: 'Computed',
+                src: incoming.src ?? base.src ?? '',
+                dependencies: incoming.dependencies ?? base.dependencies
+            }
+            return new StandardComputed(args)
+        })
     }
 }
 

@@ -4,7 +4,7 @@ import { isStandardAction, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardActionData } from "./dataTypes/action"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardAction extends StandardComponentAbstract {
@@ -55,16 +55,18 @@ export class StandardAction extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardAction {
+    override merge(incoming: StandardComponentAbstract): StandardAction | undefined {
         if (!(incoming instanceof StandardAction)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const args: StandardActionData = {
-            key: this.key,
-            tag: 'Action',
-            src: incoming.src ?? this.src ?? ''
-        }
-        return new StandardAction(args)
+        return wrapMerge<StandardAction>(this, incoming, StandardAction, (base, incoming) => {
+            const args: StandardActionData = {
+                key: base.key,
+                tag: 'Action',
+                src: incoming.src ?? base.src ?? ''
+            }
+            return new StandardAction(args)
+        })
     }
 }
 

@@ -5,7 +5,7 @@ import { isStandardFeature, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
@@ -50,19 +50,21 @@ export class StandardFeature extends StandardComponentWithNameAndDesc {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardFeature {
+    override merge(incoming: StandardComponentAbstract): StandardFeature | undefined {
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const superMerge = super.merge(incoming)
-        if (!superMerge) {
-            throw new Error('Merge failure in StandardFeature')
-        }
-        const args: StandardFeatureData = {
-            ...superMerge.toJSON(),
-            tag: 'Feature',
-        }
-        return new StandardFeature(args)
+        return wrapMerge<StandardFeature>(this, incoming, StandardFeature, (base, incoming) => {
+            const superMerge = super.merge.bind(base)(incoming)
+            if (!superMerge) {
+                throw new Error('Merge failure in StandardRoom')
+            }
+            const args: StandardFeatureData = {
+                ...superMerge.toJSON(),
+                tag: 'Feature',
+            }
+            return new StandardFeature(args)
+        })
     }
 }
 
