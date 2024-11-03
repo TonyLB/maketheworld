@@ -472,6 +472,36 @@ export class StandardForm {
         }
     }
 
+    toJSON(): StandardFormData {
+        if (this.tag === 'Character') {
+            const character = this._byId[this._key]
+            if (!(character instanceof StandardCharacter)) {
+                throw new Error('StandardForm misconfiguration')
+            }
+            return {
+                tag: 'Character',
+                key: this._key,
+                metaData: this._metaData,
+                byId: {
+                    [this._key]: character.toJSON()
+                }
+            }
+        }
+        else {
+            return {
+                tag: 'Asset',
+                key: this._key,
+                metaData: this._metaData,
+                byId: Object.entries(this._byId).reduce<Record<string, StandardComponentData>>((previous, [key, component]) => {
+                    return {
+                        ...previous,
+                        [key]: component.toJSON()
+                    }
+                }, {})
+            }
+        }
+    }
+
     get schema(): GenericTreeNode<SchemaTag> {
         if (this.tag === 'Character') {
             const character = this._byId[this._key]

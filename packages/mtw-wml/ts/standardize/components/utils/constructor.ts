@@ -51,7 +51,7 @@ export const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends 
     typeGuard: (value: SchemaTag) => value is T,
     childTypeGuard: (value: SchemaTag) => value is ChildType,
     defaultValue: T
-): EditWrappedStandardNode<T, ChildType> => {
+): EditWrappedStandardNode<T, ChildType> | undefined => {
     if (node) {
         if (treeNodeTypeguard(isSchemaRemove)(node)) {
             return {
@@ -78,5 +78,5 @@ export const outputNodeToStandardItem = <T extends SchemaTag, ChildType extends 
             return outputNodeUnedited<T, ChildType>(node, childTypeGuard, defaultValue)
         }
     }
-    return { data: defaultValue, children: [] }
+    return undefined
 }

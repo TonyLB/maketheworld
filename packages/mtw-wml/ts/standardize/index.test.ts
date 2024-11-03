@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from '../schema'
 import { StandardForm, Standardizer, defaultSelected } from '.'
 import { deIndentWML } from '../schema/utils'
-import { GenericTree } from '../tree/baseClasses'
+import { GenericTree, GenericTreeNode } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
 
@@ -1562,76 +1562,109 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(`<Asset key=(Test) />`)
     })
 
-    // it('should accept edit tags', () => {
-    //     const test: GenericTree<SchemaTag> = [{
-    //         data: { tag: 'Asset', key: 'Test', Story: undefined },
-    //         children: [
-    //             {
-    //                 data: { tag: 'Room', key: 'testRoom' },
-    //                 children: [{
-    //                     data: { tag: 'Replace' },
-    //                     children: [{
-    //                         data: { tag: 'ReplaceMatch' },
-    //                         children: [{
-    //                             data: { tag: 'Name' },
-    //                             children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
-    //                         }]
-    //                     },
-    //                     {
-    //                         data: { tag: 'ReplacePayload' },
-    //                         children: [{
-    //                             data: { tag: 'Name' },
-    //                             children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
-    //                         }]
-    //                     }],
+    it('should accept edit tags', () => {
+        const test: GenericTreeNode<SchemaTag> = {
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            children: [
+                {
+                    data: { tag: 'Room', key: 'testRoom' },
+                    children: [{
+                        data: { tag: 'Replace' },
+                        children: [{
+                            data: { tag: 'ReplaceMatch' },
+                            children: [{
+                                data: { tag: 'Name' },
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
+                            }]
+                        },
+                        {
+                            data: { tag: 'ReplacePayload' },
+                            children: [{
+                                data: { tag: 'Name' },
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
+                            }]
+                        }],
                         
-    //                 },
-    //                 {
-    //                     data: { tag: 'Remove' },
-    //                     children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
-    //                 }]
-    //             }
-    //         ]
-    //     }]
+                    },
+                    {
+                        data: { tag: 'Remove' },
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                    }]
+                },
+                { data: { tag: 'Remove' }, children: [{ data: { tag: 'Room', key: 'testRoomRemove' }, children: [] }] },
+                {
+                    data: { tag: 'Replace' },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] }] }] },
+                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }] }] }] }
+                    ]
+                }
+            ]
+        }
 
-    //     const standardizer = new Standardizer(test)
-    //     expect(standardizer.standardForm).toEqual({
-    //         tag: 'Asset',
-    //         key: 'Test',
-    //         metaData: [],
-    //         byId: {
-    //             testRoom: {
-    //                 tag: 'Room',
-    //                 key: 'testRoom',
-    //                 name: {
-    //                     data: { tag: 'Replace' },
-    //                     children: [{
-    //                         data: { tag: 'ReplaceMatch' },
-    //                         children: [{
-    //                             data: { tag: 'Name' },
-    //                             children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
-    //                         }]
-    //                     },
-    //                     {
-    //                         data: { tag: 'ReplacePayload' },
-    //                         children: [{
-    //                             data: { tag: 'Name' },
-    //                             children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
-    //                         }]
-    //                     }]
-    //                 },
-    //                 exits: [{
-    //                     data: { tag: 'Remove' },
-    //                     children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
-    //                 }],
-    //                 themes: [],
-    //                 shortName: { data: { tag: 'ShortName' }, children: [] },
-    //                 summary: { data: { tag: 'Summary' }, children: [] },
-    //                 description: { data: { tag: 'Description' }, children: [] },
-    //             }
-    //         }
-    //     })
-    // })
+        const standard = new StandardForm(test)
+        expect(standard.toJSON()).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            metaData: [],
+            byId: {
+                testRoom: {
+                    tag: 'Room',
+                    key: 'testRoom',
+                    name: {
+                        data: { tag: 'Replace' },
+                        children: [{
+                            data: { tag: 'ReplaceMatch' },
+                            children: [{
+                                data: { tag: 'Name' },
+                                children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
+                            }]
+                        },
+                        {
+                            data: { tag: 'ReplacePayload' },
+                            children: [{
+                                data: { tag: 'Name' },
+                                children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
+                            }]
+                        }]
+                    },
+                    exits: [{
+                        data: { tag: 'Remove' },
+                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                    }],
+                    themes: []
+                },
+                testRoomRemove: {
+                    tag: 'Remove',
+                    key: 'testRoomRemove',
+                    component: {
+                        tag: 'Room',
+                        key: 'testRoomRemove',
+                        exits: [],
+                        themes: []
+                    }
+                },
+                testRoomReplace: {
+                    tag: 'Replace',
+                    key: 'testRoomReplace',
+                    match: {
+                        tag: 'Room',
+                        key: 'testRoomReplace',
+                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
+                        exits: [],
+                        themes: []
+                    },
+                    payload: {
+                        tag: 'Room',
+                        key: 'testRoomReplace',
+                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }] },
+                        exits: [],
+                        themes: []
+                    }
+                }
+            }
+        })
+    })
 
     // it('should accept meta tags', () => {
     //     const test = schemaTestStandarized(`<Asset key=(Test)>
