@@ -4,6 +4,7 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree, GenericTreeNode } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
+import StandardRoom from './components/room'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
@@ -2108,103 +2109,96 @@ describe('StandardForm', () => {
         `))
     })
 
-    // it('should render imports correctly', () => {
-    //     const test = schemaTestStandardForm(`<Asset key=(Test)>
-    //         <Import from=(vanishingPoint)>
-    //             <Variable key=(testVar) from=(power) />
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Map key=(testMap)>
-    //                 <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
-    //             </Map>
-    //         </Import>
-    //         <Room key=(testRoomTwo) />
-    //         <Variable key=(testVar) />
-    //     </Asset>`)
-    //     expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(vanishingPoint)>
-    //                 <Variable key=(testVar) from=(power) />
-    //                 <Room key=(testRoomOne) />
-    //                 <Map key=(testMap) />
-    //             </Import>
-    //             <Room key=(testRoomOne)>
-    //                 <Description>Test Room One</Description>
-    //                 <Exit to=(testRoomTwo)>two</Exit>
-    //             </Room>
-    //             <Room key=(testRoomTwo) />
-    //             <Map key=(testMap)>
-    //                 <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
-    //             </Map>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render imports correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Variable key=(testVar) from=(power) />
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Map key=(testMap)>
+                    <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
+                </Map>
+            </Import>
+            <Room key=(testRoomTwo) />
+            <Variable key=(testVar) />
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(vanishingPoint)>
+                    <Variable key=(testVar) from=(power) />
+                    <Room key=(testRoomOne) />
+                    <Map key=(testMap) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Room key=(testRoomTwo) />
+                <Map key=(testMap)>
+                    <Room key=(testRoomTwo)><Position x="100" y="0" /></Room>
+                </Map>
+            </Asset>
+        `))
+    })
 
-    // it('should correctly reflect empty imports in byId', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Import from=(vanishingPoint)>
-    //             <Room key=(testRoomOne) />
-    //         </Import>
-    //     </Asset>`)
-    //     expect(test._byId.testRoomOne).toEqual({
-    //         description: { data: { tag: 'Description' }, children: [] },
-    //         exits: [],
-    //         key: 'testRoomOne',
-    //         name: { data: { tag: 'Name' }, children: [] },
-    //         shortName: { data: { tag: 'ShortName' }, children: [] },
-    //         summary: { data: { tag: 'Summary' }, children: [] },
-    //         tag: 'Room',
-    //         themes: []
-    //     })
-    //     const mapTest = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Map key=(testMap)>
-    //             <Room key=(testRoomOne)><Position x="0" y="100" /></Room>
-    //         </Map>
-    //     </Asset>`)
-    //     expect(mapTest._byId.testRoomOne).toEqual({
-    //         description: { data: { tag: 'Description' }, children: [] },
-    //         exits: [],
-    //         key: 'testRoomOne',
-    //         name: { data: { tag: 'Name' }, children: [] },
-    //         shortName: { data: { tag: 'ShortName' }, children: [] },
-    //         summary: { data: { tag: 'Summary' }, children: [] },
-    //         tag: 'Room',
-    //         themes: []
-    //     })
-    // })
+    it('should correctly reflect empty imports in byId', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Room key=(testRoomOne) />
+            </Import>
+        </Asset>`)
+        const firstRoom = test._byId.testRoomOne
+        expect(firstRoom.toJSON()).toEqual({
+            exits: [],
+            key: 'testRoomOne',
+            tag: 'Room',
+            themes: []
+        })
+        const mapTest = schemaTestStandardForm(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Room key=(testRoomOne)><Position x="0" y="100" /></Room>
+            </Map>
+        </Asset>`)
+        expect(mapTest._byId.testRoomOne.toJSON()).toEqual({
+            exits: [],
+            key: 'testRoomOne',
+            tag: 'Room',
+            themes: []
+        })
+    })
 
-    // it('should render unedited imports correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Import from=(vanishingPoint)>
-    //             <Room key=(testRoomOne) />
-    //         </Import>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(vanishingPoint)><Room key=(testRoomOne) /></Import>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render unedited imports correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Room key=(testRoomOne) />
+            </Import>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(vanishingPoint)><Room key=(testRoomOne) /></Import>
+            </Asset>
+        `))
+    })
 
-    // it('should render renamed imports correctly', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Import from=(vanishingPoint)>
-    //             <Room key=(testRoomOne) as=(testRoomTwo)>
-    //                 <ShortName>Test</ShortName>
-    //             </Room>
-    //         </Import>
-    //     </Asset>`)
-    //     expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(vanishingPoint)>
-    //                 <Room key=(testRoomOne) as=(testRoomTwo) />
-    //             </Import>
-    //             <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should render renamed imports correctly', () => {
+        const test = schemaTestStandardForm(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Room key=(testRoomOne) as=(testRoomTwo)>
+                    <ShortName>Test</ShortName>
+                </Room>
+            </Import>
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(vanishingPoint)>
+                    <Room key=(testRoomOne) as=(testRoomTwo) />
+                </Import>
+                <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
+            </Asset>
+        `))
+    })
 
     // it('should render exports correctly', () => {
     //     const testSource = deIndentWML(`
@@ -2213,8 +2207,8 @@ describe('StandardForm', () => {
     //             <Export><Room key=(testRoomOne) as=(Room2) /></Export>
     //         </Asset>
     //     `)
-    //     const test = schemaTestStandarized(testSource)
-    //     expect(schemaToWML(test.schema)).toEqual(testSource)
+    //     const test = schemaTestStandardForm(testSource)
+    //     expect(schemaToWML([test.schema])).toEqual(testSource)
     // })
 
     // it('should render Remove tags correctly', () => {

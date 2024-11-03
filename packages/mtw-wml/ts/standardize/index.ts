@@ -276,7 +276,7 @@ export class StandardForm {
                         //
                         // Aggregate and reorder all top-level information
                         //
-                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (data.key === key)) }
+                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (('as' in data && data.as === key) || data.key === key)) }
                         const editTag: TagTreeMatchOperation<SchemaTag> = { or: [{ match: 'Replace' }, { match: 'Remove' }] }
                         const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                             const prunedTagTree = tagTree
@@ -356,17 +356,17 @@ export class StandardForm {
                         applyEdits(adjustTagTree(tagTree, nodeMatch).tree).forEach((item) => {
                             const standardItem = standardComponentFactory(item)
                             if (standardItem) {
-                                if (this._byId[key]) {
-                                    const merged = this._byId[key].merge(standardItem)
+                                if (this._byId[standardItem.key]) {
+                                    const merged = this._byId[standardItem.key].merge(standardItem)
                                     if (merged) {
-                                        this._byId[key] = merged
+                                        this._byId[standardItem.key] = merged
                                     }
                                     else {
-                                        delete this._byId[key]
+                                        delete this._byId[standardItem.key]
                                     }
                                 }
                                 else {
-                                    this._byId[key] = standardItem
+                                    this._byId[standardItem.key] = standardItem
                                 }
                             }
                         })
@@ -457,12 +457,12 @@ export class StandardForm {
             this._key = args.key
             this.tag = args.tag
             this._metaData = args.metaData
-            this._byId = Object.entries(args.byId).reduce<Record<string, StandardComponent>>((previous, [key, standardData]) => {
+            this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
                     return {
                         ...previous,
-                        [key]: standardItem
+                        [standardItem.key]: standardItem
                     }
                 }
                 else {
@@ -492,10 +492,10 @@ export class StandardForm {
                 tag: 'Asset',
                 key: this._key,
                 metaData: this._metaData,
-                byId: Object.entries(this._byId).reduce<Record<string, StandardComponentData>>((previous, [key, component]) => {
+                byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
                     return {
                         ...previous,
-                        [key]: component.toJSON()
+                        [component.key]: component.toJSON()
                     }
                 }, {})
             }
@@ -512,9 +512,18 @@ export class StandardForm {
         }
         else {
             const children = Object.values(this._byId).map((item) => (item.schema))
+            const imports = this._metaData.filter(treeNodeTypeguard(isSchemaImport))
+            const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             return {
                 data: { tag: 'Asset', key: this._key, Story: undefined },
-                children
+                children: [
+                    ...this._metaData.filter(treeNodeTypeguard(isSchemaMeta)),
+                    ...imports,
+                    //
+                    // Don't include a separate schema entry for an import that doesn't change the component
+                    //
+                    ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key))))
+                ]
             }
         }
     }
