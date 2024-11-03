@@ -548,4 +548,45 @@ export class StandardForm {
             }
         }
     }
+
+    _clone(): StandardForm {
+        return new StandardForm(this.toJSON())
+    }
+
+    merge(incoming: StandardForm): StandardForm {
+        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
+        const returnValue = this._clone()
+        returnValue._byId = allKeys
+            .reduce<Record<string, StandardComponent>>((previous, key) => {
+                const base = this._byId[key]
+                const incomingComponent = incoming._byId[key]
+                if (base) {
+                    if (incomingComponent) {
+                        const merge = base.merge(incomingComponent)
+                        if (!merge) {
+                            return previous
+                        }
+                        else {
+                            return { ...previous, [key]: merge }
+                        }
+                    }
+                    else {
+                        return { ...previous, [key]: base }
+                    }
+                }
+                else {
+                    if (incomingComponent) {
+                        return { ...previous, [key]: incomingComponent }
+                    }
+                    else {
+                        return previous
+                    }
+                }
+            }, {})
+
+        const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
+        returnValue._metaData = applyEdits(combinedMetaData.tree)
+
+        return returnValue
+    }
 }

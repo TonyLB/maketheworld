@@ -2258,443 +2258,319 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
-    // it('should combine multiple schemata correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Inherited>
-    //                 <Room key=(testRoomOne)>
-    //                     <Name>Lobby</Name>
-    //                     <Description>A plain lobby.</Description>
-    //                 </Room>
-    //             </Inherited>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Space />(at night)</Name>
-    //                 <Description><Space />Shadows cling to the corners of the room.</Description>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const standardizer = new Standardizer(inheritedSchema.schema, testSchema.schema)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Inherited>Lobby</Inherited><Space />(at night)</Name>
-    //                 <Description>
-    //                     <Inherited>A plain lobby.</Inherited><Space />Shadows cling to the
-    //                     corners of the room.
-    //                 </Description>
-    //             </Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit value tags correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><Name>Lobby</Name></Replace>
+                    <With><Name>Darkened lobby</Name></With>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Darkened lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit value tags correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name>Lobby</Name>
-    //                 <Description>A plain lobby.</Description>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><Name>Lobby</Name></Replace>
-    //                 <With><Name>Darkened lobby</Name></With>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name>Darkened lobby</Name>
-    //                 <Description>A plain lobby.</Description>
-    //             </Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit component remove of plain base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Room>
+                </Remove>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)><Room key=(testRoomTwo) /></Asset>
+        `))
+    })
 
-    // it('should merge edit component remove of plain base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name>Lobby</Name>
-    //                 <Description>A plain lobby.</Description>
-    //             </Room>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Remove>
-    //                 <Room key=(testRoomOne)>
-    //                     <Name>Lobby</Name>
-    //                     <Description>A plain lobby.</Description>
-    //                 </Room>
-    //             </Remove>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)><Room key=(testRoomTwo) /></Asset>
-    //     `))
-    // })
+    it('should merge edit component remove of replace base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)><Name>Changed</Name></Room>
+                </Remove>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit component remove of replace base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Remove>
-    //                 <Room key=(testRoomOne)><Name>Changed</Name></Room>
-    //             </Remove>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit component remove of empty base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(testRoomOne)><Name>Lobby</Name></Room>
+                </Remove>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+                <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit component remove of empty base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Remove>
-    //                 <Room key=(testRoomOne)><Name>Lobby</Name></Room>
-    //             </Remove>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomTwo) />
-    //             <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit component replace of plain base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>                
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Test</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)><Name>Changed</Name></Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit component replace of plain base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>                
-    //             <Room key=(testRoomOne)><Name>Test</Name></Room>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Test</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)><Name>Changed</Name></Room>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit component replace of replace base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Changed</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed again</Name></Room></With>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed again</Name></Room></With>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit component replace of replace base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Changed</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed again</Name></Room></With>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed again</Name></Room></With>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edit component replace of empty base component correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo) />
+                <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
+                <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+            </Asset>
+        `))
+    })
 
-    // it('should merge edit component replace of empty base component correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomTwo) />
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomTwo) />
-    //             <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
-    //             <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
-    //         </Asset>
-    //     `))
-    // })
+    it('should apply edits on merge', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)>
+                    <Exit to=(testRoomOne)>out</Exit>
+                </Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomTwo)>
+                    <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
+                    <Exit to=(testRoomOne)>depart</Exit>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo)><Exit to=(testRoomOne)>depart</Exit></Room>
+            </Asset>
+        `))
+    })
 
-    // it('should apply edits on merge', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Room key=(testRoomTwo)>
-    //                 <Exit to=(testRoomOne)>out</Exit>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomTwo)>
-    //                 <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
-    //                 <Exit to=(testRoomOne)>depart</Exit>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Room key=(testRoomTwo)><Exit to=(testRoomOne)>depart</Exit></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should correctly merge multiple replaces', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Two</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Two</ShortName></Replace>
+                    <With><ShortName>Three</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Three</ShortName></With>
+                </Room>
+            </Asset>
+        `))
+    })
 
-    // it('should correctly merge multiple replaces', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>One</ShortName></Replace>
-    //                 <With><ShortName>Two</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>Two</ShortName></Replace>
-    //                 <With><ShortName>Three</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>One</ShortName></Replace>
-    //                 <With><ShortName>Three</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should correctly filter no-op replace results', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>One</ShortName></Replace>
+                    <With><ShortName>Two</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Two</ShortName></Replace>
+                    <With><ShortName>One</ShortName></With>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)><Room key=(testRoomOne) /></Asset>
+        `))
+    })
 
-    // it('should correctly filter no-op replace results', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>One</ShortName></Replace>
-    //                 <With><ShortName>Two</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>Two</ShortName></Replace>
-    //                 <With><ShortName>One</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)><Room key=(testRoomOne) /></Asset>
-    //     `))
-    // })
+    it('should merge multiple standardComponents correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Room>
+                <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby<Space />(at night)</Name>
+                    <Description>
+                        A plain lobby.<Space />Shadows cling to the corners of the room.
+                    </Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+                <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `))
+    })
 
-    // it('should merge multiple standardComponents correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Inherited>
-    //                 <Room key=(testRoomOne)>
-    //                     <Name>Lobby</Name>
-    //                     <Description>A plain lobby.</Description>
-    //                 </Room>
-    //                 <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
-    //             </Inherited>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Space />(at night)</Name>
-    //                 <Description><Space />Shadows cling to the corners of the room.</Description>
-    //             </Room>
-    //             <Room key=(testRoomThree)><Name>Test Three</Name></Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Inherited>Lobby</Inherited><Space />(at night)</Name>
-    //                 <Description>
-    //                     <Inherited>A plain lobby.</Inherited><Space />Shadows cling to the
-    //                     corners of the room.
-    //                 </Description>
-    //             </Room>
-    //             <Room key=(testRoomTwo)><Name><Inherited>Test Two</Inherited></Name></Room>
-    //             <Room key=(testRoomThree)><Name>Test Three</Name></Room>
-    //         </Asset>
-    //     `))
-    // })
-
-    // it('should merge metadata correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(primitives)>
-    //                 <Room key=(testRoomOne) />
-    //             </Import>
-    //             <Room key=(testRoomOne)>
-    //                 <Name>Lobby</Name>
-    //                 <Description>A plain lobby.</Description>
-    //             </Room>
-    //             <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(primitives)>
-    //                 <Room key=(testRoomThree) />
-    //             </Import>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Space />(at night)</Name>
-    //                 <Description><Space />Shadows cling to the corners of the room.</Description>
-    //             </Room>
-    //             <Room key=(testRoomThree)><Name>Test Three</Name></Room>
-    //         </Asset>
-    //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(primitives)>
-    //                 <Room key=(testRoomOne) />
-    //                 <Room key=(testRoomThree) />
-    //             </Import>
-    //             <Room key=(testRoomOne)>
-    //                 <Name>Lobby<Space />(at night)</Name>
-    //                 <Description>
-    //                     A plain lobby.<Space />Shadows cling to the corners of the room.
-    //                 </Description>
-    //             </Room>
-    //             <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
-    //             <Room key=(testRoomThree)><Name>Test Three</Name></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge metadata correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Import from=(primitives)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Import from=(primitives)>
+                    <Room key=(testRoomThree) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Room>
+                <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(primitives)>
+                    <Room key=(testRoomOne) />
+                    <Room key=(testRoomThree) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby<Space />(at night)</Name>
+                    <Description>
+                        A plain lobby.<Space />Shadows cling to the corners of the room.
+                    </Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+                <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+            </Asset>
+        `))
+    })
 
     // it('should merge edited metadata correctly', () => {
-    //     const inheritedSource = deIndentWML(`
+    //     const inherited = schemaTestStandardForm(`
     //         <Asset key=(Test)>
     //             <Import from=(primitives)>
     //                 <Room key=(testRoomOne) />
@@ -2702,10 +2578,7 @@ describe('StandardForm', () => {
     //             <Room key=(testRoomOne)><Name>Test</Name></Room>
     //         </Asset>
     //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testSource = deIndentWML(`
+    //     const test = schemaTestStandardForm(`
     //         <Asset key=(Test)>
     //             <Replace>
     //                 <Import from=(primitives)>
@@ -2719,12 +2592,7 @@ describe('StandardForm', () => {
     //             </With>
     //         </Asset>
     //     `)
-    //     const testSchema = new Schema()
-    //     testSchema.loadWML(testSource)
-    //     const testStandard = new Standardizer(testSchema.schema)
-    //     console.log(`testStandard: ${JSON.stringify(testStandard._byId, null, 4)}`)
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
+    //     expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
     //         <Asset key=(Test)>
     //             <Import from=(test)><Room key=(testRoomOne) /></Import>
     //             <Room key=(testRoomOne)><Name>Test</Name></Room>
