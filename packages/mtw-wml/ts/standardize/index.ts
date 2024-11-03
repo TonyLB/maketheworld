@@ -276,7 +276,8 @@ export class StandardForm {
                         //
                         // Aggregate and reorder all top-level information
                         //
-                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (('as' in data && data.as === key) || data.key === key)) }
+                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && ('as' in data ? data.as === key : data.key === key)) }
+                        const nodeMatchImport: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (((Boolean(stack.find(isSchemaImport)) && isImportable(data)) ? data.as ?? data.key : data.key) === key)) }
                         const editTag: TagTreeMatchOperation<SchemaTag> = { or: [{ match: 'Replace' }, { match: 'Remove' }] }
                         const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                             const prunedTagTree = tagTree
@@ -353,7 +354,19 @@ export class StandardForm {
                             return prunedTagTree
                         }
 
-                        applyEdits(adjustTagTree(tagTree, nodeMatch).tree).forEach((item) => {
+                        const filteredTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatch, { not: { match: 'Import' } }] }), nodeMatch)
+                        const importedTagTree = adjustTagTree(tagTree.filter({ and: [nodeMatchImport, { match: 'Import' }] }), nodeMatchImport)
+
+                        const adjustedTree = [
+                            ...(applyEdits(adjustTagTree(importedTagTree, nodeMatch).tree)
+                                .map((item) => (
+                                    (treeNodeTypeguard(isImportable)(item) && item.data.as)
+                                        ? { ...item, data: { ...item.data, key: item.data.as } }
+                                        : item
+                                ))),
+                            ...applyEdits(adjustTagTree(filteredTagTree, nodeMatch).tree)
+                        ]
+                        adjustedTree.forEach((item) => {
                             const standardItem = standardComponentFactory(item)
                             if (standardItem) {
                                 if (this._byId[standardItem.key]) {
@@ -508,7 +521,14 @@ export class StandardForm {
             if (!(character instanceof StandardCharacter)) {
                 throw new Error('StandardForm misconfiguration')
             }
-            return character.schema
+            const itemSchema = character.schema
+            return {
+                ...itemSchema,
+                children: [
+                    ...itemSchema.children,
+                    ...this._metaData.filter(treeNodeTypeguard(isSchemaImport))
+                ]
+            }
         }
         else {
             const children = Object.values(this._byId).map((item) => (item.schema))
@@ -522,7 +542,8 @@ export class StandardForm {
                     //
                     // Don't include a separate schema entry for an import that doesn't change the component
                     //
-                    ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key))))
+                    ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
+                    ...this._metaData.filter(treeNodeTypeguard(isSchemaExport))
                 ]
             }
         }

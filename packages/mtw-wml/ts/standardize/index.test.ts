@@ -2200,63 +2200,63 @@ describe('StandardForm', () => {
         `))
     })
 
-    // it('should render exports correctly', () => {
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Export><Room key=(testRoomOne) as=(Room2) /></Export>
-    //         </Asset>
-    //     `)
-    //     const test = schemaTestStandardForm(testSource)
-    //     expect(schemaToWML([test.schema])).toEqual(testSource)
-    // })
+    it('should render exports correctly', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Export><Room key=(testRoomOne) as=(Room2) /></Export>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(testSource)
+        expect(schemaToWML([test.schema])).toEqual(testSource)
+    })
 
-    // it('should render Remove tags correctly', () => {
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Remove><Room key=(testRoomTwo)><Name>Test To Delete</Name></Room></Remove>
-    //         </Asset>
-    //     `)
-    //     const test = schemaTestStandarized(testSource)
-    //     expect(schemaToWML(test.schema)).toEqual(testSource)
-    // })
+    it('should render Remove tags correctly', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Remove><Room key=(testRoomTwo)><Name>Test To Delete</Name></Room></Remove>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(testSource)
+        expect(schemaToWML([test.schema])).toEqual(testSource)
+    })
 
-    // it('should render Replace tags correctly', () => {
-    //     const testSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne) />
-    //             <Replace><Variable key=(testVariable) default={true} /></Replace>
-    //             <With><Variable key=(testVariable) default={false} /></With>
-    //         </Asset>
-    //     `)
-    //     const test = schemaTestStandarized(testSource)
-    //     expect(schemaToWML(test.schema)).toEqual(testSource)
-    // })
+    it('should render Replace tags correctly', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne) />
+                <Replace><Variable key=(testVariable) default={true} /></Replace>
+                <With><Variable key=(testVariable) default={false} /></With>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(testSource)
+        expect(schemaToWML([test.schema])).toEqual(testSource)
+    })
 
-    // it('should handle characters correctly', () => {
-    //     const testSource = deIndentWML(`
-    //         <Character key=(Tess)>
-    //             <Name>Tess</Name>
-    //             <Pronouns
-    //                 subject="she"
-    //                 object="her"
-    //                 possessive="her"
-    //                 adjective="hers"
-    //                 reflexive="herself"
-    //             />
-    //             <FirstImpression>Frumpy Goth</FirstImpression>
-    //             <OneCoolThing>Fuchsia eyes</OneCoolThing>
-    //             <Outfit>
-    //                 A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
-    //             </Outfit>
-    //             <Image key=(TessIcon) />
-    //             <Import from=(primitives) />
-    //         </Character>
-    //     `)
-    //     const test = schemaTestStandarized(testSource)
-    //     expect(schemaToWML(test.schema)).toEqual(testSource)
-    // })
+    it('should handle characters correctly', () => {
+        const testSource = deIndentWML(`
+            <Character key=(Tess)>
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <FirstImpression>Frumpy Goth</FirstImpression>
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>
+                    A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
+                </Outfit>
+                <Image key=(TessIcon) />
+                <Import from=(primitives) />
+            </Character>
+        `)
+        const test = schemaTestStandardForm(testSource)
+        expect(schemaToWML([test.schema])).toEqual(testSource)
+    })
 
     // it('should combine multiple schemata correctly', () => {
     //     const inheritedSource = deIndentWML(`
