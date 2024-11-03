@@ -55,6 +55,9 @@ export class StandardFeature extends StandardComponentWithNameAndDesc {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
         const superMerge = super.merge(incoming)
+        if (!superMerge) {
+            throw new Error('Merge failure in StandardFeature')
+        }
         const args: StandardFeatureData = {
             ...superMerge.toJSON(),
             tag: 'Feature',

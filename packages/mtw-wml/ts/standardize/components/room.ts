@@ -9,9 +9,9 @@ import { EditWrappedStandardNode, isStandardRoom, StandardComponentData } from "
 import StandardComponentAbstract from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardRoomData } from "./dataTypes/room"
-import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
-import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
+import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
@@ -57,6 +57,12 @@ export class StandardRoom extends StandardComponentWithNameAndDesc {
 
     override get isReplace() { return Boolean(this._match) }
     override get match() { return this._match }
+    override get payload(): StandardRoom {
+        const returnValue = new StandardRoom(this.toJSON())
+        returnValue._match = undefined
+        returnValue._remove = false
+        return returnValue
+    }
 
     get shortName() { return this._shortName }
     get summary() { return this._summary }
@@ -86,20 +92,25 @@ export class StandardRoom extends StandardComponentWithNameAndDesc {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardRoom {
+    override merge(incoming: StandardComponentAbstract): StandardRoom | undefined {
         if (!(incoming instanceof StandardRoom)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        const superMerge = super.merge(incoming)
-        const args: StandardRoomData = {
-            ...superMerge.toJSON(),
-            tag: 'Room',
-            shortName: combineTaggedChildren(this.shortName, incoming.shortName) as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>,
-            summary: combineTaggedChildren(this.summary, incoming.summary) as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>,
-            exits: applyEdits([...this.exits, ...incoming.exits]),
-            themes: [...this.themes, ...incoming.themes]
-        }
-        return new StandardRoom(args)
+        return wrapMerge<StandardRoom>(this, incoming, StandardRoom, (base, incoming) => {
+            const superMerge = super.merge.bind(base)(incoming)
+            if (!superMerge) {
+                throw new Error('Merge failure in StandardRoom')
+            }
+            const args: StandardRoomData = {
+                ...superMerge.toJSON(),
+                tag: 'Room',
+                shortName: combineTaggedChildren(base.shortName, incoming.shortName) as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>,
+                summary: combineTaggedChildren(base.summary, incoming.summary) as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>,
+                exits: applyEdits([...base.exits, ...incoming.exits]),
+                themes: [...base.themes, ...incoming.themes]
+            }
+            return new StandardRoom(args)    
+        })
     }
 }
 

@@ -10,5 +10,8 @@ export const mergeTest = <T extends StandardComponentAbstract>(base: string, sta
     testSchema.loadWML(deIndentWML(incoming))
     const testStandard = new standardClass(testSchema.schema[0])
     const mergedStandard = baseStandard.merge(testStandard)
+    if (!mergedStandard) {
+        throw new Error('Failure in mergeTest utility')
+    }
     return schemaToWML([mergedStandard.schema])
 }

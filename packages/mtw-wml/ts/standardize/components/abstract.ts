@@ -35,12 +35,13 @@ export class StandardComponentAbstract {
     get isRemove() { return this._remove }
     get isReplace() { return false }
     get match(): StandardComponentAbstract | undefined { return undefined }
+    get payload(): StandardComponentAbstract { return this }
 
     toJSON(): StandardBaseData {
         return { key: this.key }
     }
 
-    merge(incoming: StandardComponentAbstract): StandardComponentAbstract {
+    merge(incoming: StandardComponentAbstract): StandardComponentAbstract | undefined {
         throw new Error('Cannot call merge on abstract class')
     }
 }

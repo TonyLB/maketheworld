@@ -55,6 +55,9 @@ export class StandardKnowledge extends StandardComponentWithNameAndDesc {
             throw new Error('Type mismatch on StandardComponent merge')
         }
         const superMerge = super.merge(incoming)
+        if (!superMerge) {
+            throw new Error('Merge failure in StandardKnowledge')
+        }
         const args: StandardKnowledgeData = {
             ...superMerge.toJSON(),
             tag: 'Knowledge',
