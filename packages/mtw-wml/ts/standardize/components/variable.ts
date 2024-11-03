@@ -1,41 +1,55 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { isStandardVariable, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardVariable extends StandardComponentAbstract {
     _default?: string;
+    _match?: StandardVariable;
     tag = 'Variable' as const
-    constructor(args: StandardVariableData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            const { data } = args
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardVariable(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            const { data } = payload
             if (!isSchemaVariable(data)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
+                throw new Error('Type mismatch in StandardVariable constructor')
             }
             this._default = data.default
         }
         else {
-            this._default = args.default
+            if (!isStandardVariable(payload)) {
+                throw new Error('Type mismatch in StandardAction constructor')
+            }
+            this._default = payload.default
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get default() { return this._default }
 
-    override toJSON(): StandardVariableData {
-        return {
-            key: this.key,
+    override toJSON(): StandardVariableData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardVariable, StandardVariableData>(this, (value) => ({
+            key: value.key,
             tag: 'Variable',
-            default: this.default ?? ''
-        }
+            default: value.default ?? ''
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Variable', key: this.key, default: this.default },
+        return wrapSchema(this, (value: StandardVariable) => ({
+            data: { tag: 'Variable', key: value.key, default: value.default },
             children: []
-        }
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardVariable {

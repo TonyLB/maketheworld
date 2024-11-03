@@ -1,50 +1,61 @@
-import { excludeUndefined } from "../../lib/lists"
-import { isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
+import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { EditWrappedStandardNode, isStandardBookmark, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-type NameAndDesc = {
-    name: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
-    description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-}
-
 export class StandardBookmark extends StandardComponentAbstract {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    constructor(args: StandardBookmarkData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children: args.children }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+    _match?: StandardBookmark;
+    tag = 'Bookmark' as const;
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardBookmark(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            const { data } = payload
+            if (!isSchemaBookmark(data)) {
+                throw new Error('Type mismatch in StandardBookmark constructor')
+            }
+            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children: payload.children }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
         }
         else {
-            this._description = args.description
+            if (!isStandardBookmark(payload)) {
+                throw new Error('Type mismatch in StandardBookmark constructor')
+            }
+            this._description = payload.description
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get description() {
         return this._description
     }
 
-    override toJSON(): StandardBookmarkData {
+    override toJSON(): StandardBookmarkData | StandardRemoveData | StandardReplaceData {
         const superArgs = super.toJSON()
-        return {
+        return wrapJSON<StandardBookmark, StandardBookmarkData>(this, (value) => ({
             ...superArgs,
             tag: 'Bookmark',
             description: this.description
-        }
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Bookmark', key: this.key },
-            children: this.description ? standardFieldToOutputNode(this.description).filter(({ children }) => (children.length)).map(({ children }) => (children)).flat(1) : []
-        }
+        return wrapSchema(this, (value: StandardBookmark) => ({
+            data: { tag: 'Bookmark', key: value.key },
+            children: value.description ? standardFieldToOutputNode(value.description).filter(({ children }) => (children.length)).map(({ children }) => (children)).flat(1) : []
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardBookmark {

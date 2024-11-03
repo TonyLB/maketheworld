@@ -1,46 +1,61 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
+import { isStandardComputed, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardComputedData } from "./dataTypes/computed"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardComputed extends StandardComponentAbstract {
     _src?: string;
     _dependencies?: string[];
+    _match?: StandardComputed;
     tag = 'Computed' as const
-    constructor(args: StandardComputedData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            const { data } = args
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardComputed(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            const { data } = payload
             if (!isSchemaComputed(data)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
+                throw new Error('Type mismatch in StandardComputed constructor')
             }
             this._src = data.src
             this._dependencies = data.dependencies
         }
         else {
-            this._src = args.src
-            this._dependencies = args.dependencies
+            if (!isStandardComputed(payload)) {
+                throw new Error('Type mismatch in StandardComputed constructor')
+            }
+            this._src = payload.src
+            this._dependencies = payload.dependencies
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get src() { return this._src }
     get dependencies() { return this._dependencies }
 
-    override toJSON(): StandardComputedData {
-        return {
-            key: this.key,
+    override toJSON(): StandardComputedData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardComputed, StandardComputedData>(this, (value) => ({
+            key: value.key,
             tag: 'Computed',
-            src: this.src ?? '',
-            dependencies: this.dependencies
-        }
+            src: value.src ?? '',
+            dependencies: value.dependencies
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Computed', key: this.key, src: this.src ?? '', dependencies: this.dependencies },
+        return wrapSchema(this, (value: StandardComputed) => ({
+            data: { tag: 'Computed', key: value.key, src: value.src ?? '', dependencies: value.dependencies },
             children: []
-        }
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardComputed {

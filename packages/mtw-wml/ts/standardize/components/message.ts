@@ -1,24 +1,35 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaDescription, isSchemaName, isSchemaOutputTag, isSchemaPrompt, isSchemaTheme, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaPromptTag, SchemaTag } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaMessage, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
+import { EditWrappedStandardNode, isStandardMessage } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMessageData } from "./dataTypes/message"
-import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
+import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
 export class StandardMessage extends StandardComponentAbstract {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     _rooms: GenericTree<SchemaTag>;
+    _match?: StandardMessage;
     tag = 'Message' as const
-    constructor(args: StandardMessageData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            const tagTree = new SchemaTagTree(args.children)
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardMessage(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            const { data } = payload
+            if (!isSchemaMessage(data)) {
+                throw new Error('Type mismatch in StandardMessage constructor')
+            }
+            const tagTree = new SchemaTagTree(payload.children)
             const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
             const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
@@ -26,31 +37,37 @@ export class StandardMessage extends StandardComponentAbstract {
             this._rooms = roomTagTree.tree
         }
         else {
-            this._description = args.description
-            this._rooms = args.rooms
+            if (!isStandardMessage(payload)) {
+                throw new Error('Type mismatch in StandardMessage constructor')
+            }
+            this._description = payload.description
+            this._rooms = payload.rooms
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get description() { return this._description }
     get rooms() { return this._rooms }
 
-    override toJSON(): StandardMessageData {
-        return {
-            key: this.key,
+    override toJSON(): StandardMessageData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardMessage, StandardMessageData>(this, (value) => ({
+            key: value.key,
             tag: 'Message',
-            description: this.description,
-            rooms: this.rooms
-        }
+            description: value.description,
+            rooms: value.rooms
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Message', key: this.key },
+        return wrapSchema(this, (value: StandardMessage) => ({
+            data: { tag: 'Message', key: value.key },
             children: [
-                ...this.rooms,
-                ...[this.description].filter(excludeUndefined).map(({ children }) => (children)).flat(1),
+                ...value.rooms,
+                ...[value.description].filter(excludeUndefined).map(({ children }) => (children)).flat(1),
             ]
-        }
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardMessage {

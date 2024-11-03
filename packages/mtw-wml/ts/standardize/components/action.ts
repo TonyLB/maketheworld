@@ -1,43 +1,58 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
+import { isStandardAction, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract from "./abstract"
+import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardActionData } from "./dataTypes/action"
+import { unwrapConstructorArgs, wrapJSON, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardAction extends StandardComponentAbstract {
     _src?: string;
     _dependencies?: string[];
-    tag = 'Computed' as const
-    constructor(args: StandardActionData | GenericTreeNode<SchemaTag>) {
-        super(args)
-        if (isSchemaTreeNode(args)) {
-            const { data } = args
+    _match?: StandardAction;
+    tag = 'Action' as const
+    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
+        const { payload, remove, match } = unwrapConstructorArgs(args)
+        super(payload)
+        this._remove = remove
+        if (match) {
+            this._match = new StandardAction(match)
+        }
+        if (isSchemaTreeNode(payload)) {
+            const { data } = payload
             if (!isSchemaAction(data)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
+                throw new Error('Type mismatch in StandardAction constructor')
             }
             this._src = data.src
         }
         else {
-            this._src = args.src
+            if (!isStandardAction(payload)) {
+                throw new Error('Type mismatch in StandardAction constructor')
+            }
+            this._src = payload.src
         }
     }
+
+    override get isReplace() { return Boolean(this._match) }
+    override get match() { return this._match }
 
     get src() { return this._src }
     get dependencies() { return this._dependencies }
 
-    override toJSON(): StandardActionData {
-        return {
-            key: this.key,
+    override toJSON(): StandardActionData | StandardRemoveData | StandardReplaceData {
+        return wrapJSON<StandardAction, StandardActionData>(this, (value) => ({
+            key: value.key,
             tag: 'Action',
-            src: this.src ?? ''
-        }
+            src: value.src ?? ''
+        }))
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return {
-            data: { tag: 'Action', key: this.key, src: this.src ?? '' },
+        return wrapSchema(this, (value: StandardAction) => ({
+            data: { tag: 'Action', key: value.key, src: value.src ?? '' },
             children: []
-        }
+        }))
     }
 
     override merge(incoming: StandardComponentAbstract): StandardAction {
