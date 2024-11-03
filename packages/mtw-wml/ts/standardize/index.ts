@@ -276,7 +276,7 @@ export class StandardForm {
                         //
                         // Aggregate and reorder all top-level information
                         //
-                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (data.key === key)) }
+                        const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }, stack) => (data.tag === tag && (('as' in data && data.as === key) || data.key === key)) }
                         const editTag: TagTreeMatchOperation<SchemaTag> = { or: [{ match: 'Replace' }, { match: 'Remove' }] }
                         const adjustTagTree = (tagTree: SchemaTagTree, nodeMatch: TagTreeMatchOperation<SchemaTag>): SchemaTagTree => {
                             const prunedTagTree = tagTree

@@ -2207,8 +2207,8 @@ describe('StandardForm', () => {
     //             <Export><Room key=(testRoomOne) as=(Room2) /></Export>
     //         </Asset>
     //     `)
-    //     const test = schemaTestStandarized(testSource)
-    //     expect(schemaToWML(test.schema)).toEqual(testSource)
+    //     const test = schemaTestStandardForm(testSource)
+    //     expect(schemaToWML([test.schema])).toEqual(testSource)
     // })
 
     // it('should render Remove tags correctly', () => {
