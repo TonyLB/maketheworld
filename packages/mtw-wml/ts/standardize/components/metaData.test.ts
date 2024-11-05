@@ -3,23 +3,25 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardImport } from './metaData'
 
 describe('Standard metadata', () => {
-    const testRoundTrip = (wml: string): boolean => {
+    const testImport = (wml: string): StandardImport => {
         const schema = new Schema()
         const testSource = deIndentWML(wml)
         schema.loadWML(testSource)
-        const testImport = new StandardImport(schema.schema[0])
-        return schemaToWML([testImport.schema]) === deIndentWML(wml)
+        return new StandardImport(schema.schema[0])
+    }
+    const testRoundTrip = (wml: string, expected?: string): boolean => {
+        return schemaToWML([testImport(wml).schema]) === deIndentWML(wml)
     }
 
     it('should accept an empty import', () => {
-        const testSource = `
+        const testSource = deIndentWML(`
             <Import from=(source) />
-        `
-        expect(testRoundTrip(testSource)).toEqual(true)
+        `)
+        expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 
     it('should accept all importable types', () => {
-        const testSource = `
+        const testSource = deIndentWML(`
             <Import from=(source)>
                 <Room key=(testRoom) />
                 <Feature key=(testFeature) />
@@ -31,8 +33,26 @@ describe('Standard metadata', () => {
                 <Variable key=(testVariable) />
                 <Theme key=(testTheme) />
             </Import>
-        `
-        expect(testRoundTrip(testSource)).toEqual(true)
+        `)
+        expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
+    })
+
+    it('should ignore non-import data', () => {
+        const test = testImport(`
+                <Import from=(source)>
+                    <Room key=(testRoom)><Name>Test Name</Name></Room>
+                </Import>
+            `)
+        expect(schemaToWML([test.schema])).toEqual(`<Import from=(source)><Room key=(testRoom) /></Import>`)
+    })
+
+    it('should accept internal remove tags', () => {
+        const testSource = deIndentWML(`
+            <Import from=(source)>
+                <Remove><Room key=(testRoom) /></Remove>
+            </Import>
+        `)
+        expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 
 })
