@@ -56,21 +56,34 @@ const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?
 export class StandardImport  {
     _from: string;
     _imports: Record<string, ImportData>;
+    _remove?: boolean;
+    _match?: StandardImport;
     constructor(args: GenericTreeNode<SchemaTag>) {
-        if (!treeNodeTypeguard(isSchemaImport)(args)) {
-            throw new Error('Type mismatch in StandardImport')
-        }
-        this._from = args.data.from
-        this._imports = args.children.reduce<Record<string, ImportData>>((previous, node) => {
-            return {
-                ...previous,
-                ...extractImportsMap(node)
+        if (treeNodeTypeguard(isSchemaRemove)(args)) {
+            const childImports = args.children.map((child) => (new StandardImport(child)))
+            if (childImports.length !== 1) {
+                throw new Error('Remove error in StandardImport')
             }
-        }, {})
+            this._remove = true
+            this._from = childImports[0]._from
+            this._imports = childImports[0]._imports
+        }
+        else {
+            if (!treeNodeTypeguard(isSchemaImport)(args)) {
+                throw new Error('Type mismatch in StandardImport')
+            }
+            this._from = args.data.from
+            this._imports = args.children.reduce<Record<string, ImportData>>((previous, node) => {
+                return {
+                    ...previous,
+                    ...extractImportsMap(node)
+                }
+            }, {})
+        }
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
-        return {
+        const subjectNode: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Import', from: this._from, mapping: {} },
             children: Object.values(this._imports).map(({ fromKey, asKey, tag, remove, match }): GenericTreeNode<SchemaTag> => {
                 const subjectNode = {
@@ -99,6 +112,13 @@ export class StandardImport  {
                 return subjectNode
             })
         }
+        if (this._remove) {
+            return {
+                data: { tag: 'Remove' as const },
+                children: [subjectNode]
+            }
+        }
+        return subjectNode
     }
 
 }
