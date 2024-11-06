@@ -48,9 +48,7 @@ describe('Standard metadata', () => {
 
     it('should accept internal remove tags', () => {
         const testSource = deIndentWML(`
-            <Import from=(source)>
-                <Remove><Room key=(testRoom) /></Remove>
-            </Import>
+            <Import from=(source)><Remove><Room key=(testRoom) /></Remove></Import>
         `)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
