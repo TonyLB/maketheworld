@@ -53,4 +53,14 @@ describe('Standard metadata', () => {
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 
+    it('should accept internal replace tags', () => {
+        const testSource = deIndentWML(`
+            <Import from=(source)>
+                <Replace><Room key=(testRoom) /></Replace>
+                <With><Room key=(testRoom) as=(testRename) /></With>
+            </Import>
+        `)
+        expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
+    })
+
 })
