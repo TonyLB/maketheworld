@@ -1,4 +1,4 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaMeta, isSchemaSelected } from "../baseClasses"
+import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaMeta, isSchemaRemove, isSchemaReplace, isSchemaSelected } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -28,7 +28,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             mapping: {},
             ...validateProperties(importExportTemplates.Import)(parseOpen)
         }),
-        typeCheckContents: isImportable,
+        typeCheckContents: (data) => (isImportable(data) || isSchemaRemove(data) || isSchemaReplace(data)),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> => {
             if (!isSchemaImport(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
