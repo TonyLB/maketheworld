@@ -85,4 +85,23 @@ describe('Standard metadata', () => {
         schema.loadWML(testSource)
         expect(schemaToWML([new StandardImport(schema.schema[0].children[0]).schema])).toEqual(deIndentWML(testSource.split('\n').slice(1, -1).join('\n')))
     })
+
+    it('should merge simple imports correctly', () => {
+        const base = testImport(deIndentWML(`
+                <Import from=(test)>
+                    <Room key=(testOne) />
+                </Import>
+            `))
+        const incoming = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testTwo) />
+            </Import>
+        `))
+        expect(schemaToWML([base.merge(incoming).schema])).toEqual(deIndentWML(`
+                <Import from=(test)>
+                    <Room key=(testOne) />
+                    <Room key=(testTwo) />
+                </Import>
+            `))
+    })
 })

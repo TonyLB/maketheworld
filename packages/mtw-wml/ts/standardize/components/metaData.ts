@@ -141,4 +141,13 @@ export class StandardImport  {
         return subjectNode(this)
     }
 
+    merge(incoming: StandardImport): StandardImport {
+        if (incoming._from !== this._from) {
+            throw new Error('Source mismatch in StandardImport merge')
+        }
+        const returnValue = new StandardImport(this.schema)
+        returnValue._imports = Object.assign(returnValue._imports, incoming._imports)
+        return returnValue
+    }
+
 }
