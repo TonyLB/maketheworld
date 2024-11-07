@@ -1,5 +1,5 @@
 import { objectFilterEntries } from "../../lib/objects";
-import { isImportable, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaExitTag, SchemaImportableBase, SchemaImportTag, SchemaTag } from "../../schema/baseClasses"
+import { isImportable, isImportableTag, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaExitTag, SchemaImportableBase, SchemaImportTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 
 type ImportData = {
@@ -10,43 +10,87 @@ type ImportData = {
     match?: ImportData;
 }
 
-const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?: boolean }): Record<string, ImportData> => {
+const isImportData = (value: any): value is ImportData => {
+    return (typeof value === 'object') &&
+        'fromKey' in value && typeof value.fromKey === 'string' && value.fromKey &&
+        'tag' in value && typeof value.tag === 'string' && isImportableTag(value.tag)
+}
+
+class ImportItem {
+    _from: string;
+    _as?: string;
+    tag: Exclude<Extract<SchemaTag, SchemaImportableBase>, SchemaExitTag | SchemaImportTag>["tag"];
+    remove?: boolean;
+    match?: ImportData;
+
+    constructor(node: GenericTreeNode<SchemaTag> | ImportData) {
+        if (isImportData(node)) {
+            this._from = node.fromKey
+            this._as = node.asKey
+            this.tag = node.tag
+            this.remove = node.remove
+            this.match = node.match
+        }
+        else {
+            if (!treeNodeTypeguard(isImportable)(node)) {
+                throw new Error('Invalid argument to ImportItem constructor')
+            }
+            this._from = node.data.key
+            this._as = node.data.as
+            this.tag = node.data.tag
+        }
+    }
+
+    get fromKey() { return this._from }
+    get asKey() { return this._as }
+
+    clone() {
+        return new ImportItem({
+            fromKey: this._from,
+            asKey: this._as,
+            tag: this.tag,
+            remove: this.remove,
+            match: this.match
+        })
+    }
+}
+
+const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?: boolean }): Record<string, ImportItem> => {
     if (treeNodeTypeguard(isSchemaRemove)(node)) {
-        return node.children.reduce<Record<string, ImportData>>((previous, childNode) => ({
+        return node.children.reduce<Record<string, ImportItem>>((previous, childNode) => ({
             ...previous,
             ...extractImportsMap(childNode, { remove: true })
         }), {})
     }
     if (treeNodeTypeguard(isSchemaReplace)(node)) {
-        const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportData>>((previous, childNode) => ({
+        const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => ({
             ...previous,
             ...extractImportsMap(childNode)
         }), {})
-        return node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportData>>((previous, childNode) => {
+        return node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => {
             const matchValues = extractImportsMap(childNode)
-            return Object.entries(matchValues).reduce<Record<string, ImportData>>((accumulator, [key, matchNode]) => {
-                const nodeToAddMatch = Object.values(accumulator).find(({ fromKey, asKey }) => (fromKey === matchNode.fromKey))
+            return Object.entries(matchValues).reduce<Record<string, ImportItem>>((accumulator, [key, matchNode]) => {
+                const nodeToAddMatch = Object.values(accumulator).find(({ fromKey }) => (fromKey === matchNode.fromKey))
                 if (!nodeToAddMatch) {
                     throw new Error('Unmatched entry in Replace at Import parsing')
                 }
+                const nodeWithMatchApplied = nodeToAddMatch.clone()
+                nodeWithMatchApplied.match = matchNode
                 return {
                     ...objectFilterEntries(accumulator, ([key]) => (key !== nodeToAddMatch.asKey)),
-                    [key]: {
-                        ...nodeToAddMatch,
-                        match: matchNode
-                    }
+                    [key]: nodeWithMatchApplied
                 }
             }, previous)
         }, payloadValues)
     }
     if (treeNodeTypeguard(isImportable)(node)) {
         return {
-            [node.data.as ?? node.data.key]: {
+            [node.data.as ?? node.data.key]: new ImportItem({
                 fromKey: node.data.key,
                 asKey: node.data.as,
                 tag: node.data.tag,
                 remove: options?.remove
-            }
+            })
         }
     }
     return {}

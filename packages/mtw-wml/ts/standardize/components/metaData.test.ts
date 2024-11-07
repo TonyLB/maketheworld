@@ -104,4 +104,34 @@ describe('Standard metadata', () => {
                 </Import>
             `))
     })
+
+    it('should merge internal edits correctly', () => {
+        const base = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testOne) />
+                <Room key=(testTwo) />
+                <Remove><Room key=(testThree) /></Remove>
+                <Replace><Room key=(testFour) /></Replace>
+                <With><Room key=(testFour) as=(testChange) /></With>
+            </Import>
+        `))
+        const incoming = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Remove><Room key=(testOne) /></Remove>
+                <Replace><Room key=(testTwo) /></Replace>
+                <With><Room key=(testTwo) as=(testChangeTwo) /></With>
+                <Room key=(testThree) as=(testChangeThree) />
+                <Remove><Room key=(testFour) as=(testChange) /></Remove>
+            </Import>
+        `))
+        expect(schemaToWML([base.merge(incoming).schema])).toEqual(deIndentWML(`
+                <Import from=(test)>
+                    <With><Room key=(testTwo) as=(testChangeTwo) /></With>
+                    <Replace><Room key=(testThree) /></Replace>
+                    <With><Room key=(testThree) as=(testChangeThree) /></With>
+                    <Remove><Room key=(testFour) /></Remove>
+                </Import>
+            `))
+    })
+
 })
