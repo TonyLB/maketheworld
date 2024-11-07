@@ -38,7 +38,6 @@ const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?
                 }
             }, previous)
         }, payloadValues)
-
     }
     if (treeNodeTypeguard(isImportable)(node)) {
         return {
@@ -68,6 +67,18 @@ export class StandardImport  {
             this._from = childImports[0]._from
             this._imports = childImports[0]._imports
         }
+        else if (treeNodeTypeguard(isSchemaReplace)(args)) {
+            const payloadValues = args.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1)
+            const matchValues = args.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1)
+            if (payloadValues.length !== 1 || matchValues.length !== 1) {
+                throw new Error('Replace error in StandardImport')
+            }
+            const payload = new StandardImport(payloadValues[0])
+            const match = new StandardImport(matchValues[0])
+            this._from = payload._from
+            this._imports = payload._imports
+            this._match = match
+        }
         else {
             if (!treeNodeTypeguard(isSchemaImport)(args)) {
                 throw new Error('Type mismatch in StandardImport')
@@ -83,9 +94,9 @@ export class StandardImport  {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
-        const subjectNode: GenericTreeNode<SchemaTag> = {
-            data: { tag: 'Import', from: this._from, mapping: {} },
-            children: Object.values(this._imports).map(({ fromKey, asKey, tag, remove, match }): GenericTreeNode<SchemaTag> => {
+        const subjectNode = (arg: StandardImport): GenericTreeNode<SchemaTag> => ({
+            data: { tag: 'Import', from: arg._from, mapping: {} },
+            children: Object.values(arg._imports).map(({ fromKey, asKey, tag, remove, match }): GenericTreeNode<SchemaTag> => {
                 const subjectNode = {
                     data: { tag, key: fromKey, as: asKey } as SchemaTag,
                     children: []
@@ -111,14 +122,23 @@ export class StandardImport  {
                 }
                 return subjectNode
             })
-        }
+        })
         if (this._remove) {
             return {
                 data: { tag: 'Remove' as const },
-                children: [subjectNode]
+                children: [subjectNode(this)]
             }
         }
-        return subjectNode
+        if (this._match) {
+            return {
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' }, children: [subjectNode(this._match)] },
+                    { data: { tag: 'ReplacePayload' }, children: [subjectNode(this)] }
+                ]
+            }    
+        }
+        return subjectNode(this)
     }
 
 }

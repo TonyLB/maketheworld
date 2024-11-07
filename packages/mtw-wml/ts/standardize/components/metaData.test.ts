@@ -70,15 +70,19 @@ describe('Standard metadata', () => {
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 
-    it('should accept internal replace tags', () => {
+    it('should accept external replace tags', () => {
         const testSource = deIndentWML(`
             <Asset key=(testAsset)>
-                <Replace><Import from=(source)><Room key=(testRoom) /></Import></Replace>
-                <With><Import from=(source)><Room key=(testRoom) as=(testRename) /></Import></With>
+                <Replace>
+                    <Import from=(source)><Room key=(testRoom) /></Import>
+                </Replace>
+                <With>
+                    <Import from=(source)><Room key=(testRoom) as=(testRename) /></Import>
+                </With>
             </Asset>
         `)
         const schema = new Schema()
         schema.loadWML(testSource)
-        expect(schemaToWML([new StandardImport(schema.schema[0].children[0]).schema])).toEqual(testSource)
+        expect(schemaToWML([new StandardImport(schema.schema[0].children[0]).schema])).toEqual(deIndentWML(testSource.split('\n').slice(1, -1).join('\n')))
     })
 })
