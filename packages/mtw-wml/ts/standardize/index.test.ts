@@ -2127,9 +2127,9 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)>
-                    <Variable key=(testVar) from=(power) />
-                    <Room key=(testRoomOne) />
                     <Map key=(testMap) />
+                    <Room key=(testRoomOne) />
+                    <Variable key=(testVar) from=(power) />
                 </Import>
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>

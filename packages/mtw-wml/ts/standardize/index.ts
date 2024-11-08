@@ -26,6 +26,7 @@ import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
 import { treeTypeGuard } from "../tree/filter"
 import { objectMap } from "../lib/objects"
+import { StandardImport } from "./components/metaData"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -240,6 +241,9 @@ export class StandardForm {
     tag: 'Asset' | 'Character';
     _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
+    _namespace: {
+        imports: StandardImport[];
+    }
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag>) {
         if (isSchemaTreeNode(args)) {
@@ -399,10 +403,10 @@ export class StandardForm {
                 const character = characterTree[0] as GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag>
                 this._key = character.data.key
                 this._byId[character.data.key] = new StandardCharacter(character)
-                this._metaData = [
-                    ...treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta }),
-                    ...character.children.filter(wrappedNodeTypeGuard(isSchemaImport))
-                ]
+                this._namespace = {
+                    imports: character.children.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
+                }
+                this._metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta })
                 standardizeComponentTagType(['Image'], tagTree)
             }
             else {
@@ -440,10 +444,13 @@ export class StandardForm {
                         ]}}
                     ]})
                 const importItems = importTagTree.tree.filter(({ children }) => (children.length))
+
+                this._namespace = {
+                    imports: importItems.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
+                }
             
                 this._metaData = [
-                    ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree,
-                    ...importItems.filter(wrappedNodeTypeGuard(isSchemaImport)) as GenericTree<SchemaTag>
+                    ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree
                 ]
 
                 const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
@@ -469,7 +476,10 @@ export class StandardForm {
         else {
             this._key = args.key
             this.tag = args.tag
-            this._metaData = args.metaData
+            this._namespace = {
+                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
+            }
+            this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
@@ -485,6 +495,13 @@ export class StandardForm {
         }
     }
 
+    get metaData(): GenericTree<SchemaTag> {
+        return [
+            ...this._metaData,
+            ...this._namespace.imports.map((importItem) => (importItem.schema))
+        ]
+    }
+
     toJSON(): StandardFormData {
         if (this.tag === 'Character') {
             const character = this._byId[this._key]
@@ -494,7 +511,7 @@ export class StandardForm {
             return {
                 tag: 'Character',
                 key: this._key,
-                metaData: this._metaData,
+                metaData: this.metaData,
                 byId: {
                     [this._key]: character.toJSON()
                 }
@@ -504,7 +521,7 @@ export class StandardForm {
             return {
                 tag: 'Asset',
                 key: this._key,
-                metaData: this._metaData,
+                metaData: this.metaData,
                 byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
                     return {
                         ...previous,
@@ -526,24 +543,24 @@ export class StandardForm {
                 ...itemSchema,
                 children: [
                     ...itemSchema.children,
-                    ...this._metaData.filter(treeNodeTypeguard(isSchemaImport))
+                    ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
                 ]
             }
         }
         else {
             const children = Object.values(this._byId).map((item) => (item.schema))
-            const imports = this._metaData.filter(treeNodeTypeguard(isSchemaImport))
+            const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             return {
                 data: { tag: 'Asset', key: this._key, Story: undefined },
                 children: [
-                    ...this._metaData.filter(treeNodeTypeguard(isSchemaMeta)),
+                    ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                     ...imports,
                     //
                     // Don't include a separate schema entry for an import that doesn't change the component
                     //
                     ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                    ...this._metaData.filter(treeNodeTypeguard(isSchemaExport))
+                    ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))
                 ]
             }
         }
@@ -583,6 +600,20 @@ export class StandardForm {
                     }
                 }
             }, {})
+
+        returnValue._namespace.imports = incoming._namespace.imports.reduce<StandardImport[]>((previous, importItem) => {
+            const matchingImport = previous.find((checkImport) => (checkImport._from === importItem._from))
+            if (matchingImport) {
+                const mergedImport = matchingImport.merge(importItem)
+                return [
+                    ...previous.filter((checkImport) => (checkImport._from !== importItem._from)),
+                    mergedImport
+                ].filter(excludeUndefined)
+            }
+            else {
+                return [...previous, importItem]
+            }
+        }, this._namespace.imports)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)
