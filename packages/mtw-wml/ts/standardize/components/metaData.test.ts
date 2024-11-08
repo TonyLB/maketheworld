@@ -23,15 +23,15 @@ describe('Standard metadata', () => {
     it('should accept all importable types', () => {
         const testSource = deIndentWML(`
             <Import from=(source)>
-                <Room key=(testRoom) />
+                <Bookmark key=(testBookmark) />
                 <Feature key=(testFeature) />
                 <Knowledge key=(testKnowledge) />
-                <Bookmark key=(testBookmark) />
                 <Map key=(testMap) />
                 <Message key=(testMessage) />
                 <Moment key=(testMoment) />
-                <Variable key=(testVariable) />
+                <Room key=(testRoom) />
                 <Theme key=(testTheme) />
+                <Variable key=(testVariable) />
             </Import>
         `)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
@@ -85,4 +85,97 @@ describe('Standard metadata', () => {
         schema.loadWML(testSource)
         expect(schemaToWML([new StandardImport(schema.schema[0].children[0]).schema])).toEqual(deIndentWML(testSource.split('\n').slice(1, -1).join('\n')))
     })
+
+    it('should merge simple imports correctly', () => {
+        const base = testImport(deIndentWML(`
+                <Import from=(test)>
+                    <Room key=(testOne) />
+                </Import>
+            `))
+        const incoming = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testTwo) />
+            </Import>
+        `))
+        expect(schemaToWML([(base.merge(incoming) as StandardImport).schema])).toEqual(deIndentWML(`
+                <Import from=(test)>
+                    <Room key=(testOne) />
+                    <Room key=(testTwo) />
+                </Import>
+            `))
+    })
+
+    it('should merge internal edits correctly', () => {
+        const base = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testOne) />
+                <Room key=(testTwo) />
+                <Remove><Room key=(testThree) /></Remove>
+                <Replace><Room key=(testFour) /></Replace>
+                <With><Room key=(testFour) as=(testChange) /></With>
+            </Import>
+        `))
+        const incoming = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Remove><Room key=(testOne) /></Remove>
+                <Replace><Room key=(testTwo) /></Replace>
+                <With><Room key=(testTwo) as=(testChangeTwo) /></With>
+                <Room key=(testThree) as=(testChangeThree) />
+                <Remove><Room key=(testFour) as=(testChange) /></Remove>
+            </Import>
+        `))
+        expect(schemaToWML([(base.merge(incoming) as StandardImport).schema])).toEqual(deIndentWML(`
+                <Import from=(test)>
+                    <Replace><Room key=(testThree) /></Replace>
+                    <With><Room key=(testThree) as=(testChangeThree) /></With>
+                    <Room key=(testTwo) as=(testChangeTwo) />
+                    <Remove><Room key=(testFour) /></Remove>
+                </Import>
+            `))
+    })
+
+    it('should merge external remove edits correctly', () => {
+        const base = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testOne) />
+            </Import>
+        `))
+        const incoming = testImport(deIndentWML(`
+            <Remove>
+                <Import from=(test)>
+                    <Room key=(testOne) />
+                </Import>
+            </Remove>
+        `))
+        expect(base.merge(incoming)).toBeUndefined()
+    })
+
+    it('should merge external replace edits correctly', () => {
+        const base = testImport(deIndentWML(`
+            <Import from=(test)>
+                <Room key=(testOne) />
+            </Import>
+        `))
+        const testSource = deIndentWML(`
+            <Asset key=(testAsset)>
+                <Replace>
+                    <Import from=(test)>
+                        <Room key=(testOne) />
+                    </Import>
+                </Replace>
+                <With>
+                    <Import from=(test)>
+                        <Room key=(testOne) as=(testChanged) />
+                    </Import>
+                </With>
+            </Asset>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const incoming = new StandardImport(schema.schema[0].children[0])
+        expect(schemaToWML([(base.merge(incoming) as StandardImport).schema])).toEqual(deIndentWML(`
+            <Import from=(test)><Room key=(testOne) as=(testChanged) /></Import>
+        `))
+    })
+
 })
