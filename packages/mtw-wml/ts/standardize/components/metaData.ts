@@ -235,9 +235,51 @@ export class StandardImport  {
         return subjectNode(this)
     }
 
-    merge(incoming: StandardImport): StandardImport {
+    clone(): StandardImport {
+        return new StandardImport(this.schema)
+    }
+
+    merge(incoming: StandardImport): StandardImport | undefined {
         if (incoming._from !== this._from) {
             throw new Error('Source mismatch in StandardImport merge')
+        }
+        if (incoming._remove) {
+            const incomingPayload = incoming.clone()
+            incomingPayload._remove = undefined
+            if (this._match) {
+                const basePayload = this.clone()
+                basePayload._match = undefined
+                if (!deepEqual(basePayload.schema, incomingPayload.schema)) {
+                    throw new MergeConflictError()
+                }
+                const returnValue = this._match.clone()
+                returnValue._remove = true
+                return returnValue
+            }
+            else {
+                if (!deepEqual(this.schema, incomingPayload.schema)) {
+                    throw new MergeConflictError()
+                }
+                return undefined
+            }
+        }
+        if (incoming._match) {
+            if (this._remove) {
+                throw new MergeConflictError()
+            }
+            if (this._match) {
+                const basePayload = this.clone()
+                basePayload._match = undefined
+                if (!deepEqual(basePayload.schema, incoming._match.schema)) {
+                    throw new MergeConflictError()
+                }
+                const returnValue = incoming.clone()
+                returnValue._match = this._match.clone()
+                return returnValue
+            }
+            const incomingPayload = incoming.clone()
+            incomingPayload._match = undefined
+            return incomingPayload
         }
         const returnValue = new StandardImport(this.schema)
         returnValue._imports = Object.entries(incoming._imports).reduce<Record<string, ImportItem>>((previous, [key, incomingItem]) => {
