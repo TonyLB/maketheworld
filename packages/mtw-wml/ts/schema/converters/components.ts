@@ -454,6 +454,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Bookmark',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children }
             })

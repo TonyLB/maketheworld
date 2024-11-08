@@ -37,8 +37,8 @@ class ImportItem {
             if (!treeNodeTypeguard(isImportable)(node)) {
                 throw new Error('Invalid argument to ImportItem constructor')
             }
-            this._from = node.data.key
-            this._as = node.data.as
+            this._from = node.data.from ?? node.data.key
+            this._as = node.data.from ? node.data.key : undefined
             this.tag = node.data.tag
         }
     }
@@ -58,7 +58,7 @@ class ImportItem {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const subjectNode = {
-            data: { tag: this.tag, key: this.fromKey, as: this.asKey } as SchemaTag,
+            data: { tag: this.tag, key: this.asKey ?? this.fromKey, from: this.asKey ? this.fromKey : undefined } as SchemaTag,
             children: []
         }
         if (this.remove) {
@@ -69,7 +69,7 @@ class ImportItem {
         }
         if (this.match) {
             const matchNode = {
-                data: { tag: this.tag, key: this.match.fromKey, as: this.match.asKey } as SchemaTag,
+                data: { tag: this.tag, key: this.match.asKey ?? this.match.fromKey, from: this.match.asKey ? this.match.fromKey : undefined } as SchemaTag,
                 children: []
             }
             return {
@@ -158,9 +158,9 @@ const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?
     }
     if (treeNodeTypeguard(isImportable)(node)) {
         return {
-            [node.data.as ?? node.data.key]: new ImportItem({
-                fromKey: node.data.key,
-                asKey: node.data.as,
+            [node.data.key]: new ImportItem({
+                fromKey: node.data.from ?? node.data.key,
+                asKey: node.data.from ? node.data.key : undefined,
                 tag: node.data.tag,
                 remove: options?.remove
             })

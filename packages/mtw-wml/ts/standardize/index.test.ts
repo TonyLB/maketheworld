@@ -681,7 +681,7 @@ describe('standardizeSchema', () => {
     it('should render renamed imports correctly', () => {
         const test = schemaTestStandarized(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
-                <Room key=(testRoomOne) as=(testRoomTwo)>
+                <Room key=(testRoomTwo) from=(testRoomOne)>
                     <ShortName>Test</ShortName>
                 </Room>
             </Import>
@@ -689,7 +689,7 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(test.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)>
-                    <Room key=(testRoomOne) as=(testRoomTwo) />
+                    <Room key=(testRoomTwo) from=(testRoomOne) />
                 </Import>
                 <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
             </Asset>
@@ -2185,7 +2185,7 @@ describe('StandardForm', () => {
     it('should render renamed imports correctly', () => {
         const test = schemaTestStandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
-                <Room key=(testRoomOne) as=(testRoomTwo)>
+                <Room key=(testRoomTwo) from=(testRoomOne)>
                     <ShortName>Test</ShortName>
                 </Room>
             </Import>
@@ -2193,7 +2193,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)>
-                    <Room key=(testRoomOne) as=(testRoomTwo) />
+                    <Room key=(testRoomTwo) from=(testRoomOne) />
                 </Import>
                 <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
             </Asset>

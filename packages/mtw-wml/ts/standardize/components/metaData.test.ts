@@ -23,7 +23,7 @@ describe('Standard metadata', () => {
     it('should accept all importable types', () => {
         const testSource = deIndentWML(`
             <Import from=(source)>
-                <Bookmark key=(testBookmark) />
+                <Bookmark key=(testBookmark) from=(testChanged) />
                 <Feature key=(testFeature) />
                 <Knowledge key=(testKnowledge) />
                 <Map key=(testMap) />
@@ -34,6 +34,7 @@ describe('Standard metadata', () => {
                 <Variable key=(testVariable) />
             </Import>
         `)
+        console.log(`testImport: ${JSON.stringify(testImport(testSource).schema, null, 4)}`)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 
@@ -57,7 +58,7 @@ describe('Standard metadata', () => {
         const testSource = deIndentWML(`
             <Import from=(source)>
                 <Replace><Room key=(testRoom) /></Replace>
-                <With><Room key=(testRoom) as=(testRename) /></With>
+                <With><Room key=(testRename) from=(testRoom) /></With>
             </Import>
         `)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
@@ -77,7 +78,7 @@ describe('Standard metadata', () => {
                     <Import from=(source)><Room key=(testRoom) /></Import>
                 </Replace>
                 <With>
-                    <Import from=(source)><Room key=(testRoom) as=(testRename) /></Import>
+                    <Import from=(source)><Room key=(testRename) from=(testRoom) /></Import>
                 </With>
             </Asset>
         `)
@@ -112,23 +113,23 @@ describe('Standard metadata', () => {
                 <Room key=(testTwo) />
                 <Remove><Room key=(testThree) /></Remove>
                 <Replace><Room key=(testFour) /></Replace>
-                <With><Room key=(testFour) as=(testChange) /></With>
+                <With><Room key=(testChange) from=(testFour) /></With>
             </Import>
         `))
         const incoming = testImport(deIndentWML(`
             <Import from=(test)>
                 <Remove><Room key=(testOne) /></Remove>
                 <Replace><Room key=(testTwo) /></Replace>
-                <With><Room key=(testTwo) as=(testChangeTwo) /></With>
-                <Room key=(testThree) as=(testChangeThree) />
-                <Remove><Room key=(testFour) as=(testChange) /></Remove>
+                <With><Room key=(testChangeTwo) from=(testTwo) /></With>
+                <Room key=(testChangeThree) from=(testThree) />
+                <Remove><Room key=(testChange) from=(testFour) /></Remove>
             </Import>
         `))
         expect(schemaToWML([(base.merge(incoming) as StandardImport).schema])).toEqual(deIndentWML(`
                 <Import from=(test)>
                     <Replace><Room key=(testThree) /></Replace>
-                    <With><Room key=(testThree) as=(testChangeThree) /></With>
-                    <Room key=(testTwo) as=(testChangeTwo) />
+                    <With><Room key=(testChangeThree) from=(testThree) /></With>
+                    <Room key=(testChangeTwo) from=(testTwo) />
                     <Remove><Room key=(testFour) /></Remove>
                 </Import>
             `))
@@ -165,7 +166,7 @@ describe('Standard metadata', () => {
                 </Replace>
                 <With>
                     <Import from=(test)>
-                        <Room key=(testOne) as=(testChanged) />
+                        <Room key=(testChanged) from=(testOne) />
                     </Import>
                 </With>
             </Asset>
@@ -174,7 +175,7 @@ describe('Standard metadata', () => {
         schema.loadWML(testSource)
         const incoming = new StandardImport(schema.schema[0].children[0])
         expect(schemaToWML([(base.merge(incoming) as StandardImport).schema])).toEqual(deIndentWML(`
-            <Import from=(test)><Room key=(testOne) as=(testChanged) /></Import>
+            <Import from=(test)><Room key=(testChanged) from=(testOne) /></Import>
         `))
     })
 
