@@ -23,15 +23,15 @@ describe('Standard metadata', () => {
     it('should accept all importable types', () => {
         const testSource = deIndentWML(`
             <Import from=(source)>
-                <Room key=(testRoom) />
+                <Bookmark key=(testBookmark) />
                 <Feature key=(testFeature) />
                 <Knowledge key=(testKnowledge) />
-                <Bookmark key=(testBookmark) />
                 <Map key=(testMap) />
                 <Message key=(testMessage) />
                 <Moment key=(testMoment) />
-                <Variable key=(testVariable) />
+                <Room key=(testRoom) />
                 <Theme key=(testTheme) />
+                <Variable key=(testVariable) />
             </Import>
         `)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
@@ -126,9 +126,9 @@ describe('Standard metadata', () => {
         `))
         expect(schemaToWML([base.merge(incoming).schema])).toEqual(deIndentWML(`
                 <Import from=(test)>
-                    <With><Room key=(testTwo) as=(testChangeTwo) /></With>
                     <Replace><Room key=(testThree) /></Replace>
                     <With><Room key=(testThree) as=(testChangeThree) /></With>
+                    <Room key=(testTwo) as=(testChangeTwo) />
                     <Remove><Room key=(testFour) /></Remove>
                 </Import>
             `))
