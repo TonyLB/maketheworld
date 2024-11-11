@@ -1,10 +1,161 @@
 import { deepEqual } from "../../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { isStandardRemove, isStandardReplace, MergeConflictError, StandardComponentData } from "../baseClasses";
-import StandardComponentAbstract from "./abstract";
+import { isStandardRemove, isStandardReplace, MergeConflictError, StandardComponentData, StandardRemove, StandardReplace } from "../baseClasses";
+import StandardComponentAbstract, { ComponentInterface } from "./abstract";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
 import { isSchemaTreeNode } from "./utils";
+
+interface EditWrappable extends ComponentInterface {
+    isRemove: boolean;
+    isReplace: boolean;
+    match: ComponentInterface | undefined;
+    payload: ComponentInterface;
+}
+
+export const editWrap = <TBase extends new (...args: any[]) => ComponentInterface>(Base: TBase, label: string) => {
+    return class EditWrapped extends Base implements EditWrappable {
+        _remove?: boolean;
+        _match?: InstanceType<typeof Base>;
+
+        constructor(...allArgs: any[]) {
+            const args = allArgs[0]
+            if (args instanceof Base) {
+                super(args.toJSON())
+            }
+            else {
+                if (!isSchemaTreeNode(args)) {
+                    throw new Error(`Invalid arguments in ${label} constructor`)
+                }
+                if (treeNodeTypeguard(isSchemaRemove)(args)) {
+                    const childImports = args.children.map((child) => (new Base(child)))
+                    if (childImports.length !== 1) {
+                        throw new Error(`Remove error in ${label}`)
+                    }
+                    super(childImports[0])
+                    this._remove = true
+                }
+                else if (treeNodeTypeguard(isSchemaReplace)(args)) {
+                    const payloadValues = args.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1)
+                    const matchValues = args.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1)
+                    if (payloadValues.length !== 1 || matchValues.length !== 1) {
+                        throw new Error(`Replace error in ${label}`)
+                    }
+                    const payload = new Base(payloadValues[0])
+                    const match = new Base(matchValues[0])
+                    super(payload)
+                    this._match = match as InstanceType<typeof Base>
+                }
+                else {
+                    super(args)
+                }
+            }
+        }
+
+        get isRemove() { return Boolean(this._remove) }
+        get isReplace() { return Boolean(this._match) }
+        get match() { return this._match }
+        get payload() {
+            return super.clone()
+        }
+
+        override clone(): EditWrapped {
+            const returnValue = new EditWrapped(super.clone())
+            returnValue._remove = this._remove
+            returnValue._match = this._match
+            
+            return returnValue
+        }
+
+        override toJSON(): ReturnType<(InstanceType<typeof Base>)["toJSON"]> | StandardRemove | StandardReplace {
+            const payload = super.toJSON() as ReturnType<(InstanceType<typeof Base>)["toJSON"]>
+            if (this.isRemove) {
+                return {
+                    tag: 'Remove' as const,
+                    key: payload.key,
+                    component: payload as StandardComponentNonEditData
+                }
+            }
+            if (this.isReplace) {
+                const match = this.match
+                if (!match) {
+                    throw new Error('No match in StandardComponent replace')
+                }
+                return {
+                    tag: 'Replace' as const,
+                    key: payload.key,
+                    payload: payload as StandardComponentNonEditData,
+                    match: match.toJSON() as StandardComponentNonEditData
+                }
+            }
+            return payload
+        }
+
+        override get schema(): GenericTreeNode<SchemaTag> {
+            if (this._remove) {
+                return {
+                    data: { tag: 'Remove' as const },
+                    children: [super.schema]
+                }
+            }
+            if (this._match) {
+                return {
+                    data: { tag: 'Replace' as const },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' }, children: [this._match.schema] },
+                        { data: { tag: 'ReplacePayload' }, children: [super.schema] }
+                    ]
+                }    
+            }
+            return super.schema
+        }
+
+        override merge(incoming: EditWrapped): EditWrapped | undefined {
+            if (incoming.key !== this.key) {
+                throw new Error(`Source mismatch in ${label} merge`)
+            }
+            if (incoming.isRemove) {
+                const incomingPayload = incoming.clone() as EditWrapped
+                incomingPayload._remove = undefined
+                if (this._match) {
+                    const basePayload = this.clone()
+                    basePayload._match = undefined
+                    if (!deepEqual(basePayload.schema, incomingPayload.schema)) {
+                        throw new MergeConflictError()
+                    }
+                    const returnValue = new EditWrapped(this._match.clone())
+                    returnValue._remove = true
+                    return returnValue
+                }
+                else {
+                    if (!deepEqual(this.schema, incomingPayload.schema)) {
+                        throw new MergeConflictError()
+                    }
+                    return undefined
+                }
+            }
+            if (incoming._match) {
+                if (this._remove) {
+                    throw new MergeConflictError()
+                }
+                if (this._match) {
+                    const basePayload = this.clone()
+                    basePayload._match = undefined
+                    if (!deepEqual(basePayload.schema, incoming._match.schema)) {
+                        throw new MergeConflictError()
+                    }
+                    const returnValue = incoming.clone()
+                    returnValue._match = this._match.clone() as InstanceType<TBase>
+                    return returnValue
+                }
+                const incomingPayload = incoming.clone()
+                incomingPayload._match = undefined
+                return incomingPayload
+            }
+            return new EditWrapped(super.merge(incoming))
+        }
+    }
+}
 
 type ConstructorArgs = StandardComponentData | GenericTreeNode<SchemaTag>
 
