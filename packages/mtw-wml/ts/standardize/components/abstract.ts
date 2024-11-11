@@ -5,6 +5,14 @@ import { StandardBaseData } from "./dataTypes/abstract"
 import { unwrapConstructorArgs } from "./editable";
 import { isSchemaTreeNode } from "./utils";
 
+export interface ComponentInterface {
+    key: string;
+    schema: GenericTreeNode<SchemaTag>;
+    clone(): ComponentInterface;
+    toJSON(): Record<string, any>;
+    merge(incoming: ComponentInterface): ComponentInterface | undefined;
+}
+
 export class StandardComponentAbstract {
     _key: string;
     _remove: boolean;
