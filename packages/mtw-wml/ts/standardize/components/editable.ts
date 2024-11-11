@@ -28,7 +28,7 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                     throw new Error(`Invalid arguments in ${label} constructor`)
                 }
                 if (treeNodeTypeguard(isSchemaRemove)(args)) {
-                    const childImports = args.children.map((child) => (new Base(child)))
+                    const childImports = args.children
                     if (childImports.length !== 1) {
                         throw new Error(`Remove error in ${label}`)
                     }
@@ -41,10 +41,8 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                     if (payloadValues.length !== 1 || matchValues.length !== 1) {
                         throw new Error(`Replace error in ${label}`)
                     }
-                    const payload = new Base(payloadValues[0])
-                    const match = new Base(matchValues[0])
-                    super(payload)
-                    this._match = match as InstanceType<typeof Base>
+                    super(payloadValues[0])
+                    this._match = new Base(matchValues[0]) as InstanceType<typeof Base>
                 }
                 else {
                     super(args)
@@ -56,11 +54,11 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
         get isReplace() { return Boolean(this._match) }
         get match() { return this._match }
         get payload() {
-            return super.clone()
+            return new EditWrapped(new Base(super.toJSON())) as this
         }
 
-        override clone(): EditWrapped {
-            const returnValue = new EditWrapped(super.clone())
+        override clone(): this {
+            const returnValue = this.payload
             returnValue._remove = this._remove
             returnValue._match = this._match
             
@@ -110,12 +108,12 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
             return super.schema
         }
 
-        override merge(incoming: EditWrapped): EditWrapped | undefined {
+        override merge(incoming: this): this | undefined {
             if (incoming.key !== this.key) {
                 throw new Error(`Source mismatch in ${label} merge`)
             }
             if (incoming.isRemove) {
-                const incomingPayload = incoming.clone() as EditWrapped
+                const incomingPayload = incoming.clone() as this
                 incomingPayload._remove = undefined
                 if (this._match) {
                     const basePayload = this.clone()
@@ -123,7 +121,7 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                     if (!deepEqual(basePayload.schema, incomingPayload.schema)) {
                         throw new MergeConflictError()
                     }
-                    const returnValue = new EditWrapped(this._match.clone())
+                    const returnValue = new EditWrapped(this._match.clone()) as this
                     returnValue._remove = true
                     return returnValue
                 }
@@ -144,15 +142,15 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                     if (!deepEqual(basePayload.schema, incoming._match.schema)) {
                         throw new MergeConflictError()
                     }
-                    const returnValue = incoming.clone()
+                    const returnValue = incoming.clone() as this
                     returnValue._match = this._match.clone() as InstanceType<TBase>
                     return returnValue
                 }
-                const incomingPayload = incoming.clone()
+                const incomingPayload = incoming.clone() as this
                 incomingPayload._match = undefined
                 return incomingPayload
             }
-            return new EditWrapped(super.merge(incoming))
+            return new EditWrapped(super.merge(incoming)) as this
         }
     }
 }

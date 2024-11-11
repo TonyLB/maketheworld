@@ -34,7 +34,6 @@ describe('Standard metadata', () => {
                 <Variable key=(testVariable) />
             </Import>
         `)
-        console.log(`testImport: ${JSON.stringify(testImport(testSource).schema, null, 4)}`)
         expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
     })
 

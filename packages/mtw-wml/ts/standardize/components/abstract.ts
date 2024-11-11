@@ -8,9 +8,9 @@ import { isSchemaTreeNode } from "./utils";
 export interface ComponentInterface {
     key: string;
     schema: GenericTreeNode<SchemaTag>;
-    clone(): ComponentInterface;
+    clone(): this;
     toJSON(): Record<string, any>;
-    merge(incoming: ComponentInterface): ComponentInterface | undefined;
+    merge(incoming: this): this | undefined;
 }
 
 export class StandardComponentAbstract {
