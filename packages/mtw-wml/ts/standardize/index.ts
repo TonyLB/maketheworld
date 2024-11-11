@@ -602,11 +602,11 @@ export class StandardForm {
             }, {})
 
         returnValue._namespace.imports = incoming._namespace.imports.reduce<StandardImport[]>((previous, importItem) => {
-            const matchingImport = previous.find((checkImport) => (checkImport._from === importItem._from))
+            const matchingImport = previous.find((checkImport) => (checkImport.key === importItem.key))
             if (matchingImport) {
                 const mergedImport = matchingImport.merge(importItem)
                 return [
-                    ...previous.filter((checkImport) => (checkImport._from !== importItem._from)),
+                    ...previous.filter((checkImport) => (checkImport.key !== importItem.key)),
                     mergedImport
                 ].filter(excludeUndefined)
             }
