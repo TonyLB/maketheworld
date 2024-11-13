@@ -1,6 +1,6 @@
 import { deepEqual, objectFilterEntries } from "../../lib/objects";
 import { schemaToWML } from "../../schema";
-import { isImportable, isImportableTag, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaExitTag, SchemaImportableBase, SchemaImportTag, SchemaTag } from "../../schema/baseClasses"
+import { isImportable, isImportableTag, isSchemaExport, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaExitTag, SchemaImportableBase, SchemaImportTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { MergeConflictError } from "../baseClasses";
 import { ComponentInterface } from "./abstract";
@@ -66,6 +66,33 @@ class ImportItem {
         if (this.match) {
             const matchNode = {
                 data: { tag: this.tag, key: this.match.asKey ?? this.match.fromKey, from: this.match.asKey ? this.match.fromKey : undefined } as SchemaTag,
+                children: []
+            }
+            return {
+                data: { tag: 'Replace' },
+                children: [
+                    { data: { tag: 'ReplaceMatch' }, children: [matchNode] },
+                    { data: { tag: 'ReplacePayload' }, children: [subjectNode] }
+                ]
+            }
+        }
+        return subjectNode
+    }
+
+    get exportSchema(): GenericTreeNode<SchemaTag> {
+        const subjectNode = {
+            data: { tag: this.tag, key: this.fromKey, as: this.asKey } as SchemaTag,
+            children: []
+        }
+        if (this.remove) {
+            return {
+                data: { tag: 'Remove' },
+                children: [subjectNode]
+            }
+        }
+        if (this.match) {
+            const matchNode = {
+                data: { tag: this.tag, key: this.match.fromKey, as: this.match.asKey } as SchemaTag,
                 children: []
             }
             return {
@@ -243,3 +270,121 @@ export class StandardImport extends editWrap(class StandardImport implements Com
         return returnValue
     }
 }, 'StandardImport'){}
+
+const extractExportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?: boolean }): Record<string, ImportItem> => {
+    if (treeNodeTypeguard(isSchemaRemove)(node)) {
+        return node.children.reduce<Record<string, ImportItem>>((previous, childNode) => ({
+            ...previous,
+            ...extractExportsMap(childNode, { remove: true })
+        }), {})
+    }
+    if (treeNodeTypeguard(isSchemaReplace)(node)) {
+        const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => ({
+            ...previous,
+            ...extractExportsMap(childNode)
+        }), {})
+        return node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => {
+            const matchValues = extractExportsMap(childNode)
+            return Object.entries(matchValues).reduce<Record<string, ImportItem>>((accumulator, [key, matchNode]) => {
+                const nodeToAddMatch = Object.values(accumulator).find(({ fromKey }) => (fromKey === matchNode.fromKey))
+                if (!nodeToAddMatch) {
+                    throw new Error('Unmatched entry in Replace at Import parsing')
+                }
+                const nodeWithMatchApplied = nodeToAddMatch.clone()
+                nodeWithMatchApplied.match = matchNode
+                return {
+                    ...objectFilterEntries(accumulator, ([key]) => (key !== nodeToAddMatch.asKey)),
+                    [key]: nodeWithMatchApplied
+                }
+            }, previous)
+        }, payloadValues)
+    }
+    if (treeNodeTypeguard(isImportable)(node)) {
+        return {
+            [node.data.key]: new ImportItem({
+                fromKey: node.data.key,
+                asKey: node.data.as,
+                tag: node.data.tag,
+                remove: options?.remove
+            })
+        }
+    }
+    return {}
+}
+
+export class StandardExport extends editWrap(class StandardExport implements ComponentInterface  {
+    key: 'export' = 'export';
+    _exports: Record<string, ImportItem>;
+    constructor(...allArgs: any[]) {
+        const args = allArgs[0]
+        if ('tag' in args && args.tag === 'Import') {
+            this._exports = args.imports
+        }
+        else {
+            if (!isSchemaTreeNode(args)) {
+                throw new Error(`Invalid arguments in StandardExport constructor`)
+            }
+            if (!treeNodeTypeguard(isSchemaExport)(args)) {
+                throw new Error('Type mismatch in StandardExport')
+            }
+            this._exports = args.children.reduce<Record<string, ImportItem>>((previous, node) => {
+                return {
+                    ...previous,
+                    ...extractExportsMap(node)
+                }
+            }, {})    
+        }
+    }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        const subjectNode = (arg: StandardExport): GenericTreeNode<SchemaTag> => ({
+            data: { tag: 'Export', mapping: {} },
+            children: Object.values(arg._exports)
+                .sort((itemA, itemB) => ((itemA.asKey ?? itemA.fromKey).localeCompare(itemB.asKey ?? itemB.fromKey)))
+                .map((item) => (item.exportSchema))
+        })
+        return subjectNode(this)
+    }
+
+    toJSON(): StandardImportData {
+        return {
+            tag: 'Import',
+            key: this.key,
+            imports: this._exports
+        }
+    }
+
+    clone(): this {
+        return new StandardExport(this.toJSON()) as this
+    }
+
+    merge(incoming: this): this | undefined {
+        if (incoming.key !== this.key) {
+            throw new Error('Source mismatch in StandardExport merge')
+        }
+        const returnValue = this.clone() as this
+        returnValue._exports = Object.entries(incoming._exports).reduce<Record<string, ImportItem>>((previous, [key, incomingItem]) => {
+            const baseItem = Object.values(previous).find((baseItem) => (baseItem.fromKey === incomingItem.fromKey))
+            if (baseItem) {
+                const mergedItem = baseItem.merge(incomingItem)
+                const filteredPrevious = objectFilterEntries(previous, ([compareKey]) => (compareKey !== baseItem.fromKey))
+                if (mergedItem) {
+                    return {
+                        ...filteredPrevious,
+                        [mergedItem.fromKey]: mergedItem
+                    }
+                }
+                else {
+                    return filteredPrevious
+                }
+            }
+            else {
+                return {
+                    ...previous,
+                    [key]: incomingItem
+                }
+            }
+        }, returnValue._exports)
+        return returnValue
+    }
+}, 'StandardExport'){}

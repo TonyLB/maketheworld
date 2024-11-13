@@ -64,7 +64,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             mapping: {},
             ...validateProperties(importExportTemplates.Export)(parseOpen)
         }),
-        typeCheckContents: isImportable,
+        typeCheckContents: (data) => (isImportable(data) || isSchemaRemove(data) || isSchemaReplace(data)),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => {
             if (!isSchemaExport(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
