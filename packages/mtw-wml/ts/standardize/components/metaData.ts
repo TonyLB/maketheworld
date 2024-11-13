@@ -79,6 +79,33 @@ class ImportItem {
         return subjectNode
     }
 
+    get exportSchema(): GenericTreeNode<SchemaTag> {
+        const subjectNode = {
+            data: { tag: this.tag, key: this.fromKey, as: this.asKey } as SchemaTag,
+            children: []
+        }
+        if (this.remove) {
+            return {
+                data: { tag: 'Remove' },
+                children: [subjectNode]
+            }
+        }
+        if (this.match) {
+            const matchNode = {
+                data: { tag: this.tag, key: this.match.fromKey, as: this.match.asKey } as SchemaTag,
+                children: []
+            }
+            return {
+                data: { tag: 'Replace' },
+                children: [
+                    { data: { tag: 'ReplaceMatch' }, children: [matchNode] },
+                    { data: { tag: 'ReplacePayload' }, children: [subjectNode] }
+                ]
+            }
+        }
+        return subjectNode
+    }
+
     clone() {
         return new ImportItem(this.toJSON())
     }
@@ -290,12 +317,12 @@ export class StandardExport extends editWrap(class StandardExport implements Com
     _exports: Record<string, ImportItem>;
     constructor(...allArgs: any[]) {
         const args = allArgs[0]
-        if ('tag' in args && args.tag === 'Export') {
+        if ('tag' in args && args.tag === 'Import') {
             this._exports = args.imports
         }
         else {
             if (!isSchemaTreeNode(args)) {
-                throw new Error(`Invalid arguments in StandardImport constructor`)
+                throw new Error(`Invalid arguments in StandardExport constructor`)
             }
             if (!treeNodeTypeguard(isSchemaExport)(args)) {
                 throw new Error('Type mismatch in StandardExport')
@@ -314,7 +341,7 @@ export class StandardExport extends editWrap(class StandardExport implements Com
             data: { tag: 'Export', mapping: {} },
             children: Object.values(arg._exports)
                 .sort((itemA, itemB) => ((itemA.asKey ?? itemA.fromKey).localeCompare(itemB.asKey ?? itemB.fromKey)))
-                .map((item) => (item.schema))
+                .map((item) => (item.exportSchema))
         })
         return subjectNode(this)
     }
