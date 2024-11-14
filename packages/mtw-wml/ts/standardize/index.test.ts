@@ -2569,132 +2569,103 @@ describe('StandardForm', () => {
         `))
     })
 
-    // it('should merge edited metadata correctly', () => {
-    //     const inherited = schemaTestStandardForm(`
-    //         <Asset key=(Test)>
-    //             <Import from=(primitives)>
-    //                 <Room key=(testRoomOne) />
-    //             </Import>
-    //             <Room key=(testRoomOne)><Name>Test</Name></Room>
-    //         </Asset>
-    //     `)
-    //     const test = schemaTestStandardForm(`
-    //         <Asset key=(Test)>
-    //             <Replace>
-    //                 <Import from=(primitives)>
-    //                     <Room key=(testRoomOne) />
-    //                 </Import>
-    //             </Replace>
-    //             <With>
-    //                 <Import from=(test)>
-    //                     <Room key=(testRoomOne) />
-    //                 </Import>
-    //             </With>
-    //         </Asset>
-    //     `)
-    //     expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Import from=(test)><Room key=(testRoomOne) /></Import>
-    //             <Room key=(testRoomOne)><Name>Test</Name></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge edited metadata correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Import from=(primitives)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+            </Asset>
+        `)
+        const test = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Remove>
+                    <Import from=(primitives)>
+                        <Room key=(testRoomOne) />
+                    </Import>
+                </Remove>
+                <Import from=(test)>
+                    <Room key=(testRoomOne) />
+                </Import>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(test)><Room key=(testRoomOne) /></Import>
+                <Room key=(testRoomOne)><Name>Test</Name></Room>
+            </Asset>
+        `))
+    })
 
-    // it('should merge multiple serializable standardComponents correctly', () => {
-    //     const inheritedSource = deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Inherited>
-    //                 <Room key=(testRoomOne)>
-    //                     <Name>Lobby</Name>
-    //                     <Description>A plain lobby.</Description>
-    //                 </Room>
-    //                 <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
-    //             </Inherited>
-    //         </Asset>
-    //     `)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     const testStandard = new StandardizerAbstract()
-    //     testStandard.loadStandardForm({
-    //         key: 'Test',
-    //         tag: 'Asset',
-    //         byId: {
-    //             testRoomOne: {
-    //                 tag: 'Room',
-    //                 key: 'testRoomOne',
-    //                 exits: [],
-    //                 themes: [],
-    //                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: ': Night' }, children: [] }] }
-    //             }
-    //         },
-    //         metaData: []
-    //     })
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Name><Inherited>Lobby</Inherited>: Night</Name>
-    //                 <Description><Inherited>A plain lobby.</Inherited></Description>
-    //             </Room>
-    //             <Room key=(testRoomTwo)><Name><Inherited>Test Two</Inherited></Name></Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge multiple serializable standardComponents correctly', () => {
+        const inherited = schemaTestStandardForm(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+            </Asset>
+        `)
+        const testStandard = new StandardForm({
+            key: 'Test',
+            tag: 'Asset',
+            byId: {
+                testRoomOne: {
+                    tag: 'Room',
+                    key: 'testRoomOne',
+                    exits: [],
+                    themes: [],
+                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: ': Night' }, children: [] }] }
+                }
+            },
+            metaData: []
+        })
+        const standardizer = inherited.merge(testStandard)
+        expect(schemaToWML([standardizer.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Name>Lobby: Night</Name>
+                    <Description>A plain lobby.</Description>
+                </Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
+            </Asset>
+        `))
+    })
 
-    // it('should merge with an empty value', () => {
-    //     const inheritedSource = deIndentWML(`<Asset key=(Test) />`)
-    //     const inheritedSchema = new Schema()
-    //     inheritedSchema.loadWML(inheritedSource)
-    //     const inheritedStandard = new Standardizer(inheritedSchema.schema)
-    //     inheritedStandard.loadStandardForm({
-    //         byId: {
-    //             testRoomOne: {
-    //                 key: 'testRoomOne',
-    //                 tag: 'Room',
-    //                 shortName: {
-    //                     data: { tag: 'ShortName' },
-    //                     children: []
-    //                 },
-    //                 exits: [],
-    //                 themes: []
-    //             }
-    //         },
-    //         key: 'Test',
-    //         tag: 'Asset',
-    //         metaData: []
-    //     })
-    //     const testStandard = new StandardizerAbstract()
-    //     testStandard.loadStandardForm({
-    //         key: 'Test',
-    //         tag: 'Asset',
-    //         byId: {
-    //             testRoomOne: {
-    //                 tag: 'Room',
-    //                 key: 'testRoomOne',
-    //                 exits: [],
-    //                 themes: [],
-    //                 shortName: {
-    //                     data: { tag: 'Replace' },
-    //                     children: [
-    //                         { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }] },
-    //                         { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestReplace' }, children: [] }] }] }
-    //                     ]
-    //                 }
-    //             }
-    //         },
-    //         metaData: []
-    //     })
-    //     const standardizer = inheritedStandard.merge(testStandard)
-    //     expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
-    //         <Asset key=(Test)>
-    //             <Room key=(testRoomOne)>
-    //                 <Replace><ShortName>Test</ShortName></Replace>
-    //                 <With><ShortName>TestReplace</ShortName></With>
-    //             </Room>
-    //         </Asset>
-    //     `))
-    // })
+    it('should merge with an empty value', () => {
+        const inherited = schemaTestStandardForm(`<Asset key=(Test) />`)
+        const testStandard = new StandardForm({
+            key: 'Test',
+            tag: 'Asset',
+            byId: {
+                testRoomOne: {
+                    tag: 'Room',
+                    key: 'testRoomOne',
+                    exits: [],
+                    themes: [],
+                    shortName: {
+                        data: { tag: 'Replace' },
+                        children: [
+                            { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }] },
+                            { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestReplace' }, children: [] }] }] }
+                        ]
+                    }
+                }
+            },
+            metaData: []
+        })
+        const standardizer = inherited.merge(testStandard)
+        expect(schemaToWML([standardizer.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoomOne)>
+                    <Replace><ShortName>Test</ShortName></Replace>
+                    <With><ShortName>TestReplace</ShortName></With>
+                </Room>
+            </Asset>
+        `))
+    })
 
     // it('should filter correctly', () => {
     //     const inheritedSource = deIndentWML(`
@@ -2798,132 +2769,6 @@ describe('StandardForm', () => {
     //         exits: [],
     //         themes: []
     //     })
-    // })
-
-    // it('should produced a serializable format stripped of UUIDs', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 One
-    //                 <br />
-    //             </Description>
-    //         </Room>
-    //         <Room key=(testTwo) />
-    //         <Map key=(testMap)>
-    //             <Room key=(test)><Position x="0" y="0" /></Room>
-    //             <Room key=(testTwo)><Position x="100" y="0" /></Room>
-    //         </Map>
-    //     </Asset>`)
-    //     expect(test.standardForm.byId).toEqual({
-    //         test: {
-    //             key: 'test',
-    //             tag: 'Room',
-    //             shortName: { data: { tag: 'ShortName' }, children: [] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: {
-    //                 data: { tag: 'Description' },
-    //                 children: [
-    //                     { data: { tag: 'String', value: 'One' }, children: [] },
-    //                     { data: { tag: 'br' }, children: [] }
-    //                 ]
-    //             },
-    //             exits: [],
-    //             themes: []
-    //         },
-    //         testTwo: {
-    //             key: 'testTwo',
-    //             tag: 'Room',
-    //             shortName: { data: { tag: 'ShortName' }, children: [] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: { data: { tag: 'Description' }, children: [] },
-    //             exits: [],
-    //             themes: []
-    //         },
-    //         testMap: {
-    //             key: 'testMap',
-    //             tag: 'Map',
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             images: [],
-    //             positions: [
-    //                 { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
-    //                 { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
-    //             ],
-    //             themes: []
-    //         }
-    //     })
-
-    // })
-
-    // it('should correctly denormalize Theme references', () => {
-    //     const test = schemaTestStandarized(`<Asset key=(Test)>
-    //         <Room key=(test)>
-    //             <Description>
-    //                 One
-    //                 <br />
-    //             </Description>
-    //         </Room>
-    //         <Room key=(testTwo) />
-    //         <Map key=(testMap)>
-    //             <Room key=(test)><Position x="0" y="0" /></Room>
-    //             <Room key=(testTwo)><Position x="100" y="0" /></Room>
-    //         </Map>
-    //         <Theme key=(theme1)>
-    //             <Name>Spooky</Name>
-    //             <Prompt>Spooky</Prompt>
-    //             <Room key=(test) />
-    //             <Map key=(testMap) />
-    //         </Theme>
-    //     </Asset>`)
-    //     expect(test.standardForm.byId).toEqual({
-    //         test: {
-    //             key: 'test',
-    //             tag: 'Room',
-    //             shortName: { data: { tag: 'ShortName' }, children: [] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: {
-    //                 data: { tag: 'Description' },
-    //                 children: [
-    //                     { data: { tag: 'String', value: 'One' }, children: [] },
-    //                     { data: { tag: 'br' }, children: [] }
-    //                 ]
-    //             },
-    //             exits: [],
-    //             themes: [{ data: { tag: 'Theme', key: 'theme1' }, children: [{ data: { tag: 'Room', key: 'test' }, children: [] }] }]
-    //         },
-    //         testTwo: {
-    //             key: 'testTwo',
-    //             tag: 'Room',
-    //             shortName: { data: { tag: 'ShortName' }, children: [] },
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             summary: { data: { tag: 'Summary' }, children: [] },
-    //             description: { data: { tag: 'Description' }, children: [] },
-    //             exits: [],
-    //             themes: []
-    //         },
-    //         testMap: {
-    //             key: 'testMap',
-    //             tag: 'Map',
-    //             name: { data: { tag: 'Name' }, children: [] },
-    //             images: [],
-    //             positions: [
-    //                 { data: { tag: 'Room', key: 'test' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] },
-    //                 { data: { tag: 'Room', key: 'testTwo' }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }
-    //             ],
-    //             themes: [{ data: { tag: 'Theme', key: 'theme1' }, children: [{ data: { tag: 'Map', key: 'testMap' }, children: [] }] }]
-    //         },
-    //         theme1: {
-    //             key: 'theme1',
-    //             tag: 'Theme',
-    //             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Spooky' }, children: [] }] },
-    //             prompts: [{ data: { tag: 'Prompt', value: 'Spooky' }, children: [] }],
-    //             rooms: [{ data: { tag: 'Room', key: 'test' }, children: [] }],
-    //             maps: [{ data: { tag: 'Map', key: 'testMap' }, children: [] }]
-    //         }
-    //     })
-
     // })
 
 })
