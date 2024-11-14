@@ -1,5 +1,5 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport } from "../schema/baseClasses"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
@@ -23,10 +23,8 @@ import StandardImage from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
-import { selectKeysByTag } from "../schema/selectors/keysByTag"
 import { treeTypeGuard } from "../tree/filter"
-import { objectMap } from "../lib/objects"
-import { StandardImport } from "./components/metaData"
+import { StandardExport, StandardImport } from "./components/metaData"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -243,6 +241,7 @@ export class StandardForm {
     _metaData: GenericTree<SchemaTag>;
     _namespace: {
         imports: StandardImport[];
+        export?: StandardExport;
     }
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag>) {
@@ -470,14 +469,22 @@ export class StandardForm {
                 const exports = exportTagTree.tree
                     .filter(treeNodeTypeguard(isSchemaExport))
                     .filter(({ children }) => (children.length))
-                this._metaData = [...this._metaData, ...exports]
+                if (exports.length) {
+                    this._namespace.export = exports
+                        .map((exportSchema) => (new StandardExport(exportSchema)))
+                        .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
+                }
            }
         }
         else {
             this._key = args.key
             this.tag = args.tag
+            const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
+                .map((exportSchema) => (new StandardExport(exportSchema)))
+                .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
             this._namespace = {
-                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
+                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node))),
+                export: exportItem
             }
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
@@ -498,7 +505,8 @@ export class StandardForm {
     get metaData(): GenericTree<SchemaTag> {
         return [
             ...this._metaData,
-            ...this._namespace.imports.map((importItem) => (importItem.schema))
+            ...this._namespace.imports.map((importItem) => (importItem.schema)),
+            ...(this._namespace.export ? [this._namespace.export.schema] : [])
         ]
     }
 
@@ -614,6 +622,13 @@ export class StandardForm {
                 return [...previous, importItem]
             }
         }, this._namespace.imports)
+
+        returnValue._namespace.export = 
+            this._namespace.export
+                ? incoming._namespace.export
+                    ? this._namespace.export.merge(incoming._namespace.export)
+                    : this._namespace.export
+                : incoming._namespace.export
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)
