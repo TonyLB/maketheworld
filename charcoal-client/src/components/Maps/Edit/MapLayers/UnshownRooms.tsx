@@ -23,7 +23,7 @@ type UnshownRoomsProps = {
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { standardForm } = useLibraryAsset()
+    const { legacyStandardForm: standardForm } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])

@@ -24,7 +24,7 @@ type RoomExitEditorProps = {
 }
 
 const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
-    const { readonly, standardForm: baseStandardForm, inheritedStandardForm } = useLibraryAsset()
+    const { readonly, legacyStandardForm: baseStandardForm, inheritedStandardForm } = useLibraryAsset()
     const standardForm = useMemo(() => (inherited ? inheritedStandardForm : baseStandardForm), [baseStandardForm, inherited, inheritedStandardForm])
     
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
@@ -72,7 +72,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
 }
 
 const EditExit: FunctionComponent<{}> = () => {
-    const { readonly, standardForm } = useLibraryAsset()
+    const { readonly, legacyStandardForm: standardForm } = useLibraryAsset()
     const { componentKey } = useStandardFormContext()
     const { data, children, onChange } = useEditNodeContext()
 
@@ -132,7 +132,7 @@ const EditExit: FunctionComponent<{}> = () => {
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { standardForm, updateStandard } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
 
     const component: StandardRoom = useMemo(() => {
         if (RoomId) {

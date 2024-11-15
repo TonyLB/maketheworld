@@ -113,7 +113,7 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { updateStandard, save, status, standardForm, readonly, assetKey } = useLibraryAsset()
+    const { updateStandard, legacyStandardForm: standardForm, readonly, assetKey } = useLibraryAsset()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
 

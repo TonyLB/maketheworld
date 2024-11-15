@@ -163,7 +163,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 }
 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
-    const { standardForm } = useLibraryAsset()
+    const { legacyStandardForm: standardForm } = useLibraryAsset()
     const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
         Object.values(standardForm.byId).reduce((previous, component) => {
             if (validTags.includes('Action') && isStandardAction(component)) {
