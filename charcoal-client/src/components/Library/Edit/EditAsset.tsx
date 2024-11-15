@@ -8,13 +8,7 @@ import {
     ListSubheader,
     ListItemButton,
     ListItemIcon,
-    ListItemText,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    Typography,
-    DialogActions
+    ListItemText
 } from '@mui/material'
 
 import FeatureIcon from '@mui/icons-material/Search'
@@ -23,7 +17,6 @@ import AddIcon from '@mui/icons-material/Add'
 import ThemeIcon from '@mui/icons-material/TheaterComedy'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
-import SaveIcon from '@mui/icons-material/Save'
 import {
     Routes,
     Route,
@@ -50,11 +43,18 @@ import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import ThemeEditor from './ThemeEditor'
-import { StandardAction, StandardComputed, StandardFeature, StandardImage, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, StandardVariable, isStandardAction, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { isStandardTheme } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import StandardTheme from '@tonylb/mtw-wml/dist/standardize/components/theme'
+import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
+import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
+import StandardImage from '@tonylb/mtw-wml/dist/standardize/components/image'
+import StandardVariable from '@tonylb/mtw-wml/dist/standardize/components/variable'
+import StandardComputed from '@tonylb/mtw-wml/dist/standardize/components/computed'
+import StandardAction from '@tonylb/mtw-wml/dist/standardize/components/action'
 
 type AssetEditFormProps = {}
 
@@ -113,22 +113,22 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Fea
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { updateStandard, legacyStandardForm: standardForm, readonly, assetKey } = useLibraryAsset()
+    const { updateStandard, standardForm, readonly, assetKey } = useLibraryAsset()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
 
     //
     // TODO: Refactor below into a single reduce statement that updates a record of lists.
     //
-    const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardTheme)), [standardForm])
-    const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardRoom)), [standardForm])
-    const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardFeature)), [standardForm])
-    const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardKnowledge)), [standardForm])
-    const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardMap)), [standardForm])
-    const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardImage)), [standardForm])
-    const variables = useMemo<StandardVariable[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardVariable)), [standardForm])
-    const computes = useMemo<StandardComputed[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardComputed)), [standardForm])
-    const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter(isStandardAction)), [standardForm])
+    const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardTheme => (value instanceof StandardTheme))), [standardForm])
+    const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardRoom => (value instanceof StandardRoom))), [standardForm])
+    const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardFeature => (value instanceof StandardFeature))), [standardForm])
+    const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardKnowledge => (value instanceof StandardKnowledge))), [standardForm])
+    const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardMap => (value instanceof StandardMap))), [standardForm])
+    const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardImage => (value instanceof StandardImage))), [standardForm])
+    const variables = useMemo<StandardVariable[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardVariable => (value instanceof StandardVariable))), [standardForm])
+    const computes = useMemo<StandardComputed[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardComputed => (value instanceof StandardComputed))), [standardForm])
+    const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardAction => (value instanceof StandardAction))), [standardForm])
 
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
@@ -144,7 +144,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     }, [updateStandard, dispatch])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
-            primary={standardForm.key || 'Untitled'}
+            primary={standardForm._key || 'Untitled'}
             secondary={'Asset'}
             commands={
                 <React.Fragment>
@@ -158,7 +158,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: standardForm.key || 'Untitled'
+                    label: standardForm._key || 'Untitled'
             }]}
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
