@@ -45,6 +45,7 @@ type LibraryAssetContextType = {
     currentWML: string;
     draftWML: string;
     standardForm: StandardFormData;
+    legacyStandardForm: StandardFormData;
     combinedStandardForm: StandardFormData;
     inheritedStandardForm: StandardFormData;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
@@ -64,6 +65,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     currentWML: '',
     draftWML: '',
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    legacyStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedByAssetId: [],
@@ -120,6 +122,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             currentWML,
             draftWML,
             standardForm,
+            legacyStandardForm: standardForm,
             combinedStandardForm,
             inheritedStandardForm,
             inheritedByAssetId,

@@ -34,7 +34,7 @@ const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> =
 }
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
     const dispatch = useDispatch()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
         const extractComponent = (standardForm: StandardFormData): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
@@ -146,7 +146,7 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateStandard, standardForm } = useLibraryAsset()
+    const { assetKey, updateStandard, legacyStandardForm: standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]

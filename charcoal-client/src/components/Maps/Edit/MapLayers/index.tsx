@@ -47,7 +47,7 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
-    const { standardForm, updateStandard, AssetId } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, updateStandard, AssetId } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
@@ -245,7 +245,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
-    const { standardForm, updateStandard } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
     const { data } = item
     const { tree, mapDispatch, mapId } = useMapContext()
     const onClick = useCallback((id: string) => {

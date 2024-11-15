@@ -311,7 +311,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { updateStandard, standardForm } = useLibraryAsset()
+    const { updateStandard, legacyStandardForm: standardForm } = useLibraryAsset()
     const assetsImported = useMemo(() => (standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
         .map(({ data }) => (data))
@@ -365,7 +365,7 @@ interface ImageHeaderProps {
 }
 
 const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }) => {
-    const { standardForm } = useLibraryAsset()
+    const { legacyStandardForm: standardForm } = useLibraryAsset()
     const { dragActive, openUpload } = useFileWrapper()
     const iconURL = useLibraryImageURL(`${standardForm.key}Icon`)
 
@@ -399,7 +399,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { updateStandard, standardForm, save, AssetId, status } = useLibraryAsset()
+    const { updateStandard, legacyStandardForm: standardForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = useMemo(() => {

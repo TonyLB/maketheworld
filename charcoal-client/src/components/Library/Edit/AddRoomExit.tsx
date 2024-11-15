@@ -17,7 +17,7 @@ interface AddRoomExitProps {
 }
 
 export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId }) => {
-    const { standardForm, updateStandard } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
     const roomComponent = useMemo(() => (standardForm.byId[RoomId]), [standardForm, RoomId])
     const addExitItem = useCallback(() => {
         if (roomComponent && isStandardRoom(roomComponent)) {

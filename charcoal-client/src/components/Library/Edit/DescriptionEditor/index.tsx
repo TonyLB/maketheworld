@@ -259,7 +259,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
     const { tag } = useStandardFormContext()
-    const { standardForm, readonly } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, readonly } = useLibraryAsset()
     return <DescriptionEditorSlateComponent
         { ...props }
         placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}

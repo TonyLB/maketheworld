@@ -95,7 +95,7 @@ const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree
 )
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { AssetId, standardForm, inheritedByAssetId, updateStandard } = useLibraryAsset()
+    const { AssetId, legacyStandardForm: standardForm, inheritedByAssetId, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()

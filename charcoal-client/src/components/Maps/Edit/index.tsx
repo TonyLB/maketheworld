@@ -21,7 +21,7 @@ type MapEditProps = {
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { standardForm } = useLibraryAsset()
+    const { legacyStandardForm: standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
         href: `${(assetKey ?? 'draft') === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}Map/${mapId}`,
