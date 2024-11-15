@@ -3,7 +3,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { HasDescription, HasName } from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
 import { unwrapConstructorArgs } from "./editable"
 import { isSchemaTreeNode } from "./utils"
@@ -15,7 +15,7 @@ type NameAndDesc = {
     description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
 }
 
-export class StandardComponentWithNameAndDesc extends StandardComponentAbstract {
+export class StandardComponentWithNameAndDesc extends StandardComponentAbstract implements HasName, HasDescription {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
