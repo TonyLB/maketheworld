@@ -144,7 +144,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     }, [updateStandard, dispatch])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
-            primary={standardForm._key || 'Untitled'}
+            primary={standardForm.key || 'Untitled'}
             secondary={'Asset'}
             commands={
                 <React.Fragment>
@@ -158,7 +158,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: standardForm._key || 'Untitled'
+                    label: standardForm.key || 'Untitled'
             }]}
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>

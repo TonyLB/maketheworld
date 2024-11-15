@@ -511,6 +511,7 @@ export class StandardForm {
     }
 
     get byId(): Record<string, StandardComponent> { return this._byId }
+    get key(): string { return this._key }
 
     toJSON(): StandardFormData {
         if (this.tag === 'Character') {
