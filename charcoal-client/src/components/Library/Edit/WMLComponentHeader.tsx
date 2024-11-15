@@ -12,6 +12,7 @@ import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
+import { hasName, hasShortName } from '@tonylb/mtw-wml/dist/standardize'
 
 interface WMLComponentHeaderProps {
     ItemId: string;
@@ -27,13 +28,13 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
     if (!component) {
         return <React.Fragment>Untitled</React.Fragment>
     }
-    if (component instanceof StandardRoom) {
+    if (hasShortName(component)) {
         return <React.Fragment>
             { schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
-    if (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap) {
+    else if (hasName(component)) {
         return <React.Fragment>
             { schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}

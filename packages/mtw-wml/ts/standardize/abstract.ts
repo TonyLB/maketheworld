@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
-import { deepEqual, objectMap } from "../lib/objects"
+import { deepEqual } from "../lib/objects"
 import { unique } from "../list"
 import { selectKeysByTag } from "../schema/selectors/keysByTag"
 import { SchemaAssetTag, SchemaCharacterTag, SchemaDescriptionTag, SchemaExportTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAction, isSchemaTheme, isSchemaAsset, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaConditionStatement, isSchemaDescription, isSchemaExport, isSchemaFeature, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaRoom, isSchemaShortName, isSchemaSummary, isSchemaTag, isSchemaVariable, isSchemaWithKey, isSchemaPrompt, isSchemaCondition, isSchemaConditionFallthrough, isSchemaExit, isImportable, isSchemaReplace, isSchemaEdit, SchemaRemoveTag, SchemaReplaceTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, isSchemaRemove, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaPronouns, isSchemaMeta } from "../schema/baseClasses"

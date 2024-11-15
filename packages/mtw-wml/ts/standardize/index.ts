@@ -25,6 +25,7 @@ import { isSchemaTreeNode } from "./components/utils"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { treeTypeGuard } from "../tree/filter"
 import { StandardExport, StandardImport } from "./components/metaData"
+import { HasDescription, HasName, HasShortName } from "./components/abstract"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -177,6 +178,18 @@ export type StandardComponent = StandardCharacter |
     StandardComputed |
     StandardAction |
     StandardImage
+
+export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
+    return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)
+}
+
+export const hasDescription = (component: StandardComponent): component is StandardComponent & HasDescription => {
+    return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge)
+}
+
+export const hasShortName = (component: StandardComponent): component is StandardComponent & HasShortName => {
+    return (component instanceof StandardRoom)
+}
 
 //
 // standardComponentFactory takes an incoming argument that can apply to one of the constructors that inherit from StandardComponentAbstract,

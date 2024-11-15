@@ -6,7 +6,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode, isStandardRoom, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { HasDescription, HasName, HasShortName } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardRoomData } from "./dataTypes/room"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -15,7 +15,7 @@ import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardRoom extends StandardComponentWithNameAndDesc {
+export class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
     _summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
     _exits: GenericTree<SchemaTag>;

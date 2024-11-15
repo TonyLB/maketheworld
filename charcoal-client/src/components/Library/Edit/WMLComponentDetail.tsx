@@ -29,7 +29,7 @@ import { StandardFormSchema } from './StandardFormContext'
 import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
+import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
@@ -65,7 +65,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         {
-            (component instanceof StandardRoom) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
+            hasShortName(component) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
                     value={component?.shortName?.children ?? []}
                     onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) } }}
@@ -156,10 +156,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const componentName = useMemo(() => {
         const component = standardForm.byId[ComponentId]
         if (component) {
-            if (component instanceof StandardRoom) {
+            if (hasShortName(component)) {
                 return schemaOutputToString((unwrapSubject(component.shortName)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
-            else if (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap) {
+            else if (hasName(component)) {
                 return schemaOutputToString((unwrapSubject(component.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
         }

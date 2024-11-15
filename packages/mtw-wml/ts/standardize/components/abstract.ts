@@ -1,6 +1,6 @@
-import { SchemaTag } from "../../schema/baseClasses";
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode } from "../../tree/baseClasses";
-import { StandardComponentData } from "../baseClasses";
+import { EditWrappedStandardNode, StandardComponentData } from "../baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
 import { unwrapConstructorArgs } from "./editable";
 import { isSchemaTreeNode } from "./utils";
@@ -52,6 +52,18 @@ export class StandardComponentAbstract {
     merge(incoming: StandardComponentAbstract): StandardComponentAbstract | undefined {
         throw new Error('Cannot call merge on abstract class')
     }
+}
+
+export interface HasName {
+    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+}
+
+export interface HasDescription {
+    description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+}
+
+export interface HasShortName {
+    shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
 }
 
 export default StandardComponentAbstract

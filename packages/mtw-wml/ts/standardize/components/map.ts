@@ -5,7 +5,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { HasName } from "./abstract"
 import { isStandardMap, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -13,7 +13,7 @@ import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardMap extends StandardComponentAbstract {
+export class StandardMap extends StandardComponentAbstract implements HasName {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag>;
     _positions: GenericTree<SchemaTag>;
