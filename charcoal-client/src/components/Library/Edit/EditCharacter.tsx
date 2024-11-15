@@ -399,7 +399,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { updateStandard, legacyStandardForm: standardForm, save, AssetId, status } = useLibraryAsset()
+    const { updateStandard, standardForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = useMemo(() => {
