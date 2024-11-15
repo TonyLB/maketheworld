@@ -34,7 +34,7 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
-    else if (hasName(component)) {
+    else if (hasName(component)) {  
         return <React.Fragment>
             { schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
