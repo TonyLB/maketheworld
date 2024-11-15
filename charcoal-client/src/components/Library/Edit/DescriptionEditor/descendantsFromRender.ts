@@ -13,9 +13,11 @@ import {
 } from "../baseClasses"
 import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
+import StandardFeature from "@tonylb/mtw-wml/dist/standardize/components/feature"
+import StandardAction from "@tonylb/mtw-wml/dist/standardize/components/action"
 
-const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { standard: StandardFormData }): (CustomParagraphContents)[] => {
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []
     tree.forEach(({ data: item, children }) => {
         switch(item.tag) {
@@ -25,8 +27,9 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { sta
                 } as CustomText)
                 break
             case 'Link':
+                const linkTarget = options.standard.byId[item.to]
                 returnValue.push({
-                    type: options.standard.byId[item.to]?.tag === 'Feature' ? 'featureLink' : options.standard.byId[item.to]?.tag === 'Action' ? 'actionLink' : 'knowledgeLink',
+                    type: linkTarget instanceof StandardFeature ? 'featureLink' : linkTarget instanceof StandardAction ? 'actionLink' : 'knowledgeLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
@@ -89,7 +92,7 @@ const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagrap
     }
 }
 
-export const descendantsFromRender = (render: GenericTree<SchemaOutputTag>, options: { standard: StandardFormData }): CustomBlock[] => {
+export const descendantsFromRender = (render: GenericTree<SchemaOutputTag>, options: { standard: StandardForm }): CustomBlock[] => {
     let returnValue = [] as CustomBlock[]
     let accumulator = [] as CustomParagraphContents[]
     const translated = descendantsTranslate(render, options)

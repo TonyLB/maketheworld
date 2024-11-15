@@ -1,7 +1,7 @@
-import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 import descendantsFromRender from "./descendantsFromRender"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 
-const stubStandard: StandardFormData = { key: '', tag: 'Asset', byId: {}, metaData: [] }
+const stubStandard: StandardForm = new StandardForm({ key: '', tag: 'Asset', byId: {}, metaData: [] })
 
 describe('descendantsFromRender', () => {
     it('should return an empty paragraph from empty list', () => {
@@ -14,7 +14,7 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [{ data: { tag: 'String', value: 'with a link' }, children: [] }] },
             { data: { tag: 'String', value: ' and more text.' }, children: [] },
         ], {
-            standard: {
+            standard: new StandardForm({
                 key: '',
                 tag: 'Asset',
                 byId: {
@@ -26,7 +26,7 @@ describe('descendantsFromRender', () => {
                     }
                 },
                 metaData: []
-            }
+            })
         })).toMatchSnapshot()
     })
 
@@ -74,7 +74,7 @@ describe('descendantsFromRender', () => {
             { data: { tag: 'Link', to: 'testFeature', text: 'test' }, children: [{ data: { tag: 'String', value: 'test' }, children: [] }] },
             { data: { tag: 'Space' },  children: [] }
         ], {
-            standard: {
+            standard: new StandardForm({
                 key: '',
                 tag: 'Asset',
                 byId: {
@@ -86,7 +86,7 @@ describe('descendantsFromRender', () => {
                     }
                 },
                 metaData: []
-            }
+            })
         })).toMatchSnapshot()
     })
 })

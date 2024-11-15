@@ -45,6 +45,7 @@ import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 import { useStandardFormContext } from '../StandardFormContext'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 
 interface DescriptionEditorProps {
     // componentKey: string;
@@ -158,7 +159,7 @@ const AddIfButton: FunctionComponent<AddIfButtonProps> = ({ forceOnChange }) => 
 }
 
 type DescriptionEditorSlateComponentProperties = {
-    standard: StandardFormData;
+    standard: StandardForm;
     validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     placeholder?: string;
     toolbar?: boolean;
@@ -166,7 +167,7 @@ type DescriptionEditorSlateComponentProperties = {
     checkPoints?: string[];
 }
 
-const useDescriptionEditorHook = (standard: StandardFormData): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
+const useDescriptionEditorHook = (standard: StandardForm): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void, saveToReduce: (value: Descendant[]) => void } => {
     const { onChange: contextOnChange, value: contextValue } = useEditContext()
     const onChange = useCallback((newRender: GenericTree<SchemaOutputTag>) => {
         contextOnChange(newRender)
@@ -259,7 +260,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = (props) => {
     const { tag } = useStandardFormContext()
-    const { legacyStandardForm: standardForm, readonly } = useLibraryAsset()
+    const { standardForm, readonly } = useLibraryAsset()
     return <DescriptionEditorSlateComponent
         { ...props }
         placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}
