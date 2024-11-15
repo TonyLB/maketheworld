@@ -72,7 +72,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
 }
 
 const EditExit: FunctionComponent<{}> = () => {
-    const { readonly, standardForm } = useLibraryAsset()
+    const { readonly, legacyStandardForm: standardForm } = useLibraryAsset()
     const { componentKey } = useStandardFormContext()
     const { data, children, onChange } = useEditNodeContext()
 
@@ -132,7 +132,7 @@ const EditExit: FunctionComponent<{}> = () => {
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { standardForm, updateStandard } = useLibraryAsset()
+    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
 
     const component: StandardRoom = useMemo(() => {
         if (RoomId) {

@@ -37,14 +37,14 @@ import { getConfiguration } from '../../../slices/configuration'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { StandardForm, Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 
 type LibraryAssetContextType = {
     assetKey: string;
     AssetId: EphemeraCharacterId | EphemeraAssetId | null;
     currentWML: string;
     draftWML: string;
-    standardForm: StandardFormData;
+    standardForm: StandardForm;
     legacyStandardForm: StandardFormData;
     inheritedStandardForm: StandardFormData;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
@@ -63,7 +63,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     AssetId: null,
     currentWML: '',
     draftWML: '',
-    standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+    standardForm: new StandardForm({ key: '', tag: 'Asset', byId: {}, metaData: [] }),
     legacyStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedByAssetId: [],
@@ -87,7 +87,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const AssetId = useMemo<EphemeraCharacterId | EphemeraAssetId>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
-    const standardForm = useSelector(getStandardForm(AssetId))
+    const standardFormData = useSelector(getStandardForm(AssetId))
+    const standardForm = useMemo(() => (new StandardForm(standardFormData)), [standardFormData])
     const pendingEdits = useSelector(getPendingEdits(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
@@ -113,7 +114,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             currentWML,
             draftWML,
             standardForm,
-            legacyStandardForm: standardForm,
+            legacyStandardForm: standardFormData,
             inheritedStandardForm,
             inheritedByAssetId,
             updateStandard,
