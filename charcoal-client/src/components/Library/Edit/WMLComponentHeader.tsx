@@ -6,9 +6,12 @@ import { SxProps } from '@mui/material'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import MiniChip from '../../MiniChip'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
+import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
 
 interface WMLComponentHeaderProps {
     ItemId: string;
@@ -19,18 +22,18 @@ interface WMLComponentHeaderProps {
 }
 
 const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => {
-    const { inheritedStandardForm, legacyStandardForm: standardForm } = useLibraryAsset()
+    const { inheritedStandardForm, standardForm } = useLibraryAsset()
     const component = standardForm.byId[itemId]
     if (!component) {
         return <React.Fragment>Untitled</React.Fragment>
     }
-    if (isStandardRoom(component)) {
+    if (component instanceof StandardRoom) {
         return <React.Fragment>
             { schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
-    if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
+    if (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap) {
         return <React.Fragment>
             { schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
