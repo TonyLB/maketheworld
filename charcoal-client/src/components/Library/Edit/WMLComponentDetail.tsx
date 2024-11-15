@@ -18,35 +18,38 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 import { EditSchema } from './EditContext'
-import { isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardFeature, StandardKnowledge, StandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaOutputTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
-import { ignoreWrapped, unwrapSubject } from '@tonylb/mtw-wml/dist/schema/utils'
+import { unwrapSubject } from '@tonylb/mtw-wml/dist/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { StandardFormSchema } from './StandardFormContext'
-import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
+import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
+import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
 
 const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
 }
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { legacyStandardForm: standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
+    const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
     const dispatch = useDispatch()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
-        const extractComponent = (standardForm: StandardFormData): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
+        const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (ComponentId) {
                 const component = standardForm.byId[ComponentId]
-                if (component && (isStandardFeature(component) || isStandardKnowledge(component) || isStandardRoom(component))) {
+                if (component && (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardRoom)) {
                     return component
                 }
             }
             return undefined
         }
-        return [extractComponent(standardForm), extractComponent(inheritedStandardForm)]
+        return [extractComponent(standardForm), extractComponent(new StandardForm(inheritedStandardForm))]
     }, [ComponentId, standardForm, inheritedStandardForm])
     const { tag } = component
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
@@ -62,7 +65,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         {
-            (isStandardRoom(component)) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
+            (component instanceof StandardRoom) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
                     value={component?.shortName?.children ?? []}
                     onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) } }}
@@ -90,7 +93,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </EditSchema>
         </StandardFormSchema>
         {
-            isStandardRoom(component) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
+            (component instanceof StandardRoom) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
                 <EditSchema
                     value={component?.summary?.children ?? []}
                     onChange={(value) => {
@@ -128,13 +131,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     <DescriptionEditor
                         toolbar
                         validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                        checkPoints={isStandardRoom(component) ? ['describeRoom'] : undefined}
+                        checkPoints={component instanceof StandardRoom ? ['describeRoom'] : undefined}
                     />
                 </TitledBox>
             </EditSchema>
         </StandardFormSchema>
         {
-            isStandardRoom(component) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
+            (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
         }
     </Box>
     : <Box />
@@ -146,17 +149,17 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, updateStandard, legacyStandardForm: standardForm } = useLibraryAsset()
+    const { assetKey, updateStandard, standardForm } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
     const componentName = useMemo(() => {
         const component = standardForm.byId[ComponentId]
         if (component) {
-            if (isStandardRoom(component)) {
+            if (component instanceof StandardRoom) {
                 return schemaOutputToString((unwrapSubject(component.shortName)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
-            else if (isStandardFeature(component) || isStandardKnowledge(component) || isStandardMap(component)) {
+            else if (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap) {
                 return schemaOutputToString((unwrapSubject(component.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
             }
         }
