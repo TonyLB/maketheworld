@@ -46,7 +46,6 @@ type LibraryAssetContextType = {
     draftWML: string;
     standardForm: StandardFormData;
     legacyStandardForm: StandardFormData;
-    combinedStandardForm: StandardFormData;
     inheritedStandardForm: StandardFormData;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
     updateStandard: (action: UpdateStandardPayload) => void;
@@ -66,7 +65,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     legacyStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-    combinedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedStandardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] },
     inheritedByAssetId: [],
     updateStandard: () => {},
@@ -93,13 +91,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const pendingEdits = useSelector(getPendingEdits(AssetId))
     const inheritedStandardForm = useSelector(getInherited(AssetId))
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
-    const combinedStandardForm = useMemo((): StandardFormData => {
-        const standardizer = new Standardizer()
-        standardizer.loadStandardForm(standardForm)
-        const inheritedStandardizer = new Standardizer()
-        inheritedStandardizer.loadStandardForm(inheritedStandardForm)
-        return inheritedStandardizer.merge(standardizer).standardForm
-    }, [standardForm, inheritedStandardForm])
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
@@ -123,7 +114,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             draftWML,
             standardForm,
             legacyStandardForm: standardForm,
-            combinedStandardForm,
             inheritedStandardForm,
             inheritedByAssetId,
             updateStandard,
