@@ -12,27 +12,27 @@ import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
-import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import TutorialPopover from "../../../Onboarding/TutorialPopover"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
+import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
 
 type UnshownRoomsProps = {
 
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { legacyStandardForm: standardForm } = useLibraryAsset()
+    const { standardForm } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
     const unshownRoomItems = Object.values(standardForm.byId)
-        .filter(isStandardRoom)
-        .filter(({ key }) => (!shownRooms.includes(key)))
+        .filter((component): component is StandardRoom => (component instanceof StandardRoom))
+        .filter((room) => (!shownRooms.includes(room.key)))
     const nameFromKey = useCallback((key: string): string => {
         const component = standardForm.byId[key]
-        if (component && isStandardRoom(component)) {
+        if (component && component instanceof StandardRoom) {
             return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled'
         }
         return 'Untitled'
