@@ -9,7 +9,6 @@ import TextField from "@mui/material/TextField"
 import { useLibraryAsset } from "../LibraryAsset"
 import useAutoPin from "../../../../slices/UI/navigationTabs/useAutoPin"
 import DraftLockout from "../DraftLockout"
-import { StandardTheme, isStandardTheme } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 import { rename as renameNavigationTab } from '../../../../slices/UI/navigationTabs'
 import LibraryBanner from "../LibraryBanner"
@@ -23,6 +22,7 @@ import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema } from "../StandardFormContext"
 import ListWithConditions from "../ListWithConditions"
+import StandardTheme from "@tonylb/mtw-wml/dist/standardize/components/theme"
 
 const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()
@@ -39,23 +39,22 @@ type ThemeEditorProps = {}
 export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
+    const { assetKey, standardForm, updateStandard } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component: StandardTheme = useMemo(() => {
         if (ComponentId) {
             const component = standardForm.byId[ComponentId]
-            if (component && isStandardTheme(component)) {
+            if (component && component instanceof StandardTheme) {
                 return component
             }
         }
-        return {
+        return new StandardTheme({
             key: ComponentId,
             tag: 'Theme',
-            name: { data: { tag: 'Name' }, children: [] },
             prompts: [],
             rooms: [],
             maps: []
-        }
+        })
     }, [ComponentId, standardForm])
     const componentName = useMemo(() => {
         return schemaOutputToString(ignoreWrapped(component.name)?.children ?? [])
