@@ -14,14 +14,14 @@ import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
 import { map } from "@tonylb/mtw-wml/dist/tree/map"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { StandardRoom, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import { assertTypeguard } from "../../../lib/types"
 import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
-import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
-import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
+import { StandardForm, Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import StandardMap from "@tonylb/mtw-wml/dist/standardize/components/map"
+import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -49,8 +49,8 @@ export const useMapContext = () => (useContext(MapContext))
 //    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
 //    - An onChange function that accepts changes to that mapTree
 //
-const mapTreeMemo = (standardForm: StandardFormData, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
-    const mapComponent = assertTypeguard(standardForm.byId[mapId], isStandardMap)
+const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
+    const mapComponent = assertTypeguard(standardForm.byId[mapId], (component): component is StandardMap => (component instanceof StandardMap))
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
         isSchemaSelected(item) || isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaConditionStatement(item) || isSchemaConditionFallthrough(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
     )
@@ -68,7 +68,7 @@ const mapTreeMemo = (standardForm: StandardFormData, mapId: string, replaceItem:
     const positions = mapComponent?.positions ?? []
     const roomKeys = selectKeysByTag('Room')(positions)
     const roomAndExits = roomKeys
-        .map((key) => (assertTypeguard(standardForm.byId[key], isStandardRoom)))
+        .map((key) => (assertTypeguard(standardForm.byId[key], (component): component is StandardRoom => (component instanceof StandardRoom))))
         .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
         .map(({ key, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, children: [shortName, ...exits] }))
     const combinedTree = new SchemaTagTree([
@@ -95,7 +95,7 @@ const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree
 )
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { AssetId, legacyStandardForm: standardForm, inheritedByAssetId, updateStandard } = useLibraryAsset()
+    const { AssetId, standardForm, inheritedByAssetId, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const dispatch = useDispatch()
@@ -103,7 +103,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Create a GenericTree representation of the items relevant to the map
     //
-    const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], isStandardMap)), [standardForm.byId, mapId])
+    const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], (component): component is StandardMap => (component instanceof StandardMap))), [standardForm.byId, mapId])
 
     const replaceItem = useCallback((args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => {
         updateStandard({ ...args, type: 'replaceItem' })
@@ -135,7 +135,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
             const roomComponent = standardForm.byId[data.key]
-            const name = (roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
+            const name = (roomComponent && roomComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
             return children.reduce(extractRoomsHelper({ ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
