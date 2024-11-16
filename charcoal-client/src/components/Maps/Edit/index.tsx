@@ -12,16 +12,16 @@ import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
 import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { StandardMap, isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import TutorialPopover from '../../Onboarding/TutorialPopover'
+import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
 
 type MapEditProps = {
 }
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { legacyStandardForm: standardForm } = useLibraryAsset()
+    const { standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
         href: `${(assetKey ?? 'draft') === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}/`}Map/${mapId}`,
@@ -34,7 +34,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     useOnboardingCheckpoint('editMap', { requireSequence: true })
     const mapComponent = useMemo<StandardMap | undefined>(() => {
         const mapComponent = standardForm.byId[mapId]
-        if (mapComponent && isStandardMap(mapComponent)) {
+        if (mapComponent && mapComponent instanceof StandardMap) {
             return mapComponent
         }
         return undefined
