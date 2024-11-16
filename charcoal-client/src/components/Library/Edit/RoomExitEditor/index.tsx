@@ -11,13 +11,13 @@ import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { isSchemaExit, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema, useStandardFormContext } from "../StandardFormContext"
 import { EditSchema, useEditNodeContext } from "../EditContext"
 import ListWithConditions from "../ListWithConditions"
 import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -25,11 +25,11 @@ type RoomExitEditorProps = {
 }
 
 const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
-    const { readonly, legacyStandardForm: baseStandardForm, inheritedStandardForm } = useLibraryAsset()
-    const standardForm = useMemo(() => (inherited ? inheritedStandardForm : baseStandardForm), [baseStandardForm, inherited, inheritedStandardForm])
+    const { readonly, standardForm: baseStandardForm, inheritedStandardForm } = useLibraryAsset()
+    const standardForm = useMemo(() => (inherited ? new StandardForm(inheritedStandardForm) : baseStandardForm), [baseStandardForm, inherited, inheritedStandardForm])
     
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
-        const roomKeys = Object.values(standardForm.byId).filter(isStandardRoom).map(({ key }) => (key))
+        const roomKeys = Object.values(standardForm.byId).filter((component): component is StandardRoom => (component instanceof StandardRoom)).map(({ key }) => (key))
         const roomNamesInScope = Object.assign({},
             ...roomKeys
                 .map((key) => {
@@ -37,7 +37,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
                         return []
                     }
                     const component = standardForm.byId[key]
-                    if (!(component && isStandardRoom(component))) {
+                    if (!(component && component instanceof StandardRoom)) {
                         return []
                     }
                     return [{ [key]: schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || key }]
@@ -73,7 +73,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
 }
 
 const EditExit: FunctionComponent<{}> = () => {
-    const { readonly, legacyStandardForm: standardForm } = useLibraryAsset()
+    const { readonly, standardForm } = useLibraryAsset()
     const { componentKey } = useStandardFormContext()
     const { data, children, onChange } = useEditNodeContext()
 
@@ -84,7 +84,7 @@ const EditExit: FunctionComponent<{}> = () => {
             return ''
         }
         const targetComponent = standardForm.byId[data.to]
-        if (!(targetComponent && isStandardRoom(targetComponent))) {
+        if (!(targetComponent && targetComponent instanceof StandardRoom)) {
             return ''
         }
         return schemaOutputToString(ignoreWrapped(targetComponent.shortName)?.children ?? []) ?? targetComponent.key
