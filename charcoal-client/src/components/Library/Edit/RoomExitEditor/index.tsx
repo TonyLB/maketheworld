@@ -11,12 +11,13 @@ import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { isSchemaExit, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
-import { isStandardRoom, StandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
+import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema, useStandardFormContext } from "../StandardFormContext"
 import { EditSchema, useEditNodeContext } from "../EditContext"
 import ListWithConditions from "../ListWithConditions"
+import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -132,22 +133,21 @@ const EditExit: FunctionComponent<{}> = () => {
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
 
     const component: StandardRoom = useMemo(() => {
         if (RoomId) {
             const component = standardForm.byId[RoomId]
-            if (component && isStandardRoom(component)) {
+            if (component && component instanceof StandardRoom) {
                 return component
             }
         }
-        return {
+        return new StandardRoom({
             key: RoomId,
-            id: '',
             tag: 'Room',
             exits: [],
             themes: []
-        }
+        })
     }, [RoomId, standardForm])
     const render = useCallback(() => (<EditExit />), [])
 
