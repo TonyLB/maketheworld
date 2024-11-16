@@ -21,6 +21,9 @@ import {
 } from 'slate';
 import { useLibraryAsset } from '../LibraryAsset';
 import { isStandardAction, isStandardFeature, isStandardKnowledge } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import StandardAction from '@tonylb/mtw-wml/dist/standardize/components/action';
+import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature';
+import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge';
 
 interface LinkDialogProps {
     open: boolean;
@@ -163,16 +166,16 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 }
 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
-    const { legacyStandardForm: standardForm } = useLibraryAsset()
+    const { standardForm } = useLibraryAsset()
     const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
         Object.values(standardForm.byId).reduce((previous, component) => {
-            if (validTags.includes('Action') && isStandardAction(component)) {
+            if (validTags.includes('Action') && component instanceof StandardAction) {
                 return { ...previous, actions: [...previous.actions, component.key]}
             }
-            if (validTags.includes('Feature') && isStandardFeature(component)) {
+            if (validTags.includes('Feature') && component instanceof StandardFeature) {
                 return { ...previous, features: [...previous.features, component.key]}
             }
-            if (validTags.includes('Knowledge') && isStandardKnowledge(component)) {
+            if (validTags.includes('Knowledge') && component instanceof StandardKnowledge) {
                 return { ...previous, knowledges: [...previous.knowledges, component.key]}
             }
             return previous
