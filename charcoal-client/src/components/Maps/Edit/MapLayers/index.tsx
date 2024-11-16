@@ -20,7 +20,6 @@ import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
-import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
@@ -29,6 +28,7 @@ import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
 
 type MapLayersProps = {
     mapId: string;
@@ -47,14 +47,14 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
-    const { legacyStandardForm: standardForm, updateStandard, AssetId } = useLibraryAsset()
+    const { standardForm, updateStandard, AssetId } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
         const roomComponent = standardForm.byId[roomId]
-        if (!(roomComponent && isStandardRoom(roomComponent))) {
+        if (!(roomComponent && roomComponent instanceof StandardRoom)) {
             return
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
@@ -245,7 +245,7 @@ const MapStubRender: FunctionComponent<{}> = () => {
 //
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highlightID?: string }> = ({ item, highlightID }) => {
     const render = useCallback(() => (<MapStubRender />), [])
-    const { legacyStandardForm: standardForm, updateStandard } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
     const { data } = item
     const { tree, mapDispatch, mapId } = useMapContext()
     const onClick = useCallback((id: string) => {
@@ -271,7 +271,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
             const roomComponent = standardForm.byId[data.key]
             return <RoomLayer
                 roomId={data.key}
-                name={(roomComponent && isStandardRoom(roomComponent)) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || data.key : data.key}
+                name={(roomComponent && roomComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || data.key : data.key}
                 newestRoom={isNewestRoom}
             >
                 { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
@@ -280,7 +280,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
             return <PositionLayer x={data.x} y={data.y} />
         case 'Exit':
             const destinationComponent = standardForm.byId[data.to]
-            const exitName = (destinationComponent && isStandardRoom(destinationComponent)) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
+            const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
             return <ExitLayer name={exitName || data.to} />
         case 'If':
             return <EditSchema
