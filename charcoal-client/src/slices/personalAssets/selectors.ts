@@ -2,7 +2,7 @@ import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses';
 import { createSelector } from '@reduxjs/toolkit';
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize';
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize';
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';
 
 export type PublicSelectors = {
@@ -35,19 +35,17 @@ const getStandardForm = createSelector(
     getPendingEdits,
     getEdit,
     (inherited, base, pendingEdits, edit) => {
-        const inheritedStandardizer = new Standardizer()
-        inheritedStandardizer.loadStandardForm(inherited)
-        const combined = [base, ...pendingEdits.map(({ edit }) => (edit)), edit].reduce<Standardizer>((previous, standardForm) => {
+        const inheritedStandardized = new StandardForm(inherited)
+        const combined = [base, ...pendingEdits.map(({ edit }) => (edit)), edit].reduce<StandardForm>((previous, standardForm) => {
             try {
-                const standardizer = new Standardizer()
-                standardizer.loadStandardForm(standardForm)
-                return previous.merge(standardizer) as Standardizer
+                const standardized = new StandardForm(standardForm)
+                return previous.merge(standardized)
             }
             catch {
                 return previous
             }
-        }, inheritedStandardizer)
-        return combined.standardForm
+        }, inheritedStandardized)
+        return combined.toJSON()
     }
 )
 
@@ -56,8 +54,8 @@ const getImportData = ({ importData }: PersonalAssetsPublic) => (importData)
 const getInheritedByAssetId = createSelector(getImportData, (importData) => {
     const standardFormsById = Object.entries(importData)
         .map(([assetId, schema]) => {
-            const standardizer = new Standardizer(schema)
-            return { assetId, standardForm: standardizer.standardForm }  
+            const standardized = new StandardForm(schema[0])
+            return { assetId, standardForm: standardized.toJSON() }  
         })
     return standardFormsById
 })

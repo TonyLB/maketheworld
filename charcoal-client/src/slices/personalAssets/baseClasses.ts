@@ -1,5 +1,4 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
 import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaMetaTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -18,7 +17,6 @@ export interface PersonalAssetsInternal {
         errorStart?: number;
         errorEnd?: number;
     };
-    standardizer?: Standardizer;
     subscription?: any;
 }
 

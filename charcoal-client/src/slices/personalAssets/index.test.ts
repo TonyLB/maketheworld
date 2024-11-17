@@ -1,6 +1,6 @@
 import { addImport } from "."
 import { Schema } from "@tonylb/mtw-wml/dist/schema"
-import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 
 const schema = new Schema()
@@ -10,7 +10,7 @@ schema.loadWML(`<Asset key=(testAsset)>
     </Import>
     <Room key=(testRoom)><Name>: imported</Name></Room>
 </Asset>`)
-const standard = new Standardizer(schema.schema)
+const standard = new StandardForm(schema.schema[0])
 
 const overrideGetStandardInternal = jest.fn()
 const overrideGetStandard = jest.fn()
@@ -26,7 +26,7 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
-            overrideGetStandardInternal.mockReturnValue(standard.standardForm)
+            overrideGetStandardInternal.mockReturnValue(standard.toJSON())
             overrideGetStandard.mockReturnValue(overrideGetStandardInternal)
             overrideUpdateStandard.mockReturnValue(overrideUpdateStandardInternal)
         })
@@ -90,12 +90,12 @@ describe('personalAssets slice', () => {
                 <Name>Test</Name>
                 <Import from=(testImportOne) />
             </Character>`)
-            const standard = new Standardizer(schema.schema)
+            const standard = new StandardForm(schema.schema[0])
 
             addImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportTwo'
-            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardFormData => (standard.standardForm)), overrideUpdateStandard })(dispatch, getState)
+            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardFormData => (standard.toJSON())), overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'replaceMetaData',
                 metaData: [{

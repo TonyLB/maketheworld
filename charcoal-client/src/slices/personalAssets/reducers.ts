@@ -1,10 +1,10 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
 import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
@@ -22,26 +22,22 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
     state.draftWML = undefined
     const schema = new Schema()
     schema.loadWML(newCurrent.payload.value)
-    const standardizer = new Standardizer(schema.schema)
-    state.base = standardizer.standardForm
-    const baseKey = standardizer.standardForm.key
-    const importsStandardizer = new Standardizer(
-        ...Object.values(state.importData)
-            .map((tree) => (
-                tree.length === 1 && isSchemaAsset(tree[0].data)
-                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                    : []
-            ))
-            .filter((tree) => (tree.length))
-    )
-    importsStandardizer.loadStandardForm({
-        byId: importsStandardizer._byId,
-        key: baseKey,
-        tag: 'Asset',
-        metaData: standardizer.metaData
-    })
-    const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
-    state.inherited = inheritedStandardizer.standardForm
+    const standardized = new StandardForm(schema.schema[0])
+    state.base = standardized.toJSON()
+    const baseKey = standardized.key
+    const importsStandardized = Object.values(state.importData)
+        .map((tree) => (
+            tree.length === 1 && isSchemaAsset(tree[0].data)
+                ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                : []
+        ))
+        .filter((tree) => (tree.length))
+        .reduce<StandardForm | undefined>((previous, incoming) => {
+            const standardForm = new StandardForm(incoming[0])
+            return previous ? previous.merge(standardForm) : standardForm
+        }, undefined)
+    importsStandardized._metaData = standardized.metaData
+    state.inherited = importsStandardized.toJSON()
 }
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -122,12 +118,12 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const standardForm = publicSelectors.getStandardForm({ ...state, key: '' })
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? standardForm.byId[payload.componentKey] : undefined
     const mergeToEdit = (delta: StandardFormData): void => {
-        const editStandardizer = new Standardizer()
-        const deltaStandardizer = new Standardizer()
-        editStandardizer.loadStandardForm(state.edit)
-        deltaStandardizer.loadStandardForm(delta)
-        const mergedStandardizer = editStandardizer.merge(deltaStandardizer)
-        state.edit = mergedStandardizer.standardForm
+        const editStandardized = new StandardForm(state.edit)
+        const deltaStandardized = new StandardForm(delta)
+        console.log(`Merging into: ${JSON.stringify(editStandardized.toJSON(), null, 4)}`)
+        console.log(`Merging: ${JSON.stringify(deltaStandardized.toJSON(), null, 4)}`)
+        console.log(`Original: ${JSON.stringify(delta, null, 4)}`)
+        state.edit = editStandardized.merge(deltaStandardized).toJSON()
     }
     const mergeFieldToEdit = <T extends StandardComponentData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
         componentKey: string; tag: T["tag"], key: K, oldValue: T[K]; newValue: T[K];
@@ -519,38 +515,32 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag> }>) => {
     state.importData[action.payload.assetKey] = action.payload.schema
     const baseKey = state.base.key
-    const standardizer = new Standardizer()
-    standardizer.loadStandardForm(state.base)
-    const importsStandardizer = new Standardizer(
-        ...Object.values(state.importData)
-            .map((tree) => (
-                tree.length === 1 && isSchemaAsset(tree[0].data)
-                    ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                    : []
-            ))
-            .filter((tree) => (tree.length))
-    )
-    importsStandardizer.loadStandardForm({
-        byId: importsStandardizer._byId,
-        key: baseKey,
-        tag: 'Asset',
-        metaData: standardizer.metaData
-    })
-    const inheritedStandardizer = importsStandardizer.prune({ match: 'Inherited' })
-    state.inherited = inheritedStandardizer.standardForm
+    const standardized = new StandardForm(state.base)
+    const importsStandardized = Object.values(state.importData)
+        .map((tree) => (
+            tree.length === 1 && isSchemaAsset(tree[0].data)
+                ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
+                : []
+        ))
+        .filter((tree) => (tree.length))
+        .reduce<StandardForm | undefined>((previous, incoming) => {
+            const standardForm = new StandardForm(incoming[0])
+            return previous ? previous.merge(standardForm) : standardForm
+        }, undefined)
+    importsStandardized._metaData = standardized.metaData
+    state.inherited = importsStandardized.toJSON()
 }
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
     const { event } = action.payload
     if (event.detailType === 'Asset Edited') {
-        const baseStandardizer = new Standardizer()
-        baseStandardizer.loadStandardForm(state.base)
+        const base = new StandardForm(state.base)
         const incomingSchema = new Schema()
         incomingSchema.loadWML(event.schema)
-        const incomingStandardizer = new Standardizer(incomingSchema.schema)
+        const incoming = new StandardForm(incomingSchema.schema[0])
         try {
-            const mergedStandardizer = baseStandardizer.merge(incomingStandardizer)
-            state.base = mergedStandardizer.standardForm
+            const mergedStandardizer = base.merge(incoming)
+            state.base = mergedStandardizer.toJSON()
         }
         catch (err) {}
         state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
