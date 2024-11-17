@@ -42,7 +42,7 @@ import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscript
 import { push } from '../UI/feedback'
 import { excludeUndefined } from '../../lib/lists'
 import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import Debounce from '../../lib/keyedDebounce'
 
 const autoSaveDebounce = new Debounce()
@@ -286,9 +286,8 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
         const player = getPlayer(state).PlayerName
         const adjustedKey: EphemeraAssetId | EphemeraCharacterId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
         const internalKey = key === 'ASSET#draft' ? 'draft' : key.split('#').slice(1).join('#')
-        const standardizer = new Standardizer()
-        standardizer.loadStandardForm({ ...edit, key: internalKey })
-        const schema = schemaToWML(standardizer.schema)
+        const standardForm = new StandardForm({ ...edit, key: internalKey })
+        const schema = schemaToWML([standardForm.schema])
         const requestId = uuidv4()
         await dispatch(socketDispatchPromise({
             message: 'applyEdit',

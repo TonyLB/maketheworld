@@ -1,53 +1,44 @@
 import produce from "immer"
 import { updateStandard, UpdateStandardPayload } from "./reducers"
-import { Standardizer } from "@tonylb/mtw-wml/dist/standardize"
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { isSchemaExit, isSchemaString, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
+import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { isSchemaExit, isSchemaString } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
 import { publicSelectors } from "./selectors"
-import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
 
 describe('personalAsset slice reducers', () => {
 
     const transformWML = (wml: string, editWML: string, payload: UpdateStandardPayload): { base: string, standard: string, calculated: string, edit: string } => {
         const schema = new Schema()
         schema.loadWML(wml)
-        const base = new Standardizer(schema.schema)
-        const standardizer = new Standardizer(schema.schema)
+        const standardized = new StandardForm(schema.schema[0])
         const editSchema = new Schema()
         editSchema.loadWML(editWML)
-        const editStandardizer = new Standardizer(editSchema.schema)
+        const editStandardized = new StandardForm(editSchema.schema[0])
         const newState = produce(
             {
                 inherited: {
-                    ...base.standardForm,
+                    ...standardized.toJSON(),
                     byId: {}
                 },
-                base: base.standardForm,
-                standard: standardizer.standardForm,
-                edit: editStandardizer.standardForm,
+                base: standardized.toJSON(),
+                standard: standardized.toJSON(),
+                edit: editStandardized.toJSON(),
                 pendingEdits: []
             },
             (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
         )
-        base.loadStandardForm(newState.base)
-        editStandardizer.loadStandardForm(newState.edit)
-        const combinedStandardizer = base.merge(editStandardizer)
-        const standardForm = publicSelectors.getStandardForm(newState as any)
-        standardizer.loadStandardForm(standardForm)
+        const base = new StandardForm(newState.base)
+        const newEdit = new StandardForm(newState.edit)
+        const combinedStandardizer = base.merge(newEdit)
+        const newStandardized = new StandardForm(publicSelectors.getStandardForm(newState as any))
         return {
-            base: schemaToWML(base.schema),
-            standard: schemaToWML(standardizer.schema),
-            calculated: schemaToWML(combinedStandardizer.schema),
-            edit: schemaToWML(editStandardizer.schema)
+            base: schemaToWML([base.schema]),
+            standard: schemaToWML([newStandardized.schema]),
+            calculated: schemaToWML([combinedStandardizer.schema]),
+            edit: schemaToWML([newEdit.schema])
         }
-    }
-
-    const schemaFromStandard = (standardForm: StandardFormData): GenericTree<SchemaTag> => {
-        const standardizer = new Standardizer()
-        standardizer.loadStandardForm(standardForm)
-        return standardizer.schema
     }
 
     describe('updateStandard', () => {
