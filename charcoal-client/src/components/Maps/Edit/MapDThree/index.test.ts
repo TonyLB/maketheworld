@@ -5,9 +5,9 @@ import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree } from '.'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { assertTypeguard, Standardizer } from '@tonylb/mtw-wml/dist/standardize'
-import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { assertInstance, StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
+import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('MapDThree', () => {
@@ -30,15 +30,15 @@ describe('MapDThree', () => {
                 </Map>
             </Asset>
         `)
-        const testStandard = new Standardizer(testSchema.schema)
+        const testStandard = new StandardForm(testSchema.schema[0])
     
-        const testComponent = testStandard.standardForm.byId.testMap
+        const testComponent = testStandard.byId.testMap
         
-        const testTree = assertTypeguard(testComponent, isStandardMap)?.positions ?? []
+        const testTree = assertInstance(testComponent, StandardMap)?.positions ?? []
 
         const testMapDThree = new MapDThree({
             tree: testTree,
-            standardForm: testStandard.standardForm,
+            standardForm: testStandard.toJSON(),
             mapId: 'testMap',
             updateStandard: () => {}
         })
