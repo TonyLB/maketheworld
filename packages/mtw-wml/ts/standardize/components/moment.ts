@@ -1,57 +1,46 @@
 import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
-import { isStandardMoment, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
+import { isStandardMoment } from "./dataTypes"
 import { StandardMomentData } from "./dataTypes/moment"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
+export class StandardMoment extends editWrap(class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
     _messages: GenericTree<SchemaTag>;
-    _match?: StandardMoment;
     tag = 'Moment' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardMoment(match)
+        if (isStandardMoment(payload)) {
+            this._messages = payload.messages
         }
-        if (isSchemaTreeNode(payload)) {
-            if (!isSchemaMoment(payload.data)) {
-                throw new Error('Type mismatch in StandardMoment constructor')
-            }
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaMoment)(payload)) {
             const messagesTagTree = new SchemaTagTree(payload.children).filter({ match: 'Message' })
             this._messages = messagesTagTree.tree
         }
         else {
-            if (!isStandardMoment(payload)) {
-                throw new Error('Type mismatch in StandardMoment constructor')
-            }
-            this._messages = payload.messages
+            throw new Error('Type mismatch in StandardMoment constructor')
         }
     }
 
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
-
     get messages() { return this._messages }
 
-    override toJSON(): StandardMomentData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardMoment, StandardMomentData>(this, (value) => ({
-            key: value.key,
+    override toJSON(): StandardMomentData {
+        return {
+            key: this.key,
             tag: 'Moment',
-            messages: value._messages
-        }))
+            messages: this._messages
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardMoment) => ({
-            data: { tag: 'Moment', key: value.key },
-            children: value.messages
-        }))
+        return {
+            data: { tag: 'Moment', key: this.key },
+            children: this.messages
+        }
     }
 
     override clone(): this {
@@ -59,18 +48,13 @@ export class StandardMoment extends StandardComponentAbstract implements Compone
     }
 
     override merge(incoming: this): this | undefined {
-        if (!(incoming instanceof StandardMoment)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
+        if (incoming.key !== this.key || !(incoming instanceof StandardMoment)) {
+            throw new Error('Source mismatch in StandardMoment merge')
         }
-        return wrapMerge<StandardMoment>(this, incoming, StandardMoment, (base, incoming) => {
-            const args: StandardMomentData = {
-                key: base.key,
-                tag: 'Moment',
-                messages: applyEdits([...base.messages, ...incoming.messages])
-            }
-            return new StandardMoment(args)
-        }) as this | undefined
+        const returnValue = this.clone()
+        returnValue._messages = applyEdits([...this.messages, ...incoming.messages])
+        return returnValue
     }
-}
+}, 'StandardMoment'){}
 
 export default StandardMoment

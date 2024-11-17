@@ -5,20 +5,15 @@ import { isStandardFeature, StandardComponentData } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap, unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
-export class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
-    _match?: StandardFeature;
+export class StandardFeature extends editWrap(class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
     tag = 'Feature' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardFeature(match)
-        }
         if (isSchemaTreeNode(payload)) {
             if (!isSchemaFeature(payload.data)) {
                 throw new Error('Type mismatch in StandardFeature constructor')
@@ -31,23 +26,20 @@ export class StandardFeature extends StandardComponentWithNameAndDesc implements
         }
     }
 
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
-
-    override toJSON(): StandardFeatureData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardFeature, StandardFeatureData>(this, (value) => ({
-            key: value.key,
+    override toJSON(): StandardFeatureData {
+        return {
+            key: this.key,
             tag: 'Feature',
-            name: value.name,
-            description: value.description
-        }))
+            name: this.name,
+            description: this.description
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardFeature) => ({
-            data: { tag: 'Feature', key: value.key },
-            children: [value.name, value.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
-        }))
+        return {
+            data: { tag: 'Feature', key: this.key },
+            children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
+        }
     }
 
     override clone(): this {
@@ -58,18 +50,15 @@ export class StandardFeature extends StandardComponentWithNameAndDesc implements
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
-        return wrapMerge<StandardFeature>(this, incoming, StandardFeature, (base, incoming) => {
-            const superMerge = super.merge.bind(base)(incoming as this)
-            if (!superMerge) {
-                throw new Error('Merge failure in StandardRoom')
-            }
-            const args: StandardFeatureData = {
-                ...superMerge.toJSON(),
-                tag: 'Feature',
-            }
-            return new StandardFeature(args)
-        }) as this | undefined
+        const superMerge = super.merge(incoming as this)
+        if (!superMerge) {
+            throw new Error('Merge failure in StandardKnowledge')
+        }
+        const returnValue = this.clone() as this
+        returnValue._name = superMerge.name
+        returnValue._description = superMerge.description
+        return returnValue
     }
-}
+}, 'StandardFeature'){}
 
 export default StandardFeature
