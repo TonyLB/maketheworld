@@ -19,11 +19,9 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
         _match?: InstanceType<typeof Base>;
 
         constructor(...allArgs: any[]) {
-            const args = allArgs[0]
-            if (args instanceof Base) {
-                super(args.toJSON())
-            }
-            else if ('tag' in args) {
+            const rawArgs = allArgs[0]
+            const args = rawArgs instanceof Base ? rawArgs.toJSON() : rawArgs
+            if ('tag' in args) {
                 if (isStandardRemove(args)) {
                     super(args.component)
                     this._remove = true
