@@ -5,7 +5,7 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import { Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 
 const mockStore = configureStore()
 const currentWML = `
@@ -52,10 +52,10 @@ inheritedSchema.loadWML(`<Asset key=(Test)>
     </Inherited>
 </Asset>`)
 
-const standardizer = new Standardizer(baseSchema)
-const inheritedStandardizer = new Standardizer(inheritedSchema.schema)
-const combinedStandardizer = inheritedStandardizer.merge(standardizer)
-const schema = combinedStandardizer.schema
+const standardForm = new StandardForm(baseSchema[0])
+const inherited = new StandardForm(inheritedSchema.schema[0])
+const combined = inherited.merge(standardForm)
+const schema = combined.schema
 
 const store = mockStore({
     personalAssets: {
@@ -66,14 +66,14 @@ const store = mockStore({
                     currentWML,
                     baseSchema,
                     schema,
-                    base: standardizer.standardForm,
+                    base: standardForm.toJSON(),
                     edit: {
-                        ...standardizer.standardForm,
+                        ...standardForm.toJSON(),
                         byId: {}
                     },
                     pendingEdits: [],
-                    standard: standardizer.standardForm,
-                    inherited: inheritedStandardizer.standardForm,
+                    standard: standardForm.toJSON(),
+                    inherited: inherited.toJSON(),
                     importDefaults: {},
                     importData: {
                         BASE: inheritedSchema.schema

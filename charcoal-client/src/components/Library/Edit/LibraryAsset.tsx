@@ -37,7 +37,7 @@ import { getConfiguration } from '../../../slices/configuration'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
-import { StandardForm, Standardizer } from '@tonylb/mtw-wml/dist/standardize'
+import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 
 type LibraryAssetContextType = {
     assetKey: string;
