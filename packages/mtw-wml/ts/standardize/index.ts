@@ -34,6 +34,13 @@ export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard:
     throw new Error('Type mismatch')
 }
 
+export const assertInstance = <C extends { new (...args: any[]) : any }>(value: any, classType: C): InstanceType<C> => {
+    if (value instanceof classType) {
+        return value
+    }
+    throw new Error('Type mismatch')
+}
+
 export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, Extra>): GenericTree<SchemaTag, Extra> => (
     tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {

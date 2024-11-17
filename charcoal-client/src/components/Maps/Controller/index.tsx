@@ -19,7 +19,7 @@ import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
-import { StandardForm, Standardizer } from "@tonylb/mtw-wml/dist/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 import StandardMap from "@tonylb/mtw-wml/dist/standardize/components/map"
 import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
 
@@ -341,14 +341,14 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     )
     const standardForm = useMemo(
         () => {
-            const standardizer = new Standardizer([{
+            const standardForm = new StandardForm({
                 data: { tag: 'Asset', key: 'TEMP', Story: undefined },
                 children: [{
                     data: { tag: 'Map', key: 'Map' },
                     children: mappedTree
                 }]
-            }])
-            return standardizer.standardForm
+            })
+            return standardForm.toJSON()
         },
         [mappedTree]
     )
