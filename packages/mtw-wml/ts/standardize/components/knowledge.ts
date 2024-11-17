@@ -2,14 +2,14 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaKnowledge, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardKnowledge, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
-export class StandardKnowledge extends StandardComponentWithNameAndDesc {
+export class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
     _match?: StandardKnowledge;
     tag = 'Knowledge' as const
     constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
@@ -50,12 +50,16 @@ export class StandardKnowledge extends StandardComponentWithNameAndDesc {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardKnowledge | undefined {
+    override clone(): this {
+        return new StandardKnowledge(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardKnowledge)) {
             throw new Error('Type mismatch on StandardComponent merge')
         }
         return wrapMerge<StandardKnowledge>(this, incoming, StandardKnowledge, (base, incoming) => {
-            const superMerge = super.merge.bind(base)(incoming)
+            const superMerge = super.merge.bind(base)(incoming as this)
             if (!superMerge) {
                 throw new Error('Merge failure in StandardRoom')
             }
@@ -64,7 +68,7 @@ export class StandardKnowledge extends StandardComponentWithNameAndDesc {
                 tag: 'Knowledge',
             }
             return new StandardKnowledge(args)
-        })
+        }) as this | undefined
     }
 }
 

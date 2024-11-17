@@ -1,13 +1,13 @@
 import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardImage, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardImageData } from "./dataTypes/image"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardImage extends StandardComponentAbstract {
+export class StandardImage extends StandardComponentAbstract implements ComponentInterface {
     _match?: StandardImage;
     tag = 'Image' as const
     constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
@@ -47,7 +47,11 @@ export class StandardImage extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardImage | undefined {
+    override clone(): this {
+        return new StandardImage(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardImage)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -57,7 +61,7 @@ export class StandardImage extends StandardComponentAbstract {
                 tag: 'Image'
             }
             return new StandardImage(args)
-        })
+        }) as this | undefined
     }
 }
 

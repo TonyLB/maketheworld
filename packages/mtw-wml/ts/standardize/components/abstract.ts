@@ -13,7 +13,7 @@ export interface ComponentInterface {
     merge(incoming: this): this | undefined;
 }
 
-export class StandardComponentAbstract {
+export class StandardComponentAbstract implements ComponentInterface {
     _key: string;
     _remove: boolean;
     constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
@@ -49,7 +49,11 @@ export class StandardComponentAbstract {
         return { key: this.key }
     }
 
-    merge(incoming: StandardComponentAbstract): StandardComponentAbstract | undefined {
+    clone(): this {
+        throw new Error('Cannot call clone on abstract class')
+    }
+    
+    merge(incoming: this): this | undefined {
         throw new Error('Cannot call merge on abstract class')
     }
 }

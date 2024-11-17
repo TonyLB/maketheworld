@@ -4,7 +4,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardTheme, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardThemeData } from "./dataTypes/theme"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -12,7 +12,7 @@ import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardTheme extends StandardComponentAbstract {
+export class StandardTheme extends StandardComponentAbstract implements ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
     _rooms: GenericTree<SchemaTag>;
@@ -79,7 +79,11 @@ export class StandardTheme extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardTheme | undefined {
+    override clone(): this {
+        return new StandardTheme(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardTheme)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -93,7 +97,7 @@ export class StandardTheme extends StandardComponentAbstract {
                 maps: applyEdits([...base.maps, ...incoming.maps])
             }
             return new StandardTheme(args)
-        })
+        }) as this | undefined
     }
 }
 

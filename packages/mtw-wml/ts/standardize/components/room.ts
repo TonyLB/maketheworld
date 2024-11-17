@@ -6,7 +6,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode, isStandardRoom, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract, { HasDescription, HasName, HasShortName } from "./abstract"
+import StandardComponentAbstract, { ComponentInterface, HasDescription, HasName, HasShortName } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardRoomData } from "./dataTypes/room"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -15,7 +15,7 @@ import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName {
+export class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName, ComponentInterface {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
     _summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
     _exits: GenericTree<SchemaTag>;
@@ -92,12 +92,16 @@ export class StandardRoom extends StandardComponentWithNameAndDesc implements Ha
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardRoom | undefined {
+    override clone(): this {
+        return new StandardRoom(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardRoom)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
         return wrapMerge<StandardRoom>(this, incoming, StandardRoom, (base, incoming) => {
-            const superMerge = super.merge.bind(base)(incoming)
+            const superMerge = super.merge.bind(base)(incoming as this)
             if (!superMerge) {
                 throw new Error('Merge failure in StandardRoom')
             }
@@ -110,7 +114,7 @@ export class StandardRoom extends StandardComponentWithNameAndDesc implements Ha
                 themes: [...base.themes, ...incoming.themes]
             }
             return new StandardRoom(args)    
-        })
+        }) as this | undefined
     }
 }
 

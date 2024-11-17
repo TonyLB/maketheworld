@@ -58,7 +58,11 @@ export class StandardBookmark extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardBookmark | undefined {
+    override clone(): this {
+        return new StandardBookmark(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardBookmark)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -69,7 +73,7 @@ export class StandardBookmark extends StandardComponentAbstract {
                 description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
             }
             return new StandardBookmark(args)
-        })
+        }) as this | undefined
     }
 }
 

@@ -23,6 +23,19 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
             if (args instanceof Base) {
                 super(args.toJSON())
             }
+            else if ('tag' in args) {
+                if (isStandardRemove(args)) {
+                    super(args.component)
+                    this._remove = true
+                }
+                else if (isStandardReplace(args)) {
+                    super(args.payload)
+                    this._match = new Base(args.match) as InstanceType<typeof Base>
+                }
+                else {
+                    super(args)
+                }
+            }
             else {
                 if (!isSchemaTreeNode(args)) {
                     throw new Error(`Invalid arguments in ${label} constructor`)

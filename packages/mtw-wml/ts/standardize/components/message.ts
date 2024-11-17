@@ -4,7 +4,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode, isStandardMessage } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMessageData } from "./dataTypes/message"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -12,7 +12,7 @@ import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardMessage extends StandardComponentAbstract {
+export class StandardMessage extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     _rooms: GenericTree<SchemaTag>;
     _match?: StandardMessage;
@@ -70,7 +70,11 @@ export class StandardMessage extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMessage | undefined {
+    override clone(): this {
+        return new StandardMessage(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardMessage)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -82,7 +86,7 @@ export class StandardMessage extends StandardComponentAbstract {
                 rooms: applyEdits([...base.rooms, ...incoming.rooms])
             }
             return new StandardMessage(args)
-        })
+        }) as this | undefined
     }
 }
 

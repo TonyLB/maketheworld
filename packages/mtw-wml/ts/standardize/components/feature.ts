@@ -2,14 +2,14 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaFeature, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardFeature, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
-export class StandardFeature extends StandardComponentWithNameAndDesc {
+export class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
     _match?: StandardFeature;
     tag = 'Feature' as const
     constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
@@ -50,12 +50,16 @@ export class StandardFeature extends StandardComponentWithNameAndDesc {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardFeature | undefined {
+    override clone(): this {
+        return new StandardFeature(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
         return wrapMerge<StandardFeature>(this, incoming, StandardFeature, (base, incoming) => {
-            const superMerge = super.merge.bind(base)(incoming)
+            const superMerge = super.merge.bind(base)(incoming as this)
             if (!superMerge) {
                 throw new Error('Merge failure in StandardRoom')
             }
@@ -64,7 +68,7 @@ export class StandardFeature extends StandardComponentWithNameAndDesc {
                 tag: 'Feature',
             }
             return new StandardFeature(args)
-        })
+        }) as this | undefined
     }
 }
 

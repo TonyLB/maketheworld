@@ -5,7 +5,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import StandardComponentAbstract, { HasName } from "./abstract"
+import StandardComponentAbstract, { ComponentInterface, HasName } from "./abstract"
 import { isStandardMap, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
@@ -13,7 +13,7 @@ import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardMap extends StandardComponentAbstract implements HasName {
+export class StandardMap extends StandardComponentAbstract implements HasName, ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag>;
     _positions: GenericTree<SchemaTag>;
@@ -88,7 +88,11 @@ export class StandardMap extends StandardComponentAbstract implements HasName {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMap | undefined {
+    override clone(): this {
+        return new StandardMap(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardMap)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -102,7 +106,7 @@ export class StandardMap extends StandardComponentAbstract implements HasName {
                 themes: [...base.themes, ...incoming.themes]
             }
             return new StandardMap(args)
-        })
+        }) as this | undefined
     }
 }
 

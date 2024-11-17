@@ -393,7 +393,7 @@ export class StandardForm {
                             const standardItem = standardComponentFactory(item)
                             if (standardItem) {
                                 if (this._byId[standardItem.key]) {
-                                    const merged = this._byId[standardItem.key].merge(standardItem)
+                                    const merged = this._byId[standardItem.key].merge(standardItem as any)
                                     if (merged) {
                                         this._byId[standardItem.key] = merged
                                     }
@@ -610,7 +610,7 @@ export class StandardForm {
                 const incomingComponent = incoming._byId[key]
                 if (base) {
                     if (incomingComponent) {
-                        const merge = base.merge(incomingComponent)
+                        const merge = base.merge(incomingComponent as any)
                         if (!merge) {
                             return previous
                         }

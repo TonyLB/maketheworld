@@ -1,73 +1,61 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { isStandardAction, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isStandardAction } from "../baseClasses"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardActionData } from "./dataTypes/action"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap, unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardAction extends StandardComponentAbstract {
+export class StandardAction extends editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
-    _match?: StandardAction;
     tag = 'Action' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardAction(match)
+        if (isStandardAction(payload)) {
+            this._src = payload.src
         }
-        if (isSchemaTreeNode(payload)) {
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaAction)(payload)) {
             const { data } = payload
-            if (!isSchemaAction(data)) {
-                throw new Error('Type mismatch in StandardAction constructor')
-            }
             this._src = data.src
         }
         else {
-            if (!isStandardAction(payload)) {
-                throw new Error('Type mismatch in StandardAction constructor')
-            }
-            this._src = payload.src
+            throw new Error('Type mismatch in StandardAction constructor')
         }
     }
-
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
 
     get src() { return this._src }
     get dependencies() { return this._dependencies }
 
     override toJSON(): StandardActionData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardAction, StandardActionData>(this, (value) => ({
-            key: value.key,
+        return {
+            key: this.key,
             tag: 'Action',
-            src: value.src ?? ''
-        }))
+            src: this.src ?? ''
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardAction) => ({
-            data: { tag: 'Action', key: value.key, src: value.src ?? '' },
+        return {
+            data: { tag: 'Action', key: this.key, src: this.src ?? '' },
             children: []
-        }))
+        }
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardAction | undefined {
-        if (!(incoming instanceof StandardAction)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
-        }
-        return wrapMerge<StandardAction>(this, incoming, StandardAction, (base, incoming) => {
-            const args: StandardActionData = {
-                key: base.key,
-                tag: 'Action',
-                src: incoming.src ?? base.src ?? ''
-            }
-            return new StandardAction(args)
-        })
+    override clone(): this {
+        return new StandardAction(this.toJSON()) as this
     }
-}
+
+    override merge(incoming: this): this | undefined {
+        if (incoming.key !== this.key || !(incoming instanceof StandardAction)) {
+            throw new Error('Source mismatch in StandardAction merge')
+        }
+        const returnValue = this.clone()
+        returnValue._src = incoming.src ?? this.src
+        return returnValue
+    }
+}, 'StandardAction'){}
 
 export default StandardAction

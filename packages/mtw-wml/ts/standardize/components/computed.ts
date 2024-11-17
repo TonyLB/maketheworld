@@ -1,13 +1,13 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardComputed, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardComputedData } from "./dataTypes/computed"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardComputed extends StandardComponentAbstract {
+export class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
     _match?: StandardComputed;
@@ -58,7 +58,7 @@ export class StandardComputed extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardComputed | undefined {
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardComputed)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -70,7 +70,7 @@ export class StandardComputed extends StandardComponentAbstract {
                 dependencies: incoming.dependencies ?? base.dependencies
             }
             return new StandardComputed(args)
-        })
+        }) as this | undefined
     }
 }
 

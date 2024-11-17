@@ -1,12 +1,12 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardVariable, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardVariable extends StandardComponentAbstract {
+export class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
     _default?: string;
     _match?: StandardVariable;
     tag = 'Variable' as const
@@ -52,7 +52,11 @@ export class StandardVariable extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardVariable | undefined {
+    override clone(): this {
+        return new StandardVariable(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardVariable)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -63,7 +67,7 @@ export class StandardVariable extends StandardComponentAbstract {
                 default: incoming.default ?? base.default ?? ''
             }
             return new StandardVariable(args)
-        })
+        }) as this | undefined
     }
 }
 

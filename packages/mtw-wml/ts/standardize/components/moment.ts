@@ -2,13 +2,13 @@ import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardMoment, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardMomentData } from "./dataTypes/moment"
 import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardMoment extends StandardComponentAbstract {
+export class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
     _messages: GenericTree<SchemaTag>;
     _match?: StandardMoment;
     tag = 'Moment' as const
@@ -54,7 +54,11 @@ export class StandardMoment extends StandardComponentAbstract {
         }))
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardMoment | undefined {
+    override clone(): this {
+        return new StandardMoment(this.toJSON()) as this
+    }
+
+    override merge(incoming: this): this | undefined {
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }
@@ -65,7 +69,7 @@ export class StandardMoment extends StandardComponentAbstract {
                 messages: applyEdits([...base.messages, ...incoming.messages])
             }
             return new StandardMoment(args)
-        })
+        }) as this | undefined
     }
 }
 
