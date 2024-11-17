@@ -4,7 +4,7 @@ import { isStandardAction } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardActionData } from "./dataTypes/action"
-import { editWrap, unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardAction extends editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
@@ -29,7 +29,7 @@ export class StandardAction extends editWrap(class StandardAction extends Standa
     get src() { return this._src }
     get dependencies() { return this._dependencies }
 
-    override toJSON(): StandardActionData | StandardRemoveData | StandardReplaceData {
+    override toJSON(): StandardActionData {
         return {
             key: this.key,
             tag: 'Action',

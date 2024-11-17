@@ -163,7 +163,11 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                 incomingPayload._match = undefined
                 return incomingPayload
             }
-            return new EditWrapped(super.merge(incoming)) as this
+            const mergedOutput = super.merge(incoming)
+            if (!mergedOutput) {
+                return undefined
+            }
+            return new EditWrapped(mergedOutput) as this
         }
     }
 }
