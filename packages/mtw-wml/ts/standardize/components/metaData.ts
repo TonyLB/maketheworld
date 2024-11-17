@@ -1,5 +1,4 @@
 import { deepEqual, objectFilterEntries } from "../../lib/objects";
-import { schemaToWML } from "../../schema";
 import { isImportable, isImportableTag, isSchemaExport, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaExitTag, SchemaImportableBase, SchemaImportTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { MergeConflictError } from "../baseClasses";

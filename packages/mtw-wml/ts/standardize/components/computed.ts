@@ -1,10 +1,9 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { isStandardComputed, StandardComponentData } from "../baseClasses"
+import { isStandardComputed } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
-import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
 import { StandardComputedData } from "./dataTypes/computed"
-import { editWrap, unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
 export class StandardComputed extends editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {

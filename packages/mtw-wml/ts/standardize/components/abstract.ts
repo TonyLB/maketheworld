@@ -1,8 +1,7 @@
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { EditWrappedStandardNode, StandardComponentData } from "../baseClasses";
+import { EditWrappedStandardNode } from "../baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
-import { unwrapConstructorArgs } from "./editable";
 import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentInterface {

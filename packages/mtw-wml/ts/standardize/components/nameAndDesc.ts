@@ -1,11 +1,9 @@
-import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom, StandardComponentData } from "../baseClasses"
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface, HasDescription, HasName } from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
-import { unwrapConstructorArgs } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -18,8 +16,8 @@ type NameAndDesc = {
 export class StandardComponentWithNameAndDesc extends StandardComponentAbstract implements HasName, HasDescription, ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
         if (isSchemaTreeNode(payload)) {
             const tagTree = new SchemaTagTree(payload.children)
