@@ -1218,7 +1218,6 @@ describe('standardizeSchema', () => {
         const testSchema = new Schema()
         testSchema.loadWML(testSource)
         const testStandard = new Standardizer(testSchema.schema)
-        console.log(`testStandard: ${JSON.stringify(testStandard._byId, null, 4)}`)
         const standardizer = inheritedStandard.merge(testStandard)
         expect(schemaToWML(standardizer.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>

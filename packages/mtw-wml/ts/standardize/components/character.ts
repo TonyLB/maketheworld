@@ -3,11 +3,11 @@ import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName
 import { GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { treeTypeGuard } from "../../tree/filter"
 import { EditWrappedStandardNode } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardCharacter extends StandardComponentAbstract {
+export class StandardCharacter extends StandardComponentAbstract implements ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _firstImpression?: EditWrappedStandardNode<SchemaFirstImpressionTag, SchemaTag>;
     _oneCoolThing?: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>;
@@ -46,7 +46,6 @@ export class StandardCharacter extends StandardComponentAbstract {
     get oneCoolThing() { return this._oneCoolThing }
     get outfit() { return this._outfit }
     get image() { return this._image }
-
 
     override toJSON(): StandardCharacterData {
         return {
@@ -88,7 +87,7 @@ export class StandardCharacter extends StandardComponentAbstract {
         }
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardCharacter {
+    override merge(incoming: this): this {
         if (!(incoming instanceof StandardCharacter)) {
             throw new Error('Type mistmatch on StandardComponent merge')
         }

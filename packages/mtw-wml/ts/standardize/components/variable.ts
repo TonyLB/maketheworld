@@ -1,70 +1,58 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import StandardComponentAbstract from "./abstract"
-import { isStandardVariable, StandardComponentData, StandardRemoveData, StandardReplaceData } from "./dataTypes"
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
+import { isStandardVariable } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardVariable extends StandardComponentAbstract {
+export class StandardVariable extends editWrap(class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
     _default?: string;
-    _match?: StandardVariable;
     tag = 'Variable' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardVariable(match)
+        if (isStandardVariable(payload)) {
+            this._default = payload.default
         }
-        if (isSchemaTreeNode(payload)) {
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaVariable)(payload)) {
             const { data } = payload
-            if (!isSchemaVariable(data)) {
-                throw new Error('Type mismatch in StandardVariable constructor')
-            }
             this._default = data.default
         }
         else {
-            if (!isStandardVariable(payload)) {
-                throw new Error('Type mismatch in StandardAction constructor')
-            }
-            this._default = payload.default
+            throw new Error('Type mismatch in StandardAction constructor')
         }
     }
-
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
 
     get default() { return this._default }
 
-    override toJSON(): StandardVariableData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardVariable, StandardVariableData>(this, (value) => ({
-            key: value.key,
+    override toJSON(): StandardVariableData {
+        return {
+            key: this.key,
             tag: 'Variable',
-            default: value.default ?? ''
-        }))
+            default: this.default ?? ''
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardVariable) => ({
-            data: { tag: 'Variable', key: value.key, default: value.default },
+        return {
+            data: { tag: 'Variable', key: this.key, default: this.default },
             children: []
-        }))
+        }
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardVariable | undefined {
-        if (!(incoming instanceof StandardVariable)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
-        }
-        return wrapMerge<StandardVariable>(this, incoming, StandardVariable, (base, incoming) => {
-            const args: StandardVariableData = {
-                key: base.key,
-                tag: 'Variable',
-                default: incoming.default ?? base.default ?? ''
-            }
-            return new StandardVariable(args)
-        })
+    override clone(): this {
+        return new StandardVariable(this.toJSON()) as this
     }
-}
+
+    override merge(incoming: this): this | undefined {
+        if (incoming.key !== this.key || !(incoming instanceof StandardVariable)) {
+            throw new Error('Source mismatch in StandardVariable merge')
+        }
+        const returnValue = this.clone()
+        returnValue._default = incoming.default ?? this.default ?? ''
+        return returnValue
+    }
+}, 'StandardVariable'){}
 
 export default StandardVariable

@@ -17,7 +17,7 @@ describe('StandardAction class', () => {
         expect(schemaToWML([testAction.schema])).toEqual(testSource)
     })
 
-    it('should construct StandardComputed from StandardComputedData', () => {
+    it('should construct StandardAction from StandardActionData', () => {
         const testComputedData: StandardActionData = {
             key: 'test',
             tag: 'Action',

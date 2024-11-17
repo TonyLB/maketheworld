@@ -1,64 +1,50 @@
 import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { isStandardImage, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
-import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isStandardImage } from "../baseClasses"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardImageData } from "./dataTypes/image"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardImage extends StandardComponentAbstract {
-    _match?: StandardImage;
+export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface {
     tag = 'Image' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardImage(match)
+        if (isStandardImage(payload)) {
         }
-        if (isSchemaTreeNode(payload)) {
-            const { data } = payload
-            if (!isSchemaImage(data)) {
-                throw new Error('Type mismatch in StandardImage constructor')
-            }
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaImage)(payload)) {
         }
         else {
-            if (!isStandardImage(payload)) {
-                throw new Error('Type mismatch in StandardImage constructor')
-            }
+            throw new Error('Type mismatch in StandardImage constructor')
         }
     }
 
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
-
-    override toJSON(): StandardImageData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardImage, StandardImageData>(this, (value) => ({
-            key: value.key,
+    override toJSON(): StandardImageData {
+        return {
+            key: this.key,
             tag: 'Image'
-        }))
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardImage) => ({
-            data: { tag: 'Image', key: value.key },
+        return {
+            data: { tag: 'Image', key: this.key },
             children: []
-        }))
+        }
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardImage | undefined {
-        if (!(incoming instanceof StandardImage)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
-        }
-        return wrapMerge<StandardImage>(this, incoming, StandardImage, (base, incoming) => {
-            const args: StandardImageData = {
-                key: base.key,
-                tag: 'Image'
-            }
-            return new StandardImage(args)
-        })
+    override clone(): this {
+        return new StandardImage(this.toJSON()) as this
     }
-}
+
+    override merge(incoming: this): this | undefined {
+        if (incoming.key !== this.key || !(incoming instanceof StandardImage)) {
+            throw new Error('Source mismatch in StandardAction merge')
+        }
+        const returnValue = this.clone()
+        return returnValue
+    }
+}, 'StandardImge'){}
 
 export default StandardImage

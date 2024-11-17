@@ -1,8 +1,7 @@
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
-import { GenericTreeNode } from "../../tree/baseClasses";
-import { EditWrappedStandardNode, StandardComponentData } from "../baseClasses";
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
+import { EditWrappedStandardNode } from "../baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
-import { unwrapConstructorArgs } from "./editable";
 import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentInterface {
@@ -13,21 +12,20 @@ export interface ComponentInterface {
     merge(incoming: this): this | undefined;
 }
 
-export class StandardComponentAbstract {
+export class StandardComponentAbstract implements ComponentInterface {
     _key: string;
-    _remove: boolean;
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove } = unwrapConstructorArgs(args)
-        this._remove = remove
-        if (isSchemaTreeNode(payload)) {
+    _remove?: boolean;
+    constructor(...args: any[]) {
+        const payload = args[0]
+        if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
             const { data } = payload
-            if (!(data && 'key' in data && data.key)) {
-                throw new Error('Cannot convert non-keyed schema item to StandardComponent')
-            }
             this._key = data.key
         }
-        else {
+        else if (payload && ('key' in payload)) {
             this._key = payload.key
+        }
+        else {
+            throw new Error('Cannot convert non-keyed schema item to StandardComponent')
         }
 
     }
@@ -40,7 +38,7 @@ export class StandardComponentAbstract {
         throw new Error('Cannot call schema on abstract class')
     }
 
-    get isRemove() { return this._remove }
+    get isRemove() { return false }
     get isReplace() { return false }
     get match(): StandardComponentAbstract | undefined { return undefined }
     get payload(): StandardComponentAbstract { return this }
@@ -49,7 +47,11 @@ export class StandardComponentAbstract {
         return { key: this.key }
     }
 
-    merge(incoming: StandardComponentAbstract): StandardComponentAbstract | undefined {
+    clone(): this {
+        throw new Error('Cannot call clone on abstract class')
+    }
+    
+    merge(incoming: this): this | undefined {
         throw new Error('Cannot call merge on abstract class')
     }
 }

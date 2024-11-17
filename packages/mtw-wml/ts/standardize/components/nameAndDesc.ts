@@ -1,11 +1,9 @@
-import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract, { HasDescription, HasName } from "./abstract"
+import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom } from "../baseClasses"
+import StandardComponentAbstract, { ComponentInterface, HasDescription, HasName } from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
-import { unwrapConstructorArgs } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -15,11 +13,11 @@ type NameAndDesc = {
     description: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
 }
 
-export class StandardComponentWithNameAndDesc extends StandardComponentAbstract implements HasName, HasDescription {
+export class StandardComponentWithNameAndDesc extends StandardComponentAbstract implements HasName, HasDescription, ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
         if (isSchemaTreeNode(payload)) {
             const tagTree = new SchemaTagTree(payload.children)
@@ -54,14 +52,14 @@ export class StandardComponentWithNameAndDesc extends StandardComponentAbstract 
         }
     }
 
-    override merge(incoming: StandardComponentWithNameAndDesc): StandardComponentWithNameAndDesc | undefined {
+    override merge(incoming: this): this | undefined {
         const args = {
             key: this.key,
             tag: 'Feature' as const,
             name: combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>,
             description: combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         }
-        return new StandardComponentWithNameAndDesc(args)
+        return new StandardComponentWithNameAndDesc(args) as this | undefined
     }
 }
 

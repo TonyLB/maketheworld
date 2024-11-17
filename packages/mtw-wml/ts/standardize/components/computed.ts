@@ -1,77 +1,64 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { isStandardComputed, StandardComponentData } from "../baseClasses"
-import StandardComponentAbstract from "./abstract"
-import { StandardRemoveData, StandardReplaceData } from "./dataTypes"
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isStandardComputed } from "../baseClasses"
+import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardComputedData } from "./dataTypes/computed"
-import { unwrapConstructorArgs, wrapJSON, wrapMerge, wrapSchema } from "./editable"
+import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardComputed extends StandardComponentAbstract {
+export class StandardComputed extends editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
-    _match?: StandardComputed;
     tag = 'Computed' as const
-    constructor(args: StandardComponentData | GenericTreeNode<SchemaTag>) {
-        const { payload, remove, match } = unwrapConstructorArgs(args)
+    constructor(...args: any[]) {
+        const payload = args[0]
         super(payload)
-        this._remove = remove
-        if (match) {
-            this._match = new StandardComputed(match)
+        if (isStandardComputed(payload)) {
+            this._src = payload.src
+            this._dependencies = payload.dependencies
         }
-        if (isSchemaTreeNode(payload)) {
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaComputed)(payload)) {
             const { data } = payload
-            if (!isSchemaComputed(data)) {
-                throw new Error('Type mismatch in StandardComputed constructor')
-            }
             this._src = data.src
             this._dependencies = data.dependencies
         }
         else {
-            if (!isStandardComputed(payload)) {
-                throw new Error('Type mismatch in StandardComputed constructor')
-            }
-            this._src = payload.src
-            this._dependencies = payload.dependencies
+            throw new Error('Type mismatch in StandardComputed constructor')
         }
     }
-
-    override get isReplace() { return Boolean(this._match) }
-    override get match() { return this._match }
 
     get src() { return this._src }
     get dependencies() { return this._dependencies }
 
-    override toJSON(): StandardComputedData | StandardRemoveData | StandardReplaceData {
-        return wrapJSON<StandardComputed, StandardComputedData>(this, (value) => ({
-            key: value.key,
+    override toJSON(): StandardComputedData {
+        return {
+            key: this.key,
             tag: 'Computed',
-            src: value.src ?? '',
-            dependencies: value.dependencies
-        }))
+            src: this.src ?? '',
+            dependencies: this.dependencies
+        }
     }
 
     override get schema(): GenericTreeNode<SchemaTag> {
-        return wrapSchema(this, (value: StandardComputed) => ({
-            data: { tag: 'Computed', key: value.key, src: value.src ?? '', dependencies: value.dependencies },
+        return {
+            data: { tag: 'Computed', key: this.key, src: this.src ?? '', dependencies: this.dependencies },
             children: []
-        }))
+        }
     }
 
-    override merge(incoming: StandardComponentAbstract): StandardComputed | undefined {
-        if (!(incoming instanceof StandardComputed)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
-        }
-        return wrapMerge<StandardComputed>(this, incoming, StandardComputed, (base, incoming) => {
-            const args: StandardComputedData = {
-                key: base.key,
-                tag: 'Computed',
-                src: incoming.src ?? base.src ?? '',
-                dependencies: incoming.dependencies ?? base.dependencies
-            }
-            return new StandardComputed(args)
-        })
+    override clone(): this {
+        return new StandardComputed(this.toJSON()) as this
     }
-}
+
+    override merge(incoming: this): this | undefined {
+        if (incoming.key !== this.key || !(incoming instanceof StandardComputed)) {
+            throw new Error('Source mismatch in StandardComputed merge')
+        }
+        const returnValue = this.clone()
+        returnValue._src = incoming.src ?? this.src
+        returnValue._dependencies = incoming._dependencies ?? this._dependencies
+        return returnValue
+    }
+}, 'StandardComputed'){}
 
 export default StandardComputed
