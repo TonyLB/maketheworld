@@ -459,6 +459,22 @@ describe('TagTree', () => {
             `))
         })
 
+        it('should filter sequence correctly', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <If {true}><Room key=(room1) /></If>
+                    <Room key=(room1)><If {true}><Name>Test</Name></If></Room>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']], isWrapper: ({ tag }) => (tag === 'If') })
+            const filteredTreeOne = tagTree.filter({ sequence: [{ match: 'Room' }, { match: 'If' }] })
+            expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(room1)><If {true}><Name>Test</Name></If></Room>
+                </Asset>
+            `))
+        })
+
     })
 
     describe('prune', () => {

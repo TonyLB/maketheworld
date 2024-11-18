@@ -85,9 +85,9 @@ const isTagTreeActionReorderSiblings = <NodeData extends {}, Extra extends {} = 
 const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
 const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
 
-export type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra>)
+export type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra> | TagTreeMatchSequence<NodeData, Extra>)
 const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
-    return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg)
+    return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg || 'sequence' in arg)
 }
 // const isTagTreeNodeDataOperandNested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is { data: NodeData } & Extra => (typeof arg === 'object' && 'data' in arg)
 // const isTagTreeNodeDataOperandUnnested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is NodeData => (typeof arg === 'object' && !('data' in arg))
@@ -489,6 +489,10 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
                     return arg.or
                         .filter(isTagTreeFilterArgument)
                         .reduce<Boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
+                }
+                if ('sequence' in arg) {
+                    const matchIndices = this._tagMatch(arg, tagList)
+                    return matchIndices.length > 0
                 }
                 if ('match' in arg) {
                     const nodeMatches = this._tagMatchOperationIndices(tagList, arg)
