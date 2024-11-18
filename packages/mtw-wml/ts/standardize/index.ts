@@ -362,6 +362,7 @@ export class StandardForm {
                                         return [...sortInPlace(componentTags), ...sortInPlace(valueTags), ...conditionalTags]
                                     }
                                 )
+                                .filter({ not: { sequence: [{ or: [ { match: 'Remove' }, { match: 'Replace' }] }, { or: [{ match: 'Import' }, { match: 'Export' }] }] }})
                                 .prune({ and: [{ before: nodeMatch }, { not: { or: [editTag, { after: editTag }] }}] })
                                 .prune({ or: [{ match: 'Import' }, { match: 'Export' }] })
                             switch(tag) {
