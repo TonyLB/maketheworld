@@ -1,9 +1,9 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
-import { StandardFormData } from "./components/dataTypes"
+import { StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -203,6 +203,7 @@ export const hasShortName = (component: StandardComponent): component is Standar
 // finds the correct constructor, and creates the sub-typed class
 //
 export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
+
     const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
         if (isSchemaTreeNode(arg)) {
             const subject = unwrapSubject(arg)
@@ -212,43 +213,56 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
         }
         return false
     }
+
+    const unwrapStandardTypeguard = <T extends StandardComponentData>(typeguard: (component: StandardComponentData) => component is T) => (arg: StandardComponentData): arg is StandardRemoveData | StandardReplaceData | T => {
+        if (isStandardReplace(arg)) {
+            return unwrapStandardTypeguard(typeguard)(arg.payload)
+        }
+        else if (isStandardRemove(arg)) {
+            return unwrapStandardTypeguard(typeguard)(arg.component)
+        }
+        else {
+            return typeguard(arg)
+        }
+    }
+
     if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || subjectTypeguard(arg, isSchemaCharacter)) {
         return new StandardCharacter(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || subjectTypeguard(arg, isSchemaRoom)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardRoom)(arg)) || subjectTypeguard(arg, isSchemaRoom)) {
         return new StandardRoom(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardFeature(arg)) || subjectTypeguard(arg, isSchemaFeature)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardFeature)(arg)) || subjectTypeguard(arg, isSchemaFeature)) {
         return new StandardFeature(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || subjectTypeguard(arg, isSchemaKnowledge)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardKnowledge)(arg)) || subjectTypeguard(arg, isSchemaKnowledge)) {
         return new StandardKnowledge(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardBookmark(arg)) || subjectTypeguard(arg, isSchemaBookmark)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardBookmark)(arg)) || subjectTypeguard(arg, isSchemaBookmark)) {
         return new StandardBookmark(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || subjectTypeguard(arg, isSchemaMap)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMap)(arg)) || subjectTypeguard(arg, isSchemaMap)) {
         return new StandardMap(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardMessage(arg)) || subjectTypeguard(arg, isSchemaMessage)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMessage)(arg)) || subjectTypeguard(arg, isSchemaMessage)) {
         return new StandardMessage(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || subjectTypeguard(arg, isSchemaMoment)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMoment)(arg)) || subjectTypeguard(arg, isSchemaMoment)) {
         return new StandardMoment(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardTheme(arg)) || subjectTypeguard(arg, isSchemaTheme)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardTheme)(arg)) || subjectTypeguard(arg, isSchemaTheme)) {
         return new StandardTheme(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || subjectTypeguard(arg, isSchemaVariable)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardVariable)(arg)) || subjectTypeguard(arg, isSchemaVariable)) {
         return new StandardVariable(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardComputed(arg)) || subjectTypeguard(arg, isSchemaComputed)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardComputed)(arg)) || subjectTypeguard(arg, isSchemaComputed)) {
         return new StandardComputed(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardAction(arg)) || subjectTypeguard(arg, isSchemaAction)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardAction)(arg)) || subjectTypeguard(arg, isSchemaAction)) {
         return new StandardAction(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || subjectTypeguard(arg, isSchemaImage)) {
+    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardImage)(arg)) || subjectTypeguard(arg, isSchemaImage)) {
         return new StandardImage(arg)
     }
     return undefined

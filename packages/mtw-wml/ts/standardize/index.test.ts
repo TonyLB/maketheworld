@@ -1562,6 +1562,50 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(`<Asset key=(Test) />`)
     })
 
+    it('should accept edit tags in JSON form', () => {
+        const test = new StandardForm({
+            tag: 'Asset',
+            key: 'test',
+            metaData: [],
+            byId: {
+                testReplace: {
+                    tag: 'Replace',
+                    key: 'testRoom',
+                    match: {
+                        tag: 'Room',
+                        key: 'testRoom',
+                        themes: [],
+                        exits: []
+                    },
+                    payload: {
+                        tag: 'Room',
+                        key: 'testRoom',
+                        themes: [],
+                        exits: [],
+                        name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }
+                    }
+                },
+                testRemove: {
+                    tag: 'Remove',
+                    key: 'testRoomTwo',
+                    component: {
+                        tag: 'Room',
+                        key: 'testRoomTwo',
+                        themes: [],
+                        exits: []
+                    }
+                }
+            }
+        })
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Replace><Room key=(testRoom) /></Replace>
+                <With><Room key=(testRoom)><Name>Test</Name></Room></With>
+                <Remove><Room key=(testRoomTwo) /></Remove>
+            </Asset>
+        `))
+    })
+
     it('should accept edit tags', () => {
         const test: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Asset', key: 'Test', Story: undefined },
