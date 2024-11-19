@@ -119,10 +119,11 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? standardForm.byId[payload.componentKey] : undefined
     const mergeToEdit = (delta: StandardFormData): void => {
         const editStandardized = new StandardForm(state.edit)
+        console.log(`delta: ${JSON.stringify(delta, null, 4)}`)
         const deltaStandardized = new StandardForm(delta)
+        console.log(`deltaStandardized: ${JSON.stringify(deltaStandardized.toJSON(), null, 4)}`)
         console.log(`Merging into: ${JSON.stringify(editStandardized.toJSON(), null, 4)}`)
         console.log(`Merging: ${JSON.stringify(deltaStandardized.toJSON(), null, 4)}`)
-        console.log(`Original: ${JSON.stringify(delta, null, 4)}`)
         state.edit = editStandardized.merge(deltaStandardized).toJSON()
     }
     const mergeFieldToEdit = <T extends StandardComponentData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
@@ -375,7 +376,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
         //
-        // TODO: Add a true/false return value to recursiveRenameWalk to
+        // Add a true/false return value to recursiveRenameWalk to
         // indicate whether it made a change, then use that to track at
         // each step of renaming, whether a rename has occurred and
         // add a mergeToEdit to represent the change
@@ -430,9 +431,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        if (component.key === payload.to) {
-                            component.description = undefined
-                        }
                         updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
                     }
                 }
@@ -467,9 +465,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        if (component.key === payload.to) {
-                            component.description = undefined
-                        }
                         updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
                     }
                 }
@@ -484,9 +479,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        if (component.key === payload.to) {
-                            component.summary = undefined
-                        }
                         updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'summary', item: newSummary[0] } })
                     }
                 }
