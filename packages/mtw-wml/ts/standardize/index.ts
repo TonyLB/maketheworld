@@ -552,7 +552,17 @@ export class StandardForm {
         if (this.tag === 'Character') {
             const character = this._byId[this._key]
             if (!(character instanceof StandardCharacter)) {
-                throw new Error('StandardForm misconfiguration')
+                return {
+                    tag: 'Character',
+                    key: this._key,
+                    metaData: this.metaData,
+                    byId: {
+                        [this._key]: {
+                            tag: 'Character',
+                            key: this._key
+                        }
+                    }
+                }
             }
             return {
                 tag: 'Character',
@@ -589,7 +599,7 @@ export class StandardForm {
                 ...itemSchema,
                 children: [
                     ...itemSchema.children,
-                    ...this.metaData.filter(treeNodeTypeguard(isSchemaImport))
+                    ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
                 ]
             }
         }
@@ -610,7 +620,7 @@ export class StandardForm {
                     }
                 })
                 .map((component) => (component.schema))
-            const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
+            const imports = this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             return {
                 data: { tag: 'Asset', key: this._key, Story: undefined },
@@ -621,7 +631,7 @@ export class StandardForm {
                     // Don't include a separate schema entry for an import that doesn't change the component
                     //
                     ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                    ...this.metaData.filter(treeNodeTypeguard(isSchemaExport))
+                    ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
                 ]
             }
         }
