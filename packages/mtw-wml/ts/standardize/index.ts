@@ -594,7 +594,22 @@ export class StandardForm {
             }
         }
         else {
-            const children = Object.values(this._byId).map((item) => (item.schema))
+            //
+            // TODO: Sort components into standard ordering
+            //
+            const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+            const children = Object.values(this._byId)
+                .sort((componentA, componentB) => {
+                    const indexA = componentKeys.indexOf(componentA.tag)
+                    const indexB = componentKeys.indexOf(componentB.tag)
+                    if (indexA !== indexB) {
+                        return indexA - indexB
+                    }
+                    else {
+                        return componentA.key.localeCompare(componentB.key)
+                    }
+                })
+                .map((component) => (component.schema))
             const imports = this.metaData.filter(treeNodeTypeguard(isSchemaImport))
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
             return {

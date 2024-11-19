@@ -2391,8 +2391,8 @@ describe('StandardForm', () => {
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Room key=(testRoomTwo) />
                 <Remove><Room key=(testRoomOne)><Name>Lobby</Name></Room></Remove>
+                <Room key=(testRoomTwo) />
             </Asset>
         `))
     })
@@ -2455,9 +2455,9 @@ describe('StandardForm', () => {
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Room key=(testRoomTwo) />
                 <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
+                <Room key=(testRoomTwo) />
             </Asset>
         `))
     })
@@ -2563,8 +2563,8 @@ describe('StandardForm', () => {
                         A plain lobby.<Space />Shadows cling to the corners of the room.
                     </Description>
                 </Room>
-                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
             </Asset>
         `))
     })
@@ -2606,8 +2606,8 @@ describe('StandardForm', () => {
                         A plain lobby.<Space />Shadows cling to the corners of the room.
                     </Description>
                 </Room>
-                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
+                <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
             </Asset>
         `))
     })
