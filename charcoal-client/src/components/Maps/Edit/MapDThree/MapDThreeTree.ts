@@ -348,14 +348,14 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
             return [
                 ...previous,
                 ...(node.children.map((child, innerIndex) => {
-                    const visible = treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child) ? child.data.selected : undefined
+                    const newVisible = visible && (((treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)) ? child.data.selected : undefined) ?? false)
                     const newParentId = `${parentId}::${treeNodeTypeguard(isSchemaConditionStatement)(child) ? `(${child.data.if})` : '[fallthrough]' }`
                     return mapTreeTranslate({
                         tree: child.children,
                         onChange: nestedOnChange(innerIndex),
                         standardForm,
                         parentId: newParentId,
-                        visible,
+                        visible: newVisible,
                         previousRoomKeys: [
                             ...previousRoomKeys,
                             ...(topTreeNode.nodes.map(({ roomId }) => (roomId)))

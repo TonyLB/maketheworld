@@ -119,10 +119,7 @@ describe('mapTreeTranslate', () => {
                 }
             ]
         }])
-        //
-        // TODO: ISS-4648: Fix unit test
-        //
-        // expect(mapTreeTranslate(testArgs(false))).toEqual(expectedResult(false))
+        expect(mapTreeTranslate(testArgs(false))).toEqual(expectedResult(false))
         expect(mapTreeTranslate(testArgs(true))).toEqual(expectedResult(true))
     })
 
