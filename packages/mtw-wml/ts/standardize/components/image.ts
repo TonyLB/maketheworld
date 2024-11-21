@@ -1,13 +1,14 @@
 import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { isStandardImage } from "../baseClasses"
-import StandardComponentAbstract, { ComponentInterface } from "./abstract"
+import StandardComponentAbstract, { ComponentInterface, HasFileAssociation } from "./abstract"
 import { StandardImageData } from "./dataTypes/image"
 import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface {
+export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
     tag = 'Image' as const
+    _fileAssociation?: string;
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
@@ -34,6 +35,8 @@ export class StandardImage extends editWrap(class StandardImage extends Standard
         }
     }
 
+    get fileAssociation() { return this._fileAssociation }
+
     override clone(): this {
         return new StandardImage(this.toJSON()) as this
     }
@@ -45,6 +48,13 @@ export class StandardImage extends editWrap(class StandardImage extends Standard
         const returnValue = this.clone()
         return returnValue
     }
+
+    withFileAssociation(fileName: string): this {
+        const returnValue = this.clone()
+        returnValue._fileAssociation = fileName
+        return returnValue
+    }
+    
 }, 'StandardImge'){}
 
 export default StandardImage
