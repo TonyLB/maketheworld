@@ -194,6 +194,7 @@ const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?
 export class StandardImport extends editWrap(class StandardImport implements ComponentInterface  {
     key: string;
     _imports: Record<string, ImportItem>;
+    _universalKey?: string;
     constructor(...allArgs: any[]) {
         const args = allArgs[0]
         if ('tag' in args && args.tag === 'Import') {
@@ -226,6 +227,7 @@ export class StandardImport extends editWrap(class StandardImport implements Com
         })
         return subjectNode(this)
     }
+    get universalKey(): string | undefined { return this._universalKey }
 
     toJSON(): StandardImportData {
         return {
@@ -266,6 +268,12 @@ export class StandardImport extends editWrap(class StandardImport implements Com
                 }
             }
         }, returnValue._imports)
+        return returnValue
+    }
+
+    withUniversalKey(key: string): this {
+        const returnValue = this.clone()
+        returnValue._universalKey = key
         return returnValue
     }
 }, 'StandardImport'){}
@@ -314,6 +322,7 @@ const extractExportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?
 export class StandardExport extends editWrap(class StandardExport implements ComponentInterface  {
     key: 'export' = 'export';
     _exports: Record<string, ImportItem>;
+    _universalKey?: string;
     constructor(...allArgs: any[]) {
         const args = allArgs[0]
         if ('tag' in args && args.tag === 'Import') {
@@ -344,6 +353,7 @@ export class StandardExport extends editWrap(class StandardExport implements Com
         })
         return subjectNode(this)
     }
+    get universalKey(): string | undefined { return this._universalKey }
 
     toJSON(): StandardImportData {
         return {
@@ -384,6 +394,12 @@ export class StandardExport extends editWrap(class StandardExport implements Com
                 }
             }
         }, returnValue._exports)
+        return returnValue
+    }
+
+    withUniversalKey(key: string): this {
+        const returnValue = this.clone()
+        returnValue._universalKey = key
         return returnValue
     }
 }, 'StandardExport'){}

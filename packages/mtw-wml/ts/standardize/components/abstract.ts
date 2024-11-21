@@ -6,15 +6,18 @@ import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentInterface {
     key: string;
+    universalKey?: string;
     schema: GenericTreeNode<SchemaTag>;
     clone(): this;
     toJSON(): Record<string, any>;
     merge(incoming: this): this | undefined;
+    withUniversalKey(key: string): this;
 }
 
 export class StandardComponentAbstract implements ComponentInterface {
     _key: string;
     _remove?: boolean;
+    _universalKey?: string;
     constructor(...args: any[]) {
         const payload = args[0]
         if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
@@ -42,6 +45,7 @@ export class StandardComponentAbstract implements ComponentInterface {
     get isReplace() { return false }
     get match(): StandardComponentAbstract | undefined { return undefined }
     get payload(): StandardComponentAbstract { return this }
+    get universalKey(): string | undefined { return this._universalKey}
 
     toJSON(): StandardBaseData {
         return { key: this.key }
@@ -53,6 +57,12 @@ export class StandardComponentAbstract implements ComponentInterface {
     
     merge(incoming: this): this | undefined {
         throw new Error('Cannot call merge on abstract class')
+    }
+
+    withUniversalKey(key: string): this {
+        const returnValue = this.clone()
+        returnValue._universalKey = key
+        return returnValue
     }
 }
 
