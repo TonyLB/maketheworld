@@ -78,4 +78,9 @@ export interface HasShortName {
     shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
 }
 
+export interface HasFileAssociation {
+    fileAssociation?: string;
+    withFileAssociation(fileName: string): this;
+}
+
 export default StandardComponentAbstract
