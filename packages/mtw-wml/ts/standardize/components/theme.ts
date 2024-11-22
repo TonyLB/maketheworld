@@ -8,11 +8,12 @@ import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardTheme } from "./dataTypes"
 import { StandardThemeData } from "./dataTypes/theme"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardTheme extends editWrap(class StandardTheme extends StandardComponentAbstract implements ComponentInterface {
+export class StandardTheme extends ndjsonWrap(editWrap(class StandardTheme extends StandardComponentAbstract implements ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
     _rooms: GenericTree<SchemaTag>;
@@ -86,6 +87,6 @@ export class StandardTheme extends editWrap(class StandardTheme extends Standard
         returnValue._maps = applyEdits([...this.maps, ...incoming.maps])
         return returnValue
     }
-}, 'StandardTheme'){}
+}, 'StandardTheme'), 'StandardTheme'){}
 
 export default StandardTheme

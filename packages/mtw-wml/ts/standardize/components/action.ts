@@ -4,9 +4,10 @@ import { isStandardAction } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardActionData } from "./dataTypes/action"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardAction extends editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
+export class StandardAction extends ndjsonWrap(editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
     tag = 'Action' as const
@@ -55,6 +56,6 @@ export class StandardAction extends editWrap(class StandardAction extends Standa
         returnValue._src = incoming.src ?? this.src
         return returnValue
     }
-}, 'StandardAction'){}
+}, 'StandardAction'), 'StandardAction'){}
 
 export default StandardAction

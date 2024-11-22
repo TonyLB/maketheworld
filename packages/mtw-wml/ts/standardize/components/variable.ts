@@ -4,9 +4,10 @@ import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardVariable } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardVariable extends editWrap(class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
+export class StandardVariable extends ndjsonWrap(editWrap(class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
     _default?: string;
     tag = 'Variable' as const
     constructor(...args: any[]) {
@@ -53,6 +54,6 @@ export class StandardVariable extends editWrap(class StandardVariable extends St
         returnValue._default = incoming.default ?? this.default ?? ''
         return returnValue
     }
-}, 'StandardVariable'){}
+}, 'StandardVariable'), 'StandardVariable'){}
 
 export default StandardVariable

@@ -4,11 +4,12 @@ import { EditWrappedStandardNode, isStandardBookmark } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardBookmark extends editWrap(class StandardBookmark extends StandardComponentAbstract implements ComponentInterface {
+export class StandardBookmark extends ndjsonWrap(editWrap(class StandardBookmark extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Bookmark' as const;
     constructor(...args: any[]) {
@@ -58,6 +59,6 @@ export class StandardBookmark extends editWrap(class StandardBookmark extends St
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue
     }
-}, 'StandardBookmark'){}
+}, 'StandardBookmark'), 'StandardBookmark'){}
 
 export default StandardBookmark
