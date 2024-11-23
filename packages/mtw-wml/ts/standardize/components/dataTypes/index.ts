@@ -45,18 +45,18 @@ export type StandardReplaceData = {
 export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
 
 export const isStandardCharacter = isStandardFactory<StandardCharacterData>("Character")
-export const isStandardRoom = isStandardFactory<StandardRoomData>("Room")
-export const isStandardFeature = isStandardFactory<StandardFeatureData>("Feature")
-export const isStandardKnowledge = isStandardFactory<StandardKnowledgeData>("Knowledge")
-export const isStandardBookmark = isStandardFactory<StandardBookmarkData>("Bookmark")
-export const isStandardMap = isStandardFactory<StandardMapData>("Map")
-export const isStandardTheme = isStandardFactory<StandardThemeData>("Theme")
-export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
-export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
-export const isStandardAction = isStandardFactory<StandardActionData>("Action")
-export const isStandardVariable = isStandardFactory<StandardVariableData>("Variable")
-export const isStandardComputed = isStandardFactory<StandardComputedData>("Computed")
-export const isStandardImage = isStandardFactory<StandardImageData>("Image")
+export { isStandardRoom } from './room'
+export { isStandardFeature } from './feature'
+export { isStandardKnowledge } from './knowledge'
+export { isStandardBookmark } from './bookmark'
+export { isStandardMap } from './map'
+export { isStandardTheme } from './theme'
+export { isStandardMessage } from './message'
+export { isStandardMoment } from './moment'
+export { isStandardAction } from './action'
+export { isStandardVariable } from './variable'
+export { isStandardComputed } from './computed'
+export { isStandardImage } from './image'
 
 export const isStandardRemove = isStandardFactory<StandardRemoveData>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplaceData>("Replace")

@@ -1,6 +1,7 @@
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../../schema/baseClasses"
 import { GenericTree, GenericTreeFiltered } from "../../../tree/baseClasses"
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
+import { checkAll, checkTypes } from "./typeguards";
 
 export type StandardRoomData = {
     tag: 'Room';
@@ -11,3 +12,24 @@ export type StandardRoomData = {
     exits: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & StandardBaseData
+
+export const isStandardRoom = (arg: any): arg is StandardRoomData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Room'),
+        checkTypes(arg, {
+            key: 'string',
+            exits: 'tree',
+            themes: 'tree'
+        },
+        {
+            shortName: 'node',
+            name: 'node',
+            summary: 'node',
+            description: 'node'
+        })
+    )
+}
