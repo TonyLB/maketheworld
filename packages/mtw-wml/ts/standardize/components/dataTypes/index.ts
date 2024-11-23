@@ -1,18 +1,32 @@
 import { SchemaTag } from "../../../schema/baseClasses";
 import { GenericTree } from "../../../tree/baseClasses";
-import { StandardActionData } from "./action";
-import { StandardBookmarkData } from "./bookmark";
+import { StandardActionData, isStandardAction } from "./action";
+import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { StandardCharacterData } from "./character";
-import { StandardComputedData } from "./computed";
-import { StandardFeatureData } from "./feature";
-import { StandardImageData } from "./image";
-import { StandardKnowledgeData } from "./knowledge";
-import { StandardMapData } from "./map";
-import { StandardMessageData } from "./message";
-import { StandardMomentData } from "./moment";
-import { StandardRoomData } from "./room";
-import { StandardThemeData } from "./theme";
-import { StandardVariableData } from "./variable";
+import { StandardComputedData, isStandardComputed } from "./computed";
+import { StandardFeatureData, isStandardFeature } from "./feature";
+import { StandardImageData, isStandardImage } from "./image";
+import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge";
+import { StandardMapData, isStandardMap } from "./map";
+import { StandardMessageData, isStandardMessage } from "./message";
+import { StandardMomentData, isStandardMoment } from "./moment";
+import { StandardRoomData, isStandardRoom } from "./room";
+import { StandardThemeData, isStandardTheme } from "./theme";
+import { checkAll } from "./typeguards";
+import { StandardVariableData, isStandardVariable } from "./variable";
+
+export { isStandardRoom }
+export { isStandardFeature }
+export { isStandardKnowledge }
+export { isStandardBookmark }
+export { isStandardMap }
+export { isStandardTheme }
+export { isStandardMessage }
+export { isStandardMoment }
+export { isStandardAction }
+export { isStandardVariable }
+export { isStandardComputed }
+export { isStandardImage }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -45,23 +59,42 @@ export type StandardReplaceData = {
 export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
 
 export const isStandardCharacter = isStandardFactory<StandardCharacterData>("Character")
-export { isStandardRoom } from './room'
-export { isStandardFeature } from './feature'
-export { isStandardKnowledge } from './knowledge'
-export { isStandardBookmark } from './bookmark'
-export { isStandardMap } from './map'
-export { isStandardTheme } from './theme'
-export { isStandardMessage } from './message'
-export { isStandardMoment } from './moment'
-export { isStandardAction } from './action'
-export { isStandardVariable } from './variable'
-export { isStandardComputed } from './computed'
-export { isStandardImage } from './image'
 
-export const isStandardRemove = isStandardFactory<StandardRemoveData>("Remove")
-export const isStandardReplace = isStandardFactory<StandardReplaceData>("Replace")
+export const isStandardNonEdit = (value: any): value is StandardComponentNonEditData => (
+    isStandardRoom(value) ||
+    isStandardFeature(value) ||
+    isStandardKnowledge(value) ||
+    isStandardBookmark(value) ||
+    isStandardMap(value) ||
+    isStandardTheme(value) ||
+    isStandardMessage(value) ||
+    isStandardMoment(value) ||
+    isStandardVariable(value) ||
+    isStandardComputed(value) ||
+    isStandardAction(value) ||
+    isStandardImage(value)
+)
 
-export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemoveData | StandardReplaceData> => (!["Remove", "Replace"].includes(value.tag))
+export const isStandardRemove = (arg: any): arg is StandardRemoveData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Remove'),
+        ('component' in arg && isStandardNonEdit(arg.component))
+    )
+}
+export const isStandardReplace = (arg: any): arg is StandardReplaceData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Replace'),
+        ('match' in arg && isStandardNonEdit(arg.match)),
+        ('payload' in arg && isStandardNonEdit(arg.payload))
+    )
+
+}
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
     if (isStandardNonEdit(component)) {
