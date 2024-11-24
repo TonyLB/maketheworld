@@ -4,10 +4,9 @@ import { isStandardComputed } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardComputedData } from "./dataTypes/computed"
 import { editWrap } from "./editable"
-import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardComputed extends ndjsonWrap(editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
+export class StandardComputed extends editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
     tag = 'Computed' as const
@@ -33,7 +32,7 @@ export class StandardComputed extends ndjsonWrap(editWrap(class StandardComputed
 
     override toJSON(): StandardComputedData {
         return {
-            key: this.key,
+            ...super.toJSON(),
             tag: 'Computed',
             src: this.src ?? '',
             dependencies: this.dependencies
@@ -60,6 +59,6 @@ export class StandardComputed extends ndjsonWrap(editWrap(class StandardComputed
         returnValue._dependencies = incoming._dependencies ?? this._dependencies
         return returnValue
     }
-}, 'StandardComputed'), 'StandardComputed'){}
+}, 'StandardComputed'){}
 
 export default StandardComputed

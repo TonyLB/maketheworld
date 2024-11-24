@@ -10,12 +10,11 @@ import { ComponentInterface, HasShortName } from "./abstract"
 import { StandardRoomData } from "./dataTypes/room"
 import { editWrap } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
-import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardRoom extends ndjsonWrap(editWrap(class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName, ComponentInterface {
+export class StandardRoom extends editWrap(class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName, ComponentInterface {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
     _summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
     _exits: GenericTree<SchemaTag>;
@@ -63,7 +62,7 @@ export class StandardRoom extends ndjsonWrap(editWrap(class StandardRoom extends
 
     override toJSON(): StandardRoomData {
         return {
-            key: this.key,
+            ...super.toJSON(),
             tag: 'Room',
             shortName: this.shortName,
             name: this.name,
@@ -105,6 +104,6 @@ export class StandardRoom extends ndjsonWrap(editWrap(class StandardRoom extends
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue
     }
-}, 'StandardRoom'), 'StandardRoom'){}
+}, 'StandardRoom'){}
 
 export default StandardRoom

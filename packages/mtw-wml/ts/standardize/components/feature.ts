@@ -6,10 +6,9 @@ import { ComponentInterface } from "./abstract"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { editWrap } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
-import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
-export class StandardFeature extends ndjsonWrap(editWrap(class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
+export class StandardFeature extends editWrap(class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
     tag = 'Feature' as const
     constructor(...args: any[]) {
         const payload = args[0]
@@ -28,7 +27,7 @@ export class StandardFeature extends ndjsonWrap(editWrap(class StandardFeature e
 
     override toJSON(): StandardFeatureData {
         return {
-            key: this.key,
+            ...super.toJSON(),
             tag: 'Feature',
             name: this.name,
             description: this.description
@@ -59,6 +58,6 @@ export class StandardFeature extends ndjsonWrap(editWrap(class StandardFeature e
         returnValue._description = superMerge.description
         return returnValue
     }
-}, 'StandardFeature'), 'StandardFeature'){}
+}, 'StandardFeature'){}
 
 export default StandardFeature

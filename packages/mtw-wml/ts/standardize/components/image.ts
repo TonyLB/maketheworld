@@ -21,21 +21,9 @@ export class StandardImage extends editWrap(class StandardImage extends Standard
         }
     }
 
-    static fromNDJSON(payload: any): StandardImage {
-        if (payload && ('key' in payload)) {
-            const returnValue = ('universalKey' in payload)
-                ? (new StandardImage(payload)).withUniversalKey(payload.universalKey)
-                : new StandardImage(payload)
-            return returnValue
-        }
-        else {
-            throw new Error(`Type mismatch in StandardImage fromNDJSON`)
-        }
-    }    
-
     override toJSON(): StandardImageData {
         return {
-            key: this.key,
+            ...super.toJSON(),
             tag: 'Image'
         }
     }
