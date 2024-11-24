@@ -12,7 +12,9 @@ export class StandardVariable extends editWrap(class StandardVariable extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardVariable(payload)) {
+        if (typeof payload === 'string' || !payload) {
+        }
+        else if (isStandardVariable(payload)) {
             this._default = payload.default
         }
         else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaVariable)(payload)) {

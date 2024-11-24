@@ -21,7 +21,12 @@ export class StandardTheme extends editWrap(class StandardTheme extends Standard
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardTheme(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._prompts = []
+            this._rooms = []
+            this._maps = []
+        }
+        else if (isStandardTheme(payload)) {
             this._name = payload.name
             this._prompts = payload.prompts
             this._rooms = payload.rooms

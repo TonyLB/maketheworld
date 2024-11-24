@@ -13,7 +13,9 @@ export class StandardKnowledge extends editWrap(class StandardKnowledge extends 
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isSchemaTreeNode(payload)) {
+        if (typeof payload === 'string' || !payload) {
+        }
+        else if (isSchemaTreeNode(payload)) {
             if (!isSchemaKnowledge(payload.data)) {
                 throw new Error('Type mismatch in StandardKnowledge constructor')
             }

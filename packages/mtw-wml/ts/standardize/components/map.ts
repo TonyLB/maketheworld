@@ -22,7 +22,12 @@ export class StandardMap extends editWrap(class StandardMap extends StandardComp
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardMap(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._images = []
+            this._positions = []
+            this._themes = []
+        }
+        else if (isStandardMap(payload)) {
             this._name = payload.name
             this._images = payload.images
             this._positions = payload.positions
