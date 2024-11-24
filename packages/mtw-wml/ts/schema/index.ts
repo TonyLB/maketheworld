@@ -32,7 +32,7 @@ class SchemaAggregator {
 
     get nearestSibling(): GenericTreeNode<SchemaTag> | undefined {
         if (this.contextStack.length === 0) {
-            return undefined
+            return this.returnValue.slice(-1)[0]
         }
         const parentContext = this.contextStack.slice(-1)[0]
         return parentContext.children.reduceRight<GenericTreeNode<SchemaTag> | undefined>((previous, node) => {
@@ -92,14 +92,20 @@ class SchemaAggregator {
 
     reopenSibling(): void {
         if (this.contextStack.length === 0) {
-            throw new Error('Empty stack on reopenSibling')
+            if (this.returnValue.length === 0) {
+                throw new Error('Empty stack on reopenSibling')
+            }
+            this.contextStack = [this.returnValue.slice(-1)[0]]
+            this.returnValue = this.returnValue.slice(0, -1)
         }
-        const parentContext = this.contextStack.slice(-1)[0]
-        if (parentContext.children.length === 0) {
-            throw new Error('No siblings on reopenSibling')
+        else {
+            const parentContext = this.contextStack.slice(-1)[0]
+            if (parentContext.children.length === 0) {
+                throw new Error('No siblings on reopenSibling')
+            }
+            const [revisedChildren, sibling] = [parentContext.children.slice(0, -1), parentContext.children.slice(-1)[0]]
+            this.contextStack = [...this.contextStack.slice(0, -1), { ...parentContext, children: revisedChildren }, sibling]
         }
-        const [revisedChildren, sibling] = [parentContext.children.slice(0, -1), parentContext.children.slice(-1)[0]]
-        this.contextStack = [...this.contextStack.slice(0, -1), { ...parentContext, children: revisedChildren }, sibling]
     }
 
     aggregateToSibling(aggregator: (previous: GenericTreeNode<SchemaTag>, node: GenericTreeNode<SchemaTag>) => GenericTreeNode<SchemaTag>): void {

@@ -459,36 +459,26 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse component replace tags', () => {
         const testWML = `
-            <Asset key=(test)>
-                <Replace><Room key=(room1)><Name>Lobby</Name></Room></Replace>
-                <With><Room key=(room1)><Name>Foyer</Name></Room></With>
-            </Asset>
+            <Replace><Room key=(room1)><Name>Lobby</Name></Room></Replace>
+            <With><Room key=(room1)><Name>Foyer</Name></Room></With>
         `
         const testParse = parse(tokenizer(new SourceStream(testWML)))
         expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Asset",
-                key: "test"
-            },
+            data: { tag: 'Replace' },
             children: [
                 {
-                    data: { tag: 'Replace' },
-                    children: [
-                        {
-                            data: { tag: 'ReplaceMatch' },
-                            children: [{
-                                data: { tag: 'Room', key: 'room1' },
-                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
-                            }]
-                        },
-                        {
-                            data: { tag: 'ReplacePayload' },
-                            children: [{
-                                data: { tag: 'Room', key: 'room1' },
-                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
-                            }]
-                        }
-                    ]
+                    data: { tag: 'ReplaceMatch' },
+                    children: [{
+                        data: { tag: 'Room', key: 'room1' },
+                        children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                    }]
+                },
+                {
+                    data: { tag: 'ReplacePayload' },
+                    children: [{
+                        data: { tag: 'Room', key: 'room1' },
+                        children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
+                    }]
                 }
             ]
         }])
