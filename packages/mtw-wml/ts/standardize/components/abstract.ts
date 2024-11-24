@@ -1,6 +1,6 @@
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { EditWrappedStandardNode } from "../baseClasses";
+import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
 import { isSchemaTreeNode } from "./utils";
 
@@ -26,6 +26,9 @@ export class StandardComponentAbstract implements ComponentInterface {
         }
         else if (payload && ('key' in payload)) {
             this._key = payload.key
+            if ('universalKey' in payload) {
+                this._universalKey = payload.universalKey
+            }
         }
         else {
             throw new Error('Cannot convert non-keyed schema item to StandardComponent')
@@ -47,8 +50,11 @@ export class StandardComponentAbstract implements ComponentInterface {
     get payload(): StandardComponentAbstract { return this }
     get universalKey(): string | undefined { return this._universalKey}
 
-    toJSON(): StandardBaseData {
-        return { key: this.key }
+    toJSON(): StandardBaseData & SerializeNDJSONMixin {
+        return {
+            key: this.key,
+            universalKey: this.universalKey
+        }
     }
 
     clone(): this {

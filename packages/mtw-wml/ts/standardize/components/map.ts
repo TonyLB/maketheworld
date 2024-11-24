@@ -9,12 +9,11 @@ import StandardComponentAbstract, { ComponentInterface, HasName } from "./abstra
 import { isStandardMap } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
 import { editWrap } from "./editable"
-import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardMap extends ndjsonWrap(editWrap(class StandardMap extends StandardComponentAbstract implements HasName, ComponentInterface {
+export class StandardMap extends editWrap(class StandardMap extends StandardComponentAbstract implements HasName, ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag>;
     _positions: GenericTree<SchemaTag>;
@@ -57,7 +56,7 @@ export class StandardMap extends ndjsonWrap(editWrap(class StandardMap extends S
 
     override toJSON(): StandardMapData {
         return {
-            key: this.key,
+            ...super.toJSON(),
             tag: 'Map',
             name: this.name,
             images: this.images,
@@ -93,6 +92,6 @@ export class StandardMap extends ndjsonWrap(editWrap(class StandardMap extends S
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue
     }
-}, 'StandardMap'), 'StandardMap'){}
+}, 'StandardMap'){}
 
 export default StandardMap
