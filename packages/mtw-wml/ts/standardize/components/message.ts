@@ -18,7 +18,10 @@ export class StandardMessage extends editWrap(class StandardMessage extends Stan
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardMessage(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._rooms = []
+        }
+        else if (isStandardMessage(payload)) {
             this._description = payload.description
             this._rooms = payload.rooms
         }

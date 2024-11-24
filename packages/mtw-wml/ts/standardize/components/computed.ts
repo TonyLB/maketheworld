@@ -13,7 +13,10 @@ export class StandardComputed extends editWrap(class StandardComputed extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardComputed(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._src = ''
+        }
+        else if (isStandardComputed(payload)) {
             this._src = payload.src
             this._dependencies = payload.dependencies
         }

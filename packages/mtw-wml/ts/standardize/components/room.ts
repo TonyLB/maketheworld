@@ -23,7 +23,11 @@ export class StandardRoom extends editWrap(class StandardRoom extends StandardCo
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isSchemaTreeNode(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._exits = []
+            this._themes = []
+        }
+        else if (isSchemaTreeNode(payload)) {
             if (!isSchemaRoom(payload.data)) {
                 throw new Error('Type mismatch in StandardRoom constructor')
             }

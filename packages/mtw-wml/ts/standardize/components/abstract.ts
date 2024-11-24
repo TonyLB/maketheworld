@@ -20,7 +20,13 @@ export class StandardComponentAbstract implements ComponentInterface {
     _universalKey?: string;
     constructor(...args: any[]) {
         const payload = args[0]
-        if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
+        if (!payload) {
+            this._key = ''
+        }
+        else if (typeof payload === 'string') {
+            this._key = payload
+        }
+        else if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
             const { data } = payload
             this._key = data.key
         }

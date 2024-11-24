@@ -14,7 +14,10 @@ export class StandardMoment extends editWrap(class StandardMoment extends Standa
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardMoment(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._messages = []
+        }
+        else if (isStandardMoment(payload)) {
             this._messages = payload.messages
         }
         else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaMoment)(payload)) {

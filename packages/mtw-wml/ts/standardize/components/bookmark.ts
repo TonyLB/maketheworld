@@ -14,7 +14,9 @@ export class StandardBookmark extends editWrap(class StandardBookmark extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardBookmark(payload)) {
+        if (typeof payload === 'string' || !payload) {
+        }
+        else if (isStandardBookmark(payload)) {
             this._description = payload.description
         }
         else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaBookmark)(payload)) {

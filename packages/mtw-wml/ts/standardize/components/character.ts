@@ -17,7 +17,10 @@ export class StandardCharacter extends StandardComponentAbstract implements Comp
     tag = 'Character' as const
     constructor(args: StandardCharacterData | GenericTreeNode<SchemaTag>) {
         super(args)
-        if (isSchemaTreeNode(args)) {
+        if (typeof args === 'string' || !args) {
+            this._pronouns = { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } }
+        }
+        else if (isSchemaTreeNode(args)) {
             const { data } = args
             if (!isSchemaCharacter(data)) {
                 throw new Error('Type mismatch in StandardCharacter constructor')

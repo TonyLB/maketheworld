@@ -13,7 +13,8 @@ export class StandardFeature extends editWrap(class StandardFeature extends Stan
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isSchemaTreeNode(payload)) {
+        if (typeof payload === 'string' || !payload) {}
+        else if (isSchemaTreeNode(payload)) {
             if (!isSchemaFeature(payload.data)) {
                 throw new Error('Type mismatch in StandardFeature constructor')
             }

@@ -13,7 +13,10 @@ export class StandardAction extends editWrap(class StandardAction extends Standa
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isStandardAction(payload)) {
+        if (typeof payload === 'string' || !payload) {
+            this._src = ''
+        }
+        else if (isStandardAction(payload)) {
             this._src = payload.src
         }
         else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaAction)(payload)) {
