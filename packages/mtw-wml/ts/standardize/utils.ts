@@ -1,4 +1,5 @@
 import { excludeUndefined } from "../lib/lists"
+import { Schema } from "../schema"
 import { SchemaTag } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../tagTree/schema"
@@ -17,4 +18,20 @@ export const combineTagChildren = <T extends StandardComponentData, K extends St
     tagTree._tagList = [...tagTree._tagList, ...incomingTagTree._tagList]
     const combinedSchema = applyEdits(tagTree.tree)
     return combinedSchema.length ? { ...combinedSchema[0], id: (base[key] as any).id || (incoming[key] as any).id } as T[K] : undefined
+}
+
+export const isLegalKey = (value: string) => (value.match(/^[a-zA-Z\_][a-zA-Z0-9\_]+$/))
+
+export const nodeFromWML = (wml: string): GenericTreeNode<SchemaTag> => {
+    const schema = new Schema()
+    try {
+        schema.loadWML(wml)
+    }
+    catch {
+        throw new Error('Parse failure in StandardComponent WML argument')
+    }
+    if (schema.schema.length !== 1) {
+        throw new Error('Multiple elements in StandardComponent WML argument')
+    }
+    return schema.schema[0]
 }

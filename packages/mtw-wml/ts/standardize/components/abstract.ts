@@ -1,6 +1,9 @@
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
+import { unique } from "../../list";
+import { Schema } from "../../schema";
+import { isSchemaWithKey, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
+import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardBaseData } from "./dataTypes/abstract"
 import { isSchemaTreeNode } from "./utils";
 
@@ -24,7 +27,16 @@ export class StandardComponentAbstract implements ComponentInterface {
             this._key = ''
         }
         else if (typeof payload === 'string') {
-            this._key = payload
+            if (isLegalKey(payload)) {
+                this._key = payload
+            }
+            else {
+                const node = nodeFromWML(payload)
+                if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
+                    throw new Error('Cannot convert non-keyed schema item to StandardComponent')
+                }
+                this._key = node.data.key
+            }
         }
         else if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
             const { data } = payload
