@@ -2,6 +2,7 @@ import { isSchemaDescription, isSchemaName, isSchemaOutputTag, SchemaDescription
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardRoom } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasDescription, HasName } from "./abstract"
 import { StandardBaseData } from "./dataTypes/abstract"
 import { isSchemaTreeNode } from "./utils"
@@ -19,20 +20,26 @@ export class StandardComponentWithNameAndDesc extends StandardComponentAbstract 
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (isSchemaTreeNode(payload)) {
-            const tagTree = new SchemaTagTree(payload.children)
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
+            return
+        }
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            const tagTree = new SchemaTagTree(node.children)
             const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
             const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
             this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+            return
         }
-        else {
-            if (!(isStandardRoom(payload) || isStandardFeature(payload) || isStandardKnowledge(payload))) {
-                throw new Error('Invalid argument type to StandardComponent with name and description')
-            }
+        if (isStandardRoom(payload) || isStandardFeature(payload) || isStandardKnowledge(payload)) {
             this._name = payload.name
             this._description = payload.description
+            return
         }
+        throw new Error('Invalid argument type to StandardComponent with name and description')
     }
 
     get name() {

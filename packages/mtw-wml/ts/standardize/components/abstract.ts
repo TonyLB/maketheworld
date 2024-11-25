@@ -25,33 +25,30 @@ export class StandardComponentAbstract implements ComponentInterface {
         const payload = args[0]
         if (!payload) {
             this._key = ''
+            return
         }
-        else if (typeof payload === 'string') {
-            if (isLegalKey(payload)) {
-                this._key = payload
+        if (typeof payload === 'string' && isLegalKey(payload)) {
+            this._key = payload
+            return
+        }
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(node)) {
+                const { data } = node
+                this._key = data.key
+                return    
             }
-            else {
-                const node = nodeFromWML(payload)
-                if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
-                    throw new Error('Cannot convert non-keyed schema item to StandardComponent')
-                }
-                this._key = node.data.key
-            }
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
-            const { data } = payload
-            this._key = data.key
-        }
-        else if (payload && ('key' in payload)) {
+        if (payload && ('key' in payload)) {
             this._key = payload.key
             if ('universalKey' in payload) {
                 this._universalKey = payload.universalKey
             }
+            return
         }
-        else {
-            throw new Error('Cannot convert non-keyed schema item to StandardComponent')
-        }
-
+        throw new Error('Cannot convert non-keyed schema item to StandardComponent')
     }
 
     get key(): string {
