@@ -5,6 +5,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasName } from "./abstract"
 import { isStandardMap } from "./dataTypes"
 import { StandardMapData } from "./dataTypes/map"
@@ -22,36 +23,43 @@ export class StandardMap extends editWrap(class StandardMap extends StandardComp
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload) )) {
             this._images = []
             this._positions = []
             this._themes = []
+            return
         }
-        else if (isStandardMap(payload)) {
+        if (isStandardMap(payload)) {
             this._name = payload.name
             this._images = payload.images
             this._positions = payload.positions
             this._themes = payload.themes
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaMap)(payload)) {
-            const tagTree = new SchemaTagTree(payload.children)
-            const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
-            const positionsTagTree = tagTree
-                .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
-                .prune({ not: { or: [
-                    { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }, { match: 'Exit' }
-                ]}})
-                .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
-            
-            const imagesTagTree = tagTree.filter({ match: 'Image' })
-            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
-            this._images = imagesTagTree.tree
-            this._positions = positionsTagTree.tree
-            this._themes = []
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+
+            if (treeNodeTypeguard(isSchemaMap)(node)) {
+                const tagTree = new SchemaTagTree(node.children)
+                const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
+                const positionsTagTree = tagTree
+                    .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
+                    .prune({ not: { or: [
+                        { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }, { match: 'Exit' }
+                    ]}})
+                    .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
+                
+                const imagesTagTree = tagTree.filter({ match: 'Image' })
+                this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
+                this._images = imagesTagTree.tree
+                this._positions = positionsTagTree.tree
+                this._themes = []
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardMap constructor')
-        }
+        throw new Error('Type mismatch in StandardMap constructor')
     }
 
     get name() { return this._name }

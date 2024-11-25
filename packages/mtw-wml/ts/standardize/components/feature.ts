@@ -2,6 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaFeature, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardFeature } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import { ComponentInterface } from "./abstract"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { editWrap } from "./editable"
@@ -13,17 +14,18 @@ export class StandardFeature extends editWrap(class StandardFeature extends Stan
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {}
-        else if (isSchemaTreeNode(payload)) {
-            if (!isSchemaFeature(payload.data)) {
-                throw new Error('Type mismatch in StandardFeature constructor')
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload)) || isStandardFeature(payload)) {
+            return
+        }
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (isSchemaFeature(node.data)) {
+                return
             }
         }
-        else {
-            if (!isStandardFeature(payload)) {
-                throw new Error('Type mismatch in StandardAction constructor')
-            }
-        }
+        throw new Error('Type mismatch in StandardAction constructor')
     }
 
     override toJSON(): StandardFeatureData {

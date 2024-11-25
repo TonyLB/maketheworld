@@ -1,10 +1,12 @@
 import { deepEqual } from "../../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { isStandardRemove, isStandardReplace, MergeConflictError, StandardRemove, StandardReplace } from "../baseClasses";
+import { MergeConflictError, StandardRemove, StandardReplace } from "../baseClasses";
+import { isStandardRemove, isStandardReplace } from "./dataTypes";
 import { ComponentInterface } from "./abstract";
 import { StandardComponentNonEditData } from "./dataTypes";
 import { isSchemaTreeNode } from "./utils";
+import { isLegalKey, nodeFromWML } from "../utils";
 
 interface EditWrappable extends ComponentInterface {
     isRemove: boolean;
@@ -21,34 +23,24 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
         constructor(...allArgs: any[]) {
             const rawArgs = allArgs[0]
             const args = rawArgs instanceof Base ? rawArgs.toJSON() : rawArgs
-            if ('tag' in args) {
-                if (isStandardRemove(args)) {
-                    super(args.component)
-                    this._remove = true
-                }
-                else if (isStandardReplace(args)) {
-                    super(args.payload)
-                    this._match = new Base(args.match) as InstanceType<typeof Base>
-                }
-                else {
-                    super(args)
-                }
+            if (!args || typeof args === 'string' && isLegalKey(args)) {
+                return
             }
-            else {
-                if (!isSchemaTreeNode(args)) {
-                    throw new Error(`Invalid arguments in ${label} constructor`)
-                }
-                if (treeNodeTypeguard(isSchemaRemove)(args)) {
-                    const childImports = args.children
+            if (isSchemaTreeNode(args) || typeof args === 'string') {
+                const node = typeof args === 'string'
+                    ? nodeFromWML(args)
+                    : args
+                if (treeNodeTypeguard(isSchemaRemove)(node)) {
+                    const childImports = node.children
                     if (childImports.length !== 1) {
                         throw new Error(`Remove error in ${label}`)
                     }
                     super(childImports[0])
                     this._remove = true
                 }
-                else if (treeNodeTypeguard(isSchemaReplace)(args)) {
-                    const payloadValues = args.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1)
-                    const matchValues = args.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1)
+                else if (treeNodeTypeguard(isSchemaReplace)(node)) {
+                    const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1)
+                    const matchValues = node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1)
                     if (payloadValues.length !== 1 || matchValues.length !== 1) {
                         throw new Error(`Replace error in ${label}`)
                     }
@@ -58,7 +50,23 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                 else {
                     super(args)
                 }
+                return
+            }    
+            if (isStandardRemove(args)) {
+                super(args.component)
+                this._remove = true
+                return
             }
+            if (isStandardReplace(args)) {
+                super(args.payload)
+                this._match = new Base(args.match) as InstanceType<typeof Base>
+                return
+            }
+            if ('tag' in args) {
+                super(args)
+                return
+            }
+            throw new Error(`Invalid arguments in ${label} constructor`)
         }
 
         get isRemove() { return Boolean(this._remove) }

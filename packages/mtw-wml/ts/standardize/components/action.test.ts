@@ -5,6 +5,17 @@ import { StandardAction } from './action'
 import { mergeTest } from './utils/testing'
 
 describe('StandardAction class', () => {
+
+    it('should construct StandardAction from WML', () => {
+        const testSource = deIndentWML(`
+            <Action key=(test) src={testVar = false} />
+        `)
+        const testAction = new StandardAction(testSource)
+        expect(testAction.key).toEqual('test')
+        expect(testAction.src).toEqual('testVar = false')
+        expect(schemaToWML([testAction.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardAction from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

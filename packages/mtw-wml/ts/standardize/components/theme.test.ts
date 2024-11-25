@@ -5,6 +5,25 @@ import { StandardTheme } from './theme'
 import { mergeTest } from './utils/testing'
 
 describe('StandardTheme class', () => {
+
+    it('should construct StandardTheme from WML', () => {
+        const testSource = deIndentWML(`
+            <Theme key=(test)>
+                <Name>Name Test</Name>
+                <Prompt>Spooky</Prompt>
+                <Room key=(testRoom) />
+                <Map key=(testMap) />
+            </Theme>
+        `)
+        const testMap = new StandardTheme(testSource)
+        expect(testMap.key).toEqual('test')
+        expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testMap.prompts).toEqual([{ data: { tag: 'Prompt', value: 'Spooky' }, children: [] }])
+        expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
+        expect(testMap.maps).toEqual([{ data: { tag: 'Map', key: "testMap" }, children: [] }])
+        expect(schemaToWML([testMap.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardTheme from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

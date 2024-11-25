@@ -1,6 +1,9 @@
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
+import { unique } from "../../list";
+import { Schema } from "../../schema";
+import { isSchemaWithKey, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
+import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardBaseData } from "./dataTypes/abstract"
 import { isSchemaTreeNode } from "./utils";
 
@@ -22,24 +25,30 @@ export class StandardComponentAbstract implements ComponentInterface {
         const payload = args[0]
         if (!payload) {
             this._key = ''
+            return
         }
-        else if (typeof payload === 'string') {
+        if (typeof payload === 'string' && isLegalKey(payload)) {
             this._key = payload
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(payload)) {
-            const { data } = payload
-            this._key = data.key
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard((data): data is { key: string } => (Boolean(data && ('key' in data) && (data as any).key)))(node)) {
+                const { data } = node
+                this._key = data.key
+                return    
+            }
         }
-        else if (payload && ('key' in payload)) {
+        if (payload && ('key' in payload)) {
             this._key = payload.key
             if ('universalKey' in payload) {
                 this._universalKey = payload.universalKey
             }
+            return
         }
-        else {
-            throw new Error('Cannot convert non-keyed schema item to StandardComponent')
-        }
-
+        throw new Error('Cannot convert non-keyed schema item to StandardComponent')
     }
 
     get key(): string {

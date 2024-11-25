@@ -5,6 +5,17 @@ import { StandardMoment } from './moment'
 import { mergeTest } from './utils/testing'
 
 describe('StandardMoment class', () => {
+
+    it('should construct StandardMoment from WML', () => {
+        const testSource = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /></Moment>
+        `)
+        const testMoment = new StandardMoment(testSource)
+        expect(testMoment.key).toEqual('test')
+        expect(testMoment.messages).toEqual([{ data: { tag: 'Message', key: 'testMessage' }, children: [] }])
+        expect(schemaToWML([testMoment.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardMoment from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

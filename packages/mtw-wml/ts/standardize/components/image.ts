@@ -1,6 +1,7 @@
 import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { isStandardImage } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasFileAssociation } from "./abstract"
 import { StandardImageData } from "./dataTypes/image"
 import { editWrap } from "./editable"
@@ -12,15 +13,18 @@ export class StandardImage extends editWrap(class StandardImage extends Standard
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload)) || isStandardImage(payload)) {
+            return
         }
-        else if (isStandardImage(payload)) {
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaImage)(node)) {
+                return
+            }
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaImage)(payload)) {
-        }
-        else {
-            throw new Error('Type mismatch in StandardImage constructor')
-        }
+        throw new Error('Type mismatch in StandardImage constructor')
     }
 
     override toJSON(): StandardImageData {

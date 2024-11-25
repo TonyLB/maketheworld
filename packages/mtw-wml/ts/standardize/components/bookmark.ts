@@ -1,8 +1,10 @@
 import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { EditWrappedStandardNode, isStandardBookmark } from "../baseClasses"
+import { EditWrappedStandardNode } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
+import { isStandardBookmark } from './dataTypes'
 import { editWrap } from "./editable"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
@@ -14,18 +16,24 @@ export class StandardBookmark extends editWrap(class StandardBookmark extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload) )) {
+            return
         }
-        else if (isStandardBookmark(payload)) {
+        if (isStandardBookmark(payload)) {
             this._description = payload.description
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaBookmark)(payload)) {
-            const { data } = payload
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children: payload.children }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaBookmark)(node)) {
+                const { children } = node
+                this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardBookmark constructor')
-        }
+        throw new Error('Type mismatch in StandardBookmark constructor')
     }
 
     get description() {

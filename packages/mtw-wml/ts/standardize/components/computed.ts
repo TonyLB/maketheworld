@@ -1,6 +1,7 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { isStandardComputed } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardComputedData } from "./dataTypes/computed"
 import { editWrap } from "./editable"
@@ -13,21 +14,27 @@ export class StandardComputed extends editWrap(class StandardComputed extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload) )) {
             this._src = ''
+            return
         }
-        else if (isStandardComputed(payload)) {
+        if (isStandardComputed(payload)) {
             this._src = payload.src
             this._dependencies = payload.dependencies
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaComputed)(payload)) {
-            const { data } = payload
-            this._src = data.src
-            this._dependencies = data.dependencies
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaComputed)(node)) {
+                const { data } = node
+                this._src = data.src
+                this._dependencies = data.dependencies
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardComputed constructor')
-        }
+        throw new Error('Type mismatch in StandardComputed constructor')
     }
 
     get src() { return this._src }

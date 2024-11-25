@@ -5,6 +5,21 @@ import { StandardKnowledge } from './knowledge'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardKnowledge class', () => {
+
+    it('should construct StandardKnowledge from WML', () => {
+        const testSource = deIndentWML(`
+            <Knowledge key=(test)>
+                <Name>Name Test</Name>
+                <Description>Description Test</Description>
+            </Knowledge>
+        `)
+        const testKnowledge = new StandardKnowledge(testSource)
+        expect(testKnowledge.key).toEqual('test')
+        expect(testKnowledge.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testKnowledge.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(schemaToWML([testKnowledge.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardKnowledge from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

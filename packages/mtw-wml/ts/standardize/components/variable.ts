@@ -1,5 +1,6 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardVariable } from "./dataTypes"
 import { StandardVariableData } from "./dataTypes/variable"
@@ -12,18 +13,24 @@ export class StandardVariable extends editWrap(class StandardVariable extends St
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
+            return
         }
         else if (isStandardVariable(payload)) {
             this._default = payload.default
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaVariable)(payload)) {
-            const { data } = payload
-            this._default = data.default
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaVariable)(node)) {
+                const { data } = node
+                this._default = data.default
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardAction constructor')
-        }
+        throw new Error('Type mismatch in StandardAction constructor')
     }
 
     get default() { return this._default }

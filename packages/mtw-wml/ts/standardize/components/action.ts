@@ -1,6 +1,7 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { isStandardAction } from "../baseClasses"
+import { isStandardAction } from "./dataTypes"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardActionData } from "./dataTypes/action"
 import { editWrap } from "./editable"
@@ -13,19 +14,25 @@ export class StandardAction extends editWrap(class StandardAction extends Standa
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
             this._src = ''
+            return
         }
-        else if (isStandardAction(payload)) {
+        if (isStandardAction(payload)) {
             this._src = payload.src
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaAction)(payload)) {
-            const { data } = payload
-            this._src = data.src
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaAction)(node)) {
+                const { data } = node
+                this._src = data.src
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardAction constructor')
-        }
+        throw new Error('Type mismatch in StandardAction constructor')
     }
 
     get src() { return this._src }
