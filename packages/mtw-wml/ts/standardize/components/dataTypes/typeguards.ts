@@ -21,7 +21,7 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
         }
     }
     if (typeof item !== 'object') {
-        console.log(`Not of type item: ${JSON.stringify(item, null, 4)}`)
+        // console.log(`Not of type item: ${JSON.stringify(item, null, 4)}`)
         return false
     }
     if (!Object.entries(requiredList).reduce<boolean>((previous, [key, typeString]) => (
@@ -30,9 +30,9 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
         return false
     }
     if (!Object.entries(optionalList || {}).reduce<boolean>((previous, [key, typeString]) => (
-        previous && ((!(key in item)) || checkSingleType(item[key], typeString))
+        previous && ((!(key in item)) || typeof item[key] === 'undefined' || checkSingleType(item[key], typeString))
     ), true)) {
-        console.log(`Failed optional types: ${JSON.stringify(item, null, 4)}`)
+        // console.log(`Failed optional types: ${JSON.stringify(item, null, 4)}`)
         return false
     }
     return true

@@ -5,6 +5,16 @@ import { StandardImage } from './image'
 import { mergeTest } from './utils/testing'
 
 describe('StandardImage class', () => {
+
+    it('should construct StandardImage from WML', () => {
+        const testSource = deIndentWML(`
+            <Image key=(test) />
+        `)
+        const testAction = new StandardImage(testSource)
+        expect(testAction.key).toEqual('test')
+        expect(schemaToWML([testAction.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardImage from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

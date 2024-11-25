@@ -5,6 +5,17 @@ import { StandardBookmark } from './bookmark'
 import { mergeTest } from './utils/testing'
 
 describe('StandardBookmark class', () => {
+
+    it('should construct StandardBookmark from WML', () => {
+        const testSource = deIndentWML(`
+            <Bookmark key=(test)>Description Test</Bookmark>
+        `)
+        const testBookmark = new StandardBookmark(testSource)
+        expect(testBookmark.key).toEqual('test')
+        expect(testBookmark.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(schemaToWML([testBookmark.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardBookmark from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

@@ -4,6 +4,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardTheme } from "./dataTypes"
 import { StandardThemeData } from "./dataTypes/theme"
@@ -21,31 +22,37 @@ export class StandardTheme extends editWrap(class StandardTheme extends Standard
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
             this._prompts = []
             this._rooms = []
             this._maps = []
+            return
         }
-        else if (isStandardTheme(payload)) {
+        if (isStandardTheme(payload)) {
             this._name = payload.name
             this._prompts = payload.prompts
             this._rooms = payload.rooms
             this._maps = payload.maps
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaTheme)(payload)) {
-            const tagTree = new SchemaTagTree(payload.children)
-            const nameItem = payload.children.find(treeNodeTypeguard(isSchemaName))
-            const promptTagTree = tagTree.filter({ match: 'Prompt' }).prune({ not: { match: 'Prompt' } })
-            const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            const mapsTagTree = tagTree.filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
-            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
-            this._prompts = promptTagTree.tree.filter(treeNodeTypeguard(isSchemaPrompt))
-            this._rooms = roomTagTree.tree
-            this._maps = mapsTagTree.tree
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaTheme)(node)) {
+                const tagTree = new SchemaTagTree(node.children)
+                const nameItem = node.children.find(treeNodeTypeguard(isSchemaName))
+                const promptTagTree = tagTree.filter({ match: 'Prompt' }).prune({ not: { match: 'Prompt' } })
+                const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
+                const mapsTagTree = tagTree.filter({ match: 'Map' }).prune({ not: { match: 'Map' }})
+                this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
+                this._prompts = promptTagTree.tree.filter(treeNodeTypeguard(isSchemaPrompt))
+                this._rooms = roomTagTree.tree
+                this._maps = mapsTagTree.tree
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardTheme constructor')
-        }
+        throw new Error('Type mismatch in StandardTheme constructor')
     }
 
     get name() { return this._name }

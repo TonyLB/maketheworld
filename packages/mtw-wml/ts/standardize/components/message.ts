@@ -2,8 +2,9 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaDescription, isSchemaMessage, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode, isStandardMessage } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardMessageData } from "./dataTypes/message"
 import { editWrap } from "./editable"
@@ -18,28 +19,30 @@ export class StandardMessage extends editWrap(class StandardMessage extends Stan
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload) )) {
             this._rooms = []
+            return
         }
-        else if (isStandardMessage(payload)) {
+        if (isStandardMessage(payload)) {
             this._description = payload.description
             this._rooms = payload.rooms
+            return
         }
-        else if (isSchemaTreeNode(payload)) {
-            const { data } = payload
-            if (!isSchemaMessage(data)) {
-                throw new Error('Type mismatch in StandardMessage constructor')
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaMessage)(node)) {
+                const tagTree = new SchemaTagTree(node.children)
+                const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
+                const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
+                const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
+                this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+                this._rooms = roomTagTree.tree
+                return
             }
-            const tagTree = new SchemaTagTree(payload.children)
-            const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
-            const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
-            const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
-            this._rooms = roomTagTree.tree
         }
-        else {
-            throw new Error('Type mismatch in StandardMessage constructor')
-        }
+        throw new Error('Type mismatch in StandardMessage constructor')
     }
 
     get description() { return this._description }

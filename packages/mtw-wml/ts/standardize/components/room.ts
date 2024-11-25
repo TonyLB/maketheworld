@@ -4,10 +4,11 @@ import { isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, Sc
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode } from "../../tree/baseClasses"
-import { EditWrappedStandardNode, isStandardRoom } from "../baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { EditWrappedStandardNode } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import { ComponentInterface, HasShortName } from "./abstract"
-import { StandardRoomData } from "./dataTypes/room"
+import { isStandardRoom, StandardRoomData } from "./dataTypes/room"
 import { editWrap } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
 import { isSchemaTreeNode } from "./utils"
@@ -23,34 +24,37 @@ export class StandardRoom extends editWrap(class StandardRoom extends StandardCo
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
             this._exits = []
             this._themes = []
+            return
         }
-        else if (isSchemaTreeNode(payload)) {
-            if (!isSchemaRoom(payload.data)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
-            }
-            const tagTree = new SchemaTagTree(payload.children)
-            const shortNameItem = tagTree.filter({ match: 'ShortName' }).tree.find(wrappedNodeTypeGuard(isSchemaShortName))
-            const summaryItem = tagTree.filter({ match: 'Summary' }).tree.find(wrappedNodeTypeGuard(isSchemaSummary))
-            const exitTagTree = tagTree
-                .filter({ match: 'Exit' })
-                .reorderedSiblings([['Room', 'Exit'], ['If']])
-            this._shortName = outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }),
-            this._summary = outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }),
-            this._exits = defaultSelected(exitTagTree.tree)
-            this._themes = []
-        }
-        else {
-            if (!isStandardRoom(payload)) {
-                throw new Error('Type mismatch in StandardRoom constructor')
-            }
+        if (isStandardRoom(payload)) {
             this._shortName = payload.shortName
             this._summary = payload.summary
             this._exits = payload.exits
             this._themes = payload.themes
+            return
         }
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaRoom)(node)) {
+                const tagTree = new SchemaTagTree(node.children)
+                const shortNameItem = tagTree.filter({ match: 'ShortName' }).tree.find(wrappedNodeTypeGuard(isSchemaShortName))
+                const summaryItem = tagTree.filter({ match: 'Summary' }).tree.find(wrappedNodeTypeGuard(isSchemaSummary))
+                const exitTagTree = tagTree
+                    .filter({ match: 'Exit' })
+                    .reorderedSiblings([['Room', 'Exit'], ['If']])
+                this._shortName = outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }),
+                this._summary = outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }),
+                this._exits = defaultSelected(exitTagTree.tree)
+                this._themes = []
+                return
+            }
+        }
+        throw new Error('Type mismatch in StandardRoom constructor')
     }
 
     override get payload(): StandardRoom {

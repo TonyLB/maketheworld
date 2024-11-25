@@ -5,6 +5,17 @@ import { StandardComputed } from './computed'
 import { mergeTest } from './utils/testing'
 
 describe('StandardComputed class', () => {
+
+    it('should construct StandardComputed from WML', () => {
+        const testSource = deIndentWML(`
+            <Computed key=(test) src={true} />
+        `)
+        const testComputed = new StandardComputed(testSource)
+        expect(testComputed.key).toEqual('test')
+        expect(testComputed.src).toEqual('true')
+        expect(schemaToWML([testComputed.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardComputed from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

@@ -2,6 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaKnowledge, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
 import { isStandardKnowledge } from "../baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import { ComponentInterface } from "./abstract"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { editWrap } from "./editable"
@@ -13,18 +14,18 @@ export class StandardKnowledge extends editWrap(class StandardKnowledge extends 
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload)) || isStandardKnowledge(payload)) {
+            return
         }
-        else if (isSchemaTreeNode(payload)) {
-            if (!isSchemaKnowledge(payload.data)) {
-                throw new Error('Type mismatch in StandardKnowledge constructor')
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (isSchemaKnowledge(node.data)) {
+                return
             }
         }
-        else {
-            if (!isStandardKnowledge(payload)) {
-                throw new Error('Type mismatch in StandardKnowledge constructor')
-            }
-        }
+        throw new Error('Type mismatch in StandardKnowledge constructor')
     }
 
     override toJSON(): StandardKnowledgeData {

@@ -5,6 +5,18 @@ import { StandardMessage } from './message'
 import { mergeTest } from './utils/testing'
 
 describe('StandardMessage class', () => {
+
+    it('should construct StandardMessage from WML', () => {
+        const testSource = deIndentWML(`
+            <Message key=(test)><Room key=(testRoom) />Message Test</Message>
+        `)
+        const testMap = new StandardMessage(testSource)
+        expect(testMap.key).toEqual('test')
+        expect(testMap.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] })
+        expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
+        expect(schemaToWML([testMap.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardMessage from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

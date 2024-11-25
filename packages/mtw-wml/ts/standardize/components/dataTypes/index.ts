@@ -15,18 +15,7 @@ import { StandardThemeData, isStandardTheme } from "./theme";
 import { checkAll } from "./typeguards";
 import { StandardVariableData, isStandardVariable } from "./variable";
 
-export { isStandardRoom }
-export { isStandardFeature }
-export { isStandardKnowledge }
-export { isStandardBookmark }
-export { isStandardMap }
-export { isStandardTheme }
-export { isStandardMessage }
-export { isStandardMoment }
-export { isStandardAction }
-export { isStandardVariable }
-export { isStandardComputed }
-export { isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookmark, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |

@@ -2,6 +2,7 @@ import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardMoment } from "./dataTypes"
 import { StandardMomentData } from "./dataTypes/moment"
@@ -14,19 +15,25 @@ export class StandardMoment extends editWrap(class StandardMoment extends Standa
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
-        if (typeof payload === 'string' || !payload) {
+        if (!payload || (typeof payload === 'string' && isLegalKey(payload))) {
             this._messages = []
+            return
         }
-        else if (isStandardMoment(payload)) {
+        if (isStandardMoment(payload)) {
             this._messages = payload.messages
+            return
         }
-        else if (isSchemaTreeNode(payload) && treeNodeTypeguard(isSchemaMoment)(payload)) {
-            const messagesTagTree = new SchemaTagTree(payload.children).filter({ match: 'Message' })
-            this._messages = messagesTagTree.tree
+        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
+            const node = typeof payload === 'string'
+                ? nodeFromWML(payload)
+                : payload
+            if (treeNodeTypeguard(isSchemaMoment)(node)) {
+                const messagesTagTree = new SchemaTagTree(node.children).filter({ match: 'Message' })
+                this._messages = messagesTagTree.tree
+                return
+            }
         }
-        else {
-            throw new Error('Type mismatch in StandardMoment constructor')
-        }
+        throw new Error('Type mismatch in StandardMoment constructor')
     }
 
     get messages() { return this._messages }

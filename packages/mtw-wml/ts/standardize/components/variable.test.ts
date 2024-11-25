@@ -5,6 +5,17 @@ import { StandardVariable } from './variable'
 import { mergeTest } from './utils/testing'
 
 describe('StandardVariable class', () => {
+
+    it('should construct StandardVariable from WML', () => {
+        const testSource = deIndentWML(`
+            <Variable key=(test) default={true} />
+        `)
+        const testVariable = new StandardVariable(testSource)
+        expect(testVariable.key).toEqual('test')
+        expect(testVariable.default).toEqual('true')
+        expect(schemaToWML([testVariable.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardVariable from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

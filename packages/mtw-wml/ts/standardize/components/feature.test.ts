@@ -5,6 +5,21 @@ import { StandardFeature } from './feature'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardFeature class', () => {
+
+    it('should construct StandardFeature from WML', () => {
+        const testSource = deIndentWML(`
+            <Feature key=(test)>
+                <Name>Name Test</Name>
+                <Description>Description Test</Description>
+            </Feature>
+        `)
+        const testFeature = new StandardFeature(testSource)
+        expect(testFeature.key).toEqual('test')
+        expect(testFeature.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testFeature.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(schemaToWML([testFeature.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardFeature from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`

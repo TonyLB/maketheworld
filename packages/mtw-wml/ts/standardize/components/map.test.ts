@@ -5,6 +5,23 @@ import { StandardMap } from './map'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardMap class', () => {
+
+    it('should construct StandardMap from WML', () => {
+        const testSource = deIndentWML(`
+            <Map key=(test)>
+                <Name>Name Test</Name>
+                <Image key=(testImage) />
+                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+            </Map>
+        `)
+        const testMap = new StandardMap(testSource)
+        expect(testMap.key).toEqual('test')
+        expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
+        expect(testMap.positions).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [{ data: { tag: 'Position', x: 100, y: 100 }, children: [] }] }])
+        expect(schemaToWML([testMap.schema])).toEqual(testSource)
+    })
+
     it('should construct StandardMap from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
