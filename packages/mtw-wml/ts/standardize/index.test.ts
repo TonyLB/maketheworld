@@ -12,13 +12,6 @@ const schemaTestStandarized = (wml: string): Standardizer => {
     return standardized
 }
 
-const schemaTestStandardForm = (wml: string): StandardForm => {
-    const schema = new Schema()
-    schema.loadWML(wml)
-    const standardized = new StandardForm(schema.schema[0])
-    return standardized
-}
-
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
         const schema = new Schema()
@@ -1557,7 +1550,7 @@ describe('standardizeSchema', () => {
 describe('StandardForm', () => {
 
     it('should return an empty wrapper unchanged', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test) />`)
+        const test = new StandardForm(`<Asset key=(Test) />`)
         expect(schemaToWML([test.schema])).toEqual(`<Asset key=(Test) />`)
     })
 
@@ -1710,7 +1703,7 @@ describe('StandardForm', () => {
     })
 
     it('should accept meta tags', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Meta key=(ABC) time="1234" />
             <Room key=(testRoom)>
                 <Description>Test Description</Description>
@@ -1734,7 +1727,7 @@ describe('StandardForm', () => {
     })
 
     it('should accept condition tags without including wrapperKey', () => {
-        const standard = schemaTestStandardForm(`<Asset key=(Test)>
+        const standard = new StandardForm(`<Asset key=(Test)>
             <Room key=(Room1)>
                 <Description>
                     <If {true}>True</If><Else>False</Else>
@@ -1770,8 +1763,27 @@ describe('StandardForm', () => {
         })
     })
 
+    it('should accept parsed schema', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Name>Test Room</Name>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Description>Three</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Description><If {false}>Four</If></Description>
+                </Feature>
+            </Asset>
+        `)
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const test = new StandardForm(schema.schema[0])
+        expect(schemaToWML([test.schema])).toEqual(testSource)
+    })
+
     it('should combine descriptions in rooms and features', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
                 <Summary>
                     One
@@ -1810,7 +1822,7 @@ describe('StandardForm', () => {
     })
 
     it('should combine exits in rooms', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
                 <Description>
                     One
@@ -1839,7 +1851,7 @@ describe('StandardForm', () => {
     })
 
     it('should combine render in nested rooms', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
                 <Description>
                     One
@@ -1873,7 +1885,7 @@ describe('StandardForm', () => {
     })
 
     it('should render features and links correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
                 <Description>
                     <Link to=(testFeatureOne)>test</Link>
@@ -1906,7 +1918,7 @@ describe('StandardForm', () => {
     })
 
     it('should render knowledge correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
                 <Description>
                     <Link to=(testKnowledgeOne)>test</Link>
@@ -1939,7 +1951,7 @@ describe('StandardForm', () => {
     })
 
     it('should render bookmarks correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Bookmark key=(testOne)>
                 TestOne<Bookmark key=(testThree) />
             </Bookmark>
@@ -1960,7 +1972,7 @@ describe('StandardForm', () => {
     })
 
     it('should render maps correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Name>Test map</Name>
                 <Room key=(testRoomOne)>
@@ -2007,14 +2019,14 @@ describe('StandardForm', () => {
     })
 
     it('should render empty maps', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)><Map key=(testMap) /></Asset>`)
+        const test = new StandardForm(`<Asset key=(Test)><Map key=(testMap) /></Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)><Map key=(testMap) /></Asset>
         `))
     })
 
     it('should render themes correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Room key=(testRoomOne)>
                     <Position x="0" y="0" />
@@ -2044,7 +2056,7 @@ describe('StandardForm', () => {
     })
 
     it('should render messages correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Message key=(testMessage)>
                 Test message
                 <Room key=(testRoomOne)>
@@ -2077,7 +2089,7 @@ describe('StandardForm', () => {
     })
 
     it('should render moments correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Moment key=(testMoment)>
                 <Message key=(testMessage)>
                     Test message
@@ -2101,7 +2113,7 @@ describe('StandardForm', () => {
     })
 
     it('should render variables correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Variable key=(testVar) default={false} />
             <Room key=(testRoomOne)>
                 <Description>Test Room One</Description>
@@ -2120,7 +2132,7 @@ describe('StandardForm', () => {
     })
 
     it('should render computes', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Computed key=(computeOne) src={computeThree} />
             <Computed key=(computeTwo) src={!computeOne} />
             <Computed key=(computeThree) src={!testVar} />
@@ -2137,7 +2149,7 @@ describe('StandardForm', () => {
     })
 
     it('should render actions correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Action key=(actionOne) src={testVar = !testVar} />
             <Computed key=(computeOne) src={!testVar} />
             <Variable key=(testVar) default={false} />
@@ -2152,7 +2164,7 @@ describe('StandardForm', () => {
     })
 
     it('should render imports correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
                 <Variable key=(testVar) from=(power) />
                 <Room key=(testRoomOne)>
@@ -2186,7 +2198,7 @@ describe('StandardForm', () => {
     })
 
     it('should correctly reflect empty imports in byId', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
                 <Room key=(testRoomOne) />
             </Import>
@@ -2198,7 +2210,7 @@ describe('StandardForm', () => {
             tag: 'Room',
             themes: []
         })
-        const mapTest = schemaTestStandardForm(`<Asset key=(Test)>
+        const mapTest = new StandardForm(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Room key=(testRoomOne)><Position x="0" y="100" /></Room>
             </Map>
@@ -2212,7 +2224,7 @@ describe('StandardForm', () => {
     })
 
     it('should render unedited imports correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
                 <Room key=(testRoomOne) />
             </Import>
@@ -2225,7 +2237,7 @@ describe('StandardForm', () => {
     })
 
     it('should render renamed imports correctly', () => {
-        const test = schemaTestStandardForm(`<Asset key=(Test)>
+        const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
                 <Room key=(testRoomTwo) from=(testRoomOne)>
                     <ShortName>Test</ShortName>
@@ -2249,7 +2261,7 @@ describe('StandardForm', () => {
                 <Export><Room key=(testRoomOne) as=(Room2) /></Export>
             </Asset>
         `)
-        const test = schemaTestStandardForm(testSource)
+        const test = new StandardForm(testSource)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -2260,7 +2272,7 @@ describe('StandardForm', () => {
                 <Remove><Room key=(testRoomTwo)><Name>Test To Delete</Name></Room></Remove>
             </Asset>
         `)
-        const test = schemaTestStandardForm(testSource)
+        const test = new StandardForm(testSource)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -2272,7 +2284,7 @@ describe('StandardForm', () => {
                 <With><Variable key=(testVariable) default={false} /></With>
             </Asset>
         `)
-        const test = schemaTestStandardForm(testSource)
+        const test = new StandardForm(testSource)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -2296,12 +2308,12 @@ describe('StandardForm', () => {
                 <Import from=(primitives) />
             </Character>
         `)
-        const test = schemaTestStandardForm(testSource)
+        const test = new StandardForm(testSource)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
     it('should merge edit value tags correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Name>Lobby</Name>
@@ -2309,7 +2321,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><Name>Lobby</Name></Replace>
@@ -2328,7 +2340,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component remove of plain base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Name>Lobby</Name>
@@ -2337,7 +2349,7 @@ describe('StandardForm', () => {
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Remove>
                     <Room key=(testRoomOne)>
@@ -2353,14 +2365,14 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component remove of replace base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Remove>
                     <Room key=(testRoomOne)><Name>Changed</Name></Room>
@@ -2376,12 +2388,12 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component remove of empty base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Remove>
                     <Room key=(testRoomOne)><Name>Lobby</Name></Room>
@@ -2397,13 +2409,13 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component replace of plain base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>                
                 <Room key=(testRoomOne)><Name>Test</Name></Room>
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Replace><Room key=(testRoomOne)><Name>Test</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
@@ -2418,14 +2430,14 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component replace of replace base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Replace><Room key=(testRoomOne)><Name>Changed</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed again</Name></Room></With>
@@ -2441,12 +2453,12 @@ describe('StandardForm', () => {
     })
 
     it('should merge edit component replace of empty base component correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomTwo) />
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Replace><Room key=(testRoomOne)><Name>Lobby</Name></Room></Replace>
                 <With><Room key=(testRoomOne)><Name>Changed</Name></Room></With>
@@ -2462,7 +2474,7 @@ describe('StandardForm', () => {
     })
 
     it('should apply edits on merge', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo)>
@@ -2470,7 +2482,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomTwo)>
                     <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
@@ -2487,7 +2499,7 @@ describe('StandardForm', () => {
     })
 
     it('should correctly merge multiple replaces', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>One</ShortName></Replace>
@@ -2495,7 +2507,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>Two</ShortName></Replace>
@@ -2514,7 +2526,7 @@ describe('StandardForm', () => {
     })
 
     it('should correctly filter no-op replace results', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>One</ShortName></Replace>
@@ -2522,7 +2534,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>Two</ShortName></Replace>
@@ -2536,7 +2548,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge multiple standardComponents correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Name>Lobby</Name>
@@ -2545,7 +2557,7 @@ describe('StandardForm', () => {
                 <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Name><Space />(at night)</Name>
@@ -2569,7 +2581,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge metadata correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Import from=(primitives)>
                     <Room key=(testRoomOne) />
@@ -2581,7 +2593,7 @@ describe('StandardForm', () => {
                 <Room key=(testRoomTwo)><Name>Test Two</Name></Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Import from=(primitives)>
                     <Room key=(testRoomThree) />
@@ -2612,7 +2624,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge edited metadata correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Import from=(primitives)>
                     <Room key=(testRoomOne) />
@@ -2620,7 +2632,7 @@ describe('StandardForm', () => {
                 <Room key=(testRoomOne)><Name>Test</Name></Room>
             </Asset>
         `)
-        const test = schemaTestStandardForm(`
+        const test = new StandardForm(`
             <Asset key=(Test)>
                 <Remove>
                     <Import from=(primitives)>
@@ -2641,7 +2653,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge multiple serializable standardComponents correctly', () => {
-        const inherited = schemaTestStandardForm(`
+        const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Name>Lobby</Name>
@@ -2677,7 +2689,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge with an empty value', () => {
-        const inherited = schemaTestStandardForm(`<Asset key=(Test) />`)
+        const inherited = new StandardForm(`<Asset key=(Test) />`)
         const testStandard = new StandardForm({
             key: 'Test',
             tag: 'Asset',
