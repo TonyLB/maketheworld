@@ -1,5 +1,6 @@
 import { SchemaTag } from "../../../schema/baseClasses";
 import { GenericTree } from "../../../tree/baseClasses";
+import { isSchemaTreeNode } from "../utils";
 import { StandardActionData, isStandardAction } from "./action";
 import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { StandardCharacterData } from "./character";
@@ -82,7 +83,6 @@ export const isStandardReplace = (arg: any): arg is StandardReplaceData => {
         ('match' in arg && isStandardNonEdit(arg.match)),
         ('payload' in arg && isStandardNonEdit(arg.payload))
     )
-
 }
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
@@ -104,4 +104,18 @@ export type StandardFormData = {
     update?: boolean;
     byId: Record<string, StandardComponentData>;
     metaData: GenericTree<SchemaTag>;
+}
+
+export const isStandardComponent = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))
+
+export const isStandardForm = (arg: any): arg is StandardFormData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('key' in arg && typeof arg.key === 'string'),
+        ('tag' in arg && ['Asset', 'Character'].includes(arg.tag)),
+        ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
+        ('byId' in arg && typeof arg.byId === 'object' && Object.values(arg.byId).every(isStandardComponent))
+    )
 }

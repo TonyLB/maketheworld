@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguar
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
-import { StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
+import { isStandardForm, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -26,6 +26,7 @@ import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { treeTypeGuard } from "../tree/filter"
 import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
+import { isLegalKey, nodeFromWML } from "./utils"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -278,8 +279,47 @@ export class StandardForm {
         export?: StandardExport;
     }
 
-    constructor(args: StandardFormData | GenericTreeNode<SchemaTag>) {
-        if (isSchemaTreeNode(args)) {
+    constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | string) {
+        if (typeof args === 'string' && isLegalKey(args)) {
+            this._key = args
+            this.tag = 'Asset'
+            this._byId = {}
+            this._metaData = []
+            this._namespace = {
+                imports: []
+            }
+            return
+        }
+        if (isStandardForm(args)) {
+            this._key = args.key
+            this.tag = args.tag
+            const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
+                .map((exportSchema) => (new StandardExport(exportSchema)))
+                .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
+            this._namespace = {
+                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node))),
+                export: exportItem
+            }
+            this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
+            this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
+                const standardItem = standardComponentFactory(standardData)
+                if (standardItem) {
+                    return {
+                        ...previous,
+                        [standardItem.key]: standardItem
+                    }
+                }
+                else {
+                    return previous
+                }
+            }, {})
+            return
+        }
+        if (isSchemaTreeNode(args) || typeof args === 'string') {
+            const node = typeof args === 'string'
+                ? nodeFromWML(args)
+                : args
+
             const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
                 const keysExtract = (imported: boolean) => (
                     tagTree
@@ -426,9 +466,9 @@ export class StandardForm {
             }
             this._byId = {}
             this._metaData = []
-            if (treeNodeTypeguard(isSchemaCharacter)(args)) {
+            if (treeNodeTypeguard(isSchemaCharacter)(node)) {
                 this.tag = 'Character'
-                const tagTree = new SchemaTagTree([args])
+                const tagTree = new SchemaTagTree([node])
                 tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
                 const characterTree = tagTree.tree
                 if (characterTree.length !== 1) {
@@ -442,10 +482,11 @@ export class StandardForm {
                 }
                 this._metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta })
                 standardizeComponentTagType(['Image'], tagTree)
+                return
             }
-            else {
+            if (treeNodeTypeguard(isSchemaAsset)(node)) {
                 this.tag = 'Asset'
-                const tagTree = new SchemaTagTree([args])
+                const tagTree = new SchemaTagTree([node])
                 tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
                 const assetTree = tagTree.tree
                 if (assetTree.length !== 1) {
@@ -509,32 +550,10 @@ export class StandardForm {
                         .map((exportSchema) => (new StandardExport(exportSchema)))
                         .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
                 }
-           }
-        }
-        else {
-            this._key = args.key
-            this.tag = args.tag
-            const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
-                .map((exportSchema) => (new StandardExport(exportSchema)))
-                .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
-            this._namespace = {
-                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node))),
-                export: exportItem
+                return
             }
-            this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
-            this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
-                const standardItem = standardComponentFactory(standardData)
-                if (standardItem) {
-                    return {
-                        ...previous,
-                        [standardItem.key]: standardItem
-                    }
-                }
-                else {
-                    return previous
-                }
-            }, {})
         }
+        throw new Error('Invalid arguments in StandardForm constructor')
     }
 
     get metaData(): GenericTree<SchemaTag> {
