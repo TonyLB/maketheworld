@@ -10,6 +10,7 @@ import { StandardImageData, isStandardImage } from "./image";
 import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge";
 import { StandardMapData, isStandardMap } from "./map";
 import { StandardMessageData, isStandardMessage } from "./message";
+import { StandardImportData } from "./metaData";
 import { StandardMomentData, isStandardMoment } from "./moment";
 import { StandardRoomData, isStandardRoom } from "./room";
 import { StandardThemeData, isStandardTheme } from "./theme";
@@ -33,17 +34,17 @@ export type StandardComponentNonEditData =
     StandardActionData |
     StandardImageData
 
-export type StandardRemoveData = {
+export type StandardRemoveData<T extends { key: string } = StandardComponentNonEditData> = {
     key: string;
     tag: 'Remove';
-    component: StandardComponentNonEditData;
+    component: T;
 }
 
-export type StandardReplaceData = {
+export type StandardReplaceData<T extends { key: string } = StandardComponentNonEditData> = {
     key: string;
     tag: 'Replace';
-    match: StandardComponentNonEditData;
-    payload: StandardComponentNonEditData;
+    match: T;
+    payload: T;
 }
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
@@ -65,7 +66,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardImage(value)
 )
 
-export const isStandardRemove = (arg: any): arg is StandardRemoveData => {
+export const isStandardRemove = (arg: any): arg is StandardRemoveData<StandardComponentNonEditData> => {
     if (typeof arg !== 'object') {
         return false
     }
@@ -118,4 +119,12 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
         ('byId' in arg && typeof arg.byId === 'object' && Object.values(arg.byId).every(isStandardComponent))
     )
+}
+
+export type StandardAssetHeaderData = {
+    key: string;
+    tag: 'Asset';
+    metaData: GenericTree<SchemaTag>;
+    imports: StandardImportData[];
+    export?: StandardImportData;
 }
