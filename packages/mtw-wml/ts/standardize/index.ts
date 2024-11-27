@@ -199,6 +199,18 @@ export const hasShortName = (component: StandardComponent): component is Standar
     return (component instanceof StandardRoom)
 }
 
+export const standardComponentSortOrder = (componentA: StandardComponent, componentB: StandardComponent): number => {
+    const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const indexA = componentKeys.indexOf(componentA.tag)
+    const indexB = componentKeys.indexOf(componentB.tag)
+    if (indexA !== indexB) {
+        return indexA - indexB
+    }
+    else {
+        return componentA.key.localeCompare(componentB.key)
+    }
+}
+
 //
 // standardComponentFactory takes an incoming argument that can apply to one of the constructors that inherit from StandardComponentAbstract,
 // finds the correct constructor, and creates the sub-typed class
@@ -623,21 +635,8 @@ export class StandardForm {
             }
         }
         else {
-            //
-            // TODO: Sort components into standard ordering
-            //
-            const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
             const children = Object.values(this._byId)
-                .sort((componentA, componentB) => {
-                    const indexA = componentKeys.indexOf(componentA.tag)
-                    const indexB = componentKeys.indexOf(componentB.tag)
-                    if (indexA !== indexB) {
-                        return indexA - indexB
-                    }
-                    else {
-                        return componentA.key.localeCompare(componentB.key)
-                    }
-                })
+                .sort(standardComponentSortOrder)
                 .map((component) => (component.schema))
             const imports = this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
             const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
