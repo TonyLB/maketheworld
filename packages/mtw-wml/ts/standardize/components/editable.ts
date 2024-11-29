@@ -169,6 +169,11 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                 incomingPayload._match = undefined
                 return incomingPayload
             }
+            if (this.isRemove) {
+                const incomingPayload = incoming.clone() as this
+                incomingPayload._match = this.payload as InstanceType<TBase>
+                return incomingPayload
+            }
             const mergedOutput = super.merge(incoming)
             if (!mergedOutput) {
                 return undefined

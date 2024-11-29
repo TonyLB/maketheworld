@@ -58,14 +58,6 @@ class ImportItem extends editWrap(class ImportItem implements ComponentInterface
         return subjectNode
     }
 
-    get exportSchema(): GenericTreeNode<SchemaTag> {
-        const subjectNode = {
-            data: { tag: this.tag, key: this.fromKey, as: this.asKey } as SchemaTag,
-            children: []
-        }
-        return subjectNode
-    }
-
     clone(): this {
         return new ImportItem(this.toJSON()) as this
     }
@@ -225,7 +217,9 @@ export class StandardImport extends editWrap(class StandardImport implements Com
         returnValue._imports = Object.entries(incoming._imports).reduce<Record<string, ImportItem>>((previous, [key, incomingItem]) => {
             const baseItem = Object.values(previous).find((baseItem) => (baseItem.fromKey === incomingItem.fromKey))
             if (baseItem) {
+                console.log(`baseItem: ${JSON.stringify(baseItem.toJSON(), null, 4)}`)
                 const mergedItem = baseItem.merge(incomingItem)
+                console.log(`mergedItem: ${JSON.stringify(mergedItem?.toJSON(), null, 4)}`)
                 const filteredPrevious = objectFilterEntries(previous, ([compareKey]) => (compareKey !== (baseItem.asKey ?? baseItem.fromKey)))
                 if (mergedItem) {
                     return {
