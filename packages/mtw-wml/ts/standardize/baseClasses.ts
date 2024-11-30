@@ -1,5 +1,7 @@
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTreeNodeFiltered } from "../tree/baseClasses";
+import { isStandardComponent } from "./components/dataTypes";
+import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
 import { StandardCharacterData } from "./components/dataTypes/character";
@@ -12,6 +14,7 @@ import { StandardMessageData } from "./components/dataTypes/message";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
+import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
 
 export class StandardizerError extends Error {}
@@ -188,4 +191,40 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset' } & StandardBase) | (StandardComponentData & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset' } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
+
+export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] => {
+    if (!(typeof line === 'object')) {
+        return false
+    }
+    if ('tag' in line && line.tag === 'Asset') {
+        return checkAll(
+            checkTypes(
+                line,
+                {
+                    key: 'string'
+                },
+                {}
+            )
+        )
+    }
+    return checkAll(
+        isStandardComponent(line),
+        checkTypes(
+            line,
+            {},
+            {
+                universalKey: 'string',
+                exportAs: 'string'
+            }
+        ),
+        (!line?.from || checkTypes(line.from, { assetId: 'string', key: 'string' }, {}))
+    )
+}
+
+export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
+    if (!Array.isArray(value)) {
+        return false
+    }
+    return value.every(isStandardNDJSONLine)
+}

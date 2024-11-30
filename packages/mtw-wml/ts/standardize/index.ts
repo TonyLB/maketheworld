@@ -1,9 +1,9 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
-import { isStandardForm, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
+import { isStandardComponent, isStandardForm, StandardFormData, StandardRemoveData, StandardReplaceData, unwrapStandardComponent } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -27,6 +27,8 @@ import { treeTypeGuard } from "../tree/filter"
 import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
+import { StandardBaseData } from "./components/dataTypes/abstract"
+import { StandardImportItemData } from "./components/dataTypes/metaData"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -291,7 +293,7 @@ export class StandardForm {
         export?: StandardExport;
     }
 
-    constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | string) {
+    constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && isLegalKey(args)) {
             this._key = args
             this.tag = 'Asset'
@@ -325,6 +327,61 @@ export class StandardForm {
                     return previous
                 }
             }, {})
+            return
+        }
+        if (isStandardNDJSON(args)) {
+            const assetLine = args.find((line: StandardNDJSON[number]): line is { tag: 'Asset' } & StandardBaseData => ('tag' in line && line.tag === 'Asset'))
+            if (!assetLine) {
+                throw new Error('No asset header found in StandardForm NDJSON input')
+            }
+            this._key = assetLine.key
+            this.tag = 'Asset'
+            this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData) => {
+                const standardItem = standardComponentFactory(standardData)
+                if (standardItem) {
+                    return {
+                        ...previous,
+                        [standardItem.key]: standardItem
+                    }
+                }
+                else {
+                    return previous
+                }
+            }, {})
+            this._metaData = []
+            const imports: StandardImportItemData[] = args
+                .filter(isStandardComponent)
+                .map(unwrapStandardComponent)
+                .map((line: any) => (('from' in line && line.from && line.tag !== 'Character')
+                    ? [{
+                        key: line.key,
+                        tag: line.tag,
+                        from: line.from,
+                        as: 'as' in line && line.as
+                    }]
+                    : []
+                ))
+                .flat(1)
+            const exports: StandardImportItemData[] = args
+                .filter(isStandardComponent)
+                .map(unwrapStandardComponent)
+                .map((line: any) => (
+                    (!('from' in line && line.from) && line.tag !== 'Character' && ('as' in line) && line.as)
+                    ? [{
+                        key: line.key,
+                        tag: line.tag,
+                        as: line.as
+                    }]
+                    : []
+                ))
+                .flat(1)
+            this._namespace = {
+                imports: imports.map((importData) => (new StandardImport(importData))),
+                export: exports.length ? new StandardExport({
+                    tag: 'Imports',
+                    imports: exports
+                }) : undefined
+            }
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {

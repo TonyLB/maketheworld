@@ -2721,6 +2721,15 @@ describe('StandardForm', () => {
         `))
     })
 
+    it('should deserialize empty NDJSON correctly', () => {
+        expect((new StandardForm([{ tag: 'Asset', key: 'Test' }])).toJSON()).toEqual({
+            tag: 'Asset',
+            key: 'Test',
+            byId: {},
+            metaData: []
+        })
+    })
+
     // it('should filter correctly', () => {
     //     const inheritedSource = deIndentWML(`
     //         <Asset key=(Test)>
