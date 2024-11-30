@@ -1,6 +1,7 @@
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTreeNodeFiltered } from "../tree/baseClasses";
 import { isStandardComponent } from "./components/dataTypes";
+import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
 import { StandardCharacterData } from "./components/dataTypes/character";
@@ -190,9 +191,9 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset' } & StandardBase) | (StandardComponentData & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset' } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
 
-export const isStandardNDJSONLine = (line: any): line is StandardNDJSON => {
+export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] => {
     if (!(typeof line === 'object')) {
         return false
     }
@@ -221,7 +222,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON => {
     )
 }
 
-export const isStandardNDJSON = (value: any): value is StandardNDJSON[] => {
+export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
     if (!Array.isArray(value)) {
         return false
     }
