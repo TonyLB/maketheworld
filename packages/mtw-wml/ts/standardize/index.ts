@@ -1,6 +1,6 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove, SchemaImportableBase, SchemaExitTag, SchemaImportTag } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData, StandardNDJSON } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, SerializeNDJSONMixin, StandardComponentData, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardFormData, StandardRemoveData, StandardReplaceData, unwrapStandardComponent } from "./components/dataTypes"
@@ -349,7 +349,7 @@ export class StandardForm {
                 }
             }, {})
             this._metaData = []
-            const imports: StandardImportItemData[] = args
+            const importItems: { key: string; tag: Exclude<Extract<SchemaTag, SchemaImportableBase>, SchemaExitTag | SchemaImportTag>["tag"]; from: { assetId: string; key: string } }[] = args
                 .filter(isStandardComponent)
                 .map(unwrapStandardComponent)
                 .map((line: any) => (('from' in line && line.from && line.tag !== 'Character')
@@ -357,12 +357,11 @@ export class StandardForm {
                         key: line.key,
                         tag: line.tag,
                         from: line.from,
-                        as: 'as' in line && line.as
                     }]
                     : []
                 ))
                 .flat(1)
-            const exports: StandardImportItemData[] = args
+            const exportItems: StandardImportItemData[] = args
                 .filter(isStandardComponent)
                 .map(unwrapStandardComponent)
                 .map((line: any) => (
@@ -376,10 +375,26 @@ export class StandardForm {
                 ))
                 .flat(1)
             this._namespace = {
-                imports: imports.map((importData) => (new StandardImport(importData))),
-                export: exports.length ? new StandardExport({
+                imports: Object.entries(importItems
+                    .reduce<Record<string, StandardImportItemData[]>>((previous, importItem) => ({
+                        ...previous,
+                        [importItem.from.assetId]: [
+                            ...(previous[importItem.from.assetId] ?? []),
+                            {
+                                key: importItem.from.key,
+                                asKey: (importItem.key !== importItem.from.key) ? importItem.key : undefined,
+                                tag: importItem.tag
+                            }
+                        ]
+                    }), {}))
+                    .map(([key, importData]) => (new StandardImport({
+                        tag: 'Import',
+                        imports: importData,
+                        key
+                    }))),
+                export: exportItems.length ? new StandardExport({
                     tag: 'Imports',
-                    imports: exports
+                    imports: exportItems
                 }) : undefined
             }
             return
@@ -680,6 +695,34 @@ export class StandardForm {
                 }, {})
             }
         }
+    }
+
+    toNDJSON(): StandardNDJSON {
+        const importById = this._namespace.imports.reduce<Record<string, { assetId: string; key: string }>>((previous, importItem) => {
+            return importItem.isRemove
+                ? previous
+                : Object.entries(importItem.payload._imports).reduce<Record<string, { assetId: string; key: string }>>((accumulator, [key, importRow]) => {
+                    return {
+                        ...accumulator,
+                        [key]: { assetId: importItem.key, key: importRow.key }
+                    }
+                }, previous)
+        }, {})
+        const exportById = this._namespace.export
+            ? Object.entries(this._namespace.export.payload._exports).reduce<Record<string, string>>((previous, [key, exportRow]) => {
+                return {
+                    ...previous,
+                    [exportRow._from]: exportRow.key
+                }
+            }, {})
+            : {}
+        const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
+            .sort(standardComponentSortOrder)
+            .map((component) => (component.toNDJSON({ from: importById[component.key], exportAs: exportById[component.key] })))
+        return [
+            this.header,
+            ...components
+        ]
     }
 
     get schema(): GenericTreeNode<SchemaTag> {

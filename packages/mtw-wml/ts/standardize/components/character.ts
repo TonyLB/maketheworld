@@ -2,8 +2,9 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, isSchemaVariable, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { treeTypeGuard } from "../../tree/filter"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
+import { StandardComponentData } from "./dataTypes"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaTreeNode } from "./utils"
 
@@ -62,6 +63,8 @@ export class StandardCharacter extends StandardComponentAbstract implements Comp
             image: this.image
         }
     }
+
+    toNDJSON(): StandardComponentData & SerializeNDJSONMixin { return this.toJSON() }
 
     override get schema(): GenericTreeNode<SchemaTag> {
         const pronounsFinalItem: Omit<SchemaPronounsTag, 'tag'> | undefined = this.pronouns
