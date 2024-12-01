@@ -632,6 +632,12 @@ export class StandardForm {
             ...(this._namespace.export ? [this._namespace.export.schema] : [])
         ]
     }
+    get header(): { tag: 'Asset' } & StandardBaseData {
+        return {
+            tag: 'Asset',
+            key: this._key
+        }
+    }
 
     get byId(): Record<string, StandardComponent> { return this._byId }
     get key(): string { return this._key }
