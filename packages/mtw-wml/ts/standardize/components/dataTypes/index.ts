@@ -66,25 +66,30 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardImage(value)
 )
 
-export const isStandardRemove = (arg: any): arg is StandardRemoveData<StandardComponentNonEditData> => {
+export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData<StandardComponentNonEditData> => {
     if (typeof arg !== 'object') {
         return false
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Remove'),
-        ('component' in arg && isStandardNonEdit(arg.component))
+        ('component' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.component))
     )
 }
-export const isStandardReplace = (arg: any): arg is StandardReplaceData => {
+
+export const isStandardRemove = isStandardRemoveWithOptions()
+
+export const isStandardReplaceWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardReplaceData => {
     if (typeof arg !== 'object') {
         return false
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Replace'),
-        ('match' in arg && isStandardNonEdit(arg.match)),
-        ('payload' in arg && isStandardNonEdit(arg.payload))
+        ('match' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.match)),
+        ('payload' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.payload))
     )
 }
+
+export const isStandardReplace = isStandardReplaceWithOptions()
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
     if (isStandardNonEdit(component)) {

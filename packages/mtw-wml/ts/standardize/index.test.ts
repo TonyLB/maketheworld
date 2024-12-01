@@ -4,6 +4,8 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree, GenericTreeNode } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
+import StandardRoom from './components/room'
+import StandardComponentAbstract from './components/abstract'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
@@ -2729,6 +2731,89 @@ describe('StandardForm', () => {
             byId: {},
             metaData: []
         })
+    })
+
+    it('should round-trip all component types through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Image key=(testBackground) />
+                <Room key=(testRoom)>
+                    <ShortName>Vortex</ShortName>
+                    <Name>Vortex</Name>
+                    <Description>Vortex Desc</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Name>Clocktower</Name>
+                    <Description>
+                        A tower built of white sandstone blocks, with an ornate clock set on
+                        the northern face.
+                    </Description>
+                </Feature>
+                <Knowledge key=(testKnowledge)>
+                    <Name>Learn</Name>
+                    <Description>There is so much to know!</Description>
+                </Knowledge>
+                <Map key=(testMap)>
+                    <Image key=(testBackground) />
+                    <Room key=(testRoom)><Position x="0" y="100" /></Room>
+                </Map>
+                <Message key=(openDoor)><Room key=(testRoom) />The door opens!</Message>
+                <Moment key=(openDoorMoment)><Message key=(openDoor) /></Moment>
+                <Variable key=(open) default={false} />
+                <Computed key=(closed) src={!open} />
+                <Action key=(toggleOpen) src={open = !open} />
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
+        testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#002')
+        testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
+        testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
+        testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
+        testSource._byId.openDoor = testSource._byId.openDoor.withUniversalKey('MESSAGE#006')
+        testSource._byId.openDoorMoment = testSource._byId.openDoorMoment.withUniversalKey('MOMENT#007')
+        testSource._byId.open = testSource._byId.open.withUniversalKey('VARIABLE#008')
+        testSource._byId.closed = testSource._byId.closed.withUniversalKey('COMPUTED#009')
+        testSource._byId.toggleOpen = testSource._byId.toggleOpen.withUniversalKey('ACTION#010')
+
+        const ndjson = testSource.toNDJSON()
+        const test = new StandardForm(ndjson)
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+        expect(test.byId.testBackground.universalKey).toEqual('IMAGE#001')
+        expect(test.byId.testRoom.universalKey).toEqual('ROOM#002')
+        expect(test.byId.testFeature.universalKey).toEqual('FEATURE#003')
+        expect(test.byId.testKnowledge.universalKey).toEqual('KNOWLEDGE#004')
+        expect(test.byId.testMap.universalKey).toEqual('MAP#005')
+        expect(test.byId.openDoor.universalKey).toEqual('MESSAGE#006')
+        expect(test.byId.openDoorMoment.universalKey).toEqual('MOMENT#007')
+        expect(test.byId.open.universalKey).toEqual('VARIABLE#008')
+        expect(test.byId.closed.universalKey).toEqual('COMPUTED#009')
+        expect(test.byId.toggleOpen.universalKey).toEqual('ACTION#010')
+    })
+
+    it('should round-trip imports through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Import from=(testImport)><Room key=(testRoom) from=(testIn) /></Import>
+                <Room key=(testRoom)><ShortName>Test</ShortName></Room>
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        const test = new StandardForm(testSource.toNDJSON())
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
+
+    it('should round-trip exports through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(testRoom)><ShortName>Test</ShortName></Room>
+                <Export><Room key=(testRoom) as=(Room3) /></Export>
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        console.log(`NDJSON: ${JSON.stringify(testSource.toNDJSON(), null, 4)}`)
+        const test = new StandardForm(testSource.toNDJSON())
+        expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
     // it('should filter correctly', () => {

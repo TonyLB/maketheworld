@@ -33,6 +33,7 @@ describe('Standard metadata', () => {
                 </Import>
             `)
             expect(schemaToWML([testImport(testSource).schema])).toEqual(testSource)
+            expect(schemaToWML([testImport(testSource).clone().schema])).toEqual(testSource)
         })
 
         it('should ignore non-import data', () => {

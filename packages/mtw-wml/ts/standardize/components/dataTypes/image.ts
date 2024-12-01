@@ -12,9 +12,10 @@ export const isStandardImage = (arg: any): arg is StandardImageData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Image'),
-        checkTypes(arg, {
-            key: 'string'
-        },
-        {})
+        checkTypes(
+            arg,
+            { key: 'string' },
+            {}
+        )
     )
 }

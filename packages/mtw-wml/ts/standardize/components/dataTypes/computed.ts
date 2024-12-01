@@ -13,12 +13,15 @@ export const isStandardComputed = (arg: any): arg is StandardComputedData => {
     }
 
     return checkAll(
-        ('tag' in arg && arg.tag === 'Action'),
-        checkTypes(arg, {
-            key: 'string',
-            src: 'string'
-        },
-        {}),
-        ((!('dependencies' in arg) || typeof arg.dependencies === undefined || (Array.isArray(arg.dependencies) && arg.dependencies.every((dependency) => (typeof dependency === 'string')))))
+        ('tag' in arg && arg.tag === 'Computed'),
+        checkTypes(
+            arg,
+            {
+                key: 'string',
+                src: 'string'
+            },
+            {}
+        ),
+        (((!Boolean('dependencies' in arg)) || typeof arg.dependencies === 'undefined' || (Array.isArray(arg.dependencies) && arg.dependencies.every((dependency) => (typeof dependency === 'string')))))
     )
 }

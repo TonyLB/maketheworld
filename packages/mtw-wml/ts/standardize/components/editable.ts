@@ -2,7 +2,7 @@ import { deepEqual } from "../../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, StandardRemove, StandardReplace } from "../baseClasses";
-import { isStandardRemove, isStandardReplace } from "./dataTypes";
+import { isStandardRemoveWithOptions, isStandardReplaceWithOptions } from "./dataTypes";
 import { ComponentInterface } from "./abstract";
 import { StandardComponentNonEditData } from "./dataTypes";
 import { isSchemaTreeNode } from "./utils";
@@ -15,7 +15,7 @@ interface EditWrappable extends ComponentInterface {
     payload: ComponentInterface;
 }
 
-export const editWrap = <TBase extends new (...args: any[]) => ComponentInterface>(Base: TBase, label: string) => {
+export const editWrap = <TBase extends new (...args: any[]) => ComponentInterface>(Base: TBase, label: string, options: { typeGuard?: (value: any) => boolean } = {}) => {
     return class EditWrapped extends Base implements EditWrappable {
         _remove?: boolean;
         _match?: InstanceType<typeof Base>;
@@ -52,12 +52,12 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
                 }
                 return
             }    
-            if (isStandardRemove(args)) {
+            if (isStandardRemoveWithOptions(options)(args)) {
                 super(args.component)
                 this._remove = true
                 return
             }
-            if (isStandardReplace(args)) {
+            if (isStandardReplaceWithOptions(options)(args)) {
                 super(args.payload)
                 this._match = new Base(args.match) as InstanceType<typeof Base>
                 return
