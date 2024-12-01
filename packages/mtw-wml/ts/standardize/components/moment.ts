@@ -7,9 +7,10 @@ import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { isStandardMoment } from "./dataTypes"
 import { StandardMomentData } from "./dataTypes/moment"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardMoment extends editWrap(class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
+export class StandardMoment extends ndjsonWrap(editWrap(class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
     _messages: GenericTree<SchemaTag>;
     tag = 'Moment' as const
     constructor(...args: any[]) {
@@ -65,6 +66,6 @@ export class StandardMoment extends editWrap(class StandardMoment extends Standa
         returnValue._messages = applyEdits([...this.messages, ...incoming.messages])
         return returnValue
     }
-}, 'StandardMoment'){}
+}, 'StandardMoment')){}
 
 export default StandardMoment

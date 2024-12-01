@@ -5,9 +5,10 @@ import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasFileAssociation } from "./abstract"
 import { StandardImageData } from "./dataTypes/image"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
+export class StandardImage extends ndjsonWrap(editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
     tag = 'Image' as const
     _fileAssociation?: string;
     constructor(...args: any[]) {
@@ -61,6 +62,6 @@ export class StandardImage extends editWrap(class StandardImage extends Standard
         return returnValue
     }
     
-}, 'StandardImge'){}
+}, 'StandardImge')){}
 
 export default StandardImage

@@ -7,9 +7,10 @@ import { ComponentInterface } from "./abstract"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { editWrap } from "./editable"
 import StandardComponentWithNameAndDesc from "./nameAndDesc"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 
-export class StandardKnowledge extends editWrap(class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
+export class StandardKnowledge extends ndjsonWrap(editWrap(class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
     tag = 'Knowledge' as const
     constructor(...args: any[]) {
         const payload = args[0]
@@ -61,6 +62,6 @@ export class StandardKnowledge extends editWrap(class StandardKnowledge extends 
         returnValue._description = superMerge.description
         return returnValue
     }
-}, 'StandardKnowledge'){}
+}, 'StandardKnowledge')){}
 
 export default StandardKnowledge

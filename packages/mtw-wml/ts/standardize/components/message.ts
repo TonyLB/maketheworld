@@ -8,11 +8,12 @@ import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"
 import { StandardMessageData } from "./dataTypes/message"
 import { editWrap } from "./editable"
+import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardMessage extends editWrap(class StandardMessage extends StandardComponentAbstract implements ComponentInterface {
+export class StandardMessage extends ndjsonWrap(editWrap(class StandardMessage extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     _rooms: GenericTree<SchemaTag>;
     tag = 'Message' as const
@@ -80,6 +81,6 @@ export class StandardMessage extends editWrap(class StandardMessage extends Stan
         returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
         return returnValue
     }
-}, 'StandardMessage'){}
+}, 'StandardMessage')){}
 
 export default StandardMessage
