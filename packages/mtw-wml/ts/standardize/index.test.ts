@@ -1551,6 +1551,7 @@ describe('StandardForm', () => {
 
     it('should return an empty wrapper unchanged', () => {
         const test = new StandardForm(`<Asset key=(Test) />`)
+        expect(test.header).toEqual({ tag: 'Asset', key: 'Test' })
         expect(schemaToWML([test.schema])).toEqual(`<Asset key=(Test) />`)
     })
 
