@@ -314,4 +314,29 @@ describe('StandardRoom class', () => {
         expect(mergedStandard).toBeUndefined()
     })
 
+    it('should generate NDJSON properly', () => {
+        const test = new StandardRoom(deIndentWML(`
+            <Room key=(test)>
+                <ShortName>ShortName Test</ShortName>
+                <Name>Name Test</Name>
+                <Summary>Summary Test</Summary>
+                <Description>Description Test</Description>
+                <Exit to=(testTwo)>Exit test</Exit>
+            </Room>
+        `)).withUniversalKey('ROOM#ABC')
+        expect(test.toNDJSON({ from: { assetId: 'testAsset', key: 'Room1' }, exportAs: 'Room2' })).toEqual({
+            tag: 'Room',
+            key: 'test',
+            exportAs: 'Room2',
+            from: { assetId: 'testAsset', key: 'Room1' },
+            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
+            summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] },
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+            exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
+            themes: [],
+            universalKey: 'ROOM#ABC'
+        })
+    })
+
 })
