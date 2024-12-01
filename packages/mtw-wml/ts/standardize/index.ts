@@ -365,11 +365,11 @@ export class StandardForm {
                 .filter(isStandardComponent)
                 .map(unwrapStandardComponent)
                 .map((line: any) => (
-                    (!('from' in line && line.from) && line.tag !== 'Character' && ('as' in line) && line.as)
+                    (!('from' in line && line.from) && line.tag !== 'Character' && ('exportAs' in line) && line.exportAs)
                     ? [{
                         key: line.key,
                         tag: line.tag,
-                        as: line.as
+                        asKey: line.exportAs
                     }]
                     : []
                 ))
@@ -393,7 +393,7 @@ export class StandardForm {
                         key
                     }))),
                 export: exportItems.length ? new StandardExport({
-                    tag: 'Imports',
+                    tag: 'Import',
                     imports: exportItems
                 }) : undefined
             }
@@ -712,7 +712,7 @@ export class StandardForm {
             ? Object.entries(this._namespace.export.payload._exports).reduce<Record<string, string>>((previous, [key, exportRow]) => {
                 return {
                     ...previous,
-                    [exportRow._from]: exportRow.key
+                    [exportRow.key]: exportRow.asKey ?? exportRow.key
                 }
             }, {})
             : {}

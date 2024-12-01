@@ -121,33 +121,6 @@ export class ExportItem extends editWrap(class ExportItem implements ComponentIn
 }, 'StandardExport', { typeGuard: isImportData }){}
 
 const extractImportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?: boolean }): Record<string, ImportItem> => {
-    // if (treeNodeTypeguard(isSchemaRemove)(node)) {
-    //     return node.children.reduce<Record<string, ImportItem>>((previous, childNode) => ({
-    //         ...previous,
-    //         ...extractImportsMap(childNode, { remove: true })
-    //     }), {})
-    // }
-    // if (treeNodeTypeguard(isSchemaReplace)(node)) {
-    //     const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => ({
-    //         ...previous,
-    //         ...extractImportsMap(childNode)
-    //     }), {})
-    //     return node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => {
-    //         const matchValues = extractImportsMap(childNode)
-    //         return Object.entries(matchValues).reduce<Record<string, ImportItem>>((accumulator, [key, matchNode]) => {
-    //             const nodeToAddMatch = Object.values(accumulator).find(({ fromKey }) => (fromKey === matchNode.fromKey))
-    //             if (!nodeToAddMatch) {
-    //                 throw new Error('Unmatched entry in Replace at Import parsing')
-    //             }
-    //             const nodeWithMatchApplied = nodeToAddMatch.clone()
-    //             nodeWithMatchApplied.match = matchNode
-    //             return {
-    //                 ...objectFilterEntries(accumulator, ([key]) => (key !== nodeToAddMatch.asKey)),
-    //                 [key]: nodeWithMatchApplied
-    //             }
-    //         }, previous)
-    //     }, payloadValues)
-    // }
     if (wrappedNodeTypeGuard(isImportable)(node)) {
         const subject = unwrapSubject(node)
         if (subject && treeNodeTypeguard(isImportable)(subject)) {
@@ -247,33 +220,6 @@ export class StandardImport extends editWrap(class StandardImport implements Com
 }, 'StandardImport'){}
 
 const extractExportsMap = (node: GenericTreeNode<SchemaTag>, options?: { remove?: boolean }): Record<string, ExportItem> => {
-    // if (treeNodeTypeguard(isSchemaRemove)(node)) {
-    //     return node.children.reduce<Record<string, ImportItem>>((previous, childNode) => ({
-    //         ...previous,
-    //         ...extractExportsMap(childNode, { remove: true })
-    //     }), {})
-    // }
-    // if (treeNodeTypeguard(isSchemaReplace)(node)) {
-    //     const payloadValues = node.children.filter(treeNodeTypeguard(isSchemaReplacePayload)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => ({
-    //         ...previous,
-    //         ...extractExportsMap(childNode)
-    //     }), {})
-    //     return node.children.filter(treeNodeTypeguard(isSchemaReplaceMatch)).map(({ children }) => (children)).flat(1).reduce<Record<string, ImportItem>>((previous, childNode) => {
-    //         const matchValues = extractExportsMap(childNode)
-    //         return Object.entries(matchValues).reduce<Record<string, ImportItem>>((accumulator, [key, matchNode]) => {
-    //             const nodeToAddMatch = Object.values(accumulator).find(({ fromKey }) => (fromKey === matchNode.fromKey))
-    //             if (!nodeToAddMatch) {
-    //                 throw new Error('Unmatched entry in Replace at Import parsing')
-    //             }
-    //             const nodeWithMatchApplied = nodeToAddMatch.clone()
-    //             nodeWithMatchApplied.match = matchNode
-    //             return {
-    //                 ...objectFilterEntries(accumulator, ([key]) => (key !== nodeToAddMatch.asKey)),
-    //                 [key]: nodeWithMatchApplied
-    //             }
-    //         }, previous)
-    //     }, payloadValues)
-    // }
     if (wrappedNodeTypeGuard(isImportable)(node)) {
         const subject = unwrapSubject(node)
         if (subject && treeNodeTypeguard(isImportable)(subject)) {
@@ -291,7 +237,7 @@ export class StandardExport extends editWrap(class StandardExport implements Com
     constructor(...allArgs: any[]) {
         const args = allArgs[0]
         if ('tag' in args && args.tag === 'Import') {
-            this._exports = args.imports
+            this._exports = objectMap(args.imports, (importData: StandardImportItemData) => (new ExportItem(importData)))
         }
         else {
             if (!isSchemaTreeNode(args)) {

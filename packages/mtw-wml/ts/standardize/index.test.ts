@@ -2803,7 +2803,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
-    xit('should round-trip exports through NDJSON', () => {
+    it('should round-trip exports through NDJSON', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Room key=(testRoom)><ShortName>Test</ShortName></Room>
@@ -2811,6 +2811,7 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
+        console.log(`NDJSON: ${JSON.stringify(testSource.toNDJSON(), null, 4)}`)
         const test = new StandardForm(testSource.toNDJSON())
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
