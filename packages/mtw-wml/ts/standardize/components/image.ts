@@ -1,19 +1,22 @@
 import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { isStandardImage } from "../baseClasses"
+import { isStandardImage, SerializeNDJSONMixin } from "../baseClasses"
 import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasFileAssociation } from "./abstract"
 import { StandardImageData } from "./dataTypes/image"
 import { editWrap } from "./editable"
-import { ndjsonWrap } from "./ndjson"
 import { isSchemaTreeNode } from "./utils"
 
-export class StandardImage extends ndjsonWrap(editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
+export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
     tag = 'Image' as const
     _fileAssociation?: string;
     constructor(...args: any[]) {
         const payload = args[0]
         super(payload)
+        if (isStandardImage(payload) && ('fileName' in payload as any) && typeof (payload as any).fileName === 'string') {
+            this._fileAssociation = (payload as any).fileName
+            return
+        }
         if (!payload || (typeof payload === 'string' && isLegalKey(payload)) || isStandardImage(payload)) {
             return
         }
@@ -35,6 +38,15 @@ export class StandardImage extends ndjsonWrap(editWrap(class StandardImage exten
         }
     }
 
+    toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardImageData & SerializeNDJSONMixin {
+        return {
+            ...this.toJSON(),
+            fileName: this._fileAssociation,
+            exportAs: args.exportAs,
+            from: args.from
+        }
+    }
+
     override get schema(): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Image', key: this.key },
@@ -45,7 +57,7 @@ export class StandardImage extends ndjsonWrap(editWrap(class StandardImage exten
     get fileAssociation() { return this._fileAssociation }
 
     override clone(): this {
-        return new StandardImage(this.toJSON()) as this
+        return new StandardImage(this.toJSON()).withFileAssociation(this._fileAssociation) as this
     }
 
     override merge(incoming: this): this | undefined {
@@ -56,12 +68,12 @@ export class StandardImage extends ndjsonWrap(editWrap(class StandardImage exten
         return returnValue
     }
 
-    withFileAssociation(fileName: string): this {
+    withFileAssociation(fileName: string | undefined): this {
         const returnValue = this.clone()
         returnValue._fileAssociation = fileName
         return returnValue
     }
     
-}, 'StandardImge')){}
+}, 'StandardImge'){}
 
 export default StandardImage

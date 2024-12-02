@@ -1,5 +1,6 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
+import { SerializeNDJSONMixin } from "../baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import { StandardImage } from './image'
 import { mergeTest } from './utils/testing'
@@ -33,6 +34,16 @@ describe('StandardImage class', () => {
         }
         const testComputed = new StandardImage(testComputedData)
         expect(testComputed.toJSON()).toEqual(testComputedData)
+    })
+
+    it('should construct StandardImage from NDJSON', () => {
+        const testComputedData: StandardImageData & SerializeNDJSONMixin = {
+            key: 'test',
+            tag: 'Image',
+            fileName: 'test.png'
+        }
+        const testComputed = new StandardImage(testComputedData)
+        expect(testComputed.toNDJSON({})).toEqual(testComputedData)
     })
 
     it('should merge correctly', () => {
