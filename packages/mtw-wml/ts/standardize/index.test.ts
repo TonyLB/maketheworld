@@ -2724,6 +2724,57 @@ describe('StandardForm', () => {
         `))
     })
 
+    it('should merge base component with universalKey', () => {
+        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Description>One</Description></Room>`)).withUniversalKey('ROOM#001')
+        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Description>Two</Description></Room>`))
+        const merge = base.merge(incoming)
+        if (!merge) {
+            expect(true).toBe(false)
+        }
+        else {
+            expect(merge.universalKey).toEqual('ROOM#001')
+            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
+                <Room key=(test)><Description>OneTwo</Description></Room>
+            `))
+        }
+    })
+
+    it('should merge incoming component with universalKey', () => {
+        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Description>One</Description></Room>`))
+        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Description>Two</Description></Room>`)).withUniversalKey('ROOM#001')
+        const merge = base.merge(incoming)
+        if (!merge) {
+            expect(true).toBe(false)
+        }
+        else {
+            expect(merge.universalKey).toEqual('ROOM#001')
+            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
+                <Room key=(test)><Description>OneTwo</Description></Room>
+            `))
+        }
+    })
+
+    it('should merge identical universalKeys', () => {
+        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Description>One</Description></Room>`)).withUniversalKey('ROOM#001')
+        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Description>Two</Description></Room>`)).withUniversalKey('ROOM#001')
+        const merge = base.merge(incoming)
+        if (!merge) {
+            expect(true).toBe(false)
+        }
+        else {
+            expect(merge.universalKey).toEqual('ROOM#001')
+            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
+                <Room key=(test)><Description>OneTwo</Description></Room>
+            `))
+        }
+    })
+
+    it('should throw error on conflicting universalKeys', () => {
+        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Description>One</Description></Room>`)).withUniversalKey('ROOM#001')
+        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Description>Two</Description></Room>`)).withUniversalKey('ROOM#002')
+        expect(() => { base.merge(incoming) }).toThrow()
+    })
+
     it('should deserialize empty NDJSON correctly', () => {
         expect((new StandardForm([{ tag: 'Asset', key: 'Test' }])).toJSON()).toEqual({
             tag: 'Asset',
@@ -2811,7 +2862,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
-        console.log(`NDJSON: ${JSON.stringify(testSource.toNDJSON(), null, 4)}`)
         const test = new StandardForm(testSource.toNDJSON())
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })

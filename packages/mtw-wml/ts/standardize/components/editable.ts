@@ -16,7 +16,7 @@ interface EditWrappable extends ComponentInterface {
 }
 
 export const editWrap = <TBase extends new (...args: any[]) => ComponentInterface>(Base: TBase, label: string, options: { typeGuard?: (value: any) => boolean } = {}) => {
-    return class EditWrapped extends Base implements EditWrappable {
+    return class EditWrapped extends Base implements EditWrappable, ComponentInterface {
         _remove?: boolean;
         _match?: InstanceType<typeof Base>;
 
@@ -178,7 +178,11 @@ export const editWrap = <TBase extends new (...args: any[]) => ComponentInterfac
             if (!mergedOutput) {
                 return undefined
             }
-            return new EditWrapped(mergedOutput) as this
+            if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
+                throw new MergeConflictError(`Universal key mismatch in ${label} merge`)
+            }
+            const newUniversalKey = this.universalKey ?? incoming.universalKey
+            return new EditWrapped(newUniversalKey ? mergedOutput.withUniversalKey(newUniversalKey) : mergedOutput) as this
         }
     }
 }
