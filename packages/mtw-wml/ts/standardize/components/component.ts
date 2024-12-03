@@ -14,8 +14,9 @@
 
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
-import { MergeConflictError } from "../baseClasses";
+import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
+import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { KeyPayload } from "./key";
 import { isSchemaTreeNode } from "./utils";
@@ -29,8 +30,17 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     tag: SchemaWithKey["tag"];
 }
 
-export const componentClassFactory = <D extends ComponentKey, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
-    return class GeneratedComponentClass {
+export interface StandardComponent {
+    key: string;
+    universalKey?: string;
+    tag: SchemaWithKey["tag"];
+    toJSON(): StandardComponentData & SerializeNDJSONMixin;
+    toNDJSON(): StandardComponentData & SerializeNDJSONMixin;
+    schema: GenericTreeNode<SchemaTag>;
+}
+
+export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
+    return class GeneratedComponentClass implements StandardComponent {
         _key: KeyPayload;
         _payload: InstanceType<typeof Base>;
         constructor(props: string | D | GenericTreeNode<SchemaTag>) {

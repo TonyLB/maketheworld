@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
-import { StandardKnowledge } from './knowledge'
+import { StandardFeatureRefactored as StandardKnowledge } from './knowledge'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardKnowledge class', () => {

@@ -7,6 +7,53 @@ import { StandardActionData } from "./dataTypes/action"
 import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
 import { ndjsonWrap } from "./ndjson"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
+
+export class StandardActionPayload implements ComponentConstructorMethods<StandardActionData> {
+    _src?: string;
+    _dependencies?: string[];
+    tag = 'Action' as const;
+
+    fromJSON(props: StandardActionData) {
+        this._src = props.src
+    }
+
+    fromSchema(node: GenericTreeNode<SchemaTag>) {
+        if (treeNodeTypeguard(isSchemaAction)(node)) {
+            this._src = node.data.src
+            return
+        }
+        throw new Error('Schema mismatch in StandardAction constructor')
+    }
+
+    get src() { return this._src ?? '' }
+    get dependencies() { return this._dependencies }
+
+    toJSON(): Omit<StandardActionData, 'key' | 'universalKey'> {
+        return {
+            tag: 'Action',
+            src: this.src
+        }
+    }
+
+    schema(key: string): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Action', key, src: this.src },
+            children: []
+        }
+    }
+
+    merge(incoming: this): this {
+        const returnValue = new StandardActionPayload()
+        returnValue._src = incoming.src ?? this.src
+        return returnValue as this
+    }
+}
+
+export class StandardActionRefactored extends componentClassFactory(StandardActionPayload, 'StandardAction') {
+    get src() { return this._payload.src }
+    get dependencies() { return this._payload.dependencies }
+}
 
 export class StandardAction extends ndjsonWrap(editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;

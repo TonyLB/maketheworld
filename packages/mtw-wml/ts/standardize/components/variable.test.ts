@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardVariableData } from "./dataTypes/variable"
-import { StandardVariable } from './variable'
+import { StandardActionRefactored as StandardVariable } from './variable'
 import { mergeTest } from './utils/testing'
 
 describe('StandardVariable class', () => {

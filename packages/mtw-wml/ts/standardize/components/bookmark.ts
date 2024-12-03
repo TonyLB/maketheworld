@@ -10,6 +10,54 @@ import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 import { ndjsonWrap } from "./ndjson"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import SchemaTagTree from "../../tagTree/schema"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { excludeUndefined } from "../../lib/lists"
+
+export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
+    _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    tag = 'Bookmark' as const
+
+    fromJSON(props: StandardBookmarkData) {
+        this._description = props.description
+    }
+
+    fromSchema(node: GenericTreeNode<SchemaTag>) {
+        if (treeNodeTypeguard(isSchemaBookmark)(node)) {
+            const { children } = node
+            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>({ data: { tag: 'Description' }, children }, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+            return
+        }
+        throw new Error('Schema mismatch in StandardBookmark constructor')
+    }
+
+    get description() { return this._description }
+
+    toJSON(): Omit<StandardBookmarkData, 'key' | 'universalKey'> {
+        return {
+            tag: 'Bookmark',
+            description: this.description
+        }
+    }
+
+    schema(key: string): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Bookmark', key },
+            children: this.description ? standardFieldToOutputNode(this.description).filter(({ children }) => (children.length)).map(({ children }) => (children)).flat(1) : []
+        }
+    }
+
+    merge(incoming: this): this {
+        const returnValue = new StandardBookmarkPayload()
+        returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+        return returnValue as this
+    }
+}
+
+export class StandardFeatureRefactored extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
+    get description() { return this._payload.description }
+}
 
 export class StandardBookmark extends ndjsonWrap(editWrap(class StandardBookmark extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;

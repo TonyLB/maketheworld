@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardActionData } from "./dataTypes/action"
-import { StandardAction } from './action'
+import { StandardActionRefactored as StandardAction } from './action'
 import { mergeTest } from './utils/testing'
 
 describe('StandardAction class', () => {

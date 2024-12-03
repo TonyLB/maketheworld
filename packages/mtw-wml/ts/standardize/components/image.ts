@@ -3,9 +3,44 @@ import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { isStandardImage, SerializeNDJSONMixin } from "../baseClasses"
 import { isLegalKey, nodeFromWML } from "../utils"
 import StandardComponentAbstract, { ComponentInterface, HasFileAssociation } from "./abstract"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardImageData } from "./dataTypes/image"
 import { editWrap } from "./editable"
 import { isSchemaTreeNode } from "./utils"
+
+export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
+    tag = 'Image' as const;
+
+    fromJSON(props: StandardImageData) {
+    }
+
+    fromSchema(node: GenericTreeNode<SchemaTag>) {
+        if (treeNodeTypeguard(isSchemaImage)(node)) {
+            return
+        }
+        throw new Error('Schema mismatch in StandardImage constructor')
+    }
+
+    toJSON(): Omit<StandardImageData, 'key' | 'universalKey'> {
+        return {
+            tag: 'Image'
+        }
+    }
+
+    schema(key: string): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Image', key },
+            children: []
+        }
+    }
+
+    merge(incoming: this): this {
+        const returnValue = new StandardImagePayload()
+        return returnValue as this
+    }
+}
+
+export class StandardImageRefactored extends componentClassFactory(StandardImagePayload, 'StandardImage') {}
 
 export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
     tag = 'Image' as const

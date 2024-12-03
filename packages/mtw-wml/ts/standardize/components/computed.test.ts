@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardComputedData } from "./dataTypes/computed"
-import { StandardComputed } from './computed'
+import { StandardComputedRefactored as StandardComputed } from './computed'
 import { mergeTest } from './utils/testing'
 
 describe('StandardComputed class', () => {
