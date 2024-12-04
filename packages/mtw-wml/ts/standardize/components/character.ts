@@ -104,6 +104,9 @@ export class StandardCharacter extends StandardComponentAbstract implements Comp
         // return new StandardCharacter(args)
         return incoming
     }
+
+    get fileName() { return undefined }
+    withFileName(key: string): this { return this }
 }
 
 export default StandardCharacter
