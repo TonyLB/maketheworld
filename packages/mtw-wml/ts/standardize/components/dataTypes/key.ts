@@ -3,6 +3,7 @@ import { checkTypes } from "./typeguards";
 export interface ComponentKey {
     key: string;
     universalKey?: string;
+    fileName?: string;
 }
 
 export const hasComponentKey = (arg: any): arg is ComponentKey => {
@@ -12,6 +13,9 @@ export const hasComponentKey = (arg: any): arg is ComponentKey => {
     return checkTypes(
         arg,
         { key: 'string' },
-        { universalKey: 'string' }
+        {
+            universalKey: 'string',
+            fileName: 'string'
+        }
     )
 }

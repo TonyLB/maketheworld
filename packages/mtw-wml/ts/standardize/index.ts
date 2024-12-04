@@ -340,6 +340,7 @@ export class StandardRemove implements StandardComponent {
 
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
+    get fileName() { return this._key.fileName }
 
     toJSON(): StandardRemoveData {
         return {
@@ -368,6 +369,14 @@ export class StandardRemove implements StandardComponent {
         const returnValue = new StandardRemove(this.key)
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._key._universalKey = key
+        return returnValue
+    }
+
+    withFileName(key: string | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.key)
+        returnValue._match = this._match.withFileName(key)
+        returnValue._key._fileName = key
+        returnValue._key._universalKey = this._key._universalKey
         return returnValue
     }
 }
@@ -426,6 +435,7 @@ export class StandardReplace implements StandardComponent {
 
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
+    get fileName() { return this._key.fileName }
 
     toJSON(): StandardReplaceData {
         return {
@@ -470,6 +480,16 @@ export class StandardReplace implements StandardComponent {
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._payload = this._match.withUniversalKey(key)
         returnValue._key._universalKey = key
+        returnValue._key._fileName = this.fileName
+        return returnValue
+    }
+
+    withFileName(key: string | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.key)
+        returnValue._match = this._match.withFileName(key)
+        returnValue._payload = this._payload.withFileName(key)
+        returnValue._key._fileName = key
+        returnValue._key._universalKey = this._key._universalKey
         return returnValue
     }
 

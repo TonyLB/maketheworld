@@ -16,7 +16,7 @@ import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClas
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardComponentData, StandardRemoveData } from "./dataTypes";
+import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { KeyPayload } from "./key";
 import { isSchemaTreeNode } from "./utils";
@@ -34,6 +34,8 @@ export interface StandardComponent {
     key: string;
     universalKey?: string;
     withUniversalKey(key: string | undefined): StandardComponent;
+    fileName?: string;
+    withFileName(key: string | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
@@ -68,6 +70,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         get key(): string { return this._key.key }
         get universalKey(): string | undefined { return this._key.universalKey }
+        get fileName(): string | undefined { return this._key.fileName }
         get tag(): SchemaWithKey["tag"] { return this._payload.tag }
 
         toJSON(): D {
@@ -102,6 +105,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                 throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
             }
             returnValue._key._universalKey = this.universalKey ?? incoming.universalKey
+            returnValue._key._fileName = incoming.fileName ?? this.fileName
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             return returnValue as this
         }
@@ -109,7 +113,16 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         withUniversalKey(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
             returnValue._payload = this._payload
+            returnValue._key._fileName = this._key._fileName
             returnValue._key._universalKey = key
+            return returnValue
+        }
+
+        withFileName(key: string | undefined): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this.key)
+            returnValue._payload = this._payload
+            returnValue._key._fileName = key
+            returnValue._key._universalKey = this._key._universalKey
             return returnValue
         }
 
