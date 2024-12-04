@@ -1,4 +1,4 @@
-import { Schema, schemaToWML } from "../../schema"
+import { schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardCharacterData } from "./dataTypes/character"
 import { StandardCharacter } from './character'
@@ -6,7 +6,6 @@ import { mergeTest } from "./utils/testing"
 
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
-        const schema = new Schema()
         const testSource = deIndentWML(`
             <Character key=(test)>
                 <Name>Tess</Name>
@@ -22,8 +21,7 @@ describe('StandardCharacter class', () => {
                 <Outfit>Rags</Outfit>
             </Character>
         `)
-        schema.loadWML(testSource)
-        const testRoom = new StandardCharacter(schema.schema[0])
+        const testRoom = new StandardCharacter(testSource)
         expect(testRoom.key).toEqual('test')
         expect(testRoom.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
         expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
