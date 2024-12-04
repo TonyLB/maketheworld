@@ -52,13 +52,13 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
     }
 }
 
-export class StandardComputedRefactored extends componentClassFactory(StandardComputedPayload, 'StandardComputed') {
+export class StandardComputed extends componentClassFactory(StandardComputedPayload, 'StandardComputed') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
 }
 
 
-export class StandardComputed extends ndjsonWrap(editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
+export class StandardComputedLegacy extends ndjsonWrap(editWrap(class StandardComputed extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
     tag = 'Computed' as const

@@ -85,14 +85,14 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
     }
 }
 
-export class StandardThemeRefactored extends componentClassFactory(StandardThemePayload, 'StandardMoment') {
+export class StandardTheme extends componentClassFactory(StandardThemePayload, 'StandardMoment') {
     get name() { return this._payload.name }
     get prompts() { return this._payload.prompts }
     get rooms() { return this._payload.rooms }
     get maps() { return this._payload.maps }
 }
 
-export class StandardTheme extends ndjsonWrap(editWrap(class StandardTheme extends StandardComponentAbstract implements ComponentInterface {
+export class StandardThemeLegacy extends ndjsonWrap(editWrap(class StandardTheme extends StandardComponentAbstract implements ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _prompts: GenericTreeFiltered<SchemaPromptTag, SchemaTag>;
     _rooms: GenericTree<SchemaTag>;

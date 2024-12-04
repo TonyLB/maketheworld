@@ -67,12 +67,12 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     }
 }
 
-export class StandardMessageRefactored extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
+export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 }
 
-export class StandardMessage extends ndjsonWrap(editWrap(class StandardMessage extends StandardComponentAbstract implements ComponentInterface {
+export class StandardMessageLegacy extends ndjsonWrap(editWrap(class StandardMessage extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     _rooms: GenericTree<SchemaTag>;
     tag = 'Message' as const

@@ -8,18 +8,18 @@ import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import applyEdits from "../schema/treeManipulation/applyEdits"
-import { StandardRoomRefactored as StandardRoom } from "./components/room"
-import { StandardFeatureRefactored as StandardFeature } from "./components/feature"
-import { StandardKnowledgeRefactored as StandardKnowledge } from "./components/knowledge"
-import { StandardFeatureRefactored as StandardBookmark } from "./components/bookmark"
-import { StandardMapRefactored as StandardMap } from "./components/map"
-import { StandardMessageRefactored as StandardMessage } from "./components/message"
-import { StandardMessageRefactored as StandardMoment } from "./components/moment"
-import { StandardThemeRefactored as StandardTheme } from "./components/theme"
-import { StandardVariableRefactored as StandardVariable } from "./components/variable"
-import { StandardComputedRefactored as StandardComputed } from "./components/computed"
-import { StandardActionRefactored as StandardAction } from "./components/action"
-import { StandardImageRefactored as StandardImage } from "./components/image"
+import StandardRoom from "./components/room"
+import StandardFeature from "./components/feature"
+import StandardKnowledge from "./components/knowledge"
+import StandardBookmark from "./components/bookmark"
+import StandardMap from "./components/map"
+import StandardMessage from "./components/message"
+import StandardMoment from "./components/moment"
+import StandardTheme from "./components/theme"
+import StandardVariable from "./components/variable"
+import StandardComputed from "./components/computed"
+import StandardAction from "./components/action"
+import StandardImage from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
@@ -363,10 +363,17 @@ export class StandardRemove implements StandardComponent {
     merge(incoming: StandardComponent): StandardComponent | undefined {
         throw new Error('StandardRemove types cannot be directly merged')
     }
+
+    withUniversalKey(key: string | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.key)
+        returnValue._match = this._match.withUniversalKey(key)
+        returnValue._key._universalKey = key
+        return returnValue
+    }
 }
 
 //
-// StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
+// StandardReplace class provides a class that contains a matching StandardComponent to be removed. Note that merge
 // methods at this level do NOT contain the functionality to handle component-level edits ... that is included
 // at the StandardForm level, rather than on the individual component classes.
 //
@@ -455,8 +462,17 @@ export class StandardReplace implements StandardComponent {
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: incoming._payload.toJSON() as StandardComponentNonEditData
-        })
+        }).withUniversalKey(this.universalKey)
     }
+
+    withUniversalKey(key: string | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.key)
+        returnValue._match = this._match.withUniversalKey(key)
+        returnValue._payload = this._match.withUniversalKey(key)
+        returnValue._key._universalKey = key
+        return returnValue
+    }
+
 }
 
 //

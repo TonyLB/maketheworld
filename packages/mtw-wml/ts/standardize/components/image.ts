@@ -40,9 +40,9 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     }
 }
 
-export class StandardImageRefactored extends componentClassFactory(StandardImagePayload, 'StandardImage') {}
+export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {}
 
-export class StandardImage extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
+export class StandardImageLegacy extends editWrap(class StandardImage extends StandardComponentAbstract implements ComponentInterface, HasFileAssociation {
     tag = 'Image' as const
     _fileAssociation?: string;
     constructor(...args: any[]) {

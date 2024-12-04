@@ -63,12 +63,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     }
 }
 
-export class StandardFeatureRefactored extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
+export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
 }
 
-export class StandardFeature extends ndjsonWrap(editWrap(class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
+export class StandardFeatureLegacy extends ndjsonWrap(editWrap(class StandardFeature extends StandardComponentWithNameAndDesc implements ComponentInterface {
     tag = 'Feature' as const
     constructor(...args: any[]) {
         const payload = args[0]

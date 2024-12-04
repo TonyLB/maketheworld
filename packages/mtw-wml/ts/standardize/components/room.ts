@@ -97,7 +97,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 }
 
-export class StandardRoom extends ndjsonWrap(editWrap(class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName, ComponentInterface {
+export class StandardRoomLegacy extends ndjsonWrap(editWrap(class StandardRoom extends StandardComponentWithNameAndDesc implements HasShortName, ComponentInterface {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
     _summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
     _exits: GenericTree<SchemaTag>;
@@ -196,7 +196,7 @@ export class StandardRoom extends ndjsonWrap(editWrap(class StandardRoom extends
     }
 }, 'StandardRoom')){}
 
-export class StandardRoomRefactored extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
+export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
     get name() { return this._payload.name }
     get shortName() { return this._payload.shortName }
     get summary() { return this._payload.summary }

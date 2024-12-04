@@ -2,7 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { SerializeNDJSONMixin } from "../baseClasses"
 import { StandardImageData } from "./dataTypes/image"
-import { StandardImageRefactored as StandardImage } from './image'
+import StandardImage from './image'
 import { mergeTest } from './utils/testing'
 
 describe('StandardImage class', () => {

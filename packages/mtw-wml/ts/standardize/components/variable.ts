@@ -48,11 +48,11 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
     }
 }
 
-export class StandardVariableRefactored extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
+export class StandardVariable extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
     get default() { return this._payload.default }
 }
 
-export class StandardVariable extends ndjsonWrap(editWrap(class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
+export class StandardVariableLegacy extends ndjsonWrap(editWrap(class StandardVariable extends StandardComponentAbstract implements ComponentInterface {
     _default?: string;
     tag = 'Variable' as const
     constructor(...args: any[]) {

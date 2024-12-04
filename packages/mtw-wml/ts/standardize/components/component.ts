@@ -33,6 +33,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
 export interface StandardComponent {
     key: string;
     universalKey?: string;
+    withUniversalKey(key: string | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
@@ -97,8 +98,19 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             if (incoming.key !== this.key) {
                 throw new MergeConflictError(`Merge of two unequal keys in ${label}`)
             }
+            if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
+                throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
+            }
+            returnValue._key._universalKey = this.universalKey ?? incoming.universalKey
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             return returnValue as this
+        }
+
+        withUniversalKey(key: string | undefined): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this.key)
+            returnValue._payload = this._payload
+            returnValue._key._universalKey = key
+            return returnValue
         }
 
     }

@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMapData } from "./dataTypes/map"
-import { StandardMapRefactored as StandardMap } from './map'
+import StandardMap from './map'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardMap class', () => {

@@ -63,12 +63,12 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     }
 }
 
-export class StandardKnowledgeRefactored extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
+export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
 }
 
-export class StandardKnowledge extends ndjsonWrap(editWrap(class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
+export class StandardKnowledgeLegacy extends ndjsonWrap(editWrap(class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
     tag = 'Knowledge' as const
     constructor(...args: any[]) {
         const payload = args[0]

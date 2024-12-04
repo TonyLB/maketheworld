@@ -87,14 +87,14 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 }
 
-export class StandardMapRefactored extends componentClassFactory(StandardMapPayload, 'StandardMap') {
+export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
     get themes() { return this._payload.themes }
 }
 
-export class StandardMap extends ndjsonWrap(editWrap(class StandardMap extends StandardComponentAbstract implements HasName, ComponentInterface {
+export class StandardMapLegacy extends ndjsonWrap(editWrap(class StandardMap extends StandardComponentAbstract implements HasName, ComponentInterface {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag>;
     _positions: GenericTree<SchemaTag>;

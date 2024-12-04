@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
-import { StandardRoomRefactored as StandardRoom } from './room'
+import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardRoom class', () => {

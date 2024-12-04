@@ -50,12 +50,12 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
     }
 }
 
-export class StandardActionRefactored extends componentClassFactory(StandardActionPayload, 'StandardAction') {
+export class StandardAction extends componentClassFactory(StandardActionPayload, 'StandardAction') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
 }
 
-export class StandardAction extends ndjsonWrap(editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
+export class StandardActionLegacy extends ndjsonWrap(editWrap(class StandardAction extends StandardComponentAbstract implements ComponentInterface {
     _src?: string;
     _dependencies?: string[];
     tag = 'Action' as const

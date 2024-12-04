@@ -55,11 +55,11 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
     }
 }
 
-export class StandardFeatureRefactored extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
+export class StandardBookmark extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
     get description() { return this._payload.description }
 }
 
-export class StandardBookmark extends ndjsonWrap(editWrap(class StandardBookmark extends StandardComponentAbstract implements ComponentInterface {
+export class StandardBookmarkLegacy extends ndjsonWrap(editWrap(class StandardBookmark extends StandardComponentAbstract implements ComponentInterface {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Bookmark' as const;
     constructor(...args: any[]) {

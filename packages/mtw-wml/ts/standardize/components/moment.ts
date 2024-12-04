@@ -52,11 +52,11 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     }
 }
 
-export class StandardMessageRefactored extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
+export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
     get messages() { return this._payload.messages }
 }
 
-export class StandardMoment extends ndjsonWrap(editWrap(class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
+export class StandardMomentLegacy extends ndjsonWrap(editWrap(class StandardMoment extends StandardComponentAbstract implements ComponentInterface {
     _messages: GenericTree<SchemaTag>;
     tag = 'Moment' as const
     constructor(...args: any[]) {
