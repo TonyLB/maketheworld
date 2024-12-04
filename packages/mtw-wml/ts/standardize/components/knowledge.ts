@@ -63,7 +63,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     }
 }
 
-export class StandardFeatureRefactored extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
+export class StandardKnowledgeRefactored extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
 }

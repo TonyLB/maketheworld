@@ -48,7 +48,7 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
     }
 }
 
-export class StandardActionRefactored extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
+export class StandardVariableRefactored extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
     get default() { return this._payload.default }
 }
 

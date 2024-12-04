@@ -16,7 +16,7 @@ import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClas
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardComponentData } from "./dataTypes";
+import { StandardComponentData, StandardRemoveData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { KeyPayload } from "./key";
 import { isSchemaTreeNode } from "./utils";
@@ -33,10 +33,11 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
 export interface StandardComponent {
     key: string;
     universalKey?: string;
-    tag: SchemaWithKey["tag"];
+    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
-    toNDJSON(): StandardComponentData & SerializeNDJSONMixin;
+    toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
+    merge(incoming: StandardComponent): StandardComponent | undefined;
 }
 
 export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -75,7 +76,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             } as D
         }
 
-        toNDJSON(): D { return this.toJSON() }
+        toNDJSON(args): D {
+            return {
+                ...this.toJSON(),
+                ...args
+            }
+        }
 
         get schema(): GenericTreeNode<SchemaTag> {
             return this._payload.schema(this.key)
@@ -86,12 +92,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         // That functionality is handled at the StandardForm level: Merge at the Component level
         // is strictly for merging the content of two non-edit Components.
         //
-        merge(incoming: this): this {
+        merge(incoming: StandardComponent): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
             if (incoming.key !== this.key) {
                 throw new MergeConflictError(`Merge of two unequal keys in ${label}`)
             }
-            returnValue._payload = this._payload.merge(incoming._payload)
+            returnValue._payload = this._payload.merge((incoming as any)._payload)
             return returnValue as this
         }
 

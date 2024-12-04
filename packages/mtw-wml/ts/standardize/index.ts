@@ -1,25 +1,25 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove, SchemaImportableBase, SchemaExitTag, SchemaImportTag } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove, SchemaImportableBase, SchemaExitTag, SchemaImportTag, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, SerializeNDJSONMixin, StandardComponentData, StandardNDJSON } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
-import { isStandardComponent, isStandardForm, StandardFormData, StandardRemoveData, StandardReplaceData, unwrapStandardComponent } from "./components/dataTypes"
+import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData, unwrapStandardComponent } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import applyEdits from "../schema/treeManipulation/applyEdits"
-import StandardRoom from "./components/room"
-import StandardFeature from "./components/feature"
-import StandardKnowledge from "./components/knowledge"
-import StandardBookmark from "./components/bookmark"
-import StandardMap from "./components/map"
-import StandardMessage from "./components/message"
-import StandardMoment from "./components/moment"
-import StandardTheme from "./components/theme"
-import StandardVariable from "./components/variable"
-import StandardComputed from "./components/computed"
-import StandardAction from "./components/action"
-import StandardImage from "./components/image"
+import { StandardRoomRefactored as StandardRoom } from "./components/room"
+import { StandardFeatureRefactored as StandardFeature } from "./components/feature"
+import { StandardKnowledgeRefactored as StandardKnowledge } from "./components/knowledge"
+import { StandardFeatureRefactored as StandardBookmark } from "./components/bookmark"
+import { StandardMapRefactored as StandardMap } from "./components/map"
+import { StandardMessageRefactored as StandardMessage } from "./components/message"
+import { StandardMessageRefactored as StandardMoment } from "./components/moment"
+import { StandardThemeRefactored as StandardTheme } from "./components/theme"
+import { StandardVariableRefactored as StandardVariable } from "./components/variable"
+import { StandardComputedRefactored as StandardComputed } from "./components/computed"
+import { StandardActionRefactored as StandardAction } from "./components/action"
+import { StandardImageRefactored as StandardImage } from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
@@ -29,6 +29,9 @@ import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardImportItemData } from "./components/dataTypes/metaData"
+import { StandardComponent } from "./components/component"
+import { KeyPayload } from "./components/key"
+import { deepEqual, objectFilterEntries } from "../lib/objects"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -175,19 +178,19 @@ export const standardItemToSchemaItem = (item: StandardComponentData): GenericTr
 
 export class Standardizer extends StandardizerAbstract {}
 
-export type StandardComponent = StandardCharacter |
-    StandardRoom |
-    StandardFeature |
-    StandardKnowledge |
-    StandardBookmark |
-    StandardMap |
-    StandardMessage |
-    StandardMoment |
-    StandardTheme |
-    StandardVariable |
-    StandardComputed |
-    StandardAction |
-    StandardImage
+// export type StandardComponent = StandardCharacter |
+//     StandardRoom |
+//     StandardFeature |
+//     StandardKnowledge |
+//     StandardBookmark |
+//     StandardMap |
+//     StandardMessage |
+//     StandardMoment |
+//     StandardTheme |
+//     StandardVariable |
+//     StandardComputed |
+//     StandardAction |
+//     StandardImage
 
 export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)
@@ -203,8 +206,14 @@ export const hasShortName = (component: StandardComponent): component is Standar
 
 export const standardComponentSortOrder = (componentA: StandardComponent, componentB: StandardComponent): number => {
     const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-    const indexA = componentKeys.indexOf(componentA.tag)
-    const indexB = componentKeys.indexOf(componentB.tag)
+    const tagA = ((componentA instanceof StandardRemove || componentA instanceof StandardReplace)
+        ? componentA._match.tag
+        : componentA.tag) as SchemaWithKey["tag"]
+    const tagB = ((componentB instanceof StandardRemove || componentB instanceof StandardReplace)
+        ? componentB._match.tag
+        : componentB.tag) as SchemaWithKey["tag"]
+    const indexA = componentKeys.indexOf(tagA)
+    const indexB = componentKeys.indexOf(tagB)
     if (indexA !== indexB) {
         return indexA - indexB
     }
@@ -214,75 +223,256 @@ export const standardComponentSortOrder = (componentA: StandardComponent, compon
 }
 
 //
-// standardComponentFactory takes an incoming argument that can apply to one of the constructors that inherit from StandardComponentAbstract,
+// standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,
 // finds the correct constructor, and creates the sub-typed class
 //
-export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
+export const standardNonEditComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
 
-    const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
-        if (isSchemaTreeNode(arg)) {
-            const subject = unwrapSubject(arg)
-            if (subject && typeGuard(subject.data)) {
-                return true
-            }
-        }
-        return false
-    }
+    // const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
+    //     if (isSchemaTreeNode(arg)) {
+    //         const subject = unwrapSubject(arg)
+    //         if (subject && typeGuard(subject.data)) {
+    //             return true
+    //         }
+    //     }
+    //     return false
+    // }
 
-    const unwrapStandardTypeguard = <T extends StandardComponentData>(typeguard: (component: StandardComponentData) => component is T) => (arg: StandardComponentData): arg is StandardRemoveData | StandardReplaceData | T => {
-        if (isStandardReplace(arg)) {
-            return unwrapStandardTypeguard(typeguard)(arg.payload)
-        }
-        else if (isStandardRemove(arg)) {
-            return unwrapStandardTypeguard(typeguard)(arg.component)
-        }
-        else {
-            return typeguard(arg)
-        }
-    }
+    // const unwrapStandardTypeguard = <T extends StandardComponentData>(typeguard: (component: StandardComponentData) => component is T) => (arg: StandardComponentData): arg is StandardRemoveData | StandardReplaceData | T => {
+    //     if (isStandardReplace(arg)) {
+    //         return unwrapStandardTypeguard(typeguard)(arg.payload)
+    //     }
+    //     else if (isStandardRemove(arg)) {
+    //         return unwrapStandardTypeguard(typeguard)(arg.component)
+    //     }
+    //     else {
+    //         return typeguard(arg)
+    //     }
+    // }
 
-    if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || subjectTypeguard(arg, isSchemaCharacter)) {
+    if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaCharacter)(arg))) {
         return new StandardCharacter(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardRoom)(arg)) || subjectTypeguard(arg, isSchemaRoom)) {
+    if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRoom)(arg))) {
         return new StandardRoom(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardFeature)(arg)) || subjectTypeguard(arg, isSchemaFeature)) {
+    if ((!isSchemaTreeNode(arg) && isStandardFeature(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaFeature)(arg))) {
         return new StandardFeature(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardKnowledge)(arg)) || subjectTypeguard(arg, isSchemaKnowledge)) {
+    if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaKnowledge)(arg))) {
         return new StandardKnowledge(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardBookmark)(arg)) || subjectTypeguard(arg, isSchemaBookmark)) {
+    if ((!isSchemaTreeNode(arg) && isStandardBookmark(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaBookmark)(arg))) {
         return new StandardBookmark(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMap)(arg)) || subjectTypeguard(arg, isSchemaMap)) {
+    if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMap)(arg))) {
         return new StandardMap(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMessage)(arg)) || subjectTypeguard(arg, isSchemaMessage)) {
+    if ((!isSchemaTreeNode(arg) && isStandardMessage(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMessage)(arg))) {
         return new StandardMessage(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardMoment)(arg)) || subjectTypeguard(arg, isSchemaMoment)) {
+    if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMoment)(arg))) {
         return new StandardMoment(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardTheme)(arg)) || subjectTypeguard(arg, isSchemaTheme)) {
+    if ((!isSchemaTreeNode(arg) && isStandardTheme(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaTheme)(arg))) {
         return new StandardTheme(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardVariable)(arg)) || subjectTypeguard(arg, isSchemaVariable)) {
+    if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaVariable)(arg))) {
         return new StandardVariable(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardComputed)(arg)) || subjectTypeguard(arg, isSchemaComputed)) {
+    if ((!isSchemaTreeNode(arg) && isStandardComputed(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaComputed)(arg))) {
         return new StandardComputed(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardAction)(arg)) || subjectTypeguard(arg, isSchemaAction)) {
+    if ((!isSchemaTreeNode(arg) && isStandardAction(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaAction)(arg))) {
         return new StandardAction(arg)
     }
-    if ((!isSchemaTreeNode(arg) && unwrapStandardTypeguard(isStandardImage)(arg)) || subjectTypeguard(arg, isSchemaImage)) {
+    if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaImage)(arg))) {
         return new StandardImage(arg)
     }
     return undefined
 }
-    
+
+const removeNDJSONOnlyProperties = (props: StandardComponentData & SerializeNDJSONMixin): Omit<StandardComponentData & SerializeNDJSONMixin, 'universalKey' | 'from' | 'exportAs'> => {
+    return Object.assign({}, 
+        ...Object.entries(props)
+            .filter(([key]) => (!['universalKey', 'from', 'exportAs'].includes(key)))
+            .map(([key, value]) => ({ [key]: value }))
+    )
+}
+
+//
+// StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
+// methods at this level do NOT contain the functionality to handle component-level edits ... that is included
+// at the StandardForm level, rather than on the individual component classes.
+//
+export class StandardRemove implements StandardComponent {
+    _key: KeyPayload;
+    _match: StandardComponent;
+    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Remove' as const;
+    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag>) {
+        if (isSchemaTreeNode(props) || typeof props === 'string') {
+            const node = typeof props === 'string'
+                ? nodeFromWML(props)
+                : props
+            if (!treeNodeTypeguard(isSchemaRemove)(node)) {
+                throw new Error(`Schema mismatch in StandardRemove constructor call.`)
+            }
+            const child = node.children[0]
+            if (!treeNodeTypeguard(isSchemaWithKey)(child)) {
+                throw new Error(`No key found in StandardRemove constructor call.`)
+            }
+            this._key = new KeyPayload(child.data.key)
+            const match = standardNonEditComponentFactory(child)
+            if (!match) {
+                throw new Error('No payload found in StandardRemove constructor call.')
+            }
+            this._match = match
+            this._key._universalKey = match.universalKey
+            return
+        }
+        const match = standardNonEditComponentFactory(props.component)
+        if (!match) {
+            throw new Error('No payload found in StandardRemove constructor call.')
+        }
+        this._match = match
+        this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+    }
+
+    get key() { return this._key.key }
+    get universalKey() { return this._key.universalKey }
+
+    toJSON(): StandardRemoveData {
+        return {
+            key: this.key,
+            tag: 'Remove',
+            component: this._match.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin
+        }
+    }
+
+    toNDJSON(): StandardComponentData & SerializeNDJSONMixin {
+        return this.toJSON()
+    }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Remove' },
+            children: [this._match.schema]
+        }
+    }
+
+    merge(incoming: StandardComponent): StandardComponent | undefined {
+        throw new Error('StandardRemove types cannot be directly merged')
+    }
+}
+
+//
+// StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
+// methods at this level do NOT contain the functionality to handle component-level edits ... that is included
+// at the StandardForm level, rather than on the individual component classes.
+//
+export class StandardReplace implements StandardComponent {
+    _key: KeyPayload;
+    _match: StandardComponent;
+    _payload: StandardComponent
+    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Replace' as const;
+    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag>) {
+        if (isSchemaTreeNode(props) || typeof props === 'string') {
+            const node = typeof props === 'string'
+                ? nodeFromWML(props)
+                : props
+            if (!treeNodeTypeguard(isSchemaReplace)(node)) {
+                throw new Error(`Schema mismatch in StandardReplace constructor call.`)
+            }
+            const matchNode = node.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0]
+            const match = matchNode ? standardNonEditComponentFactory(matchNode) : undefined
+            const payloadNode = node.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+            const payload = payloadNode ? standardNonEditComponentFactory(payloadNode) : undefined
+            if (!match) {
+                throw new Error('No match found in StandardReplace constructor call.')
+            }
+            if (!payload) {
+                throw new Error('No payload found in StandardReplace constructor call.')
+            }
+            if (!(match.key === payload.key && match.tag === payload.tag)) {
+                throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
+            }
+            this._match = match
+            this._payload = payload
+            this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+            return
+        }
+        const match = standardNonEditComponentFactory(props.match)
+        if (!match) {
+            throw new Error('No payload found in StandardRemove constructor call.')
+        }
+        const payload = standardNonEditComponentFactory(props.payload)
+        if (!payload) {
+            throw new Error('No payload found in StandardRemove constructor call.')
+        }
+        if (!(match.key === payload.key && match.tag === payload.tag)) {
+            throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
+        }
+        this._match = match
+        this._payload = payload
+        this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+    }
+
+    get key() { return this._key.key }
+    get universalKey() { return this._key.universalKey }
+
+    toJSON(): StandardReplaceData {
+        return {
+            key: this.key,
+            tag: 'Replace',
+            match: this._match.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin,
+            payload: this._payload.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin
+        }
+    }
+
+    toNDJSON(): StandardComponentData & SerializeNDJSONMixin {
+        return this.toJSON()
+    }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Replace' },
+            children: [
+                { data: { tag: 'ReplaceMatch' }, children: [this._match.schema] },
+                { data: { tag: 'ReplacePayload' }, children: [this._payload.schema] }
+            ]
+        }
+    }
+
+    merge(incoming: StandardComponent): StandardComponent | undefined {
+        if (!(incoming instanceof StandardReplace)) {
+            throw new Error('Type mismatch in StandardReplace merge')
+        }
+        if (!(deepEqual(removeNDJSONOnlyProperties(this._payload.toJSON()), removeNDJSONOnlyProperties(incoming._match.toJSON())))) {
+            throw new MergeConflictError()
+        }
+        return new StandardReplace({
+            key: this.key,
+            tag: 'Replace',
+            match: this._match.toJSON() as StandardComponentNonEditData,
+            payload: incoming._payload.toJSON() as StandardComponentNonEditData
+        })
+    }
+}
+
+//
+// standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes (including Remove and Replace),
+// finds the correct constructor, and creates the sub-typed class
+//
+export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
+    if ((!isSchemaTreeNode(arg) && isStandardRemove(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRemove)(arg))) {
+        return new StandardRemove(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardReplace(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaReplace)(arg))) {
+        return new StandardReplace(arg)
+    }
+    return standardNonEditComponentFactory(arg)
+}
+
 export class StandardForm {
     _key: string;
     tag: 'Asset' | 'Character';
@@ -765,6 +955,10 @@ export class StandardForm {
         return new StandardForm(this.toJSON())
     }
 
+    //
+    // TODO: StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
+    // and merges all contents in place
+    //
     merge(incoming: StandardForm): StandardForm {
         const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
         const returnValue = this._clone()
