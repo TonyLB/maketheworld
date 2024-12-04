@@ -966,14 +966,112 @@ export class StandardForm {
             .reduce<Record<string, StandardComponent>>((previous, key) => {
                 const base = this._byId[key]
                 const incomingComponent = incoming._byId[key]
+                //
+                // Branch out to the several possible cases of combining edit tags and/or content
+                //
                 if (base) {
                     if (incomingComponent) {
-                        const merge = base.merge(incomingComponent as any)
-                        if (!merge) {
-                            return previous
+                        if (base instanceof StandardRemove) {
+                            if (incomingComponent instanceof StandardRemove) {
+                                throw new Error('StandardRemove types cannot be directly merged')
+                            }
+                            if (incomingComponent instanceof StandardReplace) {
+                                throw new MergeConflictError()
+                            }
+                            //
+                            // A remove operation followed by an add should be merged into a Replace
+                            //
+                            return {
+                                ...previous,
+                                [key]: new StandardReplace({
+                                    key,
+                                    tag: 'Replace',
+                                    match: base._match.toJSON() as StandardComponentNonEditData,
+                                    payload: incomingComponent.toJSON() as StandardComponentNonEditData
+                                })
+                            }
+                        }
+                        else if (base instanceof StandardReplace) {
+                            //
+                            // A replace followed by a remove should be merged into a remove of the original content
+                            //
+                            if (incomingComponent instanceof StandardRemove) {
+                                if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                                    throw new MergeConflictError()
+                                }
+                                return {
+                                    ...previous,
+                                    [key]: new StandardRemove({
+                                        key,
+                                        tag: 'Remove',
+                                        component: base._match.toJSON() as StandardComponentNonEditData
+                                    })
+                                }
+                            }
+                            //
+                            // Two replace operations should be merged into a single chained operation
+                            //
+                            if (incomingComponent instanceof StandardReplace) {
+                                if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                                    throw new MergeConflictError()
+                                }
+                                return {
+                                    ...previous,
+                                    [key]: new StandardReplace({
+                                        key,
+                                        tag: 'Replace',
+                                        match: base._match.toJSON() as StandardComponentNonEditData,
+                                        payload: incomingComponent._payload.toJSON() as StandardComponentNonEditData
+                                    })
+                                }
+                            }
+                            //
+                            // A replace operation followed by more content should be merged to a replace with combined payload
+                            //
+                            const mergedPayload = base._payload.merge(incomingComponent)
+                            if (!mergedPayload) {
+                                throw new MergeConflictError()
+                            }
+                            return {
+                                ...previous,
+                                [key]: new StandardReplace({
+                                    key,
+                                    tag: 'Replace',
+                                    match: base._match.toJSON() as StandardComponentNonEditData,
+                                    payload: mergedPayload.toJSON() as StandardComponentNonEditData
+                                })
+                            }
                         }
                         else {
-                            return { ...previous, [key]: merge }
+                            //
+                            // Remove should evaluate the match and then remove the relevant component
+                            //
+                            if (incomingComponent instanceof StandardRemove) {
+                                if (!deepEqual(removeNDJSONOnlyProperties(base.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                                    throw new MergeConflictError()
+                                }
+                                const { [key]: _, ...rest } = previous
+                                return rest
+                            }
+                            //
+                            // Replace should evaluate the match and then replace the relevant component
+                            //
+                            if (incomingComponent instanceof StandardReplace) {
+                                if (!deepEqual(removeNDJSONOnlyProperties(base.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                                    throw new MergeConflictError()
+                                }
+                                return {
+                                    ...previous,
+                                    [key]: incomingComponent._payload
+                                }
+                            }
+                            const merge = base.merge(incomingComponent as any)
+                            if (!merge) {
+                                return previous
+                            }
+                            else {
+                                return { ...previous, [key]: merge }
+                            }    
                         }
                     }
                     else {
