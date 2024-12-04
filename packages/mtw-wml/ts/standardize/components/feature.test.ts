@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { StandardFeature } from './feature'
+import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
 
 describe('StandardFeature class', () => {

@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMessageData } from "./dataTypes/message"
-import { StandardMessage } from './message'
+import StandardMessage from './message'
 import { mergeTest } from './utils/testing'
 
 describe('StandardMessage class', () => {

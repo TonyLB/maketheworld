@@ -1,67 +1,65 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaKnowledge, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { isStandardKnowledge } from "../baseClasses"
-import { isLegalKey, nodeFromWML } from "../utils"
-import { ComponentInterface } from "./abstract"
+import { isSchemaDescription, isSchemaKnowledge, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
+import SchemaTagTree from "../../tagTree/schema"
+import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { EditWrappedStandardNode } from "../baseClasses"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
-import { editWrap } from "./editable"
-import StandardComponentWithNameAndDesc from "./nameAndDesc"
-import { ndjsonWrap } from "./ndjson"
-import { isSchemaTreeNode, standardFieldToOutputNode } from "./utils"
+import { outputNodeToStandardItem } from "./utils/constructor"
+import { combineTaggedChildren } from "./utils/merge"
 
-export class StandardKnowledge extends ndjsonWrap(editWrap(class StandardKnowledge extends StandardComponentWithNameAndDesc implements ComponentInterface {
+export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
+    _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Knowledge' as const
-    constructor(...args: any[]) {
-        const payload = args[0]
-        super(payload)
-        if (!payload || (typeof payload === 'string' && isLegalKey(payload)) || isStandardKnowledge(payload)) {
-            return
-        }
-        if (isSchemaTreeNode(payload) || typeof payload === 'string') {
-            const node = typeof payload === 'string'
-                ? nodeFromWML(payload)
-                : payload
-            if (isSchemaKnowledge(node.data)) {
-                return
-            }
-        }
-        throw new Error('Type mismatch in StandardKnowledge constructor')
+
+    fromJSON(props: StandardKnowledgeData) {
+        this._name = props.name
+        this._description = props.description
     }
 
-    override toJSON(): StandardKnowledgeData {
+    fromSchema(node: GenericTreeNode<SchemaTag>) {
+        if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
+            const tagTree = new SchemaTagTree(node.children)
+            const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
+            const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
+            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
+            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+            return
+        }
+        throw new Error('Schema mismatch in StandardKnowledge constructor')
+    }
+
+    get name() { return this._name }
+    get description() { return this._description }
+
+    toJSON(): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
         return {
-            ...super.toJSON(),
             tag: 'Knowledge',
             name: this.name,
             description: this.description
         }
     }
 
-    override get schema(): GenericTreeNode<SchemaTag> {
-        return  {
-            data: { tag: 'Knowledge', key: this.key },
-            children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1)
+    schema(key: string): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Knowledge', key },
+            children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
         }
     }
 
-    override clone(): this {
-        return new StandardKnowledge(this.toJSON()) as this
+    merge(incoming: this): this {
+        const returnValue = new StandardKnowledgePayload()
+        returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+        returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+        return returnValue as this
     }
+}
 
-    override merge(incoming: this): this | undefined {
-        if (!(incoming instanceof StandardKnowledge)) {
-            throw new Error('Type mistmatch on StandardComponent merge')
-        }
-        const superMerge = super.merge(incoming as this)
-        if (!superMerge) {
-            throw new Error('Merge failure in StandardKnowledge')
-        }
-        const returnValue = this.clone() as this
-        returnValue._name = superMerge.name
-        returnValue._description = superMerge.description
-        return returnValue
-    }
-}, 'StandardKnowledge')){}
+export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
+    get name() { return this._payload.name }
+    get description() { return this._payload.description }
+}
 
 export default StandardKnowledge

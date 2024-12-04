@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
-import { StandardBookmark } from './bookmark'
+import StandardBookmark from './bookmark'
 import { mergeTest } from './utils/testing'
 
 describe('StandardBookmark class', () => {

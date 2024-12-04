@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardThemeData } from "./dataTypes/theme"
-import { StandardTheme } from './theme'
+import StandardTheme from './theme'
 import { mergeTest } from './utils/testing'
 
 describe('StandardTheme class', () => {
