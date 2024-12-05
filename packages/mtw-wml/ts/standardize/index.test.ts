@@ -5,7 +5,6 @@ import { GenericTree, GenericTreeNode } from '../tree/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { StandardizerAbstract } from './abstract'
 import StandardRoom from './components/room'
-import StandardComponentAbstract from './components/abstract'
 
 const schemaTestStandarized = (wml: string): Standardizer => {
     const schema = new Schema()
@@ -107,7 +106,6 @@ describe('standardizeSchema', () => {
 
         const standardizer = new Standardizer(test)
         expect(standardizer.standardForm).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [],
             byId: {
@@ -153,7 +151,6 @@ describe('standardizeSchema', () => {
         </Asset>`)
 
         expect(test.standardForm).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
             byId: {
@@ -181,7 +178,6 @@ describe('standardizeSchema', () => {
         </Asset>`)
 
         expect(standardizer.standardForm).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [],
             byId: {
@@ -1239,7 +1235,6 @@ describe('standardizeSchema', () => {
         const testStandard = new StandardizerAbstract()
         testStandard.loadStandardForm({
             key: 'Test',
-            tag: 'Asset',
             byId: {
                 testRoomOne: {
                     tag: 'Room',
@@ -1282,13 +1277,11 @@ describe('standardizeSchema', () => {
                 }
             },
             key: 'Test',
-            tag: 'Asset',
             metaData: []
         })
         const testStandard = new StandardizerAbstract()
         testStandard.loadStandardForm({
             key: 'Test',
-            tag: 'Asset',
             byId: {
                 testRoomOne: {
                     tag: 'Room',
@@ -1559,7 +1552,6 @@ describe('StandardForm', () => {
 
     it('should accept edit tags in JSON form', () => {
         const test = new StandardForm({
-            tag: 'Asset',
             key: 'test',
             metaData: [],
             byId: {
@@ -1643,7 +1635,6 @@ describe('StandardForm', () => {
 
         const standard = new StandardForm(test)
         expect(standard.toJSON()).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [],
             byId: {
@@ -1714,7 +1705,6 @@ describe('StandardForm', () => {
         </Asset>`)
 
         expect(test.toJSON()).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
             byId: {
@@ -1739,7 +1729,6 @@ describe('StandardForm', () => {
         </Asset>`)
 
         expect(standard.toJSON()).toEqual({
-            tag: 'Asset',
             key: 'Test',
             metaData: [],
             byId: {
@@ -2293,23 +2282,25 @@ describe('StandardForm', () => {
 
     it('should handle characters correctly', () => {
         const testSource = deIndentWML(`
-            <Character key=(Tess)>
-                <Name>Tess</Name>
-                <Pronouns
-                    subject="she"
-                    object="her"
-                    possessive="her"
-                    adjective="hers"
-                    reflexive="herself"
-                />
-                <FirstImpression>Frumpy Goth</FirstImpression>
-                <OneCoolThing>Fuchsia eyes</OneCoolThing>
-                <Outfit>
-                    A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
-                </Outfit>
+            <Asset key=(test)>
+                <Character key=(Tess)>
+                    <Name>Tess</Name>
+                    <Pronouns
+                        subject="she"
+                        object="her"
+                        possessive="her"
+                        adjective="hers"
+                        reflexive="herself"
+                    />
+                    <FirstImpression>Frumpy Goth</FirstImpression>
+                    <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                    <Outfit>
+                        A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
+                    </Outfit>
+                    <Image key=(TessIcon) />
+                </Character>
                 <Image key=(TessIcon) />
-                <Import from=(primitives) />
-            </Character>
+            </Asset>
         `)
         const test = new StandardForm(testSource)
         expect(schemaToWML([test.schema])).toEqual(testSource)
@@ -2667,7 +2658,6 @@ describe('StandardForm', () => {
         `)
         const testStandard = new StandardForm({
             key: 'Test',
-            tag: 'Asset',
             byId: {
                 testRoomOne: {
                     tag: 'Room',
@@ -2695,7 +2685,6 @@ describe('StandardForm', () => {
         const inherited = new StandardForm(`<Asset key=(Test) />`)
         const testStandard = new StandardForm({
             key: 'Test',
-            tag: 'Asset',
             byId: {
                 testRoomOne: {
                     tag: 'Room',
@@ -2777,7 +2766,6 @@ describe('StandardForm', () => {
 
     it('should deserialize empty NDJSON correctly', () => {
         expect((new StandardForm([{ tag: 'Asset', key: 'Test' }])).toJSON()).toEqual({
-            tag: 'Asset',
             key: 'Test',
             byId: {},
             metaData: []
