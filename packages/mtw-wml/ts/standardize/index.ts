@@ -22,8 +22,7 @@ import StandardAction from "./components/action"
 import StandardImage from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
-import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
-import { treeTypeGuard } from "../tree/filter"
+import { wrappedNodeTypeGuard } from "../schema/utils"
 import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
@@ -31,7 +30,7 @@ import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardImportItemData } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
-import { deepEqual, objectFilterEntries } from "../lib/objects"
+import { deepEqual } from "../lib/objects"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -205,7 +204,7 @@ export const hasShortName = (component: StandardComponent): component is Standar
 }
 
 export const standardComponentSortOrder = (componentA: StandardComponent, componentB: StandardComponent): number => {
-    const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const tagA = ((componentA instanceof StandardRemove || componentA instanceof StandardReplace)
         ? componentA._match.tag
         : componentA.tag) as SchemaWithKey["tag"]
@@ -511,7 +510,6 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
 
 export class StandardForm {
     _key: string;
-    tag: 'Asset' | 'Character';
     _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
     _namespace: {
@@ -522,7 +520,6 @@ export class StandardForm {
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && isLegalKey(args)) {
             this._key = args
-            this.tag = 'Asset'
             this._byId = {}
             this._metaData = []
             this._namespace = {
@@ -532,7 +529,6 @@ export class StandardForm {
         }
         if (isStandardForm(args)) {
             this._key = args.key
-            this.tag = args.tag
             const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
                 .map((exportSchema) => (new StandardExport(exportSchema)))
                 .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
@@ -561,7 +557,6 @@ export class StandardForm {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
             this._key = assetLine.key
-            this.tag = 'Asset'
             this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
@@ -776,26 +771,8 @@ export class StandardForm {
             }
             this._byId = {}
             this._metaData = []
-            if (treeNodeTypeguard(isSchemaCharacter)(node)) {
-                this.tag = 'Character'
-                const tagTree = new SchemaTagTree([node])
-                tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
-                const characterTree = tagTree.tree
-                if (characterTree.length !== 1) {
-                    throw new Error('Too many characters in Standarizer')
-                }
-                const character = characterTree[0] as GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag>
-                this._key = character.data.key
-                this._byId[character.data.key] = new StandardCharacter(character)
-                this._namespace = {
-                    imports: character.children.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
-                }
-                this._metaData = treeTypeGuard({ tree: character.children, typeGuard: isSchemaMeta })
-                standardizeComponentTagType(['Image'], tagTree)
-                return
-            }
+
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
-                this.tag = 'Asset'
                 const tagTree = new SchemaTagTree([node])
                 tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
                 const assetTree = tagTree.tree
@@ -838,10 +815,10 @@ export class StandardForm {
                     ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree
                 ]
 
-                const componentKeys: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+                const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
                 const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         
-                standardizeComponentTagType(['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'], tagTree)
+                standardizeComponentTagType(componentKeys, tagTree)
 
                 //
                 // Add standardized view of all Exports to the results
@@ -884,42 +861,15 @@ export class StandardForm {
     get key(): string { return this._key }
 
     toJSON(): StandardFormData {
-        if (this.tag === 'Character') {
-            const character = this._byId[this._key]
-            if (!(character instanceof StandardCharacter)) {
+        return {
+            key: this._key,
+            metaData: this.metaData,
+            byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
                 return {
-                    tag: 'Character',
-                    key: this._key,
-                    metaData: this.metaData,
-                    byId: {
-                        [this._key]: {
-                            tag: 'Character',
-                            key: this._key
-                        }
-                    }
+                    ...previous,
+                    [component.key]: component.toJSON() as StandardComponentData
                 }
-            }
-            return {
-                tag: 'Character',
-                key: this._key,
-                metaData: this.metaData,
-                byId: {
-                    [this._key]: character.toJSON()
-                }
-            }
-        }
-        else {
-            return {
-                tag: 'Asset',
-                key: this._key,
-                metaData: this.metaData,
-                byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
-                    return {
-                        ...previous,
-                        [component.key]: component.toJSON() as StandardComponentData
-                    }
-                }, {})
-            }
+            }, {})
         }
     }
 
@@ -952,38 +902,22 @@ export class StandardForm {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
-        if (this.tag === 'Character') {
-            const character = this._byId[this._key]
-            if (!(character instanceof StandardCharacter)) {
-                throw new Error('StandardForm misconfiguration')
-            }
-            const itemSchema = character.schema
-            return {
-                ...itemSchema,
-                children: [
-                    ...itemSchema.children,
-                    ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
-                ]
-            }
-        }
-        else {
-            const children = Object.values(this._byId)
-                .sort(standardComponentSortOrder)
-                .map((component) => (component.schema))
-            const imports = this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
-            const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
-            return {
-                data: { tag: 'Asset', key: this._key, Story: undefined },
-                children: [
-                    ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
-                    ...imports,
-                    //
-                    // Don't include a separate schema entry for an import that doesn't change the component
-                    //
-                    ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                    ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
-                ]
-            }
+        const children = Object.values(this._byId)
+            .sort(standardComponentSortOrder)
+            .map((component) => (component.schema))
+        const imports = this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
+        const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
+        return {
+            data: { tag: 'Asset', key: this._key, Story: undefined },
+            children: [
+                ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
+                ...imports,
+                //
+                // Don't include a separate schema entry for an import that doesn't change the component
+                //
+                ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
+                ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
+            ]
         }
     }
 

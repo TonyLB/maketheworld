@@ -954,8 +954,6 @@ export class StandardizerAbstract {
 
     loadStandardForm(standard: StandardFormData): void {
         this._assetKey = standard.key
-        this._assetTag = standard.tag
-        this._update = standard.update ?? false
         this._byId = standard.byId
         this.metaData = standard.metaData
     }
@@ -963,9 +961,7 @@ export class StandardizerAbstract {
     get standardForm(): StandardFormData {
         return {
             key: this._assetKey,
-            tag: this._assetTag,
             byId: this._byId,
-            update: this._update ? true : undefined,
             metaData: this.metaData
         }
     }
@@ -994,7 +990,7 @@ export class StandardizerAbstract {
                 return [node]
             })
         const assignedStandardizer = new StandardizerAbstract(assignedSchema)
-        this.loadStandardForm({ ...assignedStandardizer.standardForm, update: assignedStandardizer._update })
+        this.loadStandardForm({ ...assignedStandardizer.standardForm })
     }
 
     transform(callback: (schema: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardizerAbstract {
@@ -1005,7 +1001,6 @@ export class StandardizerAbstract {
         returnStandardizer.loadStandardForm({
             byId: Object.assign({}, ...mappedByIdEntries),
             key: this._assetKey,
-            tag: this._assetTag,
             metaData: this.metaData
         })
         return returnStandardizer
@@ -1050,7 +1045,6 @@ export class StandardizerAbstract {
         returnStandardizer.loadStandardForm({
             byId: combinedById,
             key: this._assetKey,
-            tag: this._assetTag,
             metaData: applyEdits(combinedMetaData.tree)
         })
         return returnStandardizer

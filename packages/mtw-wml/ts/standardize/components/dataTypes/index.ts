@@ -106,8 +106,6 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 export type StandardComponentData = StandardComponentNonEditData | StandardRemoveData | StandardReplaceData
 export type StandardFormData = {
     key: string;
-    tag: 'Asset' | 'Character';
-    update?: boolean;
     byId: Record<string, StandardComponentData>;
     metaData: GenericTree<SchemaTag>;
 }
@@ -120,7 +118,6 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
     }
     return checkAll(
         ('key' in arg && typeof arg.key === 'string'),
-        ('tag' in arg && ['Asset', 'Character'].includes(arg.tag)),
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
         ('byId' in arg && typeof arg.byId === 'object' && Object.values(arg.byId).every(isStandardComponent))
     )

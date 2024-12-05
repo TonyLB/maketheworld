@@ -10,7 +10,7 @@ export const serialize = (
     universalKey: (searchKey: string, tag: SchemaWithKey["tag"]) => string | undefined = () => (undefined),
     fileAssociation: (searchKey: string) => string | undefined = () => (undefined)
 ): StandardNDJSON => {
-    const componentTags: SchemaWithKey["tag"][] = standardForm.tag === 'Character' ? ['Image'] : ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentTags: SchemaWithKey["tag"][] = ['Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const importByKey = Object.assign({}, ...standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
         .map(({ data, children }) => (
@@ -48,9 +48,7 @@ export const serialize = (
             fileName: fileAssociation(standardComponent.key)
         }
     }
-    const baseItem = standardForm.tag === 'Character'
-        ? addNDJSONSerializeKeys(standardForm.byId[standardForm.key])
-        : { tag: 'Asset' as const, key: standardForm.key, universalId: `ASSET#${standardForm.key}` }
+    const baseItem = { tag: 'Asset' as const, key: standardForm.key, universalId: `ASSET#${standardForm.key}` }
     return [
         baseItem,
         ...(componentTags
@@ -111,7 +109,6 @@ export const deserialize = (ndjson: StandardNDJSON ): { standardForm: StandardFo
     }])
     standardizer.loadStandardForm({
         key: tempKey,
-        tag: assetKey ? 'Asset' : 'Character',
         byId,
         metaData: []
     })
