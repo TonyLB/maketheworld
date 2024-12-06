@@ -18,7 +18,9 @@ import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
+import { StandardComponentExport, StandardComponentImport, StandardImportData } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
+import { StandardExport, StandardImport } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
@@ -36,6 +38,10 @@ export interface StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
+    import?: StandardComponentImport;
+    withImport(importData: StandardComponentImport | undefined): StandardComponent;
+    export?: StandardComponentImport;
+    withExport(exportData: StandardComponentExport | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
@@ -47,6 +53,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
     return class GeneratedComponentClass implements StandardComponent {
         _key: KeyPayload;
         _payload: InstanceType<typeof Base>;
+        _import?: StandardComponentImport;
+        _export?: StandardComponentExport;
         constructor(props: string | D | GenericTreeNode<SchemaTag>) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -72,6 +80,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get universalKey(): string | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return this._key.fileName }
         get tag(): SchemaWithKey["tag"] { return this._payload.tag }
+        get from(): StandardComponentImport | undefined { return this._import }
+        get exportAs(): StandardComponentExport | undefined { return this._export }
 
         toJSON(): D {
             return {
@@ -115,6 +125,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._payload = this._payload
             returnValue._key._fileName = this._key._fileName
             returnValue._key._universalKey = key
+            returnValue._import = this._import
+            returnValue._export = this._export
             return returnValue
         }
 
@@ -123,8 +135,27 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._payload = this._payload
             returnValue._key._fileName = key
             returnValue._key._universalKey = this._key._universalKey
+            returnValue._import = this._import
+            returnValue._export = this._export
             return returnValue
         }
 
+        withImport(importData: StandardComponentImport | undefined): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this.key)
+            returnValue._payload = this._payload
+            returnValue._key = this._key
+            returnValue._import = importData
+            returnValue._export = this._export
+            return returnValue
+        }
+
+        withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this.key)
+            returnValue._payload = this._payload
+            returnValue._key = this._key
+            returnValue._import = this._import
+            returnValue._export = exportData
+            return returnValue
+        }
     }
 }

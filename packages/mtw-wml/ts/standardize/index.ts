@@ -27,7 +27,7 @@ import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardImportItemData } from "./components/dataTypes/metaData"
+import { StandardComponentExport, StandardComponentImport, StandardImportItemData } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
 import { deepEqual } from "../lib/objects"
@@ -340,6 +340,8 @@ export class StandardRemove implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return this._key.fileName }
+    get import() { return this._match.import }
+    get export() { return this._match.export }
 
     toJSON(): StandardRemoveData {
         return {
@@ -367,15 +369,36 @@ export class StandardRemove implements StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent {
         const returnValue = new StandardRemove(this.key)
         returnValue._match = this._match.withUniversalKey(key)
-        returnValue._key._universalKey = key
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 
     withFileName(key: string | undefined): StandardComponent {
         const returnValue = new StandardRemove(this.key)
         returnValue._match = this._match.withFileName(key)
+        returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = key
-        returnValue._key._universalKey = this._key._universalKey
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withImport(importData: StandardComponentImport | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.key)
+        returnValue._match = this._match.withImport(importData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.key)
+        returnValue._match = this._match.withExport(exportData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 }
@@ -435,6 +458,8 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return this._key.fileName }
+    get import() { return this._match.import }
+    get export() { return this._match.export }
 
     toJSON(): StandardReplaceData {
         return {
@@ -489,6 +514,26 @@ export class StandardReplace implements StandardComponent {
         returnValue._payload = this._payload.withFileName(key)
         returnValue._key._fileName = key
         returnValue._key._universalKey = this._key._universalKey
+        return returnValue
+    }
+
+    withImport(importData: StandardComponentImport | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.key)
+        returnValue._match = this._match.withImport(importData)
+        returnValue._payload = this._payload.withImport(importData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.key)
+        returnValue._match = this._match.withExport(exportData)
+        returnValue._payload = this._payload.withExport(exportData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 
