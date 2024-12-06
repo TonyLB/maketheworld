@@ -11,6 +11,7 @@ import { StandardImageData } from "./components/dataTypes/image";
 import { StandardKnowledgeData } from "./components/dataTypes/knowledge";
 import { StandardMapData } from "./components/dataTypes/map";
 import { StandardMessageData } from "./components/dataTypes/message";
+import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
@@ -182,11 +183,8 @@ export type StandardAsset = {
 } & StandardBase
 
 export type SerializeNDJSONMixin = {
-    from?: {
-        assetId: string;
-        key: string;
-    };
-    exportAs?: string;
+    from?: StandardComponentImport;
+    exportAs?: StandardComponentExport;
     universalKey?: string;
     fileName?: string;
 }
