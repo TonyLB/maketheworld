@@ -22,12 +22,12 @@ import StandardAction from "./components/action"
 import StandardImage from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
-import { wrappedNodeTypeGuard } from "../schema/utils"
+import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardImportItemData } from "./components/dataTypes/metaData"
+import { StandardComponentExport, StandardComponentImport, StandardImportItemData } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
 import { deepEqual } from "../lib/objects"
@@ -340,6 +340,8 @@ export class StandardRemove implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return this._key.fileName }
+    get from() { return this._match.from }
+    get exportAs() { return this._match.exportAs }
 
     toJSON(): StandardRemoveData {
         return {
@@ -365,17 +367,38 @@ export class StandardRemove implements StandardComponent {
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.key)
+        const returnValue = new StandardRemove(this.schema)
         returnValue._match = this._match.withUniversalKey(key)
-        returnValue._key._universalKey = key
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 
     withFileName(key: string | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.key)
+        const returnValue = new StandardRemove(this.schema)
         returnValue._match = this._match.withFileName(key)
+        returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = key
-        returnValue._key._universalKey = this._key._universalKey
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withImport(importData: StandardComponentImport | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.schema)
+        returnValue._match = this._match.withImport(importData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+        const returnValue = new StandardRemove(this.schema)
+        returnValue._match = this._match.withExport(exportData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 }
@@ -435,6 +458,8 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return this._key.fileName }
+    get from() { return this._match.from }
+    get exportAs() { return this._match.exportAs }
 
     toJSON(): StandardReplaceData {
         return {
@@ -475,7 +500,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.key)
+        const returnValue = new StandardReplace(this.schema)
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._payload = this._match.withUniversalKey(key)
         returnValue._key._universalKey = key
@@ -484,11 +509,31 @@ export class StandardReplace implements StandardComponent {
     }
 
     withFileName(key: string | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.key)
+        const returnValue = new StandardReplace(this.schema)
         returnValue._match = this._match.withFileName(key)
         returnValue._payload = this._payload.withFileName(key)
         returnValue._key._fileName = key
         returnValue._key._universalKey = this._key._universalKey
+        return returnValue
+    }
+
+    withImport(importData: StandardComponentImport | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.schema)
+        returnValue._match = this._match.withImport(importData)
+        returnValue._payload = this._payload.withImport(importData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
+    }
+
+    withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+        const returnValue = new StandardReplace(this.schema)
+        returnValue._match = this._match.withExport(exportData)
+        returnValue._payload = this._payload.withExport(exportData)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
 
@@ -506,6 +551,120 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
         return new StandardReplace(arg)
     }
     return standardNonEditComponentFactory(arg)
+}
+
+//
+// Utility function to create exportItemById and importItemById objects, then use them to inform the
+// creation of this._byId
+//
+const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: Record<string, StandardComponentImport>; exportItemById: Record<string, StandardComponentExport> } => {
+    const exportItemById = tree.filter(wrappedNodeTypeGuard(isSchemaExport))
+        .reduce<Record<string, StandardComponentExport>>((previous, node) => {
+            if (treeNodeTypeguard(isSchemaRemove)(node)) {
+                const child = node.children[0]
+                if (child && treeNodeTypeguard(isSchemaExport)(child)) {
+                    return Object.assign(
+                        previous,
+                        ...(child.children
+                            .map(unwrapSubject)
+                            .filter(excludeUndefined)
+                            .map(({ data }) => (data))
+                            .filter(isImportable)
+                            .map(({ key, as }) => ({ [key]: { action: 'Remove', match: as ?? key } }))
+                        )
+                    )
+                }
+            }
+            if (treeNodeTypeguard(isSchemaReplace)(node)) {
+                throw new Error('Top-level replace of Export tags not yet implemented')
+            }
+            if (treeNodeTypeguard(isSchemaExport)(node)) {
+                return Object.assign(
+                    previous,
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isSchemaRemove))
+                        .map(unwrapSubject)
+                        .filter(excludeUndefined)
+                        .map(({ data }) => (data))
+                        .filter(isImportable)
+                        .map(({ key, as }) => ({ [key]: { action: 'Remove', match: as ?? key } }))
+                    ),
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isSchemaReplace))
+                        .map(({ children }) => ({
+                            match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
+                            payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                        }))
+                        .map(({ match, payload }) => (
+                            (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
+                                ? [{ [match.data.key]: { action: 'Replace', match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
+                                : []
+                        ))
+                        .flat(1)
+                    ),
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isImportable))
+                        .map(({ data }) => (data))
+                        .map(({ key, as }) => ({ [key]: { action: 'Content', payload: as ?? key } }))
+                    )
+                )
+            }
+            return previous
+        }, {})
+    const importItemById = tree.filter(wrappedNodeTypeGuard(isSchemaImport))
+        .reduce<Record<string, StandardComponentImport>>((previous, node) => {
+            if (treeNodeTypeguard(isSchemaRemove)(node)) {
+                const child = node.children[0]
+                if (child && treeNodeTypeguard(isSchemaImport)(child)) {
+                    return Object.assign(
+                        previous,
+                        ...(child.children
+                            .map(unwrapSubject)
+                            .filter(excludeUndefined)
+                            .map(({ data }) => (data))
+                            .filter(isImportable)
+                            .map(({ key, from }) => ({ [key]: { action: 'Remove', match: { assetId: child.data.from, fromKey: from ?? key } } }))
+                        )
+                    )
+                }
+            }
+            if (treeNodeTypeguard(isSchemaReplace)(node)) {
+                throw new Error('Top-level replace of Import tags not yet implemented')
+            }
+            if (treeNodeTypeguard(isSchemaImport)(node)) {
+                return Object.assign(
+                    previous,
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isSchemaRemove))
+                        .map(unwrapSubject)
+                        .filter(excludeUndefined)
+                        .map(({ data }) => (data))
+                        .filter(isImportable)
+                        .map(({ key, from }) => ({ [key]: { action: 'Remove', match: from ?? key } }))
+                    ),
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isSchemaReplace))
+                        .map(({ children }) => ({
+                            match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
+                            payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                        }))
+                        .map(({ match, payload }) => (
+                            (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
+                                ? [{ [match.data.key]: { action: 'Replace', match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
+                                : []
+                        ))
+                        .flat(1)
+                    ),
+                    ...(node.children
+                        .filter(treeNodeTypeguard(isImportable))
+                        .map(({ data }) => (data))
+                        .map(({ key, from }) => ({ [key]: { action: 'Content', payload: { assetId: node.data.from, fromKey: from ?? key } } }))
+                    )
+                )
+            }
+            return previous
+        }, {})
+    return { importItemById, exportItemById }
 }
 
 export class StandardForm {
@@ -529,9 +688,12 @@ export class StandardForm {
         }
         if (isStandardForm(args)) {
             this._key = args.key
+
+            const { importItemById, exportItemById } = importExportFromTree(args.metaData)
             const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
                 .map((exportSchema) => (new StandardExport(exportSchema)))
                 .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
+
             this._namespace = {
                 imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node))),
                 export: exportItem
@@ -543,6 +705,8 @@ export class StandardForm {
                     return {
                         ...previous,
                         [standardItem.key]: standardItem
+                            .withImport(importItemById[standardItem.key])
+                            .withExport(exportItemById[standardItem.key])
                     }
                 }
                 else {
@@ -557,12 +721,12 @@ export class StandardForm {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
             this._key = assetLine.key
-            this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData) => {
+            this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
                     return {
                         ...previous,
-                        [standardItem.key]: standardItem
+                        [standardItem.key]: standardItem.withImport(standardData.from).withExport(standardData.exportAs)
                     }
                 }
                 else {
@@ -596,27 +760,28 @@ export class StandardForm {
                 ))
                 .flat(1)
             this._namespace = {
-                imports: Object.entries(importItems
-                    .reduce<Record<string, StandardImportItemData[]>>((previous, importItem) => ({
-                        ...previous,
-                        [importItem.from.assetId]: [
-                            ...(previous[importItem.from.assetId] ?? []),
-                            {
-                                key: importItem.from.key,
-                                asKey: (importItem.key !== importItem.from.key) ? importItem.key : undefined,
-                                tag: importItem.tag
-                            }
-                        ]
-                    }), {}))
-                    .map(([key, importData]) => (new StandardImport({
-                        tag: 'Import',
-                        imports: importData,
-                        key
-                    }))),
-                export: exportItems.length ? new StandardExport({
-                    tag: 'Import',
-                    imports: exportItems
-                }) : undefined
+                imports: []
+                // imports: Object.entries(importItems
+                //     .reduce<Record<string, StandardImportItemData[]>>((previous, importItem) => ({
+                //         ...previous,
+                //         [importItem.from.assetId]: [
+                //             ...(previous[importItem.from.assetId] ?? []),
+                //             {
+                //                 key: importItem.from.key,
+                //                 asKey: (importItem.key !== importItem.from.key) ? importItem.key : undefined,
+                //                 tag: importItem.tag
+                //             }
+                //         ]
+                //     }), {}))
+                //     .map(([key, importData]) => (new StandardImport({
+                //         tag: 'Import',
+                //         imports: importData,
+                //         key
+                //     }))),
+                // export: exportItems.length ? new StandardExport({
+                //     tag: 'Import',
+                //     imports: exportItems
+                // }) : undefined
             }
             return
         }
@@ -644,6 +809,7 @@ export class StandardForm {
                 )
                 return unique(keysExtract(true), keysExtract(false)).sort()
             }
+            const { importItemById, exportItemById } = importExportFromTree(node.children)
             const standardizeComponentTagType = (componentKeys: SchemaWithKey["tag"][], tagTree: SchemaTagTree): void => {
                 //
                 // Loop through each tag in standard order
@@ -755,14 +921,14 @@ export class StandardForm {
                                 if (this._byId[standardItem.key]) {
                                     const merged = this._byId[standardItem.key].merge(standardItem as any)
                                     if (merged) {
-                                        this._byId[standardItem.key] = merged
+                                        this._byId[standardItem.key] = merged.withImport(importItemById[standardItem.key]).withExport(exportItemById[standardItem.key])
                                     }
                                     else {
                                         delete this._byId[standardItem.key]
                                     }
                                 }
                                 else {
-                                    this._byId[standardItem.key] = standardItem
+                                    this._byId[standardItem.key] = standardItem.withImport(importItemById[standardItem.key]).withExport(exportItemById[standardItem.key])
                                 }
                             }
                         })
@@ -844,10 +1010,124 @@ export class StandardForm {
     }
 
     get metaData(): GenericTree<SchemaTag> {
+        const exportContents: GenericTree<SchemaTag> = Object.values(this._byId)
+            .filter((component) => (Boolean(component.exportAs)))
+            .sort(standardComponentSortOrder)
+            .map((component): GenericTreeNode<SchemaTag> => {
+                const schema = component.schema
+                if (component.exportAs?.action === 'Remove') {
+                    return {
+                        data: { tag: 'Remove' as const },
+                        children: [{ data: { ...schema.data, as: component.exportAs.match } as SchemaTag, children: [] }]
+                    }
+                }
+                if (component.exportAs?.action === 'Replace') {
+                    return {
+                        data: { tag: 'Replace' as const },
+                        children: [
+                            { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { ...schema.data, as: component.exportAs.match } as SchemaTag, children: [] }] },
+                            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { ...schema.data, as: component.exportAs.payload } as SchemaTag, children: [] }] }
+                        ]
+                    }
+                }
+                return {
+                    data: { ...schema.data, as: component.exportAs?.payload } as SchemaTag,
+                    children: []
+                }
+            })
+        const exportItem: GenericTree<SchemaTag> = exportContents.length === 0
+            ? []
+            : exportContents.every(treeNodeTypeguard(isSchemaRemove))
+                ? [{
+                    data: { tag: 'Remove' as const },
+                    children: [{
+                        data: { tag: 'Export' as const, mapping: {} },
+                        children: exportContents.map(({ children }) => (children[0]))
+                    }]
+                }]
+                : [{
+                    data: { tag: 'Export' as const, mapping: {} },
+                    children: exportContents
+                }]
+
+        const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
+            .filter((component) => (Boolean(component.from)))
+            .sort(standardComponentSortOrder)
+            .reduce((previous, component): Record<string, GenericTree<SchemaTag>> => {
+                const maybeAddFromKey = (data: SchemaTag, from: string): SchemaTag => {
+                    return {
+                        ...data,
+                        from: from !== (data as SchemaWithKey).key ? from : undefined
+                    } as SchemaTag
+                }
+                const schema = component.schema
+                if (component.from?.action === 'Remove') {
+                    return {
+                        ...previous,
+                        [component.from.match.assetId]: [
+                            ...(previous[component.from.match.assetId] ?? []),
+                            {
+                                data: { tag: 'Remove' as const },
+                                children: [{ data: maybeAddFromKey(schema.data, component.from.match.fromKey), children: [] }]
+                            }
+                        ]
+                    }
+                }
+                if (component.from?.action === 'Replace') {
+                    return {
+                        ...previous,
+                        [component.from.match.assetId]: [
+                            ...(previous[component.from.match.assetId] ?? []),
+                            {
+                                data: { tag: 'Replace' as const },
+                                children: [
+                                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: maybeAddFromKey(schema.data, component.from.match.fromKey), children: [] }] },
+                                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: maybeAddFromKey(schema.data, component.from.payload.fromKey), children: [] }] }
+                                ]
+                            }
+                        ]
+                    }
+                }
+                if (!component.from) {
+                    return previous
+                }
+                return {
+                    ...previous,
+                    [component.from.payload.assetId]: [
+                        ...(previous[component.from.payload.assetId] ?? []),
+                        {
+                            data: maybeAddFromKey(schema.data, component.from.payload.fromKey),
+                            children: []
+                        }
+                    ]
+                }
+            }, {})
+
+        const importItems: GenericTree<SchemaTag> = Object.entries(importsByAssetId)
+            .map(([key, importData]) => {
+                if (importData.length === 0) {
+                    return []
+                }
+                if (importData.every(treeNodeTypeguard(isSchemaRemove))) {
+                    return [{
+                        data: { tag: 'Remove' as const },
+                        children: [{
+                            data: { tag: 'Import' as const, mapping: {}, from: key },
+                            children: importData.map(({ children }) => (children[0]))
+                        }]
+                    }]
+                }
+                return [{
+                    data: { tag: 'Import' as const, mapping: {}, from: key },
+                    children: importData
+                }]
+            })
+            .flat(1)
+    
         return [
             ...this._metaData,
-            ...this._namespace.imports.map((importItem) => (importItem.schema)),
-            ...(this._namespace.export ? [this._namespace.export.schema] : [])
+            ...importItems,
+            ...exportItem
         ]
     }
     get header(): { tag: 'Asset' } & StandardBaseData {
@@ -874,27 +1154,29 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
-        const importById = this._namespace.imports.reduce<Record<string, { assetId: string; key: string }>>((previous, importItem) => {
-            return importItem.isRemove
-                ? previous
-                : Object.entries(importItem.payload._imports).reduce<Record<string, { assetId: string; key: string }>>((accumulator, [key, importRow]) => {
-                    return {
-                        ...accumulator,
-                        [key]: { assetId: importItem.key, key: importRow.key }
-                    }
-                }, previous)
-        }, {})
-        const exportById = this._namespace.export
-            ? Object.entries(this._namespace.export.payload._exports).reduce<Record<string, string>>((previous, [key, exportRow]) => {
-                return {
-                    ...previous,
-                    [exportRow.key]: exportRow.asKey ?? exportRow.key
-                }
-            }, {})
-            : {}
+        // const importById = this._namespace.imports.reduce<Record<string, { assetId: string; key: string }>>((previous, importItem) => {
+        //     return importItem.isRemove
+        //         ? previous
+        //         : Object.entries(importItem.payload._imports).reduce<Record<string, { assetId: string; key: string }>>((accumulator, [key, importRow]) => {
+        //             return {
+        //                 ...accumulator,
+        //                 [key]: { assetId: importItem.key, key: importRow.key }
+        //             }
+        //         }, previous)
+        // }, {})
+        // const exportById = this._namespace.export
+        //     ? Object.entries(this._namespace.export.payload._exports).reduce<Record<string, string>>((previous, [key, exportRow]) => {
+        //         return {
+        //             ...previous,
+        //             [exportRow.key]: exportRow.asKey ?? exportRow.key
+        //         }
+        //     }, {})
+        //     : {}
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
             .sort(standardComponentSortOrder)
-            .map((component) => (component.toNDJSON({ from: importById[component.key], exportAs: exportById[component.key] })))
+            .map((component) => (component.toNDJSON({
+                // from: importById[component.key], exportAs: exportById[component.key]
+            })))
         return [
             this.header,
             ...components
@@ -902,21 +1184,22 @@ export class StandardForm {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
+        const metaData = this.metaData
         const children = Object.values(this._byId)
             .sort(standardComponentSortOrder)
             .map((component) => (component.schema))
-        const imports = this.metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
+        const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
             children: [
-                ...this.metaData.filter(treeNodeTypeguard(isSchemaMeta)),
+                ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...imports,
                 //
                 // Don't include a separate schema entry for an import that doesn't change the component
                 //
                 ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                ...this.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
+                ...metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
             ]
         }
     }

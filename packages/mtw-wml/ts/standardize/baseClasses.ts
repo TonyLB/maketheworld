@@ -11,6 +11,7 @@ import { StandardImageData } from "./components/dataTypes/image";
 import { StandardKnowledgeData } from "./components/dataTypes/knowledge";
 import { StandardMapData } from "./components/dataTypes/map";
 import { StandardMessageData } from "./components/dataTypes/message";
+import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
@@ -182,11 +183,8 @@ export type StandardAsset = {
 } & StandardBase
 
 export type SerializeNDJSONMixin = {
-    from?: {
-        assetId: string;
-        key: string;
-    };
-    exportAs?: string;
+    from?: StandardComponentImport;
+    exportAs?: StandardComponentExport;
     universalKey?: string;
     fileName?: string;
 }
@@ -215,10 +213,20 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
             {},
             {
                 universalKey: 'string',
-                exportAs: 'string'
             }
         ),
-        (!line?.from || checkTypes(line.from, { assetId: 'string', key: 'string' }, {}))
+        (
+            (!line?.from) ||
+            (line.from.action === 'Content' && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' })) ||
+            (line.from.action === 'Remove' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' })) ||
+            (line.from.action === 'Replace' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' }) && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' }))
+        ),
+        (
+            (!line?.exportAs) ||
+            (line.exportAs.action === 'Content' && checkTypes(line.exportAs, { payload: 'string' })) ||
+            (line.exportAs.action === 'Remove' && checkTypes(line.exportAs, { match: 'string' })) ||
+            (line.exportAs.action === 'Replace' && checkTypes(line.exportAs, { match: 'string', payload: 'string' }))
+        )
     )
 }
 

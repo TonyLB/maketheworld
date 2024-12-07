@@ -106,7 +106,7 @@ describe('standard form serialize' ,() => {
             { tag: 'Asset', key: 'test', universalId: 'ASSET#test' },
             {
                 tag: 'Room',
-                from: { assetId: 'testImport', key: 'testIn' },
+                from: { action: 'Content', payload: { assetId: 'testImport', fromKey: 'testIn' } },
                 key: 'testRoom',
                 shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
                 name: { data: { tag: 'Name' }, children: [] },
@@ -133,7 +133,7 @@ describe('standard form serialize' ,() => {
             {
                 tag: 'Room',
                 key: 'testRoom',
-                exportAs: 'Room3',
+                exportAs: { action: 'Content', payload: 'Room3' },
                 shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
                 name: { data: { tag: 'Name' }, children: [] },
                 summary: { data: { tag: 'Summary' }, children: [] },
@@ -234,6 +234,7 @@ describe('standard form deserialize' ,() => {
         deserialized.loadStandardForm(deserialize(ndjson).standardForm)
         expect(schemaToWML(deserialized.schema)).toEqual(testWML)
     })
+
     it('should deserialize exports', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>

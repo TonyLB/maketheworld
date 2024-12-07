@@ -20,12 +20,12 @@ export const serialize = (
                 .map(({ as, key }) => ({
                     [as ?? key]: {
                         assetId: data.from,
-                        key
+                        fromKey: key
                     }
                 }))
         ))
         .flat(1)
-    ) as Record<string, { assetId: string, key: string }>
+    ) as Record<string, { assetId: string, fromKey: string }>
     const exportByKey = Object.assign({}, ...standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaExport))
         .map(({ children }) => (
@@ -42,8 +42,8 @@ export const serialize = (
         const unwrappedComponent = unwrapStandardComponent(standardComponent)
         return {
             ...standardComponent,
-            ...(standardComponent.key in importByKey ? { from: importByKey[standardComponent.key]} : {}),
-            ...(standardComponent.key in exportByKey ? { exportAs: exportByKey[standardComponent.key]} : {}),
+            ...(standardComponent.key in importByKey ? { from: { action: 'Content', payload: importByKey[standardComponent.key] } } : {}),
+            ...(standardComponent.key in exportByKey ? { exportAs: { action: 'Content', payload: exportByKey[standardComponent.key] ?? '' } } : {}),
             universalKey: universalKey(standardComponent.key, unwrappedComponent.tag),
             fileName: fileAssociation(standardComponent.key)
         }
@@ -75,18 +75,15 @@ export const deserialize = (ndjson: StandardNDJSON ): { standardForm: StandardFo
             assetKey = component.key
         }
         else {
-            if (component.tag === 'Character') {
-                characterKey = component.key
-            }
             byId[component.key] = component
-            if (component.from) {
-                importsBySource[component.from.assetId] = [
-                    ...(importsBySource[component.from.assetId] || []),
-                    { key: component.from.key, as: component.from.key !== component.key ? component.key : undefined }
+            if (component.from && component.from.action === 'Content') {
+                importsBySource[component.from.payload.assetId] = [
+                    ...(importsBySource[component.from.payload.assetId] || []),
+                    { key: component.from.payload.fromKey, as: component.from.payload.fromKey !== component.key ? component.key : undefined }
                 ]
             }
-            if (component.exportAs) {
-                exports[component.key] = component.exportAs
+            if (component.exportAs && component.exportAs.action === 'Content') {
+                exports[component.key] = component.exportAs.payload
             }
             if (component.universalKey) {
                 universalKeys[component.key] = component.universalKey

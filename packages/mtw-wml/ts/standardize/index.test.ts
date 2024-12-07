@@ -2173,8 +2173,8 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)>
-                    <Map key=(testMap) />
                     <Room key=(testRoomOne) />
+                    <Map key=(testMap) />
                     <Variable key=(testVar) from=(power) />
                 </Import>
                 <Room key=(testRoomOne)>
@@ -2200,7 +2200,11 @@ describe('StandardForm', () => {
             exits: [],
             key: 'testRoomOne',
             tag: 'Room',
-            themes: []
+            themes: [],
+            from: {
+                action: 'Content',
+                payload: { assetId: 'vanishingPoint', fromKey: 'testRoomOne' }
+            }
         })
         const mapTest = new StandardForm(`<Asset key=(Test)>
             <Map key=(testMap)>
