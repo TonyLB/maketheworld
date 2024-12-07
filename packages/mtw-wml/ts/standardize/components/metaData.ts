@@ -80,7 +80,7 @@ export class ExportItem extends editWrap(class ExportItem implements ComponentIn
         }
         else {
             if (!treeNodeTypeguard(isImportable)(node)) {
-                throw new Error('Invalid argument to ImportItem constructor')
+                throw new Error('Invalid argument to ExportItem constructor')
             }
             this._from = node.data.key
             this._as = node.data.as ? node.data.as : undefined

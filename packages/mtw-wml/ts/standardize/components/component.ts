@@ -38,9 +38,9 @@ export interface StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
-    import?: StandardComponentImport;
+    from?: StandardComponentImport;
     withImport(importData: StandardComponentImport | undefined): StandardComponent;
-    export?: StandardComponentImport;
+    exportAs?: StandardComponentExport;
     withExport(exportData: StandardComponentExport | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
@@ -86,15 +86,14 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         toJSON(): D {
             return {
                 ...this._key.toJSON(),
-                ...this._payload.toJSON()
+                ...this._payload.toJSON(),
+                ...(this.from ? { from: this.from } : {}),
+                ...(this.exportAs ? { exportAs: this.exportAs } : {})
             } as D
         }
 
         toNDJSON(args): D {
-            return {
-                ...this.toJSON(),
-                ...args
-            }
+            return this.toJSON()
         }
 
         get schema(): GenericTreeNode<SchemaTag> {

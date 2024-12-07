@@ -213,10 +213,20 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
             {},
             {
                 universalKey: 'string',
-                exportAs: 'string'
             }
         ),
-        (!line?.from || checkTypes(line.from, { assetId: 'string', key: 'string' }, {}))
+        (
+            (!line?.from) ||
+            (line.from.action === 'Content' && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' })) ||
+            (line.from.action === 'Remove' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' })) ||
+            (line.from.action === 'Replace' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' }) && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' }))
+        ),
+        (
+            (!line?.exportAs) ||
+            (line.exportAs.action === 'Content' && checkTypes(line.exportAs, { payload: 'string' })) ||
+            (line.exportAs.action === 'Remove' && checkTypes(line.exportAs, { match: 'string' })) ||
+            (line.exportAs.action === 'Replace' && checkTypes(line.exportAs, { match: 'string', payload: 'string' }))
+        )
     )
 }
 

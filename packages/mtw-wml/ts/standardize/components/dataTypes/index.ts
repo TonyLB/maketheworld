@@ -3,7 +3,7 @@ import { GenericTree } from "../../../tree/baseClasses";
 import { isSchemaTreeNode } from "../utils";
 import { StandardActionData, isStandardAction } from "./action";
 import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
-import { StandardCharacterData } from "./character";
+import { isStandardCharacter, StandardCharacterData } from "./character";
 import { StandardComputedData, isStandardComputed } from "./computed";
 import { StandardFeatureData, isStandardFeature } from "./feature";
 import { StandardImageData, isStandardImage } from "./image";
@@ -49,9 +49,8 @@ export type StandardReplaceData<T extends { key: string } = StandardComponentNon
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
 
-export const isStandardCharacter = isStandardFactory<StandardCharacterData>("Character")
-
 export const isStandardNonEdit = (value: any): value is StandardComponentNonEditData => (
+    isStandardCharacter(value) ||
     isStandardRoom(value) ||
     isStandardFeature(value) ||
     isStandardKnowledge(value) ||
