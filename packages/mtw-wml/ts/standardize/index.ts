@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguar
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
-import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData, unwrapStandardComponent } from "./components/dataTypes"
+import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -23,7 +23,6 @@ import StandardImage from "./components/image"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode } from "./components/utils"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
-import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
@@ -705,33 +704,18 @@ export class StandardForm {
     _key: string;
     _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
-    _namespace: {
-        imports: StandardImport[];
-        export?: StandardExport;
-    }
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && isLegalKey(args)) {
             this._key = args
             this._byId = {}
             this._metaData = []
-            this._namespace = {
-                imports: []
-            }
             return
         }
         if (isStandardForm(args)) {
             this._key = args.key
 
             const { importItemById, exportItemById } = importExportFromTree(args.metaData)
-            const exportItem = args.metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
-                .map((exportSchema) => (new StandardExport(exportSchema)))
-                .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
-
-            this._namespace = {
-                imports: args.metaData.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node))),
-                export: exportItem
-            }
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
@@ -768,55 +752,7 @@ export class StandardForm {
                 }
             }, {})
             this._metaData = []
-            const importItems: { key: string; tag: Exclude<Extract<SchemaTag, SchemaImportableBase>, SchemaExitTag | SchemaImportTag>["tag"]; from: { assetId: string; key: string } }[] = args
-                .filter(isStandardComponent)
-                .map(unwrapStandardComponent)
-                .map((line: any) => (('from' in line && line.from && line.tag !== 'Character')
-                    ? [{
-                        key: line.key,
-                        tag: line.tag,
-                        from: line.from,
-                    }]
-                    : []
-                ))
-                .flat(1)
-            const exportItems: StandardImportItemData[] = args
-                .filter(isStandardComponent)
-                .map(unwrapStandardComponent)
-                .map((line: any) => (
-                    (!('from' in line && line.from) && line.tag !== 'Character' && ('exportAs' in line) && line.exportAs)
-                    ? [{
-                        key: line.key,
-                        tag: line.tag,
-                        asKey: line.exportAs
-                    }]
-                    : []
-                ))
-                .flat(1)
-            this._namespace = {
-                imports: []
-                // imports: Object.entries(importItems
-                //     .reduce<Record<string, StandardImportItemData[]>>((previous, importItem) => ({
-                //         ...previous,
-                //         [importItem.from.assetId]: [
-                //             ...(previous[importItem.from.assetId] ?? []),
-                //             {
-                //                 key: importItem.from.key,
-                //                 asKey: (importItem.key !== importItem.from.key) ? importItem.key : undefined,
-                //                 tag: importItem.tag
-                //             }
-                //         ]
-                //     }), {}))
-                //     .map(([key, importData]) => (new StandardImport({
-                //         tag: 'Import',
-                //         imports: importData,
-                //         key
-                //     }))),
-                // export: exportItems.length ? new StandardExport({
-                //     tag: 'Import',
-                //     imports: exportItems
-                // }) : undefined
-            }
+
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {
@@ -985,61 +921,13 @@ export class StandardForm {
                 const asset = assetTree[0] as GenericTreeNodeFiltered<SchemaAssetTag, SchemaTag>
                 this._key = asset.data.key
 
-                //
-                // Add standardized view of all Imports to the results
-                //
-                const importTagTree = tagTree
-                    .filter({ match: 'Import' })
-                    .prune({ or: [
-                        { and: [
-                            { before: { match: 'Import' } },
-                            { not: { or: [{ match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }, { match: 'Remove' }]}}
-                        ] },
-                        { after: { or: [
-                            { match: 'Room' },
-                            { match: 'Feature' },
-                            { match: 'Knowledge' },
-                            { match: 'Bookmark' },
-                            { match: 'Map' },
-                            { match: 'Message' },
-                            { match: 'Moment' },
-                            { match: 'Variable' },
-                            { match: 'Computed' },
-                            { match: 'Action' }
-                        ]}}
-                    ]})
-                const importItems = importTagTree.tree.filter(({ children }) => (children.length))
-
-                this._namespace = {
-                    imports: importItems.filter(wrappedNodeTypeGuard(isSchemaImport)).map((node) => (new StandardImport(node)))
-                }
-            
                 this._metaData = [
                     ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree
                 ]
 
                 const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-                const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
         
                 standardizeComponentTagType(componentKeys, tagTree)
-
-                //
-                // Add standardized view of all Exports to the results
-                //
-                const exportTagTree = tagTree
-                    .filter({ match: 'Export' })
-                    .prune({ or: [
-                        { before: { match: 'Export' } },
-                        { after: anyKeyedComponent }
-                    ]})
-                const exports = exportTagTree.tree
-                    .filter(treeNodeTypeguard(isSchemaExport))
-                    .filter(({ children }) => (children.length))
-                if (exports.length) {
-                    this._namespace.export = exports
-                        .map((exportSchema) => (new StandardExport(exportSchema)))
-                        .reduce<StandardExport | undefined>((previous, incoming) => (previous ? previous.merge(incoming) : incoming), undefined)
-                }
                 return
             }
         }
@@ -1191,24 +1079,6 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
-        // const importById = this._namespace.imports.reduce<Record<string, { assetId: string; key: string }>>((previous, importItem) => {
-        //     return importItem.isRemove
-        //         ? previous
-        //         : Object.entries(importItem.payload._imports).reduce<Record<string, { assetId: string; key: string }>>((accumulator, [key, importRow]) => {
-        //             return {
-        //                 ...accumulator,
-        //                 [key]: { assetId: importItem.key, key: importRow.key }
-        //             }
-        //         }, previous)
-        // }, {})
-        // const exportById = this._namespace.export
-        //     ? Object.entries(this._namespace.export.payload._exports).reduce<Record<string, string>>((previous, [key, exportRow]) => {
-        //         return {
-        //             ...previous,
-        //             [exportRow.key]: exportRow.asKey ?? exportRow.key
-        //         }
-        //     }, {})
-        //     : {}
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
             .sort(standardComponentSortOrder)
             .map((component) => (component.toNDJSON({
@@ -1377,27 +1247,6 @@ export class StandardForm {
                     }
                 }
             }, {})
-
-        returnValue._namespace.imports = incoming._namespace.imports.reduce<StandardImport[]>((previous, importItem) => {
-            const matchingImport = previous.find((checkImport) => (checkImport.key === importItem.key))
-            if (matchingImport) {
-                const mergedImport = matchingImport.merge(importItem)
-                return [
-                    ...previous.filter((checkImport) => (checkImport.key !== importItem.key)),
-                    mergedImport
-                ].filter(excludeUndefined)
-            }
-            else {
-                return [...previous, importItem]
-            }
-        }, this._namespace.imports)
-
-        returnValue._namespace.export = 
-            this._namespace.export
-                ? incoming._namespace.export
-                    ? this._namespace.export.merge(incoming._namespace.export)
-                    : this._namespace.export
-                : incoming._namespace.export
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)

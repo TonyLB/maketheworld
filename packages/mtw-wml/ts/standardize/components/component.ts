@@ -18,9 +18,8 @@ import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
-import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentImport, StandardImportData } from "./dataTypes/metaData";
+import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
-import { StandardExport, StandardImport } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
