@@ -18,7 +18,7 @@ import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
-import { StandardComponentExport, StandardComponentImport, StandardImportData } from "./dataTypes/metaData";
+import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentImport, StandardImportData } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
 import { StandardExport, StandardImport } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
@@ -103,7 +103,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         //
         // The merge method at this level does *not* cope with edit-tags like Replace and Remove.
         // That functionality is handled at the StandardForm level: Merge at the Component level
-        // is strictly for merging the content of two non-edit Components.
+        // is strictly for merging the content of two non-edit Components. It will, however, merge
+        // edit tags on the import and export information of the components
         //
         merge(incoming: StandardComponent): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
@@ -116,6 +117,24 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._key._universalKey = this.universalKey ?? incoming.universalKey
             returnValue._key._fileName = incoming.fileName ?? this.fileName
             returnValue._payload = this._payload.merge((incoming as any)._payload)
+            //
+            // Merge base and incoming import
+            //
+            if (this.from && incoming.from) {
+                returnValue._import = mergeStandardComponentImport(this.from, incoming.from)
+            }
+            else {
+                returnValue._import = this.from ?? incoming.from
+            }
+            //
+            // Merge base and incoming export
+            //
+            if (this.exportAs && incoming.exportAs) {
+                returnValue._export = mergeStandardComponentExport(this.exportAs, incoming.exportAs)
+            }
+            else {
+                returnValue._export = this.exportAs ?? incoming.exportAs
+            }
             return returnValue as this
         }
 

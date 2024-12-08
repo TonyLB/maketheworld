@@ -27,10 +27,10 @@ import { StandardExport, StandardImport } from "./components/metaData"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardComponentExport, StandardComponentImport, StandardImportItemData } from "./components/dataTypes/metaData"
+import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentExportRemove, StandardComponentImport, StandardComponentImportRemove, StandardImportItemData } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
-import { deepEqual } from "../lib/objects"
+import { deepEqual, objectFilterEntries } from "../lib/objects"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -558,107 +558,141 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
 // creation of this._byId
 //
 const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: Record<string, StandardComponentImport>; exportItemById: Record<string, StandardComponentExport> } => {
+    const mergeExportIntoEntries = (previous: Record<string, StandardComponentExport>, incoming: Record<string, StandardComponentExport>): Record<string, StandardComponentExport> => {
+        const [[key, incomingData]] = Object.entries(incoming)
+        const baseData = previous[key]
+        const mergedData = baseData ? mergeStandardComponentExport(baseData, incomingData) : incomingData
+        if (mergedData) {
+            return {
+                ...previous,
+                [key]: mergedData
+            }
+        }
+        else {
+            return objectFilterEntries(previous, ([checkKey]) => (checkKey !== key))
+        }
+    }
     const exportItemById = tree.filter(wrappedNodeTypeGuard(isSchemaExport))
         .reduce<Record<string, StandardComponentExport>>((previous, node) => {
             if (treeNodeTypeguard(isSchemaRemove)(node)) {
                 const child = node.children[0]
                 if (child && treeNodeTypeguard(isSchemaExport)(child)) {
-                    return Object.assign(
-                        previous,
-                        ...(child.children
-                            .map(unwrapSubject)
-                            .filter(excludeUndefined)
-                            .map(({ data }) => (data))
-                            .filter(isImportable)
-                            .map(({ key, as }) => ({ [key]: { action: 'Remove', match: as ?? key } }))
-                        )
-                    )
+                    return child.children
+                        .map(unwrapSubject)
+                        .filter(excludeUndefined)
+                        .map(({ data }) => (data))
+                        .filter(isImportable)
+                        .map(({ key, as }) => ({ [key]: { action: 'Remove' as const, match: as ?? key } }))
+                        .reduce<Record<string, StandardComponentExport>>(mergeExportIntoEntries, previous)
                 }
             }
             if (treeNodeTypeguard(isSchemaReplace)(node)) {
                 throw new Error('Top-level replace of Export tags not yet implemented')
             }
             if (treeNodeTypeguard(isSchemaExport)(node)) {
-                return Object.assign(
-                    previous,
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isSchemaRemove))
-                        .map(unwrapSubject)
-                        .filter(excludeUndefined)
-                        .map(({ data }) => (data))
-                        .filter(isImportable)
-                        .map(({ key, as }) => ({ [key]: { action: 'Remove', match: as ?? key } }))
-                    ),
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isSchemaReplace))
-                        .map(({ children }) => ({
-                            match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
-                            payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
-                        }))
-                        .map(({ match, payload }) => (
-                            (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
-                                ? [{ [match.data.key]: { action: 'Replace', match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
-                                : []
-                        ))
-                        .flat(1)
-                    ),
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isImportable))
-                        .map(({ data }) => (data))
-                        .map(({ key, as }) => ({ [key]: { action: 'Content', payload: as ?? key } }))
+                const removeActions = node.children
+                    .filter(treeNodeTypeguard(isSchemaRemove))
+                    .map(unwrapSubject)
+                    .filter(excludeUndefined)
+                    .map(({ data }) => (data))
+                    .filter(isImportable)
+                    .map(({ key, as }) => ({ [key]: { action: 'Remove' as const, match: as ?? key } }))
+                const replaceActions = node.children
+                    .filter(treeNodeTypeguard(isSchemaReplace))
+                    .map(({ children }) => ({
+                        match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
+                        payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                    }))
+                    .map(({ match, payload }) => (
+                        (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
+                            ? [{ [match.data.key]: { action: 'Replace' as const, match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
+                            : []
+                    ))
+                    .flat(1)
+                const contentActions = node.children
+                    .filter(treeNodeTypeguard(isImportable))
+                    .map(({ data }) => (data))
+                    .map(({ key, as }) => ({ [key]: { action: 'Content' as const, payload: as ?? key } }))
+                return contentActions.reduce(
+                    mergeExportIntoEntries,
+                    replaceActions.reduce(
+                        mergeExportIntoEntries,
+                        removeActions.reduce(
+                            mergeExportIntoEntries,
+                            previous
+                        )
                     )
                 )
             }
             return previous
         }, {})
+    const mergeImportIntoEntries = (previous: Record<string, StandardComponentImport>, incoming: Record<string, StandardComponentImport>): Record<string, StandardComponentImport> => {
+        const [[key, incomingData]] = Object.entries(incoming)
+        const baseData = previous[key]
+        const mergedData = baseData ? mergeStandardComponentImport(baseData, incomingData) : incomingData
+        if (mergedData) {
+            return {
+                ...previous,
+                [key]: mergedData
+            }
+        }
+        else {
+            return objectFilterEntries(previous, ([checkKey]) => (checkKey !== key))
+        }
+    }
     const importItemById = tree.filter(wrappedNodeTypeGuard(isSchemaImport))
         .reduce<Record<string, StandardComponentImport>>((previous, node) => {
             if (treeNodeTypeguard(isSchemaRemove)(node)) {
                 const child = node.children[0]
                 if (child && treeNodeTypeguard(isSchemaImport)(child)) {
-                    return Object.assign(
-                        previous,
-                        ...(child.children
-                            .map(unwrapSubject)
-                            .filter(excludeUndefined)
-                            .map(({ data }) => (data))
-                            .filter(isImportable)
-                            .map(({ key, from }) => ({ [key]: { action: 'Remove', match: { assetId: child.data.from, fromKey: from ?? key } } }))
-                        )
-                    )
-                }
-            }
-            if (treeNodeTypeguard(isSchemaReplace)(node)) {
-                throw new Error('Top-level replace of Import tags not yet implemented')
-            }
-            if (treeNodeTypeguard(isSchemaImport)(node)) {
-                return Object.assign(
-                    previous,
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isSchemaRemove))
+                    return child.children
                         .map(unwrapSubject)
                         .filter(excludeUndefined)
                         .map(({ data }) => (data))
                         .filter(isImportable)
-                        .map(({ key, from }) => ({ [key]: { action: 'Remove', match: from ?? key } }))
-                    ),
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isSchemaReplace))
-                        .map(({ children }) => ({
-                            match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
-                            payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
-                        }))
-                        .map(({ match, payload }) => (
-                            (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
-                                ? [{ [match.data.key]: { action: 'Replace', match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
-                                : []
-                        ))
-                        .flat(1)
-                    ),
-                    ...(node.children
-                        .filter(treeNodeTypeguard(isImportable))
-                        .map(({ data }) => (data))
-                        .map(({ key, from }) => ({ [key]: { action: 'Content', payload: { assetId: node.data.from, fromKey: from ?? key } } }))
+                        .map(({ key, from }) => ({ [key]: { action: 'Remove' as const, match: { assetId: child.data.from, fromKey: from ?? key } } }))
+                        .reduce<Record<string, StandardComponentImport>>(mergeImportIntoEntries, previous)
+                }
+            }
+            if (treeNodeTypeguard(isSchemaReplace)(node)) {
+                throw new Error('Top-level replace of Export tags not yet implemented')
+            }
+            if (treeNodeTypeguard(isSchemaImport)(node)) {
+                const removeActions: Record<string, StandardComponentImportRemove>[] = node.children
+                    .filter(treeNodeTypeguard(isSchemaRemove))
+                    .map(unwrapSubject)
+                    .filter(excludeUndefined)
+                    .map(({ data }) => (data))
+                    .filter(isImportable)
+                    .map(({ key, from }) => ({ [key]: { action: 'Remove' as const, match: { assetId: node.data.from, fromKey: from ?? key } } }))
+                const replaceActions = node.children
+                    .filter(treeNodeTypeguard(isSchemaReplace))
+                    .map(({ children }) => ({
+                        match: children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0],
+                        payload: children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                    }))
+                    .map(({ match, payload }) => (
+                        (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
+                            ? [{ [match.data.key]: {
+                                action: 'Replace' as const,
+                                match: { assetId: node.data.from, fromKey: match.data.from ?? match.data.key },
+                                payload: { assetId: node.data.from, fromKey: payload.data.from ?? payload.data.key }
+                            } }]
+                            : []
+                    ))
+                    .flat(1)
+                const contentActions = node.children
+                    .filter(treeNodeTypeguard(isImportable))
+                    .map(({ data }) => (data))
+                    .map(({ key, from }) => ({ [key]: { action: 'Content' as const, payload: { assetId: node.data.from, fromKey: from ?? key } } }))
+                return contentActions.reduce(
+                    mergeImportIntoEntries,
+                    replaceActions.reduce(
+                        mergeImportIntoEntries,
+                        removeActions.reduce(
+                            mergeImportIntoEntries,
+                            previous
+                        )
                     )
                 )
             }
@@ -918,10 +952,13 @@ export class StandardForm {
                         adjustedTree.forEach((item) => {
                             const standardItem = standardComponentFactory(item)
                             if (standardItem) {
-                                if (this._byId[standardItem.key]) {
-                                    const merged = this._byId[standardItem.key].merge(standardItem as any)
+                                const base = this._byId[standardItem.key]
+                                if (base) {
+                                    const merged = base.merge(standardItem as any)
                                     if (merged) {
-                                        this._byId[standardItem.key] = merged.withImport(importItemById[standardItem.key]).withExport(exportItemById[standardItem.key])
+                                        const mergedImport = base.from && standardItem.from ? mergeStandardComponentImport(base.from, standardItem.from) : base.from ?? standardItem.from
+                                        const mergedExport = base.exportAs && standardItem.exportAs ? mergeStandardComponentExport(base.exportAs, standardItem.exportAs) : base.exportAs ?? standardItem.exportAs
+                                        this._byId[standardItem.key] = merged.withImport(mergedImport).withExport(mergedExport)
                                     }
                                     else {
                                         delete this._byId[standardItem.key]
