@@ -1,4 +1,4 @@
-import { StandardImportItem, ImportItemContent, ImportItemRemove, ImportItemReplace } from './metaData'
+import { ImportItemContent, ImportItemRemove, ImportItemReplace, ExportItemContent, ExportItemRemove, ExportItemReplace } from './metaData'
 
 describe('Standard metadata', () => {
     describe('ImportItem', () => {
@@ -131,171 +131,131 @@ describe('Standard metadata', () => {
 
     })
 
-    // describe('StandardExport', () => {
-    //     const testExport = (wml: string): StandardExport => {
-    //         const schema = new Schema()
-    //         const testSource = deIndentWML(wml)
-    //         schema.loadWML(testSource)
-    //         return new StandardExport(schema.schema[0])
-    //     }
+    describe('ExportItem', () => {
+        it('should construct content correctly', () => {
+            const test = new ExportItemContent('test')
+            expect(test.exportAs).toEqual('test')
+        })
 
-    //     it('should accept an empty export', () => {
-    //         const testSource = deIndentWML(`
-    //             <Export />
-    //         `)
-    //         expect(schemaToWML([testExport(testSource).schema])).toEqual(testSource)
-    //     })
+        it('should construct remove imports correctly', () => {
+            const test = new ExportItemRemove('test')
+            expect(test.exportAs).toEqual('test')
+        })
 
-    //     it('should accept all importable types', () => {
-    //         const testSource = deIndentWML(`
-    //             <Export>
-    //                 <Bookmark key=(testBookmark) as=(testChanged) />
-    //                 <Feature key=(testFeature) />
-    //                 <Knowledge key=(testKnowledge) />
-    //                 <Map key=(testMap) />
-    //                 <Message key=(testMessage) />
-    //                 <Moment key=(testMoment) />
-    //                 <Room key=(testRoom) />
-    //                 <Theme key=(testTheme) />
-    //                 <Variable key=(testVariable) />
-    //             </Export>
-    //         `)
-    //         expect(schemaToWML([testExport(testSource).schema])).toEqual(testSource)
-    //     })
+        it('should construct replace imports correctly', () => {
+            const test = new ExportItemReplace('test', 'testTwo')
+            expect(test.exportAs).toEqual('test')
+        })
 
-    //     it('should ignore non-export data', () => {
-    //         const test = testExport(`
-    //                 <Export>
-    //                     <Room key=(testRoom)><Name>Test Name</Name></Room>
-    //                 </Export>
-    //             `)
-    //         expect(schemaToWML([test.schema])).toEqual(`<Export><Room key=(testRoom) /></Export>`)
-    //     })
+        it('should correctly merge identical content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemContent('test')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('test')
+            }
+        })
 
-    //     it('should accept internal remove tags', () => {
-    //         const testSource = deIndentWML(`
-    //             <Export><Remove><Room key=(testRoom) /></Remove></Export>
-    //         `)
-    //         expect(schemaToWML([testExport(testSource).schema])).toEqual(testSource)
-    //     })
+        it('should throw when merging non-identical content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemContent('testTwo')
+            expect(() => (testOne.merge(testTwo))).toThrow()
+        })
 
-    //     it('should accept internal replace tags', () => {
-    //         const testSource = deIndentWML(`
-    //             <Export>
-    //                 <Replace><Room key=(testRoom) as=(testOne) /></Replace>
-    //                 <With><Room key=(testRoom) as=(testTwo) /></With>
-    //             </Export>
-    //         `)
-    //         expect(schemaToWML([testExport(testSource).schema])).toEqual(testSource)
-    //     })
+        it('should remove content on merge', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemRemove('test')
+            expect(testOne.merge(testTwo)).toBeUndefined()
+        })
 
-    //     it('should accept external remove tags', () => {
-    //         const testSource = deIndentWML(`
-    //             <Remove><Export><Room key=(testRoom) /></Export></Remove>
-    //         `)
-    //         expect(schemaToWML([testExport(testSource).schema])).toEqual(testSource)
-    //     })
+        it('should throw when merging non-matching remove into content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemRemove('testTwo')
+            expect(() => (testOne.merge(testTwo))).toThrow()
+        })
 
-    //     it('should accept external replace tags', () => {
-    //         const testSource = deIndentWML(`
-    //             <Asset key=(testAsset)>
-    //                 <Replace><Export><Room key=(testRoom) /></Export></Replace>
-    //                 <With><Export><Room key=(testRoom) as=(testRename) /></Export></With>
-    //             </Asset>
-    //         `)
-    //         const schema = new Schema()
-    //         schema.loadWML(testSource)
-    //         expect(schemaToWML([new StandardExport(schema.schema[0].children[0]).schema])).toEqual(deIndentWML(testSource.split('\n').slice(1, -1).join('\n')))
-    //     })
+        it('should replace content on merge', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemReplace('test', 'testTwo')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('testTwo')
+            }
+        })
 
-    //     it('should merge simple imports correctly', () => {
-    //         const base = testExport(deIndentWML(`
-    //                 <Export><Room key=(testOne) /></Export>
-    //             `))
-    //         const incoming = testExport(deIndentWML(`
-    //             <Export>
-    //                 <Room key=(testTwo) />
-    //             </Export>
-    //         `))
-    //         expect(schemaToWML([(base.merge(incoming) as StandardExport).schema])).toEqual(deIndentWML(`
-    //                 <Export>
-    //                     <Room key=(testOne) />
-    //                     <Room key=(testTwo) />
-    //                 </Export>
-    //             `))
-    //     })
+        it('should throw when merging non-matching replace into content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemReplace('testTwo', 'testThree')
+            expect(() => (testOne.merge(testTwo))).toThrow()
+        })
 
-    //     it('should merge internal edits correctly', () => {
-    //         const base = testExport(deIndentWML(`
-    //             <Export>
-    //                 <Room key=(testOne) />
-    //                 <Room key=(testTwo) />
-    //                 <Remove><Room key=(testThree) /></Remove>
-    //                 <Replace><Room key=(testFour) /></Replace>
-    //                 <With><Room key=(testFour) as=(testChange) /></With>
-    //             </Export>
-    //         `))
-    //         const incoming = testExport(deIndentWML(`
-    //             <Export>
-    //                 <Remove><Room key=(testOne) /></Remove>
-    //                 <Replace><Room key=(testTwo) /></Replace>
-    //                 <With><Room key=(testTwo) as=(testChangeTwo) /></With>
-    //                 <Room key=(testThree) as=(testChangeThree) />
-    //                 <Remove><Room key=(testFour) as=(testChange) /></Remove>
-    //             </Export>
-    //         `))
-    //         expect(schemaToWML([(base.merge(incoming) as StandardExport).schema])).toEqual(deIndentWML(`
-    //                 <Export>
-    //                     <Replace><Room key=(testThree) /></Replace>
-    //                     <With><Room key=(testThree) as=(testChangeThree) /></With>
-    //                     <Room key=(testTwo) as=(testChangeTwo) />
-    //                     <Remove><Room key=(testFour) /></Remove>
-    //                 </Export>
-    //             `))
-    //     })
+        it('should create replace when merging content into remove', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemContent('testTwo')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('test')
+                expect(test instanceof ExportItemReplace).toBeTruthy()
+                if (test instanceof ExportItemReplace) {
+                    expect(test._payload).toEqual('testTwo')
+                }
+            }
+        })
 
-    //     it('should merge external remove edits correctly', () => {
-    //         const base = testExport(deIndentWML(`
-    //             <Export>
-    //                 <Room key=(testOne) />
-    //             </Export>
-    //         `))
-    //         const incoming = testExport(deIndentWML(`
-    //             <Remove>
-    //                 <Export>
-    //                     <Room key=(testOne) />
-    //                 </Export>
-    //             </Remove>
-    //         `))
-    //         expect(base.merge(incoming)).toBeUndefined()
-    //     })
+        it('should throw when merging remove into remove', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemRemove('test')
+            expect(() => (testOne.merge(testTwo))).toThrow()
+        })
 
-    //     it('should merge external replace edits correctly', () => {
-    //         const base = testExport(deIndentWML(`
-    //             <Export>
-    //                 <Room key=(testOne) />
-    //             </Export>
-    //         `))
-    //         const testSource = deIndentWML(`
-    //             <Asset key=(testAsset)>
-    //                 <Replace>
-    //                     <Export>
-    //                         <Room key=(testOne) />
-    //                     </Export>
-    //                 </Replace>
-    //                 <With>
-    //                     <Export>
-    //                         <Room key=(testChanged) as=(testOne) />
-    //                     </Export>
-    //                 </With>
-    //             </Asset>
-    //         `)
-    //         const schema = new Schema()
-    //         schema.loadWML(testSource)
-    //         const incoming = new StandardExport(schema.schema[0].children[0])
-    //         expect(schemaToWML([(base.merge(incoming) as StandardExport).schema])).toEqual(deIndentWML(`
-    //             <Export><Room key=(testChanged) as=(testOne) /></Export>
-    //         `))
-    //     })
-    // })
+        it('should throw when merging replace into remove', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemReplace('test', 'testTwo')
+            expect(() => (testOne.merge(testTwo))).toThrow()
+        })
+
+        it('should accept duplicates when merging content into replace', () => {
+            const testOne = new ExportItemReplace('test', 'testTwo')
+            const testTwo = new ExportItemContent('testTwo')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('test')
+                expect(test instanceof ExportItemReplace).toBeTruthy()
+                if (test instanceof ExportItemReplace) {
+                    expect(test._payload).toEqual('testTwo')
+                }
+            }
+        })
+
+        it('should modify remove when merging remove into replace', () => {
+            const testOne = new ExportItemReplace('test', 'testTwo')
+            const testTwo = new ExportItemRemove('testTwo')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('test')
+                expect(test instanceof ExportItemRemove).toBeTruthy()
+            }
+        })
+
+        it('should chain functions when merging remove into remove', () => {
+            const testOne = new ExportItemReplace('test', 'testTwo')
+            const testTwo = new ExportItemReplace('testTwo', 'testThree')
+            const test = testOne.merge(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test.exportAs).toEqual('test')
+                expect(test instanceof ExportItemReplace).toBeTruthy()
+                if (test instanceof ExportItemReplace) {
+                    expect(test._payload).toEqual('testThree')
+                }
+            }
+        })
+
+    })
+
 })
