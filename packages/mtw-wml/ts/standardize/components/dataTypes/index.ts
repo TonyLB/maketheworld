@@ -10,7 +10,6 @@ import { StandardImageData, isStandardImage } from "./image";
 import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge";
 import { StandardMapData, isStandardMap } from "./map";
 import { StandardMessageData, isStandardMessage } from "./message";
-import { StandardImportData } from "./metaData";
 import { StandardMomentData, isStandardMoment } from "./moment";
 import { StandardRoomData, isStandardRoom } from "./room";
 import { StandardThemeData, isStandardTheme } from "./theme";
@@ -34,17 +33,17 @@ export type StandardComponentNonEditData =
     StandardActionData |
     StandardImageData
 
-export type StandardRemoveData<T extends { key: string } = StandardComponentNonEditData> = {
+export type StandardRemoveData = {
     key: string;
     tag: 'Remove';
-    component: T;
+    component: StandardComponentNonEditData;
 }
 
-export type StandardReplaceData<T extends { key: string } = StandardComponentNonEditData> = {
+export type StandardReplaceData = {
     key: string;
     tag: 'Replace';
-    match: T;
-    payload: T;
+    match: StandardComponentNonEditData;
+    payload: StandardComponentNonEditData;
 }
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
@@ -65,7 +64,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardImage(value)
 )
 
-export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData<StandardComponentNonEditData> => {
+export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {
     if (typeof arg !== 'object') {
         return false
     }
@@ -120,12 +119,4 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
         ('byId' in arg && typeof arg.byId === 'object' && Object.values(arg.byId).every(isStandardComponent))
     )
-}
-
-export type StandardAssetHeaderData = {
-    key: string;
-    tag: 'Asset';
-    metaData: GenericTree<SchemaTag>;
-    imports: StandardImportData[];
-    export?: StandardImportData;
 }
