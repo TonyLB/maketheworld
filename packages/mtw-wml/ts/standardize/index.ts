@@ -26,7 +26,7 @@ import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentImport, StandardComponentImportRemove } from "./components/dataTypes/metaData"
+import { StandardComponentExport, StandardComponentImport, StandardComponentImportRemove } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
 import { deepEqual, objectFilterEntries } from "../lib/objects"
@@ -557,15 +557,20 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
 // Utility function to create exportItemById and importItemById objects, then use them to inform the
 // creation of this._byId
 //
-const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: Record<string, StandardComponentImport>; exportItemById: Record<string, StandardComponentExport> } => {
-    const mergeExportIntoEntries = (previous: Record<string, StandardComponentExport>, incoming: Record<string, StandardComponentExport>): Record<string, StandardComponentExport> => {
+const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: Record<string, StandardImportItem>; exportItemById: Record<string, StandardExportItem> } => {
+    const mergeExportIntoEntries = (previous: Record<string, StandardExportItem>, incoming: Record<string, StandardComponentExport>): Record<string, StandardExportItem> => {
         const [[key, incomingData]] = Object.entries(incoming)
-        const baseData = previous[key]
-        const mergedData = baseData ? mergeStandardComponentExport(baseData, incomingData) : incomingData
-        if (mergedData) {
+        const baseItem = previous[key]
+        const incomingItem = incomingData.action === 'Content'
+            ? new ExportItemContent(incomingData.payload)
+            : incomingData.action === 'Remove'
+                ? new ExportItemRemove(incomingData.match)
+                : new ExportItemReplace(incomingData.match, incomingData.payload)
+        const mergedItem = baseItem ? baseItem.merge(incomingItem) : incomingItem
+        if (mergedItem) {
             return {
                 ...previous,
-                [key]: mergedData
+                [key]: mergedItem
             }
         }
         else {
@@ -573,7 +578,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
         }
     }
     const exportItemById = tree.filter(wrappedNodeTypeGuard(isSchemaExport))
-        .reduce<Record<string, StandardComponentExport>>((previous, node) => {
+        .reduce<Record<string, StandardExportItem>>((previous, node) => {
             if (treeNodeTypeguard(isSchemaRemove)(node)) {
                 const child = node.children[0]
                 if (child && treeNodeTypeguard(isSchemaExport)(child)) {
@@ -583,7 +588,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                         .map(({ data }) => (data))
                         .filter(isImportable)
                         .map(({ key, as }) => ({ [key]: { action: 'Remove' as const, match: as ?? key } }))
-                        .reduce<Record<string, StandardComponentExport>>(mergeExportIntoEntries, previous)
+                        .reduce<Record<string, StandardExportItem>>(mergeExportIntoEntries, previous)
                 }
             }
             if (treeNodeTypeguard(isSchemaReplace)(node)) {
@@ -626,14 +631,19 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
             }
             return previous
         }, {})
-    const mergeImportIntoEntries = (previous: Record<string, StandardComponentImport>, incoming: Record<string, StandardComponentImport>): Record<string, StandardComponentImport> => {
+    const mergeImportIntoEntries = (previous: Record<string, StandardImportItem>, incoming: Record<string, StandardComponentImport>): Record<string, StandardImportItem> => {
         const [[key, incomingData]] = Object.entries(incoming)
-        const baseData = previous[key]
-        const mergedData = baseData ? mergeStandardComponentImport(baseData, incomingData) : incomingData
-        if (mergedData) {
+        const baseItem = previous[key]
+        const incomingItem = incomingData.action === 'Content'
+            ? new ImportItemContent(incomingData.payload.assetId, incomingData.payload.fromKey)
+            : incomingData.action === 'Remove'
+                ? new ImportItemRemove(incomingData.match.assetId, incomingData.match.fromKey)
+                : new ImportItemReplace(incomingData.match, incomingData.payload)
+        const mergedItem = baseItem ? baseItem.merge(incomingItem) : incomingItem
+        if (mergedItem) {
             return {
                 ...previous,
-                [key]: mergedData
+                [key]: mergedItem
             }
         }
         else {
@@ -641,7 +651,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
         }
     }
     const importItemById = tree.filter(wrappedNodeTypeGuard(isSchemaImport))
-        .reduce<Record<string, StandardComponentImport>>((previous, node) => {
+        .reduce<Record<string, StandardImportItem>>((previous, node) => {
             if (treeNodeTypeguard(isSchemaRemove)(node)) {
                 const child = node.children[0]
                 if (child && treeNodeTypeguard(isSchemaImport)(child)) {
@@ -651,7 +661,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                         .map(({ data }) => (data))
                         .filter(isImportable)
                         .map(({ key, from }) => ({ [key]: { action: 'Remove' as const, match: { assetId: child.data.from, fromKey: from ?? key } } }))
-                        .reduce<Record<string, StandardComponentImport>>(mergeImportIntoEntries, previous)
+                        .reduce<Record<string, StandardImportItem>>(mergeImportIntoEntries, previous)
                 }
             }
             if (treeNodeTypeguard(isSchemaReplace)(node)) {
