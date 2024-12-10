@@ -18,8 +18,9 @@ import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
-import { mergeStandardComponentExport, mergeStandardComponentImport, StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
+import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
@@ -37,10 +38,10 @@ export interface StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
-    from?: StandardComponentImport;
-    withImport(importData: StandardComponentImport | undefined): StandardComponent;
-    exportAs?: StandardComponentExport;
-    withExport(exportData: StandardComponentExport | undefined): StandardComponent;
+    import?: StandardImportItem;
+    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
+    export?: StandardExportItem;
+    withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
     toJSON(): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
@@ -52,8 +53,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
     return class GeneratedComponentClass implements StandardComponent {
         _key: KeyPayload;
         _payload: InstanceType<typeof Base>;
-        _import?: StandardComponentImport;
-        _export?: StandardComponentExport;
+        _import?: StandardImportItem;
+        _export?: StandardExportItem;
         constructor(props: string | D | GenericTreeNode<SchemaTag>) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -79,15 +80,15 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get universalKey(): string | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return this._key.fileName }
         get tag(): SchemaWithKey["tag"] { return this._payload.tag }
-        get from(): StandardComponentImport | undefined { return this._import }
-        get exportAs(): StandardComponentExport | undefined { return this._export }
+        get import(): StandardImportItem | undefined { return this._import }
+        get export(): StandardExportItem | undefined { return this._export }
 
         toJSON(): D {
             return {
                 ...this._key.toJSON(),
                 ...this._payload.toJSON(),
-                ...(this.from ? { from: this.from } : {}),
-                ...(this.exportAs ? { exportAs: this.exportAs } : {})
+                ...(this.import ? { from: this.import.toJSON() } : {}),
+                ...(this.export ? { exportAs: this.export.toJSON() } : {})
             } as D
         }
 
@@ -117,24 +118,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._key._fileName = incoming.fileName ?? this.fileName
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             //
-            // Merge base and incoming import
+            // Merge base and incoming import and export
             //
-            if (this.from && incoming.from) {
-                returnValue._import = mergeStandardComponentImport(this.from, incoming.from)
-            }
-            else {
-                returnValue._import = this.from ?? incoming.from
-            }
-            //
-            // Merge base and incoming export
-            //
-            if (this.exportAs && incoming.exportAs) {
-                returnValue._export = mergeStandardComponentExport(this.exportAs, incoming.exportAs)
-            }
-            else {
-                returnValue._export = this.exportAs ?? incoming.exportAs
-            }
-            return returnValue as this
+            returnValue._import = (this.import && incoming.import) ? this.import.merge(incoming.import) : this.import ?? incoming.import
+            returnValue._export = (this.export && incoming.export) ? this.export.merge(incoming.export) : this.export ?? incoming.export
+
+            return returnValue as StandardComponent
         }
 
         withUniversalKey(key: string | undefined): StandardComponent {
@@ -157,21 +146,71 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue
         }
 
-        withImport(importData: StandardComponentImport | undefined): StandardComponent {
+        withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
             returnValue._payload = this._payload
             returnValue._key = this._key
-            returnValue._import = importData
+            if (importData) {
+                let importItem: StandardImportItem | undefined = undefined
+
+                if (importData instanceof ImportItemContent || importData instanceof ImportItemRemove || importData instanceof ImportItemReplace) {
+                    importItem = importData
+                }
+                else if ('action' in importData) {
+                    switch(importData.action) {
+                        case 'Content':
+                            importItem = new ImportItemContent(importData.payload.assetId, importData.payload.fromKey)
+                            break
+                        case 'Remove':
+                            importItem = new ImportItemRemove(importData.match.assetId, importData.match.fromKey)
+                            break
+                        case 'Replace':
+                            importItem = new ImportItemReplace(
+                                { assetId: importData.match.assetId, fromKey: importData.match.fromKey },
+                                { assetId: importData.payload.assetId, fromKey: importData.payload.fromKey }
+                            )
+                            break
+                    }
+                }
+                if (importItem) {
+                    returnValue._import = importItem
+                }
+            }
             returnValue._export = this._export
             return returnValue
         }
 
-        withExport(exportData: StandardComponentExport | undefined): StandardComponent {
+        withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
             returnValue._payload = this._payload
             returnValue._key = this._key
             returnValue._import = this._import
-            returnValue._export = exportData
+            if (exportData) {
+                let exportItem: StandardExportItem | undefined = undefined
+
+                if (typeof exportData === 'string') {
+                    exportItem = new ExportItemContent(exportData)
+                }
+                else if (exportData instanceof ExportItemContent || exportData instanceof ExportItemRemove || exportData instanceof ExportItemReplace) {
+                    exportItem = exportData
+                }
+                else if ('action' in exportData) {
+                    switch(exportData.action) {
+                        case 'Content':
+                            exportItem = new ExportItemContent(exportData.payload)
+                            break
+                        case 'Remove':
+                            exportItem = new ExportItemRemove(exportData.match)
+                            break
+                        case 'Replace':
+                            exportItem = new ExportItemReplace(exportData.match, exportData.payload)
+                            break
+                    }
+                }
+                if (exportItem) {
+                    returnValue._export = exportItem
+                }
+            }
             return returnValue
         }
     }
