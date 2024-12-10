@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, SchemaCharacterTag, isSchemaMeta, SchemaAssetTag, SchemaExportTag, isSchemaExport, isSchemaRemove, SchemaImportableBase, SchemaExitTag, SchemaImportTag, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
@@ -26,7 +26,7 @@ import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardComponentExport, StandardComponentImport, StandardComponentImportRemove } from "./components/dataTypes/metaData"
+import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
 import { deepEqual, objectFilterEntries } from "../lib/objects"
@@ -558,14 +558,9 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
 // creation of this._byId
 //
 const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: Record<string, StandardImportItem>; exportItemById: Record<string, StandardExportItem> } => {
-    const mergeExportIntoEntries = (previous: Record<string, StandardExportItem>, incoming: Record<string, StandardComponentExport>): Record<string, StandardExportItem> => {
-        const [[key, incomingData]] = Object.entries(incoming)
+    const mergeExportIntoEntries = (previous: Record<string, StandardExportItem>, incoming: Record<string, StandardExportItem>): Record<string, StandardExportItem> => {
+        const [[key, incomingItem]] = Object.entries(incoming)
         const baseItem = previous[key]
-        const incomingItem = incomingData.action === 'Content'
-            ? new ExportItemContent(incomingData.payload)
-            : incomingData.action === 'Remove'
-                ? new ExportItemRemove(incomingData.match)
-                : new ExportItemReplace(incomingData.match, incomingData.payload)
         const mergedItem = baseItem ? baseItem.merge(incomingItem) : incomingItem
         if (mergedItem) {
             return {
@@ -587,7 +582,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                         .filter(excludeUndefined)
                         .map(({ data }) => (data))
                         .filter(isImportable)
-                        .map(({ key, as }) => ({ [key]: { action: 'Remove' as const, match: as ?? key } }))
+                        .map(({ key, as }) => ({ [key]: new ExportItemRemove(as ?? key) }))
                         .reduce<Record<string, StandardExportItem>>(mergeExportIntoEntries, previous)
                 }
             }
@@ -601,7 +596,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                     .filter(excludeUndefined)
                     .map(({ data }) => (data))
                     .filter(isImportable)
-                    .map(({ key, as }) => ({ [key]: { action: 'Remove' as const, match: as ?? key } }))
+                    .map(({ key, as }) => ({ [key]: new ExportItemRemove(as ?? key) }))
                 const replaceActions = node.children
                     .filter(treeNodeTypeguard(isSchemaReplace))
                     .map(({ children }) => ({
@@ -610,14 +605,14 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                     }))
                     .map(({ match, payload }) => (
                         (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
-                            ? [{ [match.data.key]: { action: 'Replace' as const, match: match.data.as ?? match.data.key, payload: payload.data.as ?? payload.data.key } }]
+                            ? [{ [match.data.key]: new ExportItemReplace(match.data.as ?? match.data.key, payload.data.as ?? payload.data.key) }]
                             : []
                     ))
                     .flat(1)
                 const contentActions = node.children
                     .filter(treeNodeTypeguard(isImportable))
                     .map(({ data }) => (data))
-                    .map(({ key, as }) => ({ [key]: { action: 'Content' as const, payload: as ?? key } }))
+                    .map(({ key, as }) => ({ [key]: new ExportItemContent(as ?? key) }))
                 return contentActions.reduce(
                     mergeExportIntoEntries,
                     replaceActions.reduce(
@@ -631,14 +626,9 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
             }
             return previous
         }, {})
-    const mergeImportIntoEntries = (previous: Record<string, StandardImportItem>, incoming: Record<string, StandardComponentImport>): Record<string, StandardImportItem> => {
-        const [[key, incomingData]] = Object.entries(incoming)
+    const mergeImportIntoEntries = (previous: Record<string, StandardImportItem>, incoming: Record<string, StandardImportItem>): Record<string, StandardImportItem> => {
+        const [[key, incomingItem]] = Object.entries(incoming)
         const baseItem = previous[key]
-        const incomingItem = incomingData.action === 'Content'
-            ? new ImportItemContent(incomingData.payload.assetId, incomingData.payload.fromKey)
-            : incomingData.action === 'Remove'
-                ? new ImportItemRemove(incomingData.match.assetId, incomingData.match.fromKey)
-                : new ImportItemReplace(incomingData.match, incomingData.payload)
         const mergedItem = baseItem ? baseItem.merge(incomingItem) : incomingItem
         if (mergedItem) {
             return {
@@ -660,7 +650,7 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                         .filter(excludeUndefined)
                         .map(({ data }) => (data))
                         .filter(isImportable)
-                        .map(({ key, from }) => ({ [key]: { action: 'Remove' as const, match: { assetId: child.data.from, fromKey: from ?? key } } }))
+                        .map(({ key, from }) => ({ [key]: new ImportItemRemove(child.data.from, from ?? key) }))
                         .reduce<Record<string, StandardImportItem>>(mergeImportIntoEntries, previous)
                 }
             }
@@ -668,13 +658,13 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                 throw new Error('Top-level replace of Export tags not yet implemented')
             }
             if (treeNodeTypeguard(isSchemaImport)(node)) {
-                const removeActions: Record<string, StandardComponentImportRemove>[] = node.children
+                const removeActions: Record<string, StandardImportItem>[] = node.children
                     .filter(treeNodeTypeguard(isSchemaRemove))
                     .map(unwrapSubject)
                     .filter(excludeUndefined)
                     .map(({ data }) => (data))
                     .filter(isImportable)
-                    .map(({ key, from }) => ({ [key]: { action: 'Remove' as const, match: { assetId: node.data.from, fromKey: from ?? key } } }))
+                    .map(({ key, from }) => ({ [key]: new ImportItemRemove(node.data.from, from ?? key) }))
                 const replaceActions = node.children
                     .filter(treeNodeTypeguard(isSchemaReplace))
                     .map(({ children }) => ({
@@ -683,18 +673,17 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
                     }))
                     .map(({ match, payload }) => (
                         (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
-                            ? [{ [match.data.key]: {
-                                action: 'Replace' as const,
-                                match: { assetId: node.data.from, fromKey: match.data.from ?? match.data.key },
-                                payload: { assetId: node.data.from, fromKey: payload.data.from ?? payload.data.key }
-                            } }]
+                            ? [{ [match.data.key]: new ImportItemReplace(
+                                { assetId: node.data.from, fromKey: match.data.from ?? match.data.key },
+                                { assetId: node.data.from, fromKey: payload.data.from ?? payload.data.key }
+                            ) }]
                             : []
                     ))
                     .flat(1)
                 const contentActions = node.children
                     .filter(treeNodeTypeguard(isImportable))
                     .map(({ data }) => (data))
-                    .map(({ key, from }) => ({ [key]: { action: 'Content' as const, payload: { assetId: node.data.from, fromKey: from ?? key } } }))
+                    .map(({ key, from }) => ({ [key]: new ImportItemContent(node.data.from, from ?? key) }))
                 return contentActions.reduce(
                     mergeImportIntoEntries,
                     replaceActions.reduce(
