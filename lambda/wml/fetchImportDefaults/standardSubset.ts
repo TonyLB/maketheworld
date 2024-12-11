@@ -104,21 +104,21 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
                     name: undefined,
                     summary: undefined,
                     description: undefined,
-                })]
+                }).withImport(component.import).withExport(component.export)]
             }
             else if (component instanceof StandardFeature) {
                 return [new StandardFeature({
                     ...component.toJSON() as StandardFeatureData,
                     name: undefined,
                     description: undefined
-                })]
+                }).withImport(component.import).withExport(component.export)]
             }
             else if (component instanceof StandardKnowledge) {
                 return [new StandardKnowledge({
                     ...component.toJSON() as StandardKnowledgeData,
                     name: undefined,
                     description: undefined
-                })]
+                }).withImport(component.import).withExport(component.export)]
             }
             else if (component instanceof StandardAction) {
                 return [component]

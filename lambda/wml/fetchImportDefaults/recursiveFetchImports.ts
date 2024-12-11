@@ -1,16 +1,19 @@
-import { splitType } from "@tonylb/mtw-utilities/ts/types"
 import {
     isImportable,
     isSchemaExit,
     isSchemaRoom,
     SchemaTag
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
-import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import { FetchImportsJSONHelper } from "./baseClasses"
 import standardSubset from "./standardSubset"
-import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { GenericTreeNodeFiltered } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
+import { ExportItemContent, ImportItemContent } from "@tonylb/mtw-wml/ts/standardize/components/metaData"
+import { unique } from "@tonylb/mtw-wml/ts/list"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 //
 // The translateToFinal class accepts:
@@ -118,61 +121,82 @@ export class NestedTranslateImportToFinal extends Object {
 type RecursiveFetchImportArgument = {
     assetId: `ASSET#${string}`;
     jsonHelper: FetchImportsJSONHelper;
-    translate: NestedTranslateImportToFinal;
-    prefixStubKeys?: boolean;
+    fullKeys: string[];
+    stubKeys: string[];
 }
 
-export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<GenericTree<SchemaTag>> => {
-    const { localKeys: keys, localStubKeys: stubKeys } = translate
-    const { standard } = await jsonHelper.get(assetId)
+export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stubKeys }: RecursiveFetchImportArgument): Promise<StandardForm> => {
+    const standard = await jsonHelper.get(assetId)
+    const keysByExportAs = Object.values(standard.byId)
+        .reduce<Record<string, string>>((previous, component) => {
+            const exportAs = component.export instanceof ExportItemContent ? component.export._exportAs : undefined
+            return {
+                ...previous,
+                [exportAs ?? component.key]: component.key
+            }
+        }, {})
 
-    const { newStubKeys, standard: newStandard } = standardSubset({ standard, keys, stubKeys })
-    newStubKeys.forEach((key) => {
-        translate.addTranslation(key, prefixStubKeys ? `${splitType(assetId)[1]}.${key}` : key)
+    const { newStubKeys, standard: newStandard } = standardSubset({
+        standard,
+        keys: fullKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined),
+        stubKeys: stubKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined),
     })
+    const allStubKeys = unique(stubKeys, newStubKeys)
 
-    const relevantImports = newStandard.metaData
-        .filter(treeNodeTypeguard(isSchemaImport))
-        .reduce<{ assetId: `ASSET#${string}`; mapping: GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> }[]>((previous, { data, children }) => {
-            const filteredChildren = children
-                .filter(treeNodeTypeguard(isImportable))
-                .filter(({ data }) => ([...keys, ...stubKeys, ...newStubKeys].includes(data.as ?? data.key)))
-            if (filteredChildren.length) {
-                return [
+    //
+    // Check all components in the subset standardForm, and see whether they require imports. From
+    // that examination, make a record by AssetId of:
+    //    (a) What fullKeys and stubKeys need to be imported from the ancestor Asset, and
+    //    (b) How to map those keys (when received) to the names that they have in the child standardForm
+    //
+    const relevantImportsByAssetId = Object.values(newStandard.byId)
+        .reduce<Record<string, { fullKeys: Record<EphemeraAssetId, string>; stubKeys: Record<string, string> }>>((previous, component) => {
+            const importItem = component.import
+            if (importItem instanceof ImportItemContent) {
+                const fullOrStub = allStubKeys.includes(component.key) ? 'stubKeys' : 'fullKeys'
+                return {
                     ...previous,
-                    {
-                        assetId: `ASSET#${data.from}`,
-                        mapping: { data, children: filteredChildren }
+                    [importItem.assetId]: {
+                        ...(previous[importItem.assetId] ?? { fullKeys: {}, stubKeys: {} }),
+                        [fullOrStub]: {
+                            ...(previous[importItem.assetId]?.[fullOrStub] ?? {}),
+                            [importItem.fromKey]: component.key
+                        }
                     }
-                ]
+                }
             }
-            else {
-                return previous
-            }
-        }, [])
-    //
-    // Use nested translators from relevantImports to generate recursiveKeyFetches, and then to map
-    // the return values to local names
-    //
-    const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
-        const nestedTranslate = translate.nestMapping(keys, [...stubKeys, ...newStubKeys], mapping)
-        const tags: GenericTree<SchemaTag> = await recursiveFetchImports({ assetId, jsonHelper, translate: nestedTranslate, prefixStubKeys: true })
-        return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
-    }))).flat()
+            return previous
+        }, {})
 
-    const deserializeStandardizer = new Standardizer()
-    deserializeStandardizer.loadStandardForm({ ...newStandard, metaData: [] })
-    const rawSchema = deserializeStandardizer.schema
-    const translatedSchema = [{ ...rawSchema[0], children: rawSchema[0].children.map((tag) => (translate.translateSchemaTag(tag))) }]
-    const mergeStandardizer = new Standardizer([{
-        ...translatedSchema[0],
-        children: [
-            ...importSchema,
-            ...translatedSchema[0].children
-        ]
-    }])
+    //
+    // Call recursively on all relevant imports, in order to generate flat pictures of each import
+    // (for the relevant components)
+    //
+    const recursiveImports = await Promise.all(Object.entries(relevantImportsByAssetId)
+        .map(([assetId, { fullKeys, stubKeys }]) => (
+            recursiveFetchImports({ assetId: `ASSET#${assetId}`, jsonHelper, fullKeys: Object.keys(fullKeys), stubKeys: Object.keys(stubKeys) })
+        ))
+    )
+    //
+    // TODO: Translate internal keys in the recursive imports into local namespace, resolving name collisions (which can only
+    // happen with stub-keys) by replacing them with "Stub###" keys
+    //
 
-    return mergeStandardizer.schema[0].children
+    //
+    // TODO: Merge all localized imports forward to the current level
+    //
+    const merged = recursiveImports.reduce<StandardForm>(
+        (previous, incoming) => (
+            incoming.merge(previous)
+        ), 
+        //
+        // Remove all imports and exports from standardSubset
+        //
+        new StandardForm(newStandard.toNDJSON().map((component) => ({ ...component, from: undefined, exportAs: undefined })))
+    )
+
+    newStandard._byId = merged.byId
+    return newStandard
 
 }
 
