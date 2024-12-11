@@ -2,13 +2,7 @@ import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { Graph } from "@tonylb/mtw-utilities/dist/graphStorage/utils/graph"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/ts/"
-import { NamespaceMapping } from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
-
-type JSONFileCache = {
-    standard: StandardFormData;
-    namespaceIdToDB: NamespaceMapping;
-}
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 export class InheritanceGraph extends Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}> {}
 
@@ -18,21 +12,15 @@ export class FetchImportsJSONHelper {
         this._inheritanceGraph = inheritanceGraph
     }
 
-    async get(assetId: EphemeraAssetId): Promise<JSONFileCache> {
+    async get(assetId: EphemeraAssetId): Promise<StandardForm> {
         const node = this._inheritanceGraph.nodes[assetId]
         if (node) {
             const assetWorkspace = new AssetWorkspace(node.address)
             await assetWorkspace.loadJSON()
-            return {
-                standard: assetWorkspace.standard ?? { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                namespaceIdToDB: assetWorkspace.namespaceIdToDB || []
-            }    
+            return new StandardForm(assetWorkspace.standard ?? '')
         }
         else {
-            return {
-                standard: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                namespaceIdToDB: []
-            }
+            return new StandardForm('')
         }
     }
 }
