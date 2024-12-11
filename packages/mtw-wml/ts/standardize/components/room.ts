@@ -7,8 +7,10 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
@@ -99,6 +101,27 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get description() { return this._payload.description }
     get exits() { return this._payload.exits }
     get themes() { return this._payload.themes }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardRoom(super.merge(incoming) as StandardRoom)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardRoom(super.withUniversalKey(key) as StandardRoom)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardRoom(super.withFileName(key) as StandardRoom)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardRoom(super.withImport(importData) as StandardRoom)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardRoom(super.withExport(exportData) as StandardRoom)
+    }
+
 }
 
 export default StandardRoom

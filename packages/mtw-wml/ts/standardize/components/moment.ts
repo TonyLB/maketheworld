@@ -2,8 +2,10 @@ import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: GenericTree<SchemaTag> = [];
@@ -48,6 +50,27 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
     get messages() { return this._payload.messages }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardMoment(super.merge(incoming) as StandardMoment)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardMoment(super.withUniversalKey(key) as StandardMoment)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardMoment(super.withFileName(key) as StandardMoment)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardMoment(super.withImport(importData) as StandardMoment)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardMoment(super.withExport(exportData) as StandardMoment)
+    }
+
 }
 
 export default StandardMoment

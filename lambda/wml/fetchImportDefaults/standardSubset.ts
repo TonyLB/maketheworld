@@ -10,27 +10,30 @@ import {
     isSchemaExit
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
-import { isStandardAction, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
+import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
+import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
+import StandardAction from "@tonylb/mtw-wml/ts/standardize/components/action"
+import { StandardRoomData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/room"
+import { StandardFeatureData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature"
+import { StandardKnowledgeData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/knowledge"
 
-export const standardSubset = ({ standard, keys, stubKeys }: { standard: StandardFormData, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: StandardFormData } => {
-    const standardizer = new Standardizer()
-    standardizer.loadStandardForm(standard)
-
+export const standardSubset = ({ standard, keys, stubKeys }: { standard: StandardForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; standard: StandardForm } => {
     //
     // Extend the incoming stubKeys with any that need to be added because of connection to first-class
     // keys
     //
     const newMapKeys = unique(
-        Object.values(standardizer.standardForm.byId)
-            .filter(isStandardMap)
-            .map(({ positions, key }) => {
-                if (!keys.includes(key)) {
+        Object.values(standard.byId)
+            .filter((component): component is StandardMap => (Boolean(component instanceof StandardMap)))
+            .map((component) => {
+                if (!keys.includes(component.key)) {
                     return []
                 }
-                const tagTree = new SchemaTagTree(positions)
+                const tagTree = new SchemaTagTree(component.positions)
                 const finalMapTargets = tagTree
                     .prune({ not: { match: 'Room' }})
                     .tree
@@ -38,12 +41,13 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
                     .filter(isSchemaRoom)
                     .map(({ key }) => (key))
                 return finalMapTargets
-            }).flat(2)
+            })
+            .flat(2)
             .filter((key) => (!keys.includes(key)))
     )
     const newExitKeys = unique(
-        Object.values(standardizer.standardForm.byId)
-            .filter(isStandardRoom)
+        Object.values(standard.byId)
+            .filter((component) => (component instanceof StandardRoom))
             .map(({ key, exits }) => {
                 const tagTree = new SchemaTagTree(exits)
                 const finalExitTargets = tagTree
@@ -66,8 +70,8 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
             .filter((key) => (!keys.includes(key)))
     )
     const newLinkKeys = unique(
-        Object.values(standardizer.standardForm.byId)
-            .filter(isStandardRoom)
+        Object.values(standard.byId)
+            .filter((component) => (component instanceof StandardRoom))
             .map(({ key, summary, description }) => {
                 if (!keys.includes(key)) {
                     return []
@@ -91,26 +95,33 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
     // renders, or exits to non-key items)
     //
     const stubItems = allStubKeys
-        .map((key) => (standardizer.standardForm.byId[key]))
-        .filter((value) => (value))
-        .map((item) => {
-            if (isStandardRoom(item)) {
-                return [{
-                    ...item,
-                    name: { data: { tag: 'Name' }, children: [] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                }]
+        .map((key) => (standard.byId[key]))
+        .filter(excludeUndefined)
+        .map((component) => {
+            if (component instanceof StandardRoom) {
+                return [new StandardRoom({
+                    ...component.toJSON() as StandardRoomData,
+                    name: undefined,
+                    summary: undefined,
+                    description: undefined,
+                })]
             }
-            else if (isStandardFeature(item) || isStandardKnowledge(item)) {
-                return [{
-                    ...item,
-                    name: { data: { tag: 'Name' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] }
-                }]
+            else if (component instanceof StandardFeature) {
+                return [new StandardFeature({
+                    ...component.toJSON() as StandardFeatureData,
+                    name: undefined,
+                    description: undefined
+                })]
             }
-            else if (isStandardAction(item)) {
-                return [item]
+            else if (component instanceof StandardKnowledge) {
+                return [new StandardKnowledge({
+                    ...component.toJSON() as StandardKnowledgeData,
+                    name: undefined,
+                    description: undefined
+                })]
+            }
+            else if (component instanceof StandardAction) {
+                return [component]
             }
             else {
                 return []
@@ -119,14 +130,15 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
 
     const newById = Object.assign({},
         ...stubItems.map((item) => ({ [item.key]: item })),
-        ...Object.values(standardizer.standardForm.byId)
+        ...Object.values(standard.byId)
             .filter(({ key }) => (keys.includes(key)))
             .map((item) => ({ [item.key]: item }))
     )
 
-    standardizer._byId = newById
+    const returnValue = new StandardForm(standard.key)
+    returnValue._byId = newById
 
-    return { newStubKeys: newExitKeys, standard: standardizer.standardForm }
+    return { newStubKeys: newExitKeys, standard: returnValue }
 }
 
 export default standardSubset

@@ -4,8 +4,10 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardThemeData } from "./dataTypes/theme"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -85,6 +87,27 @@ export class StandardTheme extends componentClassFactory(StandardThemePayload, '
     get prompts() { return this._payload.prompts }
     get rooms() { return this._payload.rooms }
     get maps() { return this._payload.maps }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardTheme(super.merge(incoming) as StandardTheme)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardTheme(super.withUniversalKey(key) as StandardTheme)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardTheme(super.withFileName(key) as StandardTheme)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardTheme(super.withImport(importData) as StandardTheme)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardTheme(super.withExport(exportData) as StandardTheme)
+    }
+
 }
 
 export default StandardTheme
