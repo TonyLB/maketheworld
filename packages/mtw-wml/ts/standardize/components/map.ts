@@ -5,8 +5,10 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardMapData } from "./dataTypes/map"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
@@ -81,12 +83,31 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return returnValue as this
     }
 }
-
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
     get themes() { return this._payload.themes }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardMap(super.merge(incoming) as StandardMap)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardMap(super.withUniversalKey(key) as StandardMap)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardMap(super.withFileName(key) as StandardMap)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardMap(super.withImport(importData) as StandardMap)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardMap(super.withExport(exportData) as StandardMap)
+    }
 }
 
 export default StandardMap

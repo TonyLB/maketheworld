@@ -55,8 +55,15 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _export?: StandardExportItem;
-        constructor(props: string | D | GenericTreeNode<SchemaTag>) {
+        constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
+            if (props instanceof GeneratedComponentClass) {
+                this._key = props._key
+                this._payload = props._payload
+                this._import = props._import
+                this._export = props._export
+                return
+            }
             if (typeof props === 'string' && isLegalKey(props)) {
                 this._key = new KeyPayload(props)
                 return
@@ -127,29 +134,19 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         }
 
         withUniversalKey(key: string | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.key)
-            returnValue._payload = this._payload
-            returnValue._key._fileName = this._key._fileName
+            const returnValue = new GeneratedComponentClass(this)
             returnValue._key._universalKey = key
-            returnValue._import = this._import
-            returnValue._export = this._export
             return returnValue
         }
 
         withFileName(key: string | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.key)
-            returnValue._payload = this._payload
+            const returnValue = new GeneratedComponentClass(this)
             returnValue._key._fileName = key
-            returnValue._key._universalKey = this._key._universalKey
-            returnValue._import = this._import
-            returnValue._export = this._export
             return returnValue
         }
 
         withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.key)
-            returnValue._payload = this._payload
-            returnValue._key = this._key
+            const returnValue = new GeneratedComponentClass(this)
             if (importData) {
                 let importItem: StandardImportItem | undefined = undefined
 
@@ -176,15 +173,11 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                     returnValue._import = importItem
                 }
             }
-            returnValue._export = this._export
             return returnValue
         }
 
         withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.key)
-            returnValue._payload = this._payload
-            returnValue._key = this._key
-            returnValue._import = this._import
+            const returnValue = new GeneratedComponentClass(this)
             if (exportData) {
                 let exportItem: StandardExportItem | undefined = undefined
 

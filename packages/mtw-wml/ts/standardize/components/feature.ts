@@ -4,8 +4,10 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardFeatureData } from "./dataTypes/feature"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
@@ -60,6 +62,27 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardFeature(super.merge(incoming) as StandardFeature)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardFeature(super.withUniversalKey(key) as StandardFeature)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardFeature(super.withFileName(key) as StandardFeature)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardFeature(super.withImport(importData) as StandardFeature)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardFeature(super.withExport(exportData) as StandardFeature)
+    }
+
 }
 
 export default StandardFeature

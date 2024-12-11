@@ -1,7 +1,9 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComputedData } from "./dataTypes/computed"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardExportItem, StandardImportItem } from "./metaData";
 
 export class StandardComputedPayload implements ComponentConstructorMethods<StandardComputedData> {
     _src?: string;
@@ -49,6 +51,27 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
 export class StandardComputed extends componentClassFactory(StandardComputedPayload, 'StandardComputed') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardComputed(super.merge(incoming) as StandardComputed)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardComputed(super.withUniversalKey(key) as StandardComputed)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardComputed(super.withFileName(key) as StandardComputed)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardComputed(super.withImport(importData) as StandardComputed)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardComputed(super.withExport(exportData) as StandardComputed)
+    }
+
 }
 
 export default StandardComputed

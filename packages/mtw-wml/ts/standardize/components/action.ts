@@ -1,7 +1,9 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardActionData } from "./dataTypes/action"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 
 export class StandardActionPayload implements ComponentConstructorMethods<StandardActionData> {
     _src?: string;
@@ -47,6 +49,27 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
 export class StandardAction extends componentClassFactory(StandardActionPayload, 'StandardAction') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardAction(super.merge(incoming) as StandardAction)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardAction(super.withUniversalKey(key) as StandardAction)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardAction(super.withFileName(key) as StandardAction)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardAction(super.withImport(importData) as StandardAction)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardAction(super.withExport(exportData) as StandardAction)
+    }
+
 }
 
 export default StandardAction

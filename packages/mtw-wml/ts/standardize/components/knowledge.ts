@@ -4,8 +4,10 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
@@ -60,6 +62,27 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardKnowledge(super.withUniversalKey(key) as StandardKnowledge)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardKnowledge(super.withImport(importData) as StandardKnowledge)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardKnowledge(super.withExport(exportData) as StandardKnowledge)
+    }
+
 }
 
 export default StandardKnowledge

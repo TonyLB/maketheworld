@@ -4,8 +4,10 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardMessageData } from "./dataTypes/message"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 
@@ -64,6 +66,27 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardMessage(super.merge(incoming) as StandardMessage)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardMessage(super.withUniversalKey(key) as StandardMessage)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardMessage(super.withFileName(key) as StandardMessage)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardMessage(super.withImport(importData) as StandardMessage)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardMessage(super.withExport(exportData) as StandardMessage)
+    }
+
 }
 
 export default StandardMessage

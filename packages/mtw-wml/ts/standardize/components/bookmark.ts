@@ -5,7 +5,9 @@ import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -49,6 +51,27 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
 
 export class StandardBookmark extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
     get description() { return this._payload.description }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardBookmark(super.merge(incoming) as StandardBookmark)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardBookmark(super.withUniversalKey(key) as StandardBookmark)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardBookmark(super.withFileName(key) as StandardBookmark)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardBookmark(super.withImport(importData) as StandardBookmark)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardBookmark(super.withExport(exportData) as StandardBookmark)
+    }
+
 }
 
 export default StandardBookmark

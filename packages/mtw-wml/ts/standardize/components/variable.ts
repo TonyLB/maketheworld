@@ -1,7 +1,9 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardVariableData } from "./dataTypes/variable"
+import { StandardExportItem, StandardImportItem } from "./metaData";
 
 export class StandardVariablePayload implements ComponentConstructorMethods<StandardVariableData> {
     _default?: string;
@@ -44,6 +46,27 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
 
 export class StandardVariable extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
     get default() { return this._payload.default }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardVariable(super.merge(incoming) as StandardVariable)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardVariable(super.withUniversalKey(key) as StandardVariable)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardVariable(super.withFileName(key) as StandardVariable)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardVariable(super.withImport(importData) as StandardVariable)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardVariable(super.withExport(exportData) as StandardVariable)
+    }
+
 }
 
 export default StandardVariable
