@@ -2777,18 +2777,21 @@ describe('StandardForm', () => {
     })
 
     describe('subset method', () => {
-        it('should properly subset an asset by keys', () => {
+        it('should properly subset an asset by keys without cascade', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
-                    <Room key=(testRoom) />
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
                     <Feature key=(testFeature) />
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset(['testRoom', 'testFeature']).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
-                    <Room key=(testRoom) />
-                    <Feature key=(testFeature) />
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
                 </Asset>
             `))
         })    

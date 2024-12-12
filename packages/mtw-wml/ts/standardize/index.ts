@@ -1,6 +1,6 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardNDJSON } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
@@ -1282,11 +1282,20 @@ export class StandardForm {
         return returnValue
     }
 
-    subset(keys: string[]): StandardForm {
+    subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = new StandardForm(this.key)
         returnValue._metaData = [...this._metaData]
+        const requestTypeByKey = requests.reduce<Record<string, StandardFormSubsetRequest>>((previous, request) => {
+            if (request.requestType === 'Full') {
+                return Object.assign(
+                    previous,
+                    ...request.keys.map((key) => ({ [key]: request }))
+                )
+            }
+            return previous
+        }, {})
         returnValue._byId = Object.assign({},
-            ...(keys
+            ...(Object.keys(requestTypeByKey)
                 .map((key) => (
                     this.byId[key] ? [{ [key]: this.byId[key] }] : []
                 ))

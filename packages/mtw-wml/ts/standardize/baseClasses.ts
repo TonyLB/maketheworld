@@ -236,3 +236,12 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
     }
     return value.every(isStandardNDJSONLine)
 }
+
+export type StandardFormSubsetRequestFull = {
+    requestType: 'Full',
+    keys: string[];
+    cascadeCondition?: 'Text';
+    cascadeType?: StandardFormSubsetRequest["requestType"]
+}
+
+export type StandardFormSubsetRequest = StandardFormSubsetRequestFull
