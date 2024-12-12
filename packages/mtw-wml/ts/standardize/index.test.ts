@@ -2776,6 +2776,24 @@ describe('StandardForm', () => {
         })
     })
 
+    describe('subset method', () => {
+        it('should properly subset an asset by keys', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset(['testRoom', 'testFeature']).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                    <Feature key=(testFeature) />
+                </Asset>
+            `))
+        })    
+    })
+
     // it('should round-trip all component types through NDJSON', () => {
     //     const testWML = deIndentWML(`
     //         <Asset key=(test)>

@@ -29,7 +29,7 @@ import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
-import { deepEqual, objectFilterEntries } from "../lib/objects"
+import { deepEqual, objectFilterEntries, objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./components/metaData"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
@@ -1137,7 +1137,10 @@ export class StandardForm {
     }
 
     _clone(): StandardForm {
-        return new StandardForm(this.toNDJSON())
+        const returnValue = new StandardForm(this.key)
+        returnValue._metaData = [...this._metaData]
+        returnValue._byId = objectMap(this._byId, (component) => (component.clone()))
+        return returnValue
     }
 
     //
@@ -1280,8 +1283,17 @@ export class StandardForm {
     }
 
     subset(keys: string[]): StandardForm {
-        const returnValue = this._clone()
+        const returnValue = new StandardForm(this.key)
+        returnValue._metaData = [...this._metaData]
+        returnValue._byId = Object.assign({},
+            ...(keys
+                .map((key) => (
+                    this.byId[key] ? [{ [key]: this.byId[key] }] : []
+                ))
+                .flat(1)
+            )
+        )
 
-        return this
+        return returnValue
     }
 }
