@@ -2832,17 +2832,20 @@ describe('StandardForm', () => {
             `))
         })    
 
-        it('should properly subset an asset with text cascade', () => {
+        it('should properly subset an asset with link cascade', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <Description><Link to=(testFeature)>link</Link></Description>
                     </Room>
-                    <Feature key=(testFeature) />
+                    <Feature key=(testFeature)>
+                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo) />
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Text', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <Description><Link to=(testFeature)>link</Link></Description>
@@ -2850,7 +2853,34 @@ describe('StandardForm', () => {
                     <Feature key=(testFeature) />
                 </Asset>
             `))
+        })
+
+        it('should properly subset a chained cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature)>
+                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full' }] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature)>
+                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo) />
+                </Asset>
+            `))
         })    
+
     })
 
     // it('should round-trip all component types through NDJSON', () => {

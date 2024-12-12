@@ -241,8 +241,8 @@ export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: string[];
     cascadeConditions?: {
-        conditionType: 'Text';
-        cascadeType?: StandardFormSubsetRequest["requestType"];
+        conditionType: 'Link';
+        cascadeType: StandardFormSubsetRequest["requestType"];
     }[];
 }
 
@@ -260,3 +260,17 @@ export type StandardFormSubsetRequest =
     StandardFormSubsetRequestFull |
     StandardFormSubsetRequestShortName |
     StandardFormSubsetRequestStub
+
+export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRequest): number => {
+    if (!request) {
+        return Infinity
+    }
+    switch(request.requestType) {
+        case 'Full':
+            return 1
+        case 'ShortName':
+            return 2
+        case 'Stub':
+            return 3
+    }
+}

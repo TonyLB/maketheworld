@@ -1,6 +1,6 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardNDJSON } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
@@ -1296,31 +1296,66 @@ export class StandardForm {
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = new StandardForm(this.key)
         returnValue._metaData = [...this._metaData]
-        const requestTypeByKey = requests.reduce<Record<string, StandardFormSubsetRequest>>((previous, request) => {
-            if (request.requestType === 'Full') {
-                return Object.assign(
+        //
+        // Starting with all incoming requests as "unchecked", and an empty record of checked requests by Key,
+        // loop on:
+        //   - updating the checked-requests record with the unchecked requests, and
+        //   - in cases where that updates the record, checking the new requests, 
+        //   - adding any new keys that are caused by a cascade on checking requests to the "unchecked" bin
+        // ... until you run out of new records to check for cascades
+        //
+        let uncheckedRequests: StandardFormSubsetRequest[] = [...requests]
+        let requestTypeByKey: Record<string, StandardFormSubsetRequest> = {}
+        while(uncheckedRequests.length) {
+            const newRequestTypeByKey = uncheckedRequests.reduce<Record<string, StandardFormSubsetRequest>>((previous, request) => (
+                Object.assign(
                     previous,
-                    ...request.keys.map((key) => ({ [key]: request }))
+                    ...request.keys.map((key) => {
+                        const priorPriority = Math.min(
+                            standardFormSubsetRequestPriority(previous[key]),
+                            standardFormSubsetRequestPriority(requestTypeByKey[key])
+                        )
+                        if (standardFormSubsetRequestPriority(request) < priorPriority) {
+                            return { [key]: request }
+                        }
+                        else {
+                            return {}
+                        }
+                    })
                 )
+            ), {})
+            uncheckedRequests = Object.values(newRequestTypeByKey)
+                .filter((request): request is StandardFormSubsetRequestFull => (request.requestType === 'Full'))
+                .filter(({ cascadeConditions }) => ((cascadeConditions ?? []).length))
+                .map(({ keys, cascadeConditions }) => {
+                    return (cascadeConditions ?? [])
+                        .map(({ conditionType, cascadeType }): StandardFormSubsetRequest | undefined => {
+                            if (conditionType === 'Link') {
+                                return {
+                                    requestType: cascadeType,
+                                    keys: unique(
+                                        keys
+                                            .map((key) => (this.byId[key]))
+                                            .filter(excludeUndefined)
+                                            .map((component) => (
+                                                component.referencedKeys()
+                                                    .filter(({ referenceType }) => (referenceType === 'Link'))
+                                                    .map(({ key }) => (key))
+                                            ))
+                                            .flat(1)
+                                    )
+                                }
+                            }
+                        })
+                        .filter(excludeUndefined)
+                })
+                .flat(1)
+            requestTypeByKey = {
+                ...requestTypeByKey,
+                ...newRequestTypeByKey
             }
-            if (request.requestType === 'ShortName') {
-                return Object.assign(
-                    previous,
-                    ...request.keys
-                        .filter((key) => (!(['Full'].includes(previous[key]?.requestType))))
-                        .map((key) => ({ [key]: request }))
-                )
-            }
-            if (request.requestType === 'Stub') {
-                return Object.assign(
-                    previous,
-                    ...request.keys
-                        .filter((key) => (!(['Full', 'ShortName'].includes(previous[key]?.requestType))))
-                        .map((key) => ({ [key]: request }))
-                )
-            }
-            return previous
-        }, {})
+        }
+
         const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent) => {
             if (request.requestType === 'Full') {
                 return component
