@@ -1329,22 +1329,21 @@ export class StandardForm {
                 .filter(({ cascadeConditions }) => ((cascadeConditions ?? []).length))
                 .map(({ keys, cascadeConditions }) => {
                     return (cascadeConditions ?? [])
-                        .map(({ conditionType, cascadeType }): StandardFormSubsetRequest | undefined => {
-                            if (conditionType === 'Link') {
-                                return {
-                                    requestType: cascadeType,
-                                    keys: unique(
-                                        keys
-                                            .map((key) => (this.byId[key]))
-                                            .filter(excludeUndefined)
-                                            .map((component) => (
-                                                component.referencedKeys()
-                                                    .filter(({ referenceType }) => (referenceType === 'Link'))
-                                                    .map(({ key }) => (key))
-                                            ))
-                                            .flat(1)
-                                    )
-                                }
+                        .map(({ conditionType, cascadeType, chainCascade }): StandardFormSubsetRequest | undefined => {
+                            return {
+                                requestType: cascadeType,
+                                keys: unique(
+                                    keys
+                                        .map((key) => (this.byId[key]))
+                                        .filter(excludeUndefined)
+                                        .map((component) => (
+                                            component.referencedKeys()
+                                                .filter(({ referenceType }) => (referenceType === conditionType))
+                                                .map(({ key }) => (key))
+                                        ))
+                                        .flat(1)
+                                ),
+                                cascadeConditions: chainCascade ? cascadeConditions : undefined
                             }
                         })
                         .filter(excludeUndefined)

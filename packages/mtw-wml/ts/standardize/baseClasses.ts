@@ -241,8 +241,9 @@ export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: string[];
     cascadeConditions?: {
-        conditionType: 'Link';
+        conditionType: 'Link' | 'Position';
         cascadeType: StandardFormSubsetRequest["requestType"];
+        chainCascade?: boolean;
     }[];
 }
 

@@ -2868,7 +2868,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full' }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <Description><Link to=(testFeature)>link</Link></Description>
@@ -2880,6 +2880,53 @@ describe('StandardForm', () => {
                 </Asset>
             `))
         })    
+
+        it('should subset a looping chained cascade without error', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Feature key=(testFeature)>
+                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Feature>
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testFeature'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature key=(testFeature)>
+                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Feature>
+                </Asset>
+            `))
+        })    
+
+        it('should properly subset an asset with position cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Map key=(testMap)>
+                        <Room key=(testRoom)><Position x="0" y="0" /></Room>
+                    </Map>
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testMap'], cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                    <Map key=(testMap)>
+                        <Room key=(testRoom)><Position x="0" y="0" /></Room>
+                    </Map>
+                </Asset>
+            `))
+        })
 
     })
 
