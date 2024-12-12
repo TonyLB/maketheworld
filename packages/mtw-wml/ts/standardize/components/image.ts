@@ -8,6 +8,9 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
     tag = 'Image' as const;
 
+    constructor(previous?: StandardImagePayload) {
+    }
+
     fromJSON(props: StandardImageData) {
     }
 
@@ -38,6 +41,12 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
 }
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
+
+    override clone(): StandardImage {
+        const returnValue = new StandardImage(this)
+        returnValue._payload = new StandardImagePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardImage(super.merge(incoming) as StandardImage)

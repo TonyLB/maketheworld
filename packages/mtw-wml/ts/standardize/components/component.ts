@@ -34,6 +34,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
 
 export interface StandardComponent {
     key: string;
+    clone(): StandardComponent;
     universalKey?: string;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
@@ -89,6 +90,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get tag(): SchemaWithKey["tag"] { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
+
+        clone(): StandardComponent {
+            return new GeneratedComponentClass(this)
+        }
 
         toJSON(): D {
             return {

@@ -308,7 +308,12 @@ export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Remove' as const;
-    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag>) {
+    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove) {
+        if (props instanceof StandardRemove) {
+            this._key = props._key
+            this._match = props._match.clone()
+            return
+        }
         if (isSchemaTreeNode(props) || typeof props === 'string') {
             const node = typeof props === 'string'
                 ? nodeFromWML(props)
@@ -342,6 +347,10 @@ export class StandardRemove implements StandardComponent {
     get fileName() { return this._key.fileName }
     get import() { return this._match.import }
     get export() { return this._match.export }
+
+    clone(): StandardRemove {
+        return new StandardRemove(this)
+    }
 
     toJSON(): StandardRemoveData {
         return {
@@ -413,7 +422,13 @@ export class StandardReplace implements StandardComponent {
     _match: StandardComponent;
     _payload: StandardComponent
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Replace' as const;
-    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag>) {
+    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace) {
+        if (props instanceof StandardReplace) {
+            this._key = props._key
+            this._match = props._match.clone()
+            this._payload = props._payload.clone()
+            return
+        }
         if (isSchemaTreeNode(props) || typeof props === 'string') {
             const node = typeof props === 'string'
                 ? nodeFromWML(props)
@@ -460,6 +475,10 @@ export class StandardReplace implements StandardComponent {
     get fileName() { return this._key.fileName }
     get import() { return this._match.import }
     get export() { return this._match.export }
+
+    clone(): StandardReplace {
+        return new StandardReplace(this)
+    }
 
     toJSON(): StandardReplaceData {
         return {
@@ -1118,7 +1137,7 @@ export class StandardForm {
     }
 
     _clone(): StandardForm {
-        return new StandardForm(this.toJSON())
+        return new StandardForm(this.toNDJSON())
     }
 
     //
@@ -1258,5 +1277,11 @@ export class StandardForm {
         returnValue._metaData = applyEdits(combinedMetaData.tree)
 
         return returnValue
+    }
+
+    subset(keys: string[]): StandardForm {
+        const returnValue = this._clone()
+
+        return this
     }
 }

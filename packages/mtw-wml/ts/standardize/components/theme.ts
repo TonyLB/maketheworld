@@ -19,6 +19,15 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
     _maps: GenericTree<SchemaTag> = [];
     tag = 'Theme' as const
 
+    constructor(previous?: StandardThemePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._prompts = [...previous.prompts]
+            this._rooms = [...previous.rooms]
+            this._maps = [...previous.maps]
+        }
+    }
+
     fromJSON(props: StandardThemeData) {
         this._name = props.name
         this._prompts = props.prompts
@@ -87,6 +96,12 @@ export class StandardTheme extends componentClassFactory(StandardThemePayload, '
     get prompts() { return this._payload.prompts }
     get rooms() { return this._payload.rooms }
     get maps() { return this._payload.maps }
+
+    override clone(): StandardTheme {
+        const returnValue = new StandardTheme(this)
+        returnValue._payload = new StandardThemePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardTheme(super.merge(incoming) as StandardTheme)

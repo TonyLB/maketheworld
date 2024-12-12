@@ -11,6 +11,12 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     _messages: GenericTree<SchemaTag> = [];
     tag = 'Moment' as const
 
+    constructor(previous?: StandardMomentPayload) {
+        if (previous) {
+            this._messages = [...previous.messages]
+        }
+    }
+
     fromJSON(props: StandardMomentData) {
         this._messages = props.messages
     }
@@ -50,6 +56,12 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
     get messages() { return this._payload.messages }
+
+    override clone(): StandardMoment {
+        const returnValue = new StandardMoment(this)
+        returnValue._payload = new StandardMomentPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMoment(super.merge(incoming) as StandardMoment)

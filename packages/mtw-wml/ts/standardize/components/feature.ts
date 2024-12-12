@@ -16,6 +16,13 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Feature' as const
 
+    constructor(previous?: StandardFeaturePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._description = previous.description
+        }
+    }
+
     fromJSON(props: StandardFeatureData) {
         this._name = props.name
         this._description = props.description
@@ -62,6 +69,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override clone(): StandardFeature {
+        const returnValue = new StandardFeature(this)
+        returnValue._payload = new StandardFeaturePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardFeature(super.merge(incoming) as StandardFeature)

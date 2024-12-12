@@ -16,6 +16,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     _rooms: GenericTree<SchemaTag> = [];
     tag = 'Message' as const
 
+    constructor(previous?: StandardMessagePayload) {
+        if (previous) {
+            this._description = previous._description
+            this._rooms = [...previous._rooms]
+        }
+    }
+
     fromJSON(props: StandardMessageData) {
         this._description = props.description
         this._rooms = props.rooms
@@ -66,6 +73,12 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
+
+    override clone(): StandardMessage {
+        const returnValue = new StandardMessage(this)
+        returnValue._payload = new StandardMessagePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMessage(super.merge(incoming) as StandardMessage)

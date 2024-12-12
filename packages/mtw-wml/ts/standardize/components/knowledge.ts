@@ -16,6 +16,13 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Knowledge' as const
 
+    constructor(previous?: StandardKnowledgePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._description = previous.description
+        }
+    }
+
     fromJSON(props: StandardKnowledgeData) {
         this._name = props.name
         this._description = props.description
@@ -62,6 +69,12 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override clone(): StandardKnowledge {
+        const returnValue = new StandardKnowledge(this)
+        returnValue._payload = new StandardKnowledgePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)

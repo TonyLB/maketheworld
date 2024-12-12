@@ -10,6 +10,13 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
     _dependencies?: string[];
     tag = 'Action' as const;
 
+    constructor(previous?: StandardActionPayload) {
+        if (previous) {
+            this._src = `${previous.src}`
+            this._dependencies = previous.dependencies ? [...previous.dependencies] : undefined
+        }
+    }
+
     fromJSON(props: StandardActionData) {
         this._src = props.src
     }
@@ -49,6 +56,12 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
 export class StandardAction extends componentClassFactory(StandardActionPayload, 'StandardAction') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
+
+    override clone(): StandardAction {
+        const returnValue = new StandardAction(this)
+        returnValue._payload = new StandardActionPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardAction(super.merge(incoming) as StandardAction)

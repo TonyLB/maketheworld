@@ -13,6 +13,12 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Bookmark' as const
 
+    constructor(previous?: StandardBookmarkPayload) {
+        if (previous) {
+            this._description = previous._description
+        }
+    }
+
     fromJSON(props: StandardBookmarkData) {
         this._description = props.description
     }
@@ -51,6 +57,12 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
 
 export class StandardBookmark extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
     get description() { return this._payload.description }
+
+    override clone(): StandardBookmark {
+        const returnValue = new StandardBookmark(this)
+        returnValue._payload = new StandardBookmarkPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardBookmark(super.merge(incoming) as StandardBookmark)
