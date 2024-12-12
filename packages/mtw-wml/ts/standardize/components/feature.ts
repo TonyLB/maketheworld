@@ -9,6 +9,7 @@ import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import linkReferenceKeys from "./utils/references"
 import { combineTaggedChildren } from "./utils/merge"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
@@ -63,6 +64,11 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return linkReferenceKeys(this.description ? [this.description] : [])
+            .map((key) => ({ referenceType: 'Link', key }))
     }
 }
 

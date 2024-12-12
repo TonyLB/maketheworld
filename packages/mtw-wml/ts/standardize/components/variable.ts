@@ -48,6 +48,10 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         returnValue._default = incoming.default ?? this.default
         return returnValue as this
     }
+    
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+        return []
+    }
 }
 
 export class StandardVariable extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {

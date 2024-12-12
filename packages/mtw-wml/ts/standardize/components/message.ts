@@ -10,6 +10,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { directReferenceKeys } from "./utils/references"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -67,6 +68,11 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
         return returnValue as this
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return directReferenceKeys(this.rooms)
+            .map((key) => ({ referenceType: 'Direct', key }))
     }
 }
 

@@ -8,6 +8,7 @@ import { combineTaggedChildren } from "./utils/merge"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import linkReferenceKeys from "./utils/references"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -52,6 +53,11 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
         const returnValue = new StandardBookmarkPayload()
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return linkReferenceKeys(this.description ? [this.description] : [])
+            .map((key) => ({ referenceType: 'Link', key }))
     }
 }
 

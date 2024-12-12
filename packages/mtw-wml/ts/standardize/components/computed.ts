@@ -53,6 +53,10 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         returnValue._src = incoming.src ?? this.src
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+        return []
+    }
 }
 
 export class StandardComputed extends componentClassFactory(StandardComputedPayload, 'StandardComputed') {

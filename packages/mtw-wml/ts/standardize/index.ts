@@ -348,6 +348,10 @@ export class StandardRemove implements StandardComponent {
     get import() { return this._match.import }
     get export() { return this._match.export }
 
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return this._match.referencedKeys()
+    }
+
     clone(): StandardRemove {
         return new StandardRemove(this)
     }
@@ -516,6 +520,13 @@ export class StandardReplace implements StandardComponent {
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: incoming._payload.toJSON() as StandardComponentNonEditData
         }).withUniversalKey(this.universalKey)
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return [
+            ...this._match.referencedKeys(),
+            ...this._payload.referencedKeys()
+        ]
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {

@@ -38,6 +38,10 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         const returnValue = new StandardImagePayload()
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return []
+    }
 }
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {

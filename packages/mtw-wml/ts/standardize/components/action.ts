@@ -51,6 +51,10 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
         returnValue._src = incoming.src ?? this.src
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+        return []
+    }
 }
 
 export class StandardAction extends componentClassFactory(StandardActionPayload, 'StandardAction') {

@@ -12,6 +12,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { positionReferenceKeys } from "./utils/references"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -90,6 +91,11 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         returnValue._positions = applyEdits([...this.positions, ...incoming.positions])
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue as this
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return positionReferenceKeys(this.positions ?? [])
+            .map((key) => ({ referenceType: 'Position', key }))
     }
 }
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {

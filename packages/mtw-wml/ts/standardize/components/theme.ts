@@ -11,6 +11,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { directReferenceKeys } from "./utils/references"
 
 export class StandardThemePayload implements ComponentConstructorMethods<StandardThemeData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -88,6 +89,11 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
         returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
         returnValue._maps = applyEdits([...this.maps, ...incoming.maps])
         return returnValue as this
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return directReferenceKeys([...this.rooms, ...this.maps])
+            .map((key) => ({ referenceType: 'Direct', key }))
     }
 }
 
