@@ -2777,10 +2777,11 @@ describe('StandardForm', () => {
     })
 
     describe('subset method', () => {
-        it('should properly subset an asset by keys without cascade', () => {
+        it('should properly subset an asset with full content without cascade', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
                         <Description><Link to=(testFeature)>link</Link></Description>
                     </Room>
                     <Feature key=(testFeature) />
@@ -2790,8 +2791,45 @@ describe('StandardForm', () => {
             expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
                         <Description><Link to=(testFeature)>link</Link></Description>
                     </Room>
+                </Asset>
+            `))
+        })    
+
+        it('should properly subset an asset with stub content without cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Stub', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)><Room key=(testRoom) /></Asset>
+            `))
+        })    
+
+        it('should properly subset an asset with text cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Text', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature) />
                 </Asset>
             `))
         })    

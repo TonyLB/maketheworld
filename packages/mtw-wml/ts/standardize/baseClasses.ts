@@ -240,8 +240,17 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
 export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: string[];
-    cascadeCondition?: 'Text';
-    cascadeType?: StandardFormSubsetRequest["requestType"]
+    cascadeConditions?: {
+        conditionType: 'Text';
+        cascadeType?: StandardFormSubsetRequest["requestType"];
+    }[];
 }
 
-export type StandardFormSubsetRequest = StandardFormSubsetRequestFull
+export type StandardFormSubsetRequestStub = {
+    requestType: 'Stub',
+    keys: string[];
+}
+
+export type StandardFormSubsetRequest =
+    StandardFormSubsetRequestFull |
+    StandardFormSubsetRequestStub

@@ -8,9 +8,9 @@ import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import applyEdits from "../schema/treeManipulation/applyEdits"
-import StandardRoom from "./components/room"
-import StandardFeature from "./components/feature"
-import StandardKnowledge from "./components/knowledge"
+import StandardRoom, { StandardRoomPayload } from "./components/room"
+import StandardFeature, { StandardFeaturePayload } from "./components/feature"
+import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardBookmark from "./components/bookmark"
 import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
@@ -1292,12 +1292,40 @@ export class StandardForm {
                     ...request.keys.map((key) => ({ [key]: request }))
                 )
             }
+            if (request.requestType === 'Stub') {
+                return Object.assign(
+                    previous,
+                    ...request.keys
+                        .filter((key) => (!(['Full', 'ShortName'].includes(previous[key]?.requestType))))
+                        .map((key) => ({ [key]: request }))
+                )
+            }
             return previous
         }, {})
+        const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent) => {
+            if (request.requestType === 'Full') {
+                return component
+            }
+            if (request.requestType === 'Stub') {
+                const returnValue = component.clone()
+                if (returnValue instanceof StandardRoom) {
+                    returnValue._payload = new StandardRoomPayload()
+                }
+                if (returnValue instanceof StandardFeature) {
+                    returnValue._payload = new StandardFeaturePayload()
+                }
+                if (returnValue instanceof StandardKnowledge) {
+                    returnValue._payload = new StandardKnowledgePayload()
+                }
+                return returnValue
+            }
+        }
         returnValue._byId = Object.assign({},
-            ...(Object.keys(requestTypeByKey)
-                .map((key) => (
-                    this.byId[key] ? [{ [key]: this.byId[key] }] : []
+            ...(Object.entries(requestTypeByKey)
+                .map(([key, request]) => (
+                    this.byId[key]
+                        ? [{ [key]: requestOutput(request, this.byId[key]) }]
+                        : []
                 ))
                 .flat(1)
             )
