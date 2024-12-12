@@ -2798,6 +2798,24 @@ describe('StandardForm', () => {
             `))
         })    
 
+        it('should properly subset an asset with shortName content without cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'ShortName', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `))
+        })    
+
         it('should properly subset an asset with stub content without cascade', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>

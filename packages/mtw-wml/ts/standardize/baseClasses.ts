@@ -251,6 +251,12 @@ export type StandardFormSubsetRequestStub = {
     keys: string[];
 }
 
+export type StandardFormSubsetRequestShortName = {
+    requestType: 'ShortName',
+    keys: string[];
+}
+
 export type StandardFormSubsetRequest =
     StandardFormSubsetRequestFull |
+    StandardFormSubsetRequestShortName |
     StandardFormSubsetRequestStub

@@ -1292,6 +1292,14 @@ export class StandardForm {
                     ...request.keys.map((key) => ({ [key]: request }))
                 )
             }
+            if (request.requestType === 'ShortName') {
+                return Object.assign(
+                    previous,
+                    ...request.keys
+                        .filter((key) => (!(['Full'].includes(previous[key]?.requestType))))
+                        .map((key) => ({ [key]: request }))
+                )
+            }
             if (request.requestType === 'Stub') {
                 return Object.assign(
                     previous,
@@ -1306,10 +1314,13 @@ export class StandardForm {
             if (request.requestType === 'Full') {
                 return component
             }
-            if (request.requestType === 'Stub') {
+            if (request.requestType === 'Stub' || request.requestType === 'ShortName') {
                 const returnValue = component.clone()
                 if (returnValue instanceof StandardRoom) {
                     returnValue._payload = new StandardRoomPayload()
+                    if (request.requestType === 'ShortName' && component instanceof StandardRoom) {
+                        returnValue._payload._shortName = component.shortName
+                    }
                 }
                 if (returnValue instanceof StandardFeature) {
                     returnValue._payload = new StandardFeaturePayload()
