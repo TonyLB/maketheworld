@@ -6,7 +6,6 @@ import {
 } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import { FetchImportsJSONHelper } from "./baseClasses"
-import standardSubset from "./standardSubset"
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
