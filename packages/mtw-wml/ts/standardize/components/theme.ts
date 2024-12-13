@@ -95,6 +95,10 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
         return directReferenceKeys([...this.rooms, ...this.maps])
             .map((key) => ({ referenceType: 'Direct', key }))
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 
 export class StandardTheme extends componentClassFactory(StandardThemePayload, 'StandardMoment') {

@@ -1,5 +1,5 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComputedData } from "./dataTypes/computed"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -56,6 +56,10 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
         return []
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
     }
 }
 

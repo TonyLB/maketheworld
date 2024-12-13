@@ -13,7 +13,7 @@
 //
 
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClasses";
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
@@ -36,12 +36,14 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     schema(key: string): GenericTreeNode<SchemaTag>;
     tag: SchemaWithKey["tag"];
     referencedKeys(): StandardComponentReferenceKey[];
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
 export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
     universalKey?: string;
+    withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
@@ -55,6 +57,7 @@ export interface StandardComponent {
     schema: GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }
 
 export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -100,6 +103,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
+        }
+
+        mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._payload = returnValue._payload.mapContents(callback)
+            return returnValue
         }
 
         toJSON(): D {
@@ -149,6 +158,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue as StandardComponent
         }
 
+        withKey(key: string): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            returnValue._key._key = key
+            return returnValue
+        }
+
         withUniversalKey(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key._universalKey = key
@@ -189,6 +204,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                     returnValue._import = importItem
                 }
             }
+            else {
+                returnValue._import = undefined
+            }
             return returnValue
         }
 
@@ -219,6 +237,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                 if (exportItem) {
                     returnValue._export = exportItem
                 }
+            }
+            else {
+                returnValue._export = undefined
             }
             return returnValue
         }

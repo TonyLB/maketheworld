@@ -2,13 +2,14 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaDescription, isSchemaMessage, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardMessageData } from "./dataTypes/message"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { directReferenceKeys } from "./utils/references"
 
@@ -73,6 +74,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         return directReferenceKeys(this.rooms)
             .map((key) => ({ referenceType: 'Direct', key }))
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        const returnValue = new StandardMessagePayload(this)
+        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        returnValue._rooms = callback(returnValue._rooms)
+        return returnValue as this
     }
 }
 

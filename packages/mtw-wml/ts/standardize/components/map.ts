@@ -3,7 +3,7 @@ import { isSchemaMap, isSchemaName, isSchemaOutputTag, SchemaNameTag, SchemaOutp
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardMapData } from "./dataTypes/map"
@@ -11,6 +11,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { positionReferenceKeys } from "./utils/references"
 
@@ -96,6 +97,14 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         return positionReferenceKeys(this.positions ?? [])
             .map((key) => ({ referenceType: 'Position', key }))
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        const returnValue = new StandardMapPayload(this)
+        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
+        returnValue._images = callback(returnValue._images)
+        returnValue._positions = callback(returnValue._positions)
+        return returnValue as this
     }
 }
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {

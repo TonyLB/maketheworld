@@ -1,5 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
+import { isSchemaDescription, isSchemaName } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
+import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
@@ -70,4 +72,36 @@ describe('StandardKnowledge class', () => {
             </Knowledge>
         `))
     })
+
+    it('should map contents correctly', () => {
+        const test = new StandardKnowledge(`
+            <Knowledge key=(testKnowledge)>
+                <Name>Religion</Name>
+                <Description>A set of beliefs about the divine.</Description>
+            </Knowledge>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaDescription)(node) || treeNodeTypeguard(isSchemaName)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Knowledge key=(testKnowledge)>
+                <Name>ReligionNarf!</Name>
+                <Description>A set of beliefs about the divine.Narf!</Description>
+            </Knowledge>
+        `))
+    })
+    
 })

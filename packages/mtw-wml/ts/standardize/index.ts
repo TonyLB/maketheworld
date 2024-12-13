@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
@@ -356,6 +356,12 @@ export class StandardRemove implements StandardComponent {
         return new StandardRemove(this)
     }
 
+    mapContents(callback): StandardRemove {
+        const returnValue = new StandardRemove(this)
+        returnValue._match = returnValue._match.mapContents(callback)
+        return returnValue
+    }
+
     toJSON(): StandardRemoveData {
         return {
             key: this.key,
@@ -377,6 +383,15 @@ export class StandardRemove implements StandardComponent {
 
     merge(incoming: StandardComponent): StandardComponent | undefined {
         throw new Error('StandardRemove types cannot be directly merged')
+    }
+
+    withKey(key: string): StandardComponent {
+        const returnValue = new StandardRemove(this.schema)
+        returnValue._match = this._match.withKey(key)
+        returnValue._key._key = returnValue._match.key
+        returnValue._key._fileName = returnValue._match.fileName
+        returnValue._key._universalKey = returnValue._match.universalKey
+        return returnValue
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
@@ -484,6 +499,13 @@ export class StandardReplace implements StandardComponent {
         return new StandardReplace(this)
     }
 
+    mapContents(callback): StandardReplace {
+        const returnValue = new StandardReplace(this)
+        returnValue._match = returnValue._match.mapContents(callback)
+        returnValue._payload = returnValue._payload.mapContents(callback)
+        return returnValue
+    }
+
     toJSON(): StandardReplaceData {
         return {
             key: this.key,
@@ -527,6 +549,15 @@ export class StandardReplace implements StandardComponent {
             ...this._match.referencedKeys(),
             ...this._payload.referencedKeys()
         ]
+    }
+
+    withKey(key: string): StandardComponent {
+        const returnValue = new StandardReplace(this.schema)
+        returnValue._match = this._match.withKey(key)
+        returnValue._payload = this._match.withKey(key)
+        returnValue._key._universalKey = key
+        returnValue._key._fileName = this.fileName
+        return returnValue
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
@@ -1389,6 +1420,70 @@ export class StandardForm {
                 .flat(1)
             )
         )
+
+        return returnValue
+    }
+
+    renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }): StandardForm {
+        const { fromKey, toKey, retainOldExportAs = false } = props
+        if (this.byId[toKey]) {
+            throw new Error('renameKey collision')
+        }
+        const returnValue = this._clone()
+        const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
+            tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaWithKey)(node) && node.data.key === fromKey) {
+                    return {
+                        data: { ...node.data, key: toKey },
+                        children: renameContentsCallback(node.children)
+                    }
+                }
+                if (treeNodeTypeguard(isSchemaExit)(node) && (node.data.from === fromKey || node.data.to === fromKey)) {
+                    return {
+                        data: {
+                            ...node.data,
+                            to: node.data.to === fromKey ? toKey : node.data.to,
+                            from: node.data.from === fromKey ? toKey : node.data.from
+                        },
+                        children: renameContentsCallback(node.children)
+                    }
+                }
+                if (treeNodeTypeguard(isSchemaLink)(node) && node.data.to === fromKey) {
+                    return {
+                        data: {
+                            ...node.data,
+                            to: toKey
+                        },
+                        children: renameContentsCallback(node.children)
+                    }
+                }
+                return {
+                    ...node,
+                    children: renameContentsCallback(node.children)
+                }
+            })
+        )
+        returnValue._byId = Object.values(returnValue._byId)
+            .reduce<Record<string, StandardComponent>>((previous, component) => (
+                (component.key === fromKey)
+                    ? {
+                        ...previous,
+                        [toKey]: component
+                            .mapContents(renameContentsCallback)
+                            .withKey(toKey)
+                            .withExport(
+                                component.export
+                                    ? (component.export.exportAs === toKey) ? undefined: component.export.exportAs
+                                    : retainOldExportAs
+                                        ? fromKey
+                                        : undefined
+                            )
+                    }
+                    : {
+                        ...previous,
+                        [component.key]: component.mapContents(renameContentsCallback)
+                    }
+            ), {})
 
         return returnValue
     }
