@@ -12,7 +12,6 @@ import { SchemaImportTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 import { ExportItemContent, ImportItemContent } from "@tonylb/mtw-wml/ts/standardize/components/metaData"
-import { unique } from "@tonylb/mtw-wml/ts/list"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 //
@@ -136,12 +135,21 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
             }
         }, {})
 
-    const { newStubKeys, standard: newStandard } = standardSubset({
-        standard,
-        keys: fullKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined),
-        stubKeys: stubKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined),
-    })
-    const allStubKeys = unique(stubKeys, newStubKeys)
+    const fullKeysMapped = fullKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined)
+    const stubKeysMapped = stubKeys.map((key) => (keysByExportAs[key])).filter(excludeUndefined)
+    const newStandard = standard.subset([
+        {
+            requestType: 'Full',
+            keys: fullKeysMapped,
+            cascadeConditions: [
+                { conditionType: 'Exit', cascadeType: 'ShortName' },
+                { conditionType: 'Link', cascadeType: 'ShortName' },
+                { conditionType: 'Position', cascadeType: 'ShortName' }
+            ]
+        },
+        { requestType: 'ShortName', keys: stubKeysMapped }
+    ])
+    const allStubKeys = Object.keys(standard.byId).filter((key) => (!fullKeysMapped.includes(key)))
 
     //
     // Check all components in the subset standardForm, and see whether they require imports. From
