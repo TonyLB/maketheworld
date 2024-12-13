@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaDescription, isSchemaFeature, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardFeatureData } from "./dataTypes/feature"
@@ -11,6 +11,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import linkReferenceKeys from "./utils/references"
 import { combineTaggedChildren } from "./utils/merge"
+import { applyTreeCallbackToNode } from "./utils/mapContents"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -72,7 +73,10 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
-        return this
+        const returnValue = new StandardFeaturePayload(this)
+        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
+        return returnValue as this
     }
 }
 

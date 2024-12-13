@@ -4,7 +4,7 @@ import { isSchemaDescription, isSchemaName, isSchemaOutputTag, isSchemaRoom, isS
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
@@ -12,6 +12,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import linkReferenceKeys, { exitReferenceKeys } from "./utils/references"
 
@@ -115,7 +116,13 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
-        return this
+        const returnValue = new StandardRoomPayload(this)
+        returnValue._shortName = applyTreeCallbackToNode(callback)(returnValue._shortName) as GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag> | undefined
+        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
+        returnValue._summary = applyTreeCallbackToNode(callback)(returnValue._summary) as GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag> | undefined
+        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        returnValue._exits = callback(returnValue._exits)
+        return returnValue as this
     }
 }
 

@@ -1,5 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
+import { isSchemaDescription, isSchemaExit, isSchemaName, isSchemaSummary } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
+import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
@@ -227,6 +229,78 @@ describe('StandardRoom class', () => {
         `))
     })
 
+    it('should map contents on output fields correctly', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Name>Lobby</Name>
+                <Summary>A lobby</Summary>
+                <Description>A plain lobby.</Description>
+                <Exit to=(testRoomTwo)>exit</Exit>
+            </Room>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaDescription)(node) || treeNodeTypeguard(isSchemaName)(node) || treeNodeTypeguard(isSchemaSummary)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Name>LobbyNarf!</Name>
+                <Summary>A lobbyNarf!</Summary>
+                <Description>A plain lobby.Narf!</Description>
+                <Exit to=(testRoomTwo)>exit</Exit>
+            </Room>
+        `))
+    })
+
+    it('should map contents on exits correctly', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Name>Lobby</Name>
+                <Summary>A lobby</Summary>
+                <Description>A plain lobby.</Description>
+                <Exit to=(testRoomTwo)>exit</Exit>
+            </Room>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaExit)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Name>Lobby</Name>
+                <Summary>A lobby</Summary>
+                <Description>A plain lobby.</Description>
+                <Exit to=(testRoomTwo)>
+                    exit
+                    Narf!
+                </Exit>
+            </Room>
+        `))
+    })
     // it('should merge a replace component correctly', () => {
     //     const testRoomData: StandardRoomData = {
     //         key: 'test',

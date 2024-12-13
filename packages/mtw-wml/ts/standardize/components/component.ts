@@ -105,7 +105,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         }
 
         mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent {
-            return this
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._payload = returnValue._payload.mapContents(callback)
+            return returnValue
         }
 
         toJSON(): D {

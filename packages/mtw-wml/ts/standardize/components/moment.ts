@@ -60,7 +60,9 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
-        return this
+        const returnValue = new StandardMomentPayload(this)
+        returnValue._messages = callback(returnValue._messages)
+        return returnValue as this
     }
 }
 

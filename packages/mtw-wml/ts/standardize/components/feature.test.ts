@@ -1,5 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
+import { isSchemaDescription, isSchemaName } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
+import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
 import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
@@ -67,6 +69,37 @@ describe('StandardFeature class', () => {
                 <Description>
                     A plain lobby.<Space />Shadows cling to the corners of the room.
                 </Description>
+            </Feature>
+        `))
+    })
+
+    it('should map contents correctly', () => {
+        const test = new StandardFeature(`
+            <Feature key=(testFeature)>
+                <Name>Lobby</Name>
+                <Description>A plain lobby.</Description>
+            </Feature>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaDescription)(node) || treeNodeTypeguard(isSchemaName)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Feature key=(testFeature)>
+                <Name>LobbyNarf!</Name>
+                <Description>A plain lobby.Narf!</Description>
             </Feature>
         `))
     })

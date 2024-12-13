@@ -1,5 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
+import { isSchemaName, isSchemaPosition } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
+import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardMapData } from "./dataTypes/map"
 import StandardMap from './map'
 import { mergeTest } from "./utils/testing"
@@ -76,4 +78,74 @@ describe('StandardMap class', () => {
             </Map>
         `))
     })
+
+    it('should map contents on name', () => {
+        const test = new StandardMap(`
+            <Map key=(testMap)>
+                <Name>Lobby</Name>
+                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+            </Map>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaName)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Map key=(testMap)>
+                <Name>LobbyNarf!</Name>
+                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+            </Map>
+        `))
+    })
+
+    it('should map contents on positions', () => {
+        const test = new StandardMap(`
+            <Map key=(testMap)>
+                <Name>Lobby</Name>
+                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+            </Map>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaPosition)(node)) {
+                    return {
+                        data: {
+                            ...node.data,
+                            x: node.data.x + 42
+                        },
+                        children: callback(node.children)
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Map key=(testMap)>
+                <Name>Lobby</Name>
+                <Room key=(testRoom)><Position x="142" y="100" /></Room>
+                <Room key=(testRoomTwo)><Position x="142" y="50" /></Room>
+            </Map>
+        `))
+    })
+
 })

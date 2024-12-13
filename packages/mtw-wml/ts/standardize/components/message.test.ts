@@ -1,5 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
+import { isSchemaDescription } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
+import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import StandardMessage from './message'
 import { mergeTest } from './utils/testing'
@@ -61,6 +63,34 @@ describe('StandardMessage class', () => {
                 <Room key=(testRoomTwo) />
                 Message test<Space />(extended)
             </Message>
+        `))
+    })
+
+    it('should map contents on name', () => {
+        const test = new StandardMessage(`
+            <Message key=(test)>
+                Message test.
+                <Room key=(testRoom) />
+            </Message>
+        `)
+        const callback = (tree) => {
+            return tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaDescription)(node)) {
+                    return {
+                        ...node,
+                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+                    }
+                }
+                else {
+                    return {
+                        ...node,
+                        children: callback(node.children)
+                    }
+                }
+            })
+        }
+        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+            <Message key=(test)><Room key=(testRoom) />Message test.Narf!</Message>
         `))
     })
 })

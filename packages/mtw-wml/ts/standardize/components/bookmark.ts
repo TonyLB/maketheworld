@@ -1,5 +1,5 @@
-import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"
@@ -9,6 +9,7 @@ import { componentClassFactory, ComponentConstructorMethods, StandardComponent }
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import linkReferenceKeys from "./utils/references"
+import { applyTreeCallbackToNode } from "./utils/mapContents"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -61,7 +62,9 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
-        return this
+        const returnValue = new StandardBookmarkPayload(this)
+        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        return returnValue as this
     }
 }
 
