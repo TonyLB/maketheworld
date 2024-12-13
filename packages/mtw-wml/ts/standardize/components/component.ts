@@ -43,6 +43,7 @@ export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
     universalKey?: string;
+    withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
@@ -155,6 +156,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._export = (this.export && incoming.export) ? this.export.merge(incoming.export) : this.export ?? incoming.export
 
             return returnValue as StandardComponent
+        }
+
+        withKey(key: string): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            returnValue._key._key = key
+            return returnValue
         }
 
         withUniversalKey(key: string | undefined): StandardComponent {

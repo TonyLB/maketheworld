@@ -3168,4 +3168,70 @@ describe('StandardForm', () => {
     //     })
     // })
 
+    describe('renameKey', () => {
+        it('should retarget links to the renamed key', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Feature key=(testFeatureOne)>
+                        <Description>
+                            <Link to=(testFeatureOne)>self link</Link>
+                            <Link to=(testFeatureTwo)>other link</Link>
+                        </Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo)>
+                        <Description><Link to=(testFeatureOne)>back link</Link></Description>
+                    </Feature>
+                </Asset>
+            `)
+            expect(schemaToWML([test.renameKey({ fromKey: 'testFeatureOne', toKey: 'renamedFeature' }).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature key=(renamedFeature)>
+                        <Description>
+                            <Link to=(renamedFeature)>self link</Link>
+                            <Link to=(testFeatureTwo)>other link</Link>
+                        </Description>
+                    </Feature>
+                    <Feature key=(testFeatureTwo)>
+                        <Description><Link to=(renamedFeature)>back link</Link></Description>
+                    </Feature>
+                </Asset>
+            `))
+        })
+
+        it('should retarget exits to the renamed key', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne)><Exit to=(testRoomTwo)>exit</Exit></Room>
+                    <Room key=(testRoomTwo)><Exit to=(testRoomOne)>enter</Exit></Room>
+                </Asset>
+            `)
+            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(renamedRoom)><Exit to=(testRoomTwo)>exit</Exit></Room>
+                    <Room key=(testRoomTwo)><Exit to=(renamedRoom)>enter</Exit></Room>
+                </Asset>
+            `))
+        })
+
+        it('should retarget map positions to the renamed key', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne) />
+                    <Map key=(testMapOne)>
+                        <Room key=(testRoomOne)><Position x="100" y="100" /></Room>
+                    </Map>
+                </Asset>
+            `)
+            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(renamedRoom) />
+                    <Map key=(testMapOne)>
+                        <Room key=(renamedRoom)><Position x="100" y="100" /></Room>
+                    </Map>
+                </Asset>
+            `))
+        })
+
+    })
+
 })
