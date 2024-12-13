@@ -1,6 +1,6 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardNDJSON } from "./baseClasses"
+import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
@@ -8,9 +8,9 @@ import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import applyEdits from "../schema/treeManipulation/applyEdits"
-import StandardRoom from "./components/room"
-import StandardFeature from "./components/feature"
-import StandardKnowledge from "./components/knowledge"
+import StandardRoom, { StandardRoomPayload } from "./components/room"
+import StandardFeature, { StandardFeaturePayload } from "./components/feature"
+import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardBookmark from "./components/bookmark"
 import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
@@ -29,7 +29,7 @@ import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData"
 import { StandardComponent } from "./components/component"
 import { KeyPayload } from "./components/key"
-import { deepEqual, objectFilterEntries } from "../lib/objects"
+import { deepEqual, objectFilterEntries, objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./components/metaData"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
@@ -308,7 +308,12 @@ export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Remove' as const;
-    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag>) {
+    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove) {
+        if (props instanceof StandardRemove) {
+            this._key = props._key
+            this._match = props._match.clone()
+            return
+        }
         if (isSchemaTreeNode(props) || typeof props === 'string') {
             const node = typeof props === 'string'
                 ? nodeFromWML(props)
@@ -342,6 +347,14 @@ export class StandardRemove implements StandardComponent {
     get fileName() { return this._key.fileName }
     get import() { return this._match.import }
     get export() { return this._match.export }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return this._match.referencedKeys()
+    }
+
+    clone(): StandardRemove {
+        return new StandardRemove(this)
+    }
 
     toJSON(): StandardRemoveData {
         return {
@@ -413,7 +426,13 @@ export class StandardReplace implements StandardComponent {
     _match: StandardComponent;
     _payload: StandardComponent
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Replace' as const;
-    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag>) {
+    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace) {
+        if (props instanceof StandardReplace) {
+            this._key = props._key
+            this._match = props._match.clone()
+            this._payload = props._payload.clone()
+            return
+        }
         if (isSchemaTreeNode(props) || typeof props === 'string') {
             const node = typeof props === 'string'
                 ? nodeFromWML(props)
@@ -461,6 +480,10 @@ export class StandardReplace implements StandardComponent {
     get import() { return this._match.import }
     get export() { return this._match.export }
 
+    clone(): StandardReplace {
+        return new StandardReplace(this)
+    }
+
     toJSON(): StandardReplaceData {
         return {
             key: this.key,
@@ -497,6 +520,13 @@ export class StandardReplace implements StandardComponent {
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: incoming._payload.toJSON() as StandardComponentNonEditData
         }).withUniversalKey(this.universalKey)
+    }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return [
+            ...this._match.referencedKeys(),
+            ...this._payload.referencedKeys()
+        ]
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
@@ -1118,7 +1148,10 @@ export class StandardForm {
     }
 
     _clone(): StandardForm {
-        return new StandardForm(this.toJSON())
+        const returnValue = new StandardForm(this.key)
+        returnValue._metaData = [...this._metaData]
+        returnValue._byId = objectMap(this._byId, (component) => (component.clone()))
+        return returnValue
     }
 
     //
@@ -1256,6 +1289,106 @@ export class StandardForm {
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)
+
+        return returnValue
+    }
+
+    subset(requests: StandardFormSubsetRequest[]): StandardForm {
+        const returnValue = new StandardForm(this.key)
+        returnValue._metaData = [...this._metaData]
+        //
+        // Starting with all incoming requests as "unchecked", and an empty record of checked requests by Key,
+        // loop on:
+        //   - updating the checked-requests record with the unchecked requests, and
+        //   - in cases where that updates the record, checking the new requests, 
+        //   - adding any new keys that are caused by a cascade on checking requests to the "unchecked" bin
+        // ... until you run out of new records to check for cascades
+        //
+        let uncheckedRequests: StandardFormSubsetRequest[] = [...requests]
+        let requestTypeByKey: Record<string, StandardFormSubsetRequest> = {}
+        while(uncheckedRequests.length) {
+            const newRequestTypeByKey = uncheckedRequests.reduce<Record<string, StandardFormSubsetRequest>>((previous, request) => (
+                Object.assign(
+                    previous,
+                    ...request.keys.map((key) => {
+                        const priorPriority = Math.min(
+                            standardFormSubsetRequestPriority(previous[key]),
+                            standardFormSubsetRequestPriority(requestTypeByKey[key])
+                        )
+                        if (standardFormSubsetRequestPriority(request) < priorPriority) {
+                            return { [key]: request }
+                        }
+                        else {
+                            return {}
+                        }
+                    })
+                )
+            ), {})
+            uncheckedRequests = Object.values(newRequestTypeByKey)
+                .filter((request): request is StandardFormSubsetRequestFull | StandardFormSubsetRequestExit => (request.requestType === 'Full' || request.requestType === 'Exit'))
+                .filter(({ cascadeConditions }) => ((cascadeConditions ?? []).length))
+                .map(({ keys, cascadeConditions }) => {
+                    return (cascadeConditions ?? [])
+                        .map(({ conditionType, cascadeType, chainCascade }): StandardFormSubsetRequest | undefined => {
+                            return {
+                                requestType: cascadeType,
+                                keys: unique(
+                                    keys
+                                        .map((key) => (this.byId[key]))
+                                        .filter(excludeUndefined)
+                                        .map((component) => (
+                                            component.referencedKeys()
+                                                .filter(({ referenceType }) => (referenceType === conditionType))
+                                                .map(({ key }) => (key))
+                                        ))
+                                        .flat(1)
+                                ),
+                                cascadeConditions: chainCascade ? cascadeConditions : undefined
+                            }
+                        })
+                        .filter(excludeUndefined)
+                })
+                .flat(1)
+            requestTypeByKey = {
+                ...requestTypeByKey,
+                ...newRequestTypeByKey
+            }
+        }
+
+        const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent) => {
+            if (request.requestType === 'Full') {
+                return component
+            }
+            if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'Exit') {
+                const returnValue = component.clone()
+                if (returnValue instanceof StandardRoom) {
+                    returnValue._payload = new StandardRoomPayload()
+                    if ((request.requestType === 'ShortName' || request.requestType === 'Exit') && component instanceof StandardRoom) {
+                        returnValue._payload._shortName = component.shortName
+                        if (request.requestType === 'Exit') {
+                            returnValue._payload._exits = component.exits
+                        }
+                    }
+                }
+                if (returnValue instanceof StandardFeature) {
+                    returnValue._payload = new StandardFeaturePayload()
+                }
+                if (returnValue instanceof StandardKnowledge) {
+                    returnValue._payload = new StandardKnowledgePayload()
+                }
+                return returnValue
+            }
+        }
+        returnValue._byId = Object.assign({},
+            ...(Object.entries(requestTypeByKey)
+                .map(([key, request]) => (
+                    this.byId[key]
+                        ? [{ [key]: requestOutput(request, this.byId[key]) }]
+                        : []
+                ))
+                .flat(1)
+            )
+        )
 
         return returnValue
     }

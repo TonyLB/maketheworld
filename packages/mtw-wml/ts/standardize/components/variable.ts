@@ -9,6 +9,12 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
     _default?: string;
     tag = 'Variable' as const;
 
+    constructor(previous?: StandardVariablePayload) {
+        if (previous) {
+            this._default = typeof previous.default !== 'undefined' ? previous.default : undefined
+        }
+    }
+
     fromJSON(props: StandardVariableData) {
         this._default = props.default
     }
@@ -42,10 +48,20 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         returnValue._default = incoming.default ?? this.default
         return returnValue as this
     }
+    
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+        return []
+    }
 }
 
 export class StandardVariable extends componentClassFactory(StandardVariablePayload, 'StandardVariable') {
     get default() { return this._payload.default }
+
+    override clone(): StandardVariable {
+        const returnValue = new StandardVariable(this)
+        returnValue._payload = new StandardVariablePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardVariable(super.merge(incoming) as StandardVariable)

@@ -8,10 +8,17 @@ import { combineTaggedChildren } from "./utils/merge"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import linkReferenceKeys from "./utils/references"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Bookmark' as const
+
+    constructor(previous?: StandardBookmarkPayload) {
+        if (previous) {
+            this._description = previous._description
+        }
+    }
 
     fromJSON(props: StandardBookmarkData) {
         this._description = props.description
@@ -47,10 +54,21 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return linkReferenceKeys(this.description ? [this.description] : [])
+            .map((key) => ({ referenceType: 'Link', key }))
+    }
 }
 
 export class StandardBookmark extends componentClassFactory(StandardBookmarkPayload, 'StandardBookmark') {
     get description() { return this._payload.description }
+
+    override clone(): StandardBookmark {
+        const returnValue = new StandardBookmark(this)
+        returnValue._payload = new StandardBookmarkPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardBookmark(super.merge(incoming) as StandardBookmark)

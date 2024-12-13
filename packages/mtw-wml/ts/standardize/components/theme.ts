@@ -11,6 +11,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { directReferenceKeys } from "./utils/references"
 
 export class StandardThemePayload implements ComponentConstructorMethods<StandardThemeData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -18,6 +19,15 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
     _rooms: GenericTree<SchemaTag> = [];
     _maps: GenericTree<SchemaTag> = [];
     tag = 'Theme' as const
+
+    constructor(previous?: StandardThemePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._prompts = [...previous.prompts]
+            this._rooms = [...previous.rooms]
+            this._maps = [...previous.maps]
+        }
+    }
 
     fromJSON(props: StandardThemeData) {
         this._name = props.name
@@ -80,6 +90,11 @@ export class StandardThemePayload implements ComponentConstructorMethods<Standar
         returnValue._maps = applyEdits([...this.maps, ...incoming.maps])
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return directReferenceKeys([...this.rooms, ...this.maps])
+            .map((key) => ({ referenceType: 'Direct', key }))
+    }
 }
 
 export class StandardTheme extends componentClassFactory(StandardThemePayload, 'StandardMoment') {
@@ -87,6 +102,12 @@ export class StandardTheme extends componentClassFactory(StandardThemePayload, '
     get prompts() { return this._payload.prompts }
     get rooms() { return this._payload.rooms }
     get maps() { return this._payload.maps }
+
+    override clone(): StandardTheme {
+        const returnValue = new StandardTheme(this)
+        returnValue._payload = new StandardThemePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardTheme(super.merge(incoming) as StandardTheme)

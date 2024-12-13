@@ -13,6 +13,7 @@ import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import linkReferenceKeys, { exitReferenceKeys } from "./utils/references"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
@@ -22,6 +23,17 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _exits: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
     tag = 'Room' as const
+
+    constructor(previous?: StandardRoomPayload) {
+        if (previous) {
+            this._shortName = previous.shortName
+            this._name = previous.name
+            this._summary = previous.summary
+            this._description = previous.description
+            this._exits = [...previous.exits]
+            this._themes = [...previous.themes]
+        }
+    }
 
     fromJSON(props: StandardRoomData) {
         this._shortName = props.shortName
@@ -92,6 +104,15 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return [
+            ...linkReferenceKeys([this.summary, this.description].filter(excludeUndefined))
+                .map((key) => ({ referenceType: 'Link' as const, key })),
+            ...exitReferenceKeys(this.exits)
+                .map((key) => ({ referenceType: 'Exit' as const, key })),
+        ]
+    }
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
@@ -101,6 +122,12 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get description() { return this._payload.description }
     get exits() { return this._payload.exits }
     get themes() { return this._payload.themes }
+
+    override clone(): StandardRoom {
+        const returnValue = new StandardRoom(this)
+        returnValue._payload = new StandardRoomPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardRoom(super.merge(incoming) as StandardRoom)

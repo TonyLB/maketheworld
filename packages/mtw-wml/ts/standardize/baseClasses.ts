@@ -236,3 +236,55 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
     }
     return value.every(isStandardNDJSONLine)
 }
+
+export type StandardFormSubsetRequestFull = {
+    requestType: 'Full',
+    keys: string[];
+    cascadeConditions?: {
+        conditionType: 'Link' | 'Position' | 'Exit';
+        cascadeType: StandardFormSubsetRequest["requestType"];
+        chainCascade?: boolean;
+    }[];
+}
+
+export type StandardFormSubsetRequestStub = {
+    requestType: 'Stub',
+    keys: string[];
+}
+
+export type StandardFormSubsetRequestShortName = {
+    requestType: 'ShortName',
+    keys: string[];
+}
+
+export type StandardFormSubsetRequestExit = {
+    requestType: 'Exit',
+    keys: string[];
+    cascadeConditions?: {
+        conditionType: 'Link' | 'Position' | 'Exit';
+        cascadeType: StandardFormSubsetRequest["requestType"];
+        chainCascade?: boolean;
+    }[];
+}
+
+export type StandardFormSubsetRequest =
+    StandardFormSubsetRequestFull |
+    StandardFormSubsetRequestExit |
+    StandardFormSubsetRequestShortName |
+    StandardFormSubsetRequestStub
+
+export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRequest): number => {
+    if (!request) {
+        return Infinity
+    }
+    switch(request.requestType) {
+        case 'Full':
+            return 1
+        case 'Exit':
+            return 2
+        case 'ShortName':
+            return 3
+        case 'Stub':
+            return 4
+    }
+}

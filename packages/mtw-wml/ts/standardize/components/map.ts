@@ -12,6 +12,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { positionReferenceKeys } from "./utils/references"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -19,6 +20,15 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     _positions: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
     tag = 'Map' as const
+
+    constructor(previous?: StandardMapPayload) {
+        if (previous) {
+            this._name = previous._name
+            this._images = [...previous._images]
+            this._positions = [...previous.positions]
+            this._themes = [...previous.themes]
+        }
+    }
 
     fromJSON(props: StandardMapData) {
         this._name = props.name
@@ -82,12 +92,23 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return positionReferenceKeys(this.positions ?? [])
+            .map((key) => ({ referenceType: 'Position', key }))
+    }
 }
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
     get themes() { return this._payload.themes }
+
+    override clone(): StandardMap {
+        const returnValue = new StandardMap(this)
+        returnValue._payload = new StandardMapPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMap(super.merge(incoming) as StandardMap)

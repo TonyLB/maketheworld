@@ -98,6 +98,10 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         // return new StandardCharacter(args)
         return incoming
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return []
+    }
 }
 
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {

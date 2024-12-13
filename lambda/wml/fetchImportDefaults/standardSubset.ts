@@ -99,26 +99,17 @@ export const standardSubset = ({ standard, keys, stubKeys }: { standard: Standar
         .filter(excludeUndefined)
         .map((component) => {
             if (component instanceof StandardRoom) {
-                return [new StandardRoom({
-                    ...component.toJSON() as StandardRoomData,
-                    name: undefined,
-                    summary: undefined,
-                    description: undefined,
-                }).withImport(component.import).withExport(component.export)]
+                const returnValue = component.clone()
+                returnValue._payload._name = undefined
+                returnValue._payload._summary = undefined
+                returnValue._payload._description = undefined
+                return [returnValue]
             }
-            else if (component instanceof StandardFeature) {
-                return [new StandardFeature({
-                    ...component.toJSON() as StandardFeatureData,
-                    name: undefined,
-                    description: undefined
-                }).withImport(component.import).withExport(component.export)]
-            }
-            else if (component instanceof StandardKnowledge) {
-                return [new StandardKnowledge({
-                    ...component.toJSON() as StandardKnowledgeData,
-                    name: undefined,
-                    description: undefined
-                }).withImport(component.import).withExport(component.export)]
+            else if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
+                const returnValue = component.clone()
+                returnValue._payload._name = undefined
+                returnValue._payload._description = undefined
+                return [returnValue]
             }
             else if (component instanceof StandardAction) {
                 return [component]

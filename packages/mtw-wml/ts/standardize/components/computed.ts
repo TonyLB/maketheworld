@@ -10,6 +10,13 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
     _dependencies?: string[];
     tag = 'Computed' as const;
 
+    constructor(previous?: StandardComputedPayload) {
+        if (previous) {
+            this._src = `${previous.src}`
+            this._dependencies = previous.dependencies ? [...previous.dependencies] : undefined
+        }
+    }
+
     fromJSON(props: StandardComputedData) {
         this._src = props.src
         this._dependencies = props.dependencies
@@ -46,11 +53,21 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         returnValue._src = incoming.src ?? this.src
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+        return []
+    }
 }
 
 export class StandardComputed extends componentClassFactory(StandardComputedPayload, 'StandardComputed') {
     get src() { return this._payload.src }
     get dependencies() { return this._payload.dependencies }
+
+    override clone(): StandardComputed {
+        const returnValue = new StandardComputed(this)
+        returnValue._payload = new StandardComputedPayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardComputed(super.merge(incoming) as StandardComputed)

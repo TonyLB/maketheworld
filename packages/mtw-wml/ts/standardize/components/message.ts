@@ -10,11 +10,19 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
+import { directReferenceKeys } from "./utils/references"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     _rooms: GenericTree<SchemaTag> = [];
     tag = 'Message' as const
+
+    constructor(previous?: StandardMessagePayload) {
+        if (previous) {
+            this._description = previous._description
+            this._rooms = [...previous._rooms]
+        }
+    }
 
     fromJSON(props: StandardMessageData) {
         this._description = props.description
@@ -61,11 +69,22 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return directReferenceKeys(this.rooms)
+            .map((key) => ({ referenceType: 'Direct', key }))
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
+
+    override clone(): StandardMessage {
+        const returnValue = new StandardMessage(this)
+        returnValue._payload = new StandardMessagePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMessage(super.merge(incoming) as StandardMessage)

@@ -23,6 +23,11 @@ import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
 
+type StandardComponentReferenceKey = {
+    key: string;
+    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct';
+}
+
 export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
@@ -30,10 +35,12 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     toJSON(): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     tag: SchemaWithKey["tag"];
+    referencedKeys(): StandardComponentReferenceKey[];
 }
 
 export interface StandardComponent {
     key: string;
+    clone(): StandardComponent;
     universalKey?: string;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
@@ -47,6 +54,7 @@ export interface StandardComponent {
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
+    referencedKeys(): StandardComponentReferenceKey[];
 }
 
 export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -90,6 +98,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
 
+        clone(): StandardComponent {
+            return new GeneratedComponentClass(this)
+        }
+
         toJSON(): D {
             return {
                 ...this._key.toJSON(),
@@ -105,6 +117,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         get schema(): GenericTreeNode<SchemaTag> {
             return this._payload.schema(this.key)
+        }
+
+        referencedKeys(): StandardComponentReferenceKey[] {
+            return this._payload.referencedKeys()
         }
 
         //

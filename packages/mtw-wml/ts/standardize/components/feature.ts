@@ -9,12 +9,20 @@ import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import linkReferenceKeys from "./utils/references"
 import { combineTaggedChildren } from "./utils/merge"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Feature' as const
+
+    constructor(previous?: StandardFeaturePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._description = previous.description
+        }
+    }
 
     fromJSON(props: StandardFeatureData) {
         this._name = props.name
@@ -57,11 +65,22 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return linkReferenceKeys(this.description ? [this.description] : [])
+            .map((key) => ({ referenceType: 'Link', key }))
+    }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override clone(): StandardFeature {
+        const returnValue = new StandardFeature(this)
+        returnValue._payload = new StandardFeaturePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardFeature(super.merge(incoming) as StandardFeature)

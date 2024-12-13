@@ -9,12 +9,20 @@ import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
+import linkReferenceKeys from "./utils/references"
 import { combineTaggedChildren } from "./utils/merge"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     tag = 'Knowledge' as const
+
+    constructor(previous?: StandardKnowledgePayload) {
+        if (previous) {
+            this._name = previous.name
+            this._description = previous.description
+        }
+    }
 
     fromJSON(props: StandardKnowledgeData) {
         this._name = props.name
@@ -57,11 +65,23 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
     }
+
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+        return linkReferenceKeys(this.description ? [this.description] : [])
+            .map((key) => ({ referenceType: 'Link', key }))
+    }
+
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+
+    override clone(): StandardKnowledge {
+        const returnValue = new StandardKnowledge(this)
+        returnValue._payload = new StandardKnowledgePayload(this._payload)
+        return returnValue
+    }
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
