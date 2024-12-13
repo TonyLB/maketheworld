@@ -204,6 +204,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                     returnValue._import = importItem
                 }
             }
+            else {
+                returnValue._import = undefined
+            }
             return returnValue
         }
 
@@ -234,6 +237,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                 if (exportItem) {
                     returnValue._export = exportItem
                 }
+            }
+            else {
+                returnValue._export = undefined
             }
             return returnValue
         }

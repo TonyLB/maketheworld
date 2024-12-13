@@ -1424,8 +1424,8 @@ export class StandardForm {
         return returnValue
     }
 
-    renameKey(props: { fromKey: string; toKey: string; }): StandardForm {
-        const { fromKey, toKey } = props
+    renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }): StandardForm {
+        const { fromKey, toKey, retainOldExportAs = false } = props
         if (this.byId[toKey]) {
             throw new Error('renameKey collision')
         }
@@ -1468,7 +1468,16 @@ export class StandardForm {
                 (component.key === fromKey)
                     ? {
                         ...previous,
-                        [toKey]: component.mapContents(renameContentsCallback).withKey(toKey)
+                        [toKey]: component
+                            .mapContents(renameContentsCallback)
+                            .withKey(toKey)
+                            .withExport(
+                                component.export
+                                    ? (component.export.exportAs === toKey) ? undefined: component.export.exportAs
+                                    : retainOldExportAs
+                                        ? fromKey
+                                        : undefined
+                            )
                     }
                     : {
                         ...previous,

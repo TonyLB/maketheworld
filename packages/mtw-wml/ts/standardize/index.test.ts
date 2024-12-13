@@ -3232,6 +3232,32 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should eliminate exportAs when renamed to same key', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne) />
+                    <Export><Room key=(testRoomOne) as=(renamedRoom) /></Export>
+                </Asset>
+            `)
+            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)><Room key=(renamedRoom) /></Asset>
+            `))
+        })
+
+        it('should retain old exportAs when specified', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom', retainOldExportAs: true }).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(renamedRoom) />
+                    <Export><Room key=(renamedRoom) as=(testRoomOne) /></Export>
+                </Asset>
+            `))
+        })
+
     })
 
 })
