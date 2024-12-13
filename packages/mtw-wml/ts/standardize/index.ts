@@ -1294,7 +1294,7 @@ export class StandardForm {
     }
 
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
-        const returnValue = new StandardForm(this.key)
+        const returnValue = this._clone()
         returnValue._metaData = [...this._metaData]
         //
         // Starting with all incoming requests as "unchecked", and an empty record of checked requests by Key,
