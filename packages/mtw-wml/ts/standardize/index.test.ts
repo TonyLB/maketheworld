@@ -2783,7 +2783,9 @@ describe('StandardForm', () => {
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
                         <Description><Link to=(testFeature)>link</Link></Description>
+                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
+                    <Room key=(testRoomTwo) />
                     <Feature key=(testFeature) />
                     <Knowledge key=(testKnowledge) />
                 </Asset>
@@ -2793,6 +2795,30 @@ describe('StandardForm', () => {
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
                         <Description><Link to=(testFeature)>link</Link></Description>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                </Asset>
+            `))
+        })    
+
+        it('should properly subset an asset with exit content without cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                    <Room key=(testRoomTwo) />
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                 </Asset>
             `))
@@ -2927,6 +2953,32 @@ describe('StandardForm', () => {
                 </Asset>
             `))
         })
+
+        it('should properly subset an asset with exit cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Description><Link to=(testFeature)>link</Link></Description>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                    <Room key=(testRoomTwo)>
+                        <Exit to=(testRoomOne)>enter</Exit>
+                    </Room>
+                    <Feature key=(testFeature) />
+                    <Knowledge key=(testKnowledge) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Exit', cascadeType: 'Exit' }] }]).schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                    <Room key=(testRoomTwo)><Exit to=(testRoomOne)>enter</Exit></Room>
+                </Asset>
+            `))
+        })    
 
     })
 

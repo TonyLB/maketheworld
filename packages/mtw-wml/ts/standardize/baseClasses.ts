@@ -241,7 +241,7 @@ export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: string[];
     cascadeConditions?: {
-        conditionType: 'Link' | 'Position';
+        conditionType: 'Link' | 'Position' | 'Exit';
         cascadeType: StandardFormSubsetRequest["requestType"];
         chainCascade?: boolean;
     }[];
@@ -257,8 +257,19 @@ export type StandardFormSubsetRequestShortName = {
     keys: string[];
 }
 
+export type StandardFormSubsetRequestExit = {
+    requestType: 'Exit',
+    keys: string[];
+    cascadeConditions?: {
+        conditionType: 'Link' | 'Position' | 'Exit';
+        cascadeType: StandardFormSubsetRequest["requestType"];
+        chainCascade?: boolean;
+    }[];
+}
+
 export type StandardFormSubsetRequest =
     StandardFormSubsetRequestFull |
+    StandardFormSubsetRequestExit |
     StandardFormSubsetRequestShortName |
     StandardFormSubsetRequestStub
 
@@ -269,9 +280,11 @@ export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRe
     switch(request.requestType) {
         case 'Full':
             return 1
-        case 'ShortName':
+        case 'Exit':
             return 2
-        case 'Stub':
+        case 'ShortName':
             return 3
+        case 'Stub':
+            return 4
     }
 }
