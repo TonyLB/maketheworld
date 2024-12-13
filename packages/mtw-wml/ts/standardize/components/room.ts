@@ -113,6 +113,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
         ]
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {

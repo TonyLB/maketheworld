@@ -1,5 +1,5 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData";
@@ -54,6 +54,10 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
         return []
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
     }
 }
 

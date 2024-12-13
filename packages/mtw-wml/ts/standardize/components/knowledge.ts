@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaDescription, isSchemaKnowledge, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
@@ -71,6 +71,9 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
             .map((key) => ({ referenceType: 'Link', key }))
     }
 
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {

@@ -356,6 +356,12 @@ export class StandardRemove implements StandardComponent {
         return new StandardRemove(this)
     }
 
+    mapContents(callback): StandardRemove {
+        const returnValue = new StandardRemove(this)
+        returnValue._match = returnValue._match.mapContents(callback)
+        return returnValue
+    }
+
     toJSON(): StandardRemoveData {
         return {
             key: this.key,
@@ -482,6 +488,13 @@ export class StandardReplace implements StandardComponent {
 
     clone(): StandardReplace {
         return new StandardReplace(this)
+    }
+
+    mapContents(callback): StandardReplace {
+        const returnValue = new StandardReplace(this)
+        returnValue._match = returnValue._match.mapContents(callback)
+        returnValue._payload = returnValue._payload.mapContents(callback)
+        return returnValue
     }
 
     toJSON(): StandardReplaceData {
@@ -1389,6 +1402,17 @@ export class StandardForm {
                 .flat(1)
             )
         )
+
+        return returnValue
+    }
+
+    renameKey(props: { fromKey: string; toKey: string; }): StandardForm {
+        const { fromKey, toKey } = props
+        if (this.byId[toKey]) {
+            throw new Error('renameKey collision')
+        }
+        const returnValue = this._clone()
+
 
         return returnValue
     }

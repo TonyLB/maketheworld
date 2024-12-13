@@ -1,5 +1,5 @@
 import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"
@@ -58,6 +58,10 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         return linkReferenceKeys(this.description ? [this.description] : [])
             .map((key) => ({ referenceType: 'Link', key }))
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
     }
 }
 

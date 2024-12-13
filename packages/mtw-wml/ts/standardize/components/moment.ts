@@ -58,6 +58,10 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return directReferenceKeys(this.messages)
             .map((key) => ({ referenceType: 'Direct', key }))
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

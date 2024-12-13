@@ -13,7 +13,7 @@
 //
 
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClasses";
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardComponentData } from "./dataTypes";
@@ -36,6 +36,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     schema(key: string): GenericTreeNode<SchemaTag>;
     tag: SchemaWithKey["tag"];
     referencedKeys(): StandardComponentReferenceKey[];
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
 export interface StandardComponent {
@@ -55,6 +56,7 @@ export interface StandardComponent {
     schema: GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }
 
 export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -100,6 +102,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
+        }
+
+        mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent {
+            return this
         }
 
         toJSON(): D {

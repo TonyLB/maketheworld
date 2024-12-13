@@ -74,6 +74,10 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return directReferenceKeys(this.rooms)
             .map((key) => ({ referenceType: 'Direct', key }))
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {

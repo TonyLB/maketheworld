@@ -1,5 +1,5 @@
 import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardVariableData } from "./dataTypes/variable"
@@ -51,6 +51,10 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
     
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
         return []
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
     }
 }
 

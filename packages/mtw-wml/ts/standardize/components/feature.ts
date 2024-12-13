@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { isSchemaDescription, isSchemaFeature, isSchemaName, isSchemaOutputTag, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardFeatureData } from "./dataTypes/feature"
@@ -69,6 +69,10 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         return linkReferenceKeys(this.description ? [this.description] : [])
             .map((key) => ({ referenceType: 'Link', key }))
+    }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
     }
 }
 

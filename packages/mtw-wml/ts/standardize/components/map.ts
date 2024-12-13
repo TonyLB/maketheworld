@@ -97,6 +97,10 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return positionReferenceKeys(this.positions ?? [])
             .map((key) => ({ referenceType: 'Position', key }))
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+        return this
+    }
 }
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
