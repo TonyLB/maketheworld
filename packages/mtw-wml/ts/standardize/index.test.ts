@@ -3258,6 +3258,44 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should throw on collision', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne) />
+                    <Room key=(testRoomTwo) />
+                </Asset>
+            `)
+            expect(() => (test.renameKey([{ fromKey: 'testRoomOne', toKey: 'testRoomTwo', retainOldExportAs: true }]))).toThrow()
+        })
+
+        it('should swap two keys without collision', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne)>
+                        <Description>Test One <Link to=(testRoomTwo)>link</Link></Description>
+                    </Room>
+                    <Room key=(testRoomTwo)>
+                        <Description>Test Two <Link to=(testRoomOne)>link</Link></Description>
+                    </Room>
+                </Asset>
+            `)
+            expect(schemaToWML([
+                test.renameKey([
+                    { fromKey: 'testRoomOne', toKey: 'testRoomTwo' },
+                    { fromKey: 'testRoomTwo', toKey: 'testRoomOne' }
+                ]).schema
+            ])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoomOne)>
+                        <Description>Test Two <Link to=(testRoomTwo)>link</Link></Description>
+                    </Room>
+                    <Room key=(testRoomTwo)>
+                        <Description>Test One <Link to=(testRoomOne)>link</Link></Description>
+                    </Room>
+                </Asset>
+            `))
+        })
+
     })
 
 })
