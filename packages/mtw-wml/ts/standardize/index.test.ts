@@ -3183,7 +3183,7 @@ describe('StandardForm', () => {
                     </Feature>
                 </Asset>
             `)
-            expect(schemaToWML([test.renameKey({ fromKey: 'testFeatureOne', toKey: 'renamedFeature' }).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.renameKey([{ fromKey: 'testFeatureOne', toKey: 'renamedFeature' }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature key=(renamedFeature)>
                         <Description>
@@ -3205,7 +3205,7 @@ describe('StandardForm', () => {
                     <Room key=(testRoomTwo)><Exit to=(testRoomOne)>enter</Exit></Room>
                 </Asset>
             `)
-            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.renameKey([{ fromKey: 'testRoomOne', toKey: 'renamedRoom' }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(renamedRoom)><Exit to=(testRoomTwo)>exit</Exit></Room>
                     <Room key=(testRoomTwo)><Exit to=(renamedRoom)>enter</Exit></Room>
@@ -3222,7 +3222,7 @@ describe('StandardForm', () => {
                     </Map>
                 </Asset>
             `)
-            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.renameKey([{ fromKey: 'testRoomOne', toKey: 'renamedRoom' }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(renamedRoom) />
                     <Map key=(testMapOne)>
@@ -3239,7 +3239,7 @@ describe('StandardForm', () => {
                     <Export><Room key=(testRoomOne) as=(renamedRoom) /></Export>
                 </Asset>
             `)
-            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom' }).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.renameKey([{ fromKey: 'testRoomOne', toKey: 'renamedRoom' }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)><Room key=(renamedRoom) /></Asset>
             `))
         })
@@ -3250,7 +3250,7 @@ describe('StandardForm', () => {
                     <Room key=(testRoomOne) />
                 </Asset>
             `)
-            expect(schemaToWML([test.renameKey({ fromKey: 'testRoomOne', toKey: 'renamedRoom', retainOldExportAs: true }).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.renameKey([{ fromKey: 'testRoomOne', toKey: 'renamedRoom', retainOldExportAs: true }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(renamedRoom) />
                     <Export><Room key=(renamedRoom) as=(testRoomOne) /></Export>
