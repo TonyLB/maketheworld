@@ -1424,37 +1424,50 @@ export class StandardForm {
         return returnValue
     }
 
-    renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }): StandardForm {
-        const { fromKey, toKey, retainOldExportAs = false } = props
-        if (this.byId[toKey]) {
-            throw new Error('renameKey collision')
-        }
+    renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
+        const { fromKey, toKey, retainOldExportAs = false } = props[0]
         const returnValue = this._clone()
+        const findMatchingRename = (key: string): { fromKey: string; toKey: string; retainOldExportAs?: boolean; } | undefined => {
+            return props.find(({ fromKey }) => (fromKey === key))
+        }
         const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
             tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaWithKey)(node) && node.data.key === fromKey) {
-                    return {
-                        data: { ...node.data, key: toKey },
-                        children: renameContentsCallback(node.children)
+                if (treeNodeTypeguard(isSchemaWithKey)(node)) {
+                    const match = findMatchingRename(node.data.key)
+                    if (match) {
+                        return {
+                            data: { ...node.data, key: match.toKey },
+                            children: renameContentsCallback(node.children)
+                        }
                     }
+                    return node
                 }
-                if (treeNodeTypeguard(isSchemaExit)(node) && (node.data.from === fromKey || node.data.to === fromKey)) {
-                    return {
-                        data: {
-                            ...node.data,
-                            to: node.data.to === fromKey ? toKey : node.data.to,
-                            from: node.data.from === fromKey ? toKey : node.data.from
-                        },
-                        children: renameContentsCallback(node.children)
+                else {
+                    if (treeNodeTypeguard(isSchemaExit)(node)) {
+                        const matchFrom = findMatchingRename(node.data.from)
+                        const matchTo = findMatchingRename(node.data.to)
+                        if (matchFrom || matchTo) {
+                            return {
+                                data: {
+                                    ...node.data,
+                                    to: matchTo ? matchTo.toKey : node.data.to,
+                                    from: matchFrom ? matchFrom.toKey : node.data.from
+                                },
+                                children: renameContentsCallback(node.children)
+                            }
+                        }
                     }
-                }
-                if (treeNodeTypeguard(isSchemaLink)(node) && node.data.to === fromKey) {
-                    return {
-                        data: {
-                            ...node.data,
-                            to: toKey
-                        },
-                        children: renameContentsCallback(node.children)
+                    if (treeNodeTypeguard(isSchemaLink)(node)) {
+                        const matchTo = findMatchingRename(node.data.to)
+                        if (matchTo) {
+                            return {
+                                data: {
+                                    ...node.data,
+                                    to: matchTo.toKey
+                                },
+                                children: renameContentsCallback(node.children)
+                            }
+                        }
                     }
                 }
                 return {
@@ -1464,26 +1477,34 @@ export class StandardForm {
             })
         )
         returnValue._byId = Object.values(returnValue._byId)
-            .reduce<Record<string, StandardComponent>>((previous, component) => (
-                (component.key === fromKey)
-                    ? {
+            .reduce<Record<string, StandardComponent>>((previous, component) => {
+                const matchKey = findMatchingRename(component.key)
+                if (matchKey) {
+                    if (previous[matchKey.toKey]) {
+                        throw new Error('renameKey collision')
+                    }
+                    return {
                         ...previous,
-                        [toKey]: component
+                        [matchKey.toKey]: component
                             .mapContents(renameContentsCallback)
-                            .withKey(toKey)
+                            .withKey(matchKey.toKey)
                             .withExport(
                                 component.export
-                                    ? (component.export.exportAs === toKey) ? undefined: component.export.exportAs
-                                    : retainOldExportAs
-                                        ? fromKey
+                                    ? (component.export.exportAs === matchKey.toKey) ? undefined: component.export.exportAs
+                                    : matchKey.retainOldExportAs
+                                        ? matchKey.fromKey
                                         : undefined
                             )
                     }
-                    : {
-                        ...previous,
-                        [component.key]: component.mapContents(renameContentsCallback)
-                    }
-            ), {})
+                }
+                if (previous[component.key]) {
+                    throw new Error('renameKey collision')
+                }
+                return {
+                    ...previous,
+                    [component.key]: component.mapContents(renameContentsCallback)
+                }
+            }, {})
 
         return returnValue
     }
