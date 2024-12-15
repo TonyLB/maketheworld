@@ -1,5 +1,5 @@
 import { Schema } from "@tonylb/mtw-wml/ts/schema";
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize";
+import { StandardForm, Standardizer } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace";
 import { ebClient } from "../clients";
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge";
@@ -18,10 +18,8 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     //
     // While waiting on incoming ndjson, create an editStandardizer to be merged with it.
     //
-    const editSchema = new Schema()
-    editSchema.loadWML(args.schema)
-    const editStandardizer = new Standardizer(editSchema.schema)
-    console.log(`editStandardizer: ${JSON.stringify(editStandardizer.standardForm, null, 4)}`)
+    const editStandard = new StandardForm(args.schema)
+    console.log(`editStandardizer: ${JSON.stringify(editStandard.toJSON(), null, 4)}`)
 
     //
     // Merge incoming changes with ndjson
@@ -30,12 +28,36 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     if (!assetWorkspace.standard) {
         return {}
     }
-    const baseStandardizer = new Standardizer()
-    baseStandardizer.loadStandardForm(assetWorkspace.standard)
-    console.log(`baseStandardizer: ${JSON.stringify(baseStandardizer.standardForm, null, 4)}`)
-    let mergedStandardizer = new Standardizer()
+    const baseStandard = new StandardForm(assetWorkspace.standard)
+    console.log(`baseStandardizer: ${JSON.stringify(baseStandard.toJSON(), null, 4)}`)
     try {
-        mergedStandardizer = baseStandardizer.merge(editStandardizer) as Standardizer
+        const mergedStandard = baseStandard.merge(editStandard)
+
+        console.log(`Merged standard: ${JSON.stringify(mergedStandard.toJSON(), null, 4)}`)
+
+        //
+        // Write ndjson and wml
+        //
+    
+        assetWorkspace.setJSON(mergedStandard.toJSON())
+        await Promise.all([
+            assetWorkspace.pushJSON(),
+            assetWorkspace.pushWML()
+        ])
+        await ebClient.send(new PutEventsCommand({
+            Entries: [{
+                EventBusName: process.env.EVENT_BUS_NAME,
+                Source: 'mtw.wml',
+                DetailType: 'Asset Edited',
+                Detail: JSON.stringify({
+                    AssetId: args.AssetId,
+                    RequestId: args.RequestId,
+                    schema: args.schema
+                })
+            }]
+        }))
+        
+        return {}
     }
     catch (err) {
         console.log(`Merge Conflict`)
@@ -52,31 +74,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         }))
         return {}
     }
-    console.log(`Merged standard: ${JSON.stringify(mergedStandardizer.standardForm, null, 4)}`)
 
-    //
-    // Write ndjson and wml
-    //
-
-    assetWorkspace.setJSON(mergedStandardizer.standardForm)
-    await Promise.all([
-        assetWorkspace.pushJSON(),
-        assetWorkspace.pushWML()
-    ])
-    await ebClient.send(new PutEventsCommand({
-        Entries: [{
-            EventBusName: process.env.EVENT_BUS_NAME,
-            Source: 'mtw.wml',
-            DetailType: 'Asset Edited',
-            Detail: JSON.stringify({
-                AssetId: args.AssetId,
-                RequestId: args.RequestId,
-                schema: args.schema
-            })
-        }]
-    }))
-    
-    return {}
 }
 
 export default applyEdit
