@@ -1508,7 +1508,10 @@ export class StandardForm {
         return returnValue
     }
 
-    assignDependencies(extractJS: (src: string) => string[]): StandardForm {
-        return this
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardForm {
+        const returnValue = this._clone()
+        returnValue._byId = objectMap(returnValue.byId, (component) => (component.mapContents(callback)))
+        return returnValue
     }
+
 }
