@@ -1425,7 +1425,6 @@ export class StandardForm {
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
-        const { fromKey, toKey, retainOldExportAs = false } = props[0]
         const returnValue = this._clone()
         const findMatchingRename = (key: string): { fromKey: string; toKey: string; retainOldExportAs?: boolean; } | undefined => {
             return props.find(({ fromKey }) => (fromKey === key))
