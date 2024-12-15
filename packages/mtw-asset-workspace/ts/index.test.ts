@@ -102,8 +102,7 @@ describe('AssetWorkspace', () => {
                 player: 'Test'
             })
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard).toMatchSnapshot()
-            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+            expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
         })
 
         it('should return empty on no JSON file', async () => {
@@ -125,7 +124,7 @@ describe('AssetWorkspace', () => {
                 player: 'Test'
             })
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard).toEqual({ key: '', tag: 'Asset', metaData: [], byId: {} })
+            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', metaData: [], byId: {} })
         })
 
     })
@@ -137,9 +136,6 @@ describe('AssetWorkspace', () => {
                 zone: 'Personal',
                 player: 'Test'
             })
-            testWorkspace.namespaceIdToDB = [
-                { internalKey: 'a123', universalKey: 'TestA' }
-            ]
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await testWorkspace.setWML(`
                 <Asset key=(Test)>
@@ -151,8 +147,7 @@ describe('AssetWorkspace', () => {
                     </Room>
                 </Asset>
             `)
-            expect(testWorkspace.standard).toMatchSnapshot()
-            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+            expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
         })
 
         it('should throw an exception on multi-asset file', async () => {
@@ -161,9 +156,6 @@ describe('AssetWorkspace', () => {
                 zone: 'Personal',
                 player: 'Test'
             })
-            testWorkspace.namespaceIdToDB = [
-                { internalKey: 'a123', universalKey: 'TestA' }
-            ]
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await expect(async () => {
                 await testWorkspace.setWML(`
@@ -188,7 +180,6 @@ describe('AssetWorkspace', () => {
             })
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.standard = new StandardForm('Test')
-            testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
@@ -205,7 +196,6 @@ describe('AssetWorkspace', () => {
             })
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.standard = new StandardForm('Test')
-            testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
@@ -215,31 +205,6 @@ describe('AssetWorkspace', () => {
             })
         })
 
-        // it('should correctly trim properties to those represented in standardForm', async () => {
-        //     const testWorkspace = new AssetWorkspace({
-        //         fileName: 'Test',
-        //         zone: 'Personal',
-        //         player: 'Test'
-        //     })
-        //     testWorkspace.assetId = 'ASSET#Test'
-        //     testWorkspace.namespaceIdToDB = []
-        //     testWorkspace.properties = {
-        //         Test: { fileName: 'test' },
-        //         foo: { fileName: 'bar'}
-        //     }
-        //     testWorkspace.standard = new StandardForm('Test')
-        //     testWorkspace.status.json = 'Dirty'
-        //     await testWorkspace.pushJSON()
-        //     expect(testWorkspace.status.json).toEqual('Clean')
-        //     expect(s3Client.put).toHaveBeenCalledWith({
-        //         Key: 'Personal/Test/Test.json',
-        //         Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{"Test":{"fileName":"test"}}}`
-        //     })
-        //     expect(s3Client.put).toHaveBeenCalledWith({
-        //         Key: 'Personal/Test/Test.ndjson',
-        //         Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
-        //     })
-        // })
     })
 
     describe('putWML', () => {
@@ -248,9 +213,6 @@ describe('AssetWorkspace', () => {
                 fileName: 'Test',
                 zone: 'Library'
             })
-            testWorkspace.namespaceIdToDB = [
-                { internalKey: 'a123', universalKey: 'TestA' }
-            ]
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
@@ -277,9 +239,6 @@ describe('AssetWorkspace', () => {
                 fileName: 'Test',
                 zone: 'Library'
             })
-            testWorkspace.namespaceIdToDB = [
-                { internalKey: 'a123', universalKey: 'TestA' }
-            ]
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
@@ -304,17 +263,16 @@ describe('AssetWorkspace', () => {
             })
             testWorkspace.setWorkspaceLookup(async () => ({
                 loadJSON: jest.fn(),
-                namespaceIdToDB: [
-                    { internalKey: 'base', universalKey: 'testImport' },
-                    { internalKey: 'testFeature', universalKey: 'testFeature', exportAs: 'Feature2' }
-                ],
-                universalKey: jest.fn().mockImplementation((key) => (key === 'base'
+                standard: new StandardForm(`
+                    <Asset key=(testAsset)>
+                        <Room key=(base) />
+                        <Feature key=(Feature2) />
+                        <Export><Feature key=(Feature2) as=(testFeature) /></Export>
+                    </Asset>
+                `).withUpdatedUniversalKeys((key) => (key === 'base'
                     ? 'testImport'
-                    : key === 'testFeature' ? 'testFeature' : undefined))
+                    : key === 'Feature2' ? 'testFeature' : undefined))
             } as any))
-            testWorkspace.namespaceIdToDB = [
-                { internalKey: 'b456', universalKey: 'TestB' }
-            ]
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
@@ -328,25 +286,8 @@ describe('AssetWorkspace', () => {
             `
             await testWorkspace.setWML(testSource)
 
-            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+            expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
         })
 
-        it('should populate export namespace mappings', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
-            uuidv4Mock.mockImplementation(uuidMockFactory())
-            const testSource = `
-                <Asset key=(Test)>
-                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
-                    <Export><Room key=(a123) as=(Room2) /></Export>
-                </Asset>
-            `
-            await testWorkspace.setWML(testSource)
-
-            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
-        })
     })
 })

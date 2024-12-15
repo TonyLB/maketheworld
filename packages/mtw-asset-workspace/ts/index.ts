@@ -188,7 +188,6 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const standardForm = this.standard || new StandardForm(this.assetId?.split('#')?.slice(1)?.[0] || '')
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
-            namespaceIdToDB: this.namespaceIdToDB,
             standard: standardForm,
             properties: objectFilterEntries(this.properties, ([key]) => ((key in (this.standard?.byId || {})) || (key === this.standard?.key)))
         })

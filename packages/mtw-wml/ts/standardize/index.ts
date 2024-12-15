@@ -767,7 +767,7 @@ export class StandardForm {
     _metaData: GenericTree<SchemaTag>;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
-        if (typeof args === 'string' && isLegalKey(args)) {
+        if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
             this._key = args
             this._byId = {}
             this._metaData = []

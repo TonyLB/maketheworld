@@ -1,93 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AssetWorkspace loadJSON should correctly parse a character 1`] = `
-Object {
-  "byId": Object {
-    "Tess": Object {
-      "firstImpression": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "FirstImpression",
-          "value": "Frumpy goth",
-        },
-      },
-      "image": Object {
-        "children": Array [],
-        "data": Object {
-          "key": "TessIcon",
-          "tag": "Image",
-        },
-      },
-      "key": "Tess",
-      "name": Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "Tess",
-            },
-          },
-        ],
-        "data": Object {
-          "tag": "Name",
-        },
-      },
-      "oneCoolThing": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "OneCoolThing",
-          "value": "",
-        },
-      },
-      "outfit": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Outfit",
-          "value": "",
-        },
-      },
-      "pronouns": Object {
-        "children": Array [],
-        "data": Object {
-          "adjective": "her",
-          "object": "her",
-          "possessive": "hers",
-          "reflexive": "herself",
-          "subject": "she",
-          "tag": "Pronouns",
-        },
-      },
-      "tag": "Character",
-      "universalKey": "CHARACTER#ABCDEF",
-    },
-    "TessIon": Object {
-      "fileName": "abcdef.png",
-      "key": "TessIon",
-      "tag": "Image",
-      "universalKey": "IMAGE#123456",
-    },
-  },
-  "key": "Tess",
-  "metaData": Array [],
-  "tag": "Character",
-  "update": undefined,
-}
-`;
-
-exports[`AssetWorkspace loadJSON should correctly parse a character 2`] = `
-Array [
-  Object {
-    "internalKey": "Tess",
-    "universalKey": "CHARACTER#ABCDEF",
-  },
-  Object {
-    "internalKey": "TessIon",
-    "universalKey": "IMAGE#123456",
-  },
-]
-`;
-
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
   "byId": Object {
@@ -99,6 +11,7 @@ Object {
         },
       },
       "exits": Array [],
+      "fileName": undefined,
       "key": "testRoom",
       "name": Object {
         "children": Array [],
@@ -125,30 +38,14 @@ Object {
   },
   "key": "Test",
   "metaData": Array [],
-  "tag": "Asset",
-  "update": undefined,
 }
-`;
-
-exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 2`] = `
-Array [
-  Object {
-    "internalKey": "testRoom",
-    "universalKey": "ROOM#001",
-  },
-]
 `;
 
 exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
 Object {
   "byId": Object {
     "a123": Object {
-      "description": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Description",
-        },
-      },
+      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -169,35 +66,17 @@ Object {
           "wrapperTag": undefined,
         },
       ],
+      "fileName": undefined,
       "key": "a123",
-      "name": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Name",
-        },
-      },
-      "shortName": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "ShortName",
-        },
-      },
-      "summary": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Summary",
-        },
-      },
+      "name": undefined,
+      "shortName": undefined,
+      "summary": undefined,
       "tag": "Room",
       "themes": Array [],
+      "universalKey": "ROOM#UUID-0",
     },
     "b456": Object {
-      "description": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Description",
-        },
-      },
+      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -218,76 +97,136 @@ Object {
           "wrapperTag": undefined,
         },
       ],
+      "fileName": undefined,
       "key": "b456",
-      "name": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Name",
-        },
-      },
-      "shortName": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "ShortName",
-        },
-      },
-      "summary": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Summary",
-        },
-      },
+      "name": undefined,
+      "shortName": undefined,
+      "summary": undefined,
       "tag": "Room",
       "themes": Array [],
+      "universalKey": "ROOM#UUID-1",
     },
   },
   "key": "Test",
   "metaData": Array [],
-  "tag": "Asset",
-  "update": undefined,
 }
 `;
 
-exports[`AssetWorkspace setWML should correctly parse WML input 2`] = `
-Array [
-  Object {
-    "internalKey": "a123",
-    "universalKey": "TestA",
-  },
-  Object {
-    "internalKey": "b456",
-    "universalKey": "ROOM#UUID-0",
-  },
-]
-`;
-
 exports[`AssetWorkspace setWML should look up import namespace mappings 1`] = `
-Array [
-  Object {
-    "internalKey": "b456",
-    "universalKey": "TestB",
+Object {
+  "byId": Object {
+    "a123": Object {
+      "description": undefined,
+      "exits": Array [
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "welcome",
+              },
+            },
+          ],
+          "data": Object {
+            "from": "a123",
+            "key": "a123#b456",
+            "tag": "Exit",
+            "to": "b456",
+          },
+          "wrapperTag": undefined,
+        },
+      ],
+      "fileName": undefined,
+      "from": Object {
+        "action": "Content",
+        "payload": Object {
+          "assetId": "testAsset",
+          "fromKey": "base",
+        },
+      },
+      "key": "a123",
+      "name": undefined,
+      "shortName": undefined,
+      "summary": undefined,
+      "tag": "Room",
+      "themes": Array [],
+      "universalKey": "testImport",
+    },
+    "b456": Object {
+      "description": undefined,
+      "exits": Array [
+        Object {
+          "children": Array [
+            Object {
+              "children": Array [],
+              "data": Object {
+                "tag": "String",
+                "value": "vortex",
+              },
+            },
+          ],
+          "data": Object {
+            "from": "b456",
+            "key": "b456#a123",
+            "tag": "Exit",
+            "to": "a123",
+          },
+          "wrapperTag": undefined,
+        },
+      ],
+      "fileName": undefined,
+      "key": "b456",
+      "name": undefined,
+      "shortName": undefined,
+      "summary": undefined,
+      "tag": "Room",
+      "themes": Array [],
+      "universalKey": "ROOM#UUID-0",
+    },
+    "c789": Object {
+      "description": undefined,
+      "fileName": undefined,
+      "from": Object {
+        "action": "Content",
+        "payload": Object {
+          "assetId": "testAsset",
+          "fromKey": "Feature2",
+        },
+      },
+      "key": "c789",
+      "name": undefined,
+      "tag": "Feature",
+      "universalKey": "testFeature",
+    },
   },
-  Object {
-    "internalKey": "a123",
-    "universalKey": "testImport",
-  },
-  Object {
-    "internalKey": "c789",
-    "universalKey": "testFeature",
-  },
-]
-`;
-
-exports[`AssetWorkspace setWML should populate export namespace mappings 1`] = `
-Array [
-  Object {
-    "exportAs": "Room2",
-    "internalKey": "a123",
-    "universalKey": "ROOM#UUID-0",
-  },
-  Object {
-    "internalKey": "b456",
-    "universalKey": "ROOM#UUID-1",
-  },
-]
+  "key": "Test",
+  "metaData": Array [
+    Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "data": Object {
+            "from": "base",
+            "key": "a123",
+            "tag": "Room",
+          },
+        },
+        Object {
+          "children": Array [],
+          "data": Object {
+            "from": "Feature2",
+            "key": "c789",
+            "tag": "Feature",
+          },
+        },
+      ],
+      "data": Object {
+        "from": "testAsset",
+        "mapping": Object {},
+        "tag": "Import",
+      },
+    },
+  ],
+}
 `;

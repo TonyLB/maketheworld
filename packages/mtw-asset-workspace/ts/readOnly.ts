@@ -104,14 +104,6 @@ type AssetWorkspaceStatus = {
     wml: AssetWorkspaceStatusItem;
 }
 
-export type NamespaceMappingItem = {
-    internalKey: string;
-    universalKey: string;
-    exportAs?: string;
-}
-
-export type NamespaceMapping = NamespaceMappingItem[]
-
 export type WorkspaceImageProperty = {
     fileName: string;
 }
@@ -123,7 +115,7 @@ export type WorkspaceProperties = {
 }
 
 type AddressLookup = {
-    (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
+    (key: `ASSET#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
 }
 
 export class ReadOnlyAssetWorkspace {
@@ -134,7 +126,6 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     standard?: StandardForm;
-    namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
     
@@ -171,11 +162,6 @@ export class ReadOnlyAssetWorkspace {
 
     get fileName(): string {
         return this.address.zone === 'Archive' ? '' : this.address.zone === 'Draft' ? 'draft' : this.address.fileName
-    }
-
-    universalKey(searchKey: string): string | undefined {
-        const matchingNamespaceItem = this.namespaceIdToDB.find(({ internalKey }) => (internalKey === searchKey))
-        return matchingNamespaceItem?.universalKey
     }
 
     //
@@ -220,7 +206,6 @@ export class ReadOnlyAssetWorkspace {
     async loadJSON() {
         if (this.address.zone === 'Archive') {
             this.standard = new StandardForm('')
-            this.namespaceIdToDB = []
             this.properties = {}
             this.status.json = 'Clean'
             return
@@ -234,7 +219,6 @@ export class ReadOnlyAssetWorkspace {
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.standard = new StandardForm('')
-                this.namespaceIdToDB = []
                 this.properties = {}
                 this.status.json = 'Clean'
                 return
