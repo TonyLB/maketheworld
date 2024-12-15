@@ -6,7 +6,7 @@ import { componentClassFactory, ComponentConstructorMethods, StandardComponent }
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { directReferenceKeys } from "./utils/references"
+import { dependencyReferenceKeys, directReferenceKeys } from "./utils/references"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: GenericTree<SchemaTag> = [];
@@ -54,9 +54,13 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
-        return directReferenceKeys(this.messages)
-            .map((key) => ({ referenceType: 'Direct', key }))
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+        return [
+            ...directReferenceKeys(this.messages)
+                .map((key) => ({ referenceType: 'Direct' as const, key })),
+            ...dependencyReferenceKeys(this.messages)
+                .map((key) => ({ referenceType: 'Dependency' as const, key }))
+        ]
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {

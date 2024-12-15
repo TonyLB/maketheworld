@@ -1546,7 +1546,7 @@ describe('StandardForm', () => {
 
     it('should return an empty wrapper unchanged', () => {
         const test = new StandardForm(`<Asset key=(Test) />`)
-        expect(test.header).toEqual({ tag: 'Asset', key: 'Test' })
+        expect(test.header).toEqual({ tag: 'Asset', key: 'Test', universalKey: 'ASSET#Test' })
         expect(schemaToWML([test.schema])).toEqual(`<Asset key=(Test) />`)
     })
 
@@ -2769,7 +2769,7 @@ describe('StandardForm', () => {
     })
 
     it('should deserialize empty NDJSON correctly', () => {
-        expect((new StandardForm([{ tag: 'Asset', key: 'Test' }])).toJSON()).toEqual({
+        expect((new StandardForm([{ tag: 'Asset', key: 'Test', universalKey: 'ASSET#Test' }])).toJSON()).toEqual({
             key: 'Test',
             byId: {},
             metaData: []

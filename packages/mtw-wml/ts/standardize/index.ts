@@ -348,7 +348,7 @@ export class StandardRemove implements StandardComponent {
     get import() { return this._match.import }
     get export() { return this._match.export }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this._match.referencedKeys()
     }
 
@@ -544,7 +544,7 @@ export class StandardReplace implements StandardComponent {
         }).withUniversalKey(this.universalKey)
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...this._match.referencedKeys(),
             ...this._payload.referencedKeys()
@@ -1133,14 +1133,14 @@ export class StandardForm {
     get byId(): Record<string, StandardComponent> { return this._byId }
     get key(): string { return this._key }
 
-    toJSON(): StandardFormData {
+    toJSON(options?: { stripUniversalKey?: boolean }): StandardFormData {
         return {
             key: this._key,
             metaData: this.metaData,
             byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
                 return {
                     ...previous,
-                    [component.key]: component.toJSON() as StandardComponentData
+                    [component.key]: component.toJSON(options) as StandardComponentData
                 }
             }, {})
         }

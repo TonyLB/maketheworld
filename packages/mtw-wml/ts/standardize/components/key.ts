@@ -25,10 +25,10 @@ export class KeyPayload {
     get universalKey() { return this._universalKey }
     get fileName() { return this._fileName }
 
-    toJSON(): { key: string } & SerializeNDJSONMixin {
+    toJSON(options?: { stripUniversalKey?: boolean }): { key: string } & SerializeNDJSONMixin {
         return {
             key: this.key,
-            universalKey: this.universalKey,
+            ...(options?.stripUniversalKey ? {} : { universalKey: this.universalKey }),
             fileName: this.fileName
         }
     }

@@ -52,7 +52,7 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
         return []
     }
 

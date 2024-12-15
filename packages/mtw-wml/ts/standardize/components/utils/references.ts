@@ -1,5 +1,5 @@
 import { unique } from "../../../list"
-import { isImportable, isSchemaExit, isSchemaLink, isSchemaRoom, SchemaTag } from "../../../schema/baseClasses"
+import { isImportable, isSchemaConditionStatement, isSchemaExit, isSchemaLink, isSchemaRoom, SchemaTag } from "../../../schema/baseClasses"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "../../../tree/baseClasses"
 
@@ -14,6 +14,23 @@ export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
             }
             else {
                 return linkReferenceKeys(children)
+            }
+        })
+        .flat(1)
+    )
+}
+
+export const dependencyReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
+    return unique(tree
+        .map(({ data, children }) => {
+            if (isSchemaConditionStatement(data)) {
+                return [
+                    ...(data.dependencies ?? []),
+                    ...dependencyReferenceKeys(children)
+                ]
+            }
+            else {
+                return dependencyReferenceKeys(children)
             }
         })
         .flat(1)

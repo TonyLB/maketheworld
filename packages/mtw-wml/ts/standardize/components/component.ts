@@ -25,7 +25,7 @@ import { isSchemaTreeNode } from "./utils";
 
 type StandardComponentReferenceKey = {
     key: string;
-    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct';
+    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
 }
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
@@ -52,7 +52,7 @@ export interface StandardComponent {
     export?: StandardExportItem;
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
-    toJSON(): StandardComponentData & SerializeNDJSONMixin;
+    toJSON(options?: { stripUniversalKey?: boolean }): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
@@ -111,9 +111,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue
         }
 
-        toJSON(): D {
+        toJSON(options?: { stripUniversalKey?: boolean }): D {
             return {
-                ...this._key.toJSON(),
+                ...this._key.toJSON(options),
                 ...this._payload.toJSON(),
                 ...(this.import ? { from: this.import.toJSON() } : {}),
                 ...(this.export ? { exportAs: this.export.toJSON() } : {})

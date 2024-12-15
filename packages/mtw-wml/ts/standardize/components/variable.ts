@@ -49,7 +49,7 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         return returnValue as this
     }
     
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
         return []
     }
 

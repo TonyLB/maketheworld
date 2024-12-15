@@ -39,7 +39,7 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return []
     }
 
