@@ -26,16 +26,12 @@ exports[`fetchImports should import multilevel and avoid colliding stub names 1`
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Inherited>
-        <Room key=(testImportAssetThree.stub)>
-            <ShortName>AssetThreeStub</ShortName>
-        </Room>
-        <Room key=(testImportAssetTwo.stub)>
-            <ShortName>Asset Three</ShortName>
-        </Room>
+        <Room key=(stub)><ShortName>Asset Three</ShortName></Room>
+        <Room key=(Stub1)><ShortName>AssetThreeStub</ShortName></Room>
         <Room key=(testImportThree)>
             <Description>Asset Two</Description>
-            <Exit to=(testImportAssetThree.stub)>test exit</Exit>
-            <Exit to=(testImportAssetTwo.stub)>test exit</Exit>
+            <Exit to=(Stub1)>test exit</Exit>
+            <Exit to=(stub)>test exit</Exit>
         </Room>
     </Inherited>
 </Asset>",
@@ -53,9 +49,9 @@ exports[`fetchImports should properly stub out features in room description 1`] 
       "wml": "<Asset key=(testFinal)>
     <Inherited>
         <Room key=(testRoomWithFeatures)>
-            <Description><Link to=(testFeature)>Test</Link></Description>
+            <Description><Link to=(featureImport)>Test</Link></Description>
         </Room>
-        <Feature key=(testFeature) />
+        <Feature key=(featureImport) />
     </Inherited>
 </Asset>",
     },

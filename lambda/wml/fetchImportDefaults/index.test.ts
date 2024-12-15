@@ -8,7 +8,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
-import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardForm, Standardizer } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
@@ -21,7 +21,7 @@ const testStandardFromWML = (wml: string): StandardFormData => {
 }
 
 describe('fetchImports', () => {
-    const testFinal = testStandardFromWML(`<Asset key=(testFinal)>
+    const testFinal = new StandardForm(`<Asset key=(testFinal)>
         <Room key=(testNonImport)>
             <Description>
                 DescriptionOne
@@ -61,7 +61,7 @@ describe('fetchImports', () => {
             <Room key=(testRoomWithFeatures) />
         </Import>
     </Asset>`)
-    const testImportOne = testStandardFromWML(`<Asset key=(testImportAssetOne)>
+    const testImportOne = new StandardForm(`<Asset key=(testImportAssetOne)>
         <Room key=(testImportOne)>
             <Description>
                 One
@@ -77,7 +77,7 @@ describe('fetchImports', () => {
             </Description>
         </Room>
     </Asset>`)
-    const testImportTwo = testStandardFromWML(`<Asset key=(testImportAssetTwo)>
+    const testImportTwo = new StandardForm(`<Asset key=(testImportAssetTwo)>
         <Room key=(basic)>
             <Description>
                 Asset Two
@@ -90,14 +90,14 @@ describe('fetchImports', () => {
             <Room key=(basic) from=(basicOne) />
         </Import>
     </Asset>`)
-    const testImportThree = testStandardFromWML(`<Asset key=(testImportAssetThree)>
+    const testImportThree = new StandardForm(`<Asset key=(testImportAssetThree)>
         <Room key=(basicOne)>
             <Exit to=(stub)>test exit</Exit>
         </Room>
         <Room key=(basicTwo)><ShortName>Asset Three</ShortName></Room>
         <Room key=(stub)><ShortName>AssetThreeStub</ShortName></Room>
     </Asset>`)
-    const testImportFour = testStandardFromWML(`<Asset key=(testImportAssetFour)>
+    const testImportFour = new StandardForm(`<Asset key=(testImportAssetFour)>
         <Feature key=(testFeature)>
             <Description>Feature test</Description>
         </Feature>
@@ -125,7 +125,7 @@ describe('fetchImports', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
-            let standard: StandardFormData = { key: '', tag: 'Asset', byId: {}, metaData: [] }
+            let standard: StandardForm = new StandardForm('test')
             switch(assetId) {
                 case 'ASSET#testFinal':
                     standard = testFinal
@@ -143,10 +143,7 @@ describe('fetchImports', () => {
                     standard = testImportFour
                     break
             }
-            return {
-                standard,
-                namespaceIdToDB: []
-            }
+            return standard
         })
     })
 
