@@ -126,7 +126,6 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     standard?: StandardForm;
-    properties: WorkspaceProperties = {};
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
@@ -206,7 +205,6 @@ export class ReadOnlyAssetWorkspace {
     async loadJSON() {
         if (this.address.zone === 'Archive') {
             this.standard = new StandardForm('')
-            this.properties = {}
             this.status.json = 'Clean'
             return
         }
@@ -219,7 +217,6 @@ export class ReadOnlyAssetWorkspace {
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.standard = new StandardForm('')
-                this.properties = {}
                 this.status.json = 'Clean'
                 return
             }
@@ -228,8 +225,6 @@ export class ReadOnlyAssetWorkspace {
         
         const lines = contents.split('\n').map((line) => (JSON.parse(line)))
         this.standard = new StandardForm(lines)
-        // this.namespaceIdToDB = Object.entries(results.universalKeys).map(([key, value]) => ({ internalKey: key, universalKey: value })) as NamespaceMapping
-        // this.properties = objectMap(results.fileAssociations, (value) => ({ fileName: value })) as WorkspaceProperties
         this.status.json = 'Clean'
     }
 

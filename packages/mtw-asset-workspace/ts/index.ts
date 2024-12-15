@@ -4,7 +4,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/dist/schema/index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { s3Client } from "./clients"
-import { deepEqual, objectFilterEntries } from "./objects"
+import { deepEqual } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { ExportItemContent, ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 import { excludeUndefined } from '@tonylb/mtw-wml/ts/lib/lists'
@@ -188,8 +188,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const standardForm = this.standard || new StandardForm(this.assetId?.split('#')?.slice(1)?.[0] || '')
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
-            standard: standardForm,
-            properties: objectFilterEntries(this.properties, ([key]) => ((key in (this.standard?.byId || {})) || (key === this.standard?.key)))
+            standard: standardForm
         })
         await Promise.all([
             s3Client.put({
