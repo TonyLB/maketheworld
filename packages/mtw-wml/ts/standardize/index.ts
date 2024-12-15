@@ -1122,10 +1122,11 @@ export class StandardForm {
             ...exportItem
         ]
     }
-    get header(): { tag: 'Asset' } & StandardBaseData {
+    get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
         return {
             tag: 'Asset',
-            key: this._key
+            key: this._key,
+            universalKey: `ASSET#${this._key}`
         }
     }
 
@@ -1511,6 +1512,18 @@ export class StandardForm {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardForm {
         const returnValue = this._clone()
         returnValue._byId = objectMap(returnValue.byId, (component) => (component.mapContents(callback)))
+        return returnValue
+    }
+
+    withUpdatedUniversalKeys(callback: (key: string) => string | undefined): StandardForm {
+        const returnValue = this._clone()
+        returnValue._byId = objectMap(returnValue.byId, (component) => {
+            const updatedUniversalKey = callback(component.key)
+            if (updatedUniversalKey && !(component.universalKey === updatedUniversalKey)) {
+                return component.withUniversalKey(updatedUniversalKey)
+            }
+            return component
+        })
         return returnValue
     }
 

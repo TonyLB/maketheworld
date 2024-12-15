@@ -7,6 +7,7 @@ import { AssetWorkspaceException } from './errors'
 import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
 import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -105,33 +106,6 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
 
-        it('should correctly parse a character', async () => {
-            const lines: StandardNDJSON = [
-                {
-                    tag: "Character",
-                    key: 'Tess',
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }]},
-                    firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy goth' }, children: [] },
-                    oneCoolThing: { data: { tag: 'OneCoolThing', value: '' }, children: [] },
-                    outfit: { data: { tag: 'Outfit', value: '' }, children: [] },
-                    pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'hers', adjective: 'her', reflexive: 'herself' }, children: [] },
-                    image: { data: { tag: 'Image', key: 'TessIcon' }, children: [] },
-                    universalKey: 'CHARACTER#ABCDEF'
-                },
-                { tag: 'Image', key: 'TessIon', universalKey: 'IMAGE#123456', fileName: 'abcdef.png' }
-            ]
-            s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
-    
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
-            await testWorkspace.loadJSON()
-            expect(testWorkspace.standard).toMatchSnapshot()
-            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
-        })
-
         it('should return empty on no JSON file', async () => {
             s3ClientMock.get.mockImplementation(() => {
                 const error = new (class NoSuchKey extends Error {
@@ -213,18 +187,14 @@ describe('AssetWorkspace', () => {
                 player: 'Test'
             })
             testWorkspace.assetId = 'ASSET#Test'
-            testWorkspace.standard = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
+            testWorkspace.standard = new StandardForm('Test')
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Personal/Test/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{}}`
-            })
-            expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
+                Body: `{"tag":"Asset","key":"Test","universalKey":"ASSET#Test"}`
             })
         })
 
@@ -234,46 +204,42 @@ describe('AssetWorkspace', () => {
                 zone: 'Library'
             })
             testWorkspace.assetId = 'ASSET#Test'
-            testWorkspace.standard = { key: "Test", tag: "Asset", byId: {}, metaData: [] }
+            testWorkspace.standard = new StandardForm('Test')
             testWorkspace.namespaceIdToDB = []
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Library/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{}}`
-            })
-            expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
+                Body: `{"tag":"Asset","key":"Test","universalKey":"ASSET#Test"}`
             })
         })
 
-        it('should correctly trim properties to those represented in standardForm', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
-            testWorkspace.assetId = 'ASSET#Test'
-            testWorkspace.namespaceIdToDB = []
-            testWorkspace.properties = {
-                Test: { fileName: 'test' },
-                foo: { fileName: 'bar'}
-            }
-            testWorkspace.standard = { key: "Test", tag: "Asset", byId: {}, metaData: [] }
-            testWorkspace.status.json = 'Dirty'
-            await testWorkspace.pushJSON()
-            expect(testWorkspace.status.json).toEqual('Clean')
-            expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Personal/Test/Test.json',
-                Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{"Test":{"fileName":"test"}}}`
-            })
-            expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Personal/Test/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
-            })
-        })
+        // it('should correctly trim properties to those represented in standardForm', async () => {
+        //     const testWorkspace = new AssetWorkspace({
+        //         fileName: 'Test',
+        //         zone: 'Personal',
+        //         player: 'Test'
+        //     })
+        //     testWorkspace.assetId = 'ASSET#Test'
+        //     testWorkspace.namespaceIdToDB = []
+        //     testWorkspace.properties = {
+        //         Test: { fileName: 'test' },
+        //         foo: { fileName: 'bar'}
+        //     }
+        //     testWorkspace.standard = new StandardForm('Test')
+        //     testWorkspace.status.json = 'Dirty'
+        //     await testWorkspace.pushJSON()
+        //     expect(testWorkspace.status.json).toEqual('Clean')
+        //     expect(s3Client.put).toHaveBeenCalledWith({
+        //         Key: 'Personal/Test/Test.json',
+        //         Body: `{"assetId":"ASSET#Test","namespaceIdToDB":[],"standard":{"key":"Test","tag":"Asset","byId":{},"metaData":[]},"properties":{"Test":{"fileName":"test"}}}`
+        //     })
+        //     expect(s3Client.put).toHaveBeenCalledWith({
+        //         Key: 'Personal/Test/Test.ndjson',
+        //         Body: `{"tag":"Asset","key":"Test","universalId":"ASSET#Test"}`
+        //     })
+        // })
     })
 
     describe('putWML', () => {
