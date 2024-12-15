@@ -8,7 +8,7 @@ import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 type ParseWMLHandlerArguments = {
     address: AssetWorkspaceAddress;
@@ -30,11 +30,10 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         await assetWorkspace.loadJSON()
 
         assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
-        const fileType = assetWorkspace.standard?.tag ?? 'Asset'
         const imageFiles = (await Promise.all([
             uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
             ...((images || []).map(async ({ key, fileName }) => {
-                const final = await formatImage(s3Client)({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
+                const final = await formatImage(s3Client)({ fromFileName: fileName, width: 1200, height: 800 })
                 return { key, fileName: final }
             }))
         ])).slice(1) as ParseWMLAPIImage[]
@@ -45,13 +44,12 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
             })
         }
         if (assetWorkspace.status.json !== 'Clean') {
-            const standardizer = new Standardizer()
             if (!assetWorkspace.standard) {
                 return
             }
-            standardizer.loadStandardForm(assetWorkspace.standard)
-            standardizer.assignDependencies(extractDependenciesFromJS)
-            assetWorkspace.standard = standardizer.standardForm
+            const standard = new StandardForm(assetWorkspace.standard)
+            const standardWithDependencies = standard.assignDependencies(extractDependenciesFromJS)
+            assetWorkspace.standard = standardWithDependencies.toJSON()
             await Promise.all([
                 assetWorkspace.pushJSON(),
                 assetWorkspace.pushWML(),

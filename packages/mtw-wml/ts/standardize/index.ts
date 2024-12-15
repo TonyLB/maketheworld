@@ -1507,4 +1507,8 @@ export class StandardForm {
 
         return returnValue
     }
+
+    assignDependencies(extractJS: (src: string) => string[]): StandardForm {
+        return this
+    }
 }

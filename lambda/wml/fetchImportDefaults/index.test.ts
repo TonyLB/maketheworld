@@ -7,18 +7,9 @@ import { FetchImportsJSONHelper } from './baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
-import { Schema } from '@tonylb/mtw-wml/ts/schema'
-import { StandardForm, Standardizer } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
-
-const testStandardFromWML = (wml: string): StandardFormData => {
-    const schema = new Schema()
-    schema.loadWML(wml)
-    const standardizer = new Standardizer(schema.schema)
-    return standardizer.standardForm
-}
 
 describe('fetchImports', () => {
     const testFinal = new StandardForm(`<Asset key=(testFinal)>
