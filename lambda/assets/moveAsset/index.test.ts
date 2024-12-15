@@ -61,6 +61,7 @@ describe('moveAsset', () => {
         await moveAssetMessage({
             payloads: [{
                 type: 'MoveAsset',
+                AssetId: 'Test',
                 from: {
                     zone: 'Personal',
                     player: 'Test',
