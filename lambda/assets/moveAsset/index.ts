@@ -6,7 +6,8 @@ import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBu
 import internalCache from "../internalCache"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
-import { StandardAsset, StandardCharacter } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { StandardAsset } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 const { S3_BUCKET } = process.env;
 
@@ -42,12 +43,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         ])
                     }
                     else {
-                        fromAssetWorkspace.standard = {
-                            key: AssetId.split('#').slice(-1)[0],
-                            tag: AssetId.split('#')[0] === 'CHARACTER' ? 'Character' : 'Asset',
-                            byId: {},
-                            metaData: []
-                        }
+                        fromAssetWorkspace.standard = new StandardForm(AssetId.split('#').slice(-1)[0],)
                         await dbRegister(fromAssetWorkspace)
                     }
                     await Promise.all([
@@ -70,7 +66,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                             const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.Library.set({
                                 Assets: rootNodes.filter((value): value is StandardAsset => (value.tag === 'Asset')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
-                                Characters: rootNodes.filter((value): value is StandardCharacter => (value.tag === 'Character')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: {}
                             })
                         }
                         messageBus.send({ type: 'LibraryUpdate' })
@@ -80,7 +76,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                             const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.PlayerLibrary.set(from.player, {
                                 Assets: rootNodes.filter((value): value is StandardAsset => (value.tag === 'Asset')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
-                                Characters: rootNodes.filter((value): value is StandardCharacter => (value.tag === 'Character')).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: {}
                             })
                             messageBus.send({
                                 type: 'PlayerInfo',
