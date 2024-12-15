@@ -9,6 +9,8 @@ import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { isSchemaComputed, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 type ParseWMLHandlerArguments = {
     address: AssetWorkspaceAddress;
@@ -48,7 +50,30 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 return
             }
             const standard = new StandardForm(assetWorkspace.standard)
-            const standardWithDependencies = standard.assignDependencies(extractDependenciesFromJS)
+            //
+            // Use static analysis of JS code to extract dependencies from the WML elements that use JS
+            //
+            const standardWithDependencies = standard.mapContents((tree) => (tree.map((node) => {
+                if (treeNodeTypeguard(isSchemaConditionStatement)(node)) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            dependencies: extractDependenciesFromJS(node.data.if)
+                        }
+                    }
+                }
+                if (isSchemaComputed(node.data)) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            dependencies: extractDependenciesFromJS(node.data.src),
+                        }
+                    }
+                }
+                return node
+            })))
             assetWorkspace.standard = standardWithDependencies.toJSON()
             await Promise.all([
                 assetWorkspace.pushJSON(),
