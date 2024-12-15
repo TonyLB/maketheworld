@@ -1,13 +1,11 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { StandardAsset, StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardAsset } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { deserialize } from "@tonylb/mtw-wml/ts/standardize/serialize"
-import { objectMap } from "./objects"
-import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -106,14 +104,6 @@ type AssetWorkspaceStatus = {
     wml: AssetWorkspaceStatusItem;
 }
 
-export type NamespaceMappingItem = {
-    internalKey: string;
-    universalKey: string;
-    exportAs?: string;
-}
-
-export type NamespaceMapping = NamespaceMappingItem[]
-
 export type WorkspaceImageProperty = {
     fileName: string;
 }
@@ -125,7 +115,7 @@ export type WorkspaceProperties = {
 }
 
 type AddressLookup = {
-    (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
+    (key: `ASSET#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
 }
 
 export class ReadOnlyAssetWorkspace {
@@ -135,9 +125,7 @@ export class ReadOnlyAssetWorkspace {
         json: 'Initial',
         wml: 'Initial'
     };
-    standard?: StandardFormData;
-    namespaceIdToDB: NamespaceMapping = [];
-    properties: WorkspaceProperties = {};
+    standard?: StandardForm;
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
@@ -173,11 +161,6 @@ export class ReadOnlyAssetWorkspace {
 
     get fileName(): string {
         return this.address.zone === 'Archive' ? '' : this.address.zone === 'Draft' ? 'draft' : this.address.fileName
-    }
-
-    universalKey(searchKey: string): string | undefined {
-        const matchingNamespaceItem = this.namespaceIdToDB.find(({ internalKey }) => (internalKey === searchKey))
-        return matchingNamespaceItem?.universalKey
     }
 
     //
@@ -221,9 +204,7 @@ export class ReadOnlyAssetWorkspace {
 
     async loadJSON() {
         if (this.address.zone === 'Archive') {
-            this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
-            this.namespaceIdToDB = []
-            this.properties = {}
+            this.standard = new StandardForm('')
             this.status.json = 'Clean'
             return
         }
@@ -235,9 +216,7 @@ export class ReadOnlyAssetWorkspace {
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
-                this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
-                this.namespaceIdToDB = []
-                this.properties = {}
+                this.standard = new StandardForm('')
                 this.status.json = 'Clean'
                 return
             }
@@ -245,35 +224,15 @@ export class ReadOnlyAssetWorkspace {
         }
         
         const lines = contents.split('\n').map((line) => (JSON.parse(line)))
-        const results = deserialize(lines)
-        if (!results.standardForm.key) {
-            this.standard = { key: '', tag: 'Asset', byId: {}, metaData: [] }
-            this.namespaceIdToDB = []
-            this.properties = {}
-            this.status.json = 'Clean'
-            return
-        }
-
-        this.standard = results.standardForm
-        this.namespaceIdToDB = Object.entries(results.universalKeys).map(([key, value]) => ({ internalKey: key, universalKey: value })) as NamespaceMapping
-        this.properties = objectMap(results.fileAssociations, (value) => ({ fileName: value })) as WorkspaceProperties
+        this.standard = new StandardForm(lines)
         this.status.json = 'Clean'
     }
 
-    get rootNodes(): (StandardAsset | StandardCharacter)[] {
-        const { tag, key } = this.standard ?? {}
-        switch(tag) {
-            case 'Asset':
-                return key
-                    ? [{ tag, key }]
-                    : []
-            case 'Character':
-                const character = this.standard?.byId[key ?? '']
-                if (character && character.tag === 'Character') {
-                    return [character]
-                }
-        }
-        return []
+    get rootNodes(): StandardAsset[] {
+        const key = this.standard?.key
+        return key
+            ? [{ tag: 'Asset', key }]
+            : []
     }
 
 }

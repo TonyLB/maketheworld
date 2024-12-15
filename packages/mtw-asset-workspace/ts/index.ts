@@ -1,110 +1,146 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema/index'
-import { Standardizer } from '@tonylb/mtw-wml/ts/standardize'
-import { serialize } from '@tonylb/mtw-wml/ts/standardize/serialize'
+import { schemaToWML } from '@tonylb/mtw-wml/dist/schema/index'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { s3Client } from "./clients"
-import { deepEqual, objectFilterEntries } from "./objects"
+import { deepEqual } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
-import { isImportable, isSchemaExport, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { ExportItemContent, ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
+import { excludeUndefined } from '@tonylb/mtw-wml/ts/lib/lists'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
-    wml?: string;
+
+    get wml(): string | undefined {
+        if (this.standard) {
+            return schemaToWML([this.standard.schema])
+        }
+        return undefined
+    }
 
     changeAddress(address: AssetWorkspaceAddress) {
         this.address = address
     }
 
-    async setJSON(standardForm: StandardFormData): Promise<void> {
-        if (!(this.standard && deepEqual(standardForm, this.standard))) {
-            this.status.json = 'Dirty'
-            this.standard = standardForm
-        }
-        const standardizer = new Standardizer()
-        standardizer.loadStandardForm(standardForm)
-
-        if (this._workspaceFromKey) {
-            const exportMapping = standardizer.metaData
-                .filter(treeNodeTypeguard(isSchemaExport))
-                .reduce((previous, { children }) => {
-                    return Object.assign(previous,
-                        ...children
-                            .filter(treeNodeTypeguard(isImportable))
-                            .map(({ data }) => (data))
-                            .map(({ key, as }) => {
-                                as ? { [key]: as } : {}
-                            })
-                    )
-                }, {})
-            await Promise.all(standardizer.metaData
-                .filter(treeNodeTypeguard(isSchemaImport))
-                .map(async (node) => {
-                    const { data } = node
-                    const { from: importFrom } = data
-                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${importFrom}`)
-                    if (importWorkspace) {
-                        await importWorkspace.loadJSON()
-                        const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
-                        node.children
-                            .map(({ data }) => (data))
-                            .filter(isImportable)
-                            .forEach(({ key, from }) => {
-                                const exportAs = exportMapping[key]
-                                if (importNamespaceIdToDB[from ?? key]) {
-                                    this.namespaceIdToDB = [
-                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== key)),
-                                        { internalKey: key, universalKey: importNamespaceIdToDB[from ?? key], ...(exportAs ? { exportAs } : {} ) }
-                                    ]
-                                }
-                            })
-                    }
-                })
-            )
-        }
-
-        Object.values(this.standard?.byId ?? {})
-            .filter(({ key }) => (!(this.universalKey(key))))
-            .forEach(({ tag, key }) => {
-                this.status.json = 'Dirty'
-                const exportNode = standardizer.metaData
-                    .filter(treeNodeTypeguard(isSchemaExport))
-                    .map(({ children }) => (children.map(({ data }) => (data)))).flat(1).find((data) => (isSchemaWithKey(data) && data.key === key))
-                const exportAs = exportNode && isImportable(exportNode) && exportNode.as
-                this.namespaceIdToDB = [
-                    ...this.namespaceIdToDB,
-                    { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`, ...(exportAs ? { exportAs } : {} ) }
-                ]
+    async setJSON(standardForm: StandardForm): Promise<void> {
+        //
+        // Where the asset workspace already has a universalKey for an item which has no
+        // key incoming, update the incoming to match the known key.
+        //
+        const standardFormWithPreviousUniversalKeys = standardForm
+            .withUpdatedUniversalKeys((key) => {
+                const currentExport = standardForm.byId[key]?.universalKey
+                const previousExport = this.standard?.byId?.[key]?.universalKey
+                if (!currentExport) {
+                    return previousExport
+                }
+                return undefined
             })
 
-        if (this.standard?.tag === 'Asset') {
-            this.assetId = `ASSET#${this.standard?.key}`
-        }
-        if (this.standard?.tag === 'Character') {
-            this.assetId = this.universalKey(this.standard?.key) as `CHARACTER#${string}`
+        //
+        // Search imports to see if there is already a universalKey applied, and if so
+        // inherit it into the current assetWorkspace
+        //
+        let standardFormWithInheritedUniversalKeys = standardFormWithPreviousUniversalKeys
+        if (this._workspaceFromKey) {
+            //
+            // Keys by import provides a record with a key of asset-key, and a value that is itself
+            // a record: That value record has a key of "what key we assign locally" and a value of
+            // "what key is being looked for in the import"
+            //
+            const keysByImport: Record<string, Record<string, string>> = Object.values(standardFormWithPreviousUniversalKeys.byId)
+                .reduce<Record<string, Record<string, string>>>((previous, component) => {
+                    const importData = component.import
+                    if (importData instanceof ImportItemContent) {
+                        return {
+                            ...previous,
+                            [importData.assetId]: {
+                                ...(previous[importData.assetId] ?? {}),
+                                [component.key]: importData.fromKey
+                            }
+                        }
+                    }
+                    return previous
+                }, {})
+
+            //
+            // importStandardForms holds the result of loading all imports in parallel
+            //
+
+            //
+            // TODO: Optimize by excluding any import that you can tell (by looking at the current data)
+            // we already have all the universalKeys that the loaded data could inform.
+            //
+            const importStandardForms = (await Promise.all(
+                    Object.keys(keysByImport)
+                        .map(async (importFrom) => {
+                            const importWorkspace = await this._workspaceFromKey?.(`ASSET#${importFrom}`)
+                            if (!importWorkspace) {
+                                return undefined
+                            }
+                            await importWorkspace.loadJSON()
+                            return importWorkspace.standard
+                        })
+                )).filter(excludeUndefined)
+
+            //
+            // standardFormWithInheritedUniversalKeys checks all imports to see whether they have universalKeys that have
+            // not yet been assigned, and assigns them if needed
+            //
+            standardFormWithInheritedUniversalKeys = importStandardForms.reduce<StandardForm>((previous, inherited) => {
+                const keyMapping = keysByImport[inherited.key]
+                if (keyMapping) {
+                    return previous.withUpdatedUniversalKeys((key) => {
+                        if (standardFormWithPreviousUniversalKeys.byId[key]?.universalKey) {
+                            return undefined
+                        }
+                        const checkMapping = keyMapping[key]
+                        if (checkMapping) {
+                            const findMatch = Object.values(inherited.byId)
+                                .find((component) => (
+                                    (component.export instanceof ExportItemContent && component.export.exportAs === checkMapping) ||
+                                    (component.key === checkMapping)
+                                ))
+                            return findMatch?.universalKey
+                        }
+                        return undefined
+                    })
+                }
+                return previous
+            }, standardForm)
         }
 
         //
-        // TODO: Extend setJSON to check for entries in namespaceIdToDB that no longer have a
-        // corresponding normal entry, and remove
+        // If there are still components in the StandardForm which have no assigned universalKey, then assign
+        // a new one
         //
-        this.wml = schemaToWML(standardizer.schema)
-        this.status.wml = 'Dirty'
+        const finalStandardForm = standardFormWithInheritedUniversalKeys.withUpdatedUniversalKeys((key) => {
+            const component = standardFormWithInheritedUniversalKeys.byId[key]
+            if (component && !component.universalKey) {
+                return `${component.tag.toUpperCase()}#${this._isGlobal ? component.key : uuidv4()}`
+            }
+            return undefined
+        })
+
+        if (!(this.standard && deepEqual(finalStandardForm.toJSON(), this.standard.toJSON()))) {
+            this.status.json = 'Dirty'
+            this.status.wml = 'Dirty'
+            this.standard = finalStandardForm
+        }
+    
+        this.assetId = `ASSET#${this.standard?.key}`
 
     }
+
     //
     // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
     // reading in a stream, and processing it as it arrives
     //
     async setWML(source: string): Promise<void> {
-        const schema = new Schema()
-        schema.loadWML(source)
-        const standardizer = new Standardizer(schema.schema)
-        await this.setJSON(standardizer.standardForm)
+        const standard = new StandardForm(source)
+        await this.setJSON(standard)
     }
 
     async loadWML(): Promise<void> {
@@ -145,31 +181,15 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
     override async loadJSON(): Promise<void> {
         await super.loadJSON()
-        const standardizer = new Standardizer()
-        if (this.standard) {
-            standardizer.loadStandardForm(this.standard)
-            this.wml = schemaToWML(standardizer.schema)
-            this.status.wml = 'Clean'
-        }
     }
 
     async pushJSON(): Promise<void> {
         const filePath = `${this.fileNameBase}.json`
-        const standardForm = this.standard || { key: this.assetId?.split('#')?.slice(1)?.[0] || '', tag: 'Asset', byId: {}, metaData: [] }
+        const standardForm = this.standard || new StandardForm(this.assetId?.split('#')?.slice(1)?.[0] || '')
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
-            namespaceIdToDB: this.namespaceIdToDB,
-            standard: standardForm,
-            properties: objectFilterEntries(this.properties, ([key]) => ((key in (this.standard?.byId || {})) || (key === this.standard?.key)))
+            standard: standardForm
         })
-        const serializedOutput = serialize(
-            standardForm,
-            (key) => {
-                const namespaceEntry = this.namespaceIdToDB.find(({ internalKey }) => (key === internalKey))
-                return namespaceEntry?.universalKey
-            },
-            (key) => (this.properties[key]?.fileName)
-        )
         await Promise.all([
             s3Client.put({
                 Key: filePath,
@@ -177,7 +197,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             }),
             s3Client.put({
                 Key: `${this.fileNameBase}.ndjson`,
-                Body: serializedOutput.map((line) => (JSON.stringify(line))).join('\n')
+                Body: standardForm.toNDJSON().map((line) => (JSON.stringify(line))).join('\n')
             })
         ])
         this.status.json = 'Clean'
