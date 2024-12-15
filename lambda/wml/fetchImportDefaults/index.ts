@@ -1,13 +1,11 @@
 import { snsClient } from "../clients"
-import { splitType } from "@tonylb/mtw-utilities/ts/types"
 
-import { SchemaAssetTag } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
-import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
+import recursiveFetchImports from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { Standardizer } from "@tonylb/mtw-wml/ts/standardize"
+import { stripImportAndExport } from "./utils"
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -24,21 +22,15 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
 
     const importsByAsset = await Promise.all(
         payloads.map(async ({ assetId, keys }) => {
-            const schemaTags = await recursiveFetchImports({ assetId, jsonHelper, translate: new NestedTranslateImportToFinal(keys, []) })
-            const assetSchema: SchemaAssetTag = {
-                tag: 'Asset',
-                Story: undefined,
-                key: splitType(assetId)[1]
-            }
-            const standardizer = new Standardizer([{ data: assetSchema, children: schemaTags }])
-            const wrappedWithInheritedTag = standardizer.schema.map(({ data, children }) => ({
-                data,
+            const standard = stripImportAndExport(await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] }))
+            const wrappedWithInheritedTag = {
+                data: standard.schema.data,
                 children: [{
                     data: { tag: 'Inherited' as const },
-                    children
+                    children: standard.schema.children
                 }]
-            }))
-            const wml = schemaToWML(wrappedWithInheritedTag)
+            }
+            const wml = schemaToWML([wrappedWithInheritedTag])
             return {
                 assetId,
                 wml
