@@ -108,9 +108,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...linkReferenceKeys([this.summary, this.description].filter(excludeUndefined))
+            ...linkReferenceKeys([this.name, this.summary, this.description].filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Link' as const, key })),
-            ...dependencyReferenceKeys([this.summary, this.description, ...this.exits].filter(excludeUndefined))
+            ...dependencyReferenceKeys([this.name, this.summary, this.description, ...this.exits].filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),

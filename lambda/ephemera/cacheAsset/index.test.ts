@@ -25,6 +25,7 @@ import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import { isSchemaComputed, isSchemaConditionStatement, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
+import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -120,7 +121,7 @@ describe('cacheAsset', () => {
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         const testStandard = new StandardForm(`
-            <Asset key=(test)>
+            <Asset key=(Test)>
                 <Room key=(ABC)>
                     <Name>
                         Vortex<If {active}>(lit)</If>
@@ -149,9 +150,10 @@ describe('cacheAsset', () => {
                 return undefined
             })
             .mapContents(assignTestDependencies([
-                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['active'] },
-                { typeGuard: treeNodeTypeguard(isSchemaComputed), dependencies: ['switchedOn', 'powered'] }
+                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['active'] }
             ]))
+        const computedComponent = testStandard.byId.active as StandardComputed
+        computedComponent._payload._dependencies = ['switchedOn', 'powered']
         
         workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
@@ -164,18 +166,16 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: {
                     data: { tag: 'Name' },
                     children: [
                         { data: { tag: 'String', value: 'Vortex' }, children: [] },
                         { data: { tag: 'If' }, children: [
-                            { data: { tag: 'Statement', if: 'active', dependencies: [{ key: 'active', EphemeraId: 'COMPUTED#XYZ' }] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
                         ] }
                     ]
                 },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on' }, children: [] }] },
                 exits: [],
                 themes: [],
                 tag: 'Room',
@@ -208,12 +208,12 @@ describe('cacheAsset', () => {
                 key: 'active',
                 tag: 'Computed',
                 src: 'powered && switchedOn',
-                dependencies: [
-                    { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
-                    { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
-                ],
+                dependencies: ['switchedOn', 'powered'],
                 keyMapping: {},
-                stateMapping: {}
+                stateMapping: {
+                    switchedOn: 'VARIABLE#TUV',
+                    powered: 'VARIABLE#QRS'
+                }
             },
             {
                 EphemeraId: 'ACTION#JKL',
@@ -229,7 +229,6 @@ describe('cacheAsset', () => {
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 ABC: 'ROOM#DEF',
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
@@ -283,15 +282,20 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'Test',
+            'test',
             [{
+                EphemeraId: 'IMAGE#GHI',
+                tag: 'Image',
+                key: 'image1',
+                fileName: 'test.png',
+                keyMapping: {},
+                stateMapping: {}
+            },
+            {
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
                 tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 exits: [],
                 themes: [],
                 stateMapping: {},
@@ -301,7 +305,6 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 tag: 'Map',
-                name: { data: { tag: 'Name' }, children: [] },
                 positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 themes: [],
@@ -311,17 +314,16 @@ describe('cacheAsset', () => {
             expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#Test",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 room1: 'ROOM#ABC',
                 map1: 'MAP#DEF',
                 image1: 'IMAGE#GHI'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#Test',
+            itemId: 'ASSET#test',
             edges: [],
             options: { direction: 'back' }
         }])
@@ -334,7 +336,7 @@ describe('cacheAsset', () => {
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         const testStandard = new StandardForm(`
-            <Asset key=(test)>
+            <Asset key=(Test)>
                 <Room key=(ABC)><Name>Vortex</Name></Room>
                 <Room key=(DEF)>
                     <Name>Elsewhere</Name>
@@ -344,7 +346,6 @@ describe('cacheAsset', () => {
             </Asset>
             `).withUpdatedUniversalKeys((key) => {
                 switch(key) {
-                    case 'Test': return 'ASSET#Test'
                     case 'ABC': return 'ROOM#ABC'
                     case 'DEF': return 'ROOM#DEF'
                     case 'open': return 'VARIABLE#QRS'
@@ -369,10 +370,7 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 exits: [],
                 themes: [],
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -388,11 +386,8 @@ describe('cacheAsset', () => {
                     }]
                 }],
                 themes: [],
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                keyMapping: { ABC: 'ROOM#ABC', DEF: 'ROOM#DEF' },
+                keyMapping: { ABC: 'ROOM#ABC' },
                 stateMapping: { open: 'VARIABLE#QRS' }
             },
             {
@@ -407,7 +402,6 @@ describe('cacheAsset', () => {
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 ABC: 'ROOM#ABC',
                 DEF: 'ROOM#DEF',
                 open: 'VARIABLE#QRS'
@@ -422,7 +416,7 @@ describe('cacheAsset', () => {
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
         const testStandard = new StandardForm(`
-            <Asset key=(test)>
+            <Asset key=(Test)>
                 <Import from=(base)><Room key=(ABC) /></Import>
                 <Room key=(ABC)><Name>Vortex</Name></Room>
             </Asset>
