@@ -7103,6 +7103,7 @@ Object {
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "VORTEX",
     "name": Object {
       "children": Array [
@@ -7119,20 +7120,11 @@ Object {
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "bellows": Object {
     "description": Object {
@@ -7261,6 +7253,7 @@ Object {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "bellows",
     "name": Object {
       "children": Array [
@@ -7278,11 +7271,14 @@ Object {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "bellowsRunning": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "bellowsRunning",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "birdColumn": Object {
     "description": Object {
@@ -7334,6 +7330,7 @@ Object {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "birdColumn",
     "name": Object {
       "children": Array [
@@ -7351,6 +7348,7 @@ Object {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "birdsFade": Object {
     "description": Object {
@@ -7367,6 +7365,7 @@ Object {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "birdsFade",
     "rooms": Array [
       Object {
@@ -7443,11 +7442,14 @@ Object {
       },
     ],
     "tag": "Message",
+    "universalKey": undefined,
   },
   "birdsInOrchard": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "birdsInOrchard",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "catColumn": Object {
     "description": Object {
@@ -7499,6 +7501,7 @@ Object {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "catColumn",
     "name": Object {
       "children": Array [
@@ -7516,11 +7519,14 @@ Object {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "catsInOrchard": Object {
     "default": "true",
+    "fileName": undefined,
     "key": "catsInOrchard",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "cave": Object {
     "description": Object {
@@ -7576,6 +7582,7 @@ Object {
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "cave",
     "name": Object {
       "children": Array [
@@ -7592,20 +7599,11 @@ Object {
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "childStatue": Object {
     "description": Object {
@@ -7623,6 +7621,7 @@ Object {
       },
       "wrapperTag": undefined,
     },
+    "fileName": undefined,
     "key": "childStatue",
     "name": Object {
       "children": Array [
@@ -7640,14 +7639,17 @@ Object {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "closeTrapDoor": Object {
+    "fileName": undefined,
     "key": "closeTrapDoor",
     "src": "
 me.narrate(\`\${me.Name} closes the trap door, which seals with an audible clunk.\`)
 trapDoorOpen = false
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "columns": Object {
     "description": Object {
@@ -7830,6 +7832,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "columns",
     "name": Object {
       "children": Array [
@@ -7847,6 +7850,7 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "curvingPassage": Object {
     "description": Object {
@@ -7902,6 +7906,7 @@ trapDoorOpen = false
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "curvingPassage",
     "name": Object {
       "children": Array [
@@ -7918,20 +7923,11 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "determinedNeck": Object {
     "description": Object {
@@ -8172,6 +8168,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "determinedNeck",
     "name": Object {
       "children": Array [
@@ -8195,6 +8192,7 @@ trapDoorOpen = false
       },
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "determinedStatue": Object {
     "description": Object {
@@ -8316,6 +8314,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "determinedStatue",
     "name": Object {
       "children": Array [
@@ -8333,32 +8332,45 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "determinedStatueComplete": Object {
+    "dependencies": undefined,
+    "fileName": undefined,
     "key": "determinedStatueComplete",
     "src": "determinedStatueLeftArm && determinedStatueRightArm && determinedStatueHead",
     "tag": "Computed",
+    "universalKey": undefined,
   },
   "determinedStatueHead": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "determinedStatueHead",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "determinedStatueLeftArm": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "determinedStatueLeftArm",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "determinedStatueRightArm": Object {
     "default": "true",
+    "fileName": undefined,
     "key": "determinedStatueRightArm",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "dungeonImage": Object {
+    "fileName": undefined,
     "key": "dungeonImage",
     "tag": "Image",
+    "universalKey": undefined,
   },
   "dungeonMap": Object {
+    "fileName": undefined,
     "images": Array [
       Object {
         "children": Array [],
@@ -8369,12 +8381,7 @@ trapDoorOpen = false
       },
     ],
     "key": "dungeonMap",
-    "name": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Name",
-      },
-    },
+    "name": undefined,
     "positions": Array [
       Object {
         "children": Array [
@@ -8569,6 +8576,7 @@ trapDoorOpen = false
     ],
     "tag": "Map",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "fireCatGrotto": Object {
     "description": Object {
@@ -8981,6 +8989,7 @@ trapDoorOpen = false
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "fireCatGrotto",
     "name": Object {
       "children": Array [
@@ -8997,20 +9006,11 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "forest": Object {
     "description": Object {
@@ -9316,6 +9316,7 @@ trapDoorOpen = false
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "forest",
     "name": Object {
       "children": Array [
@@ -9332,20 +9333,11 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "foundry": Object {
     "description": Object {
@@ -9699,6 +9691,7 @@ trapDoorOpen = false
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "foundry",
     "name": Object {
       "children": Array [
@@ -9715,20 +9708,11 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "fruitTrees": Object {
     "description": Object {
@@ -9769,6 +9753,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "fruitTrees",
     "name": Object {
       "children": Array [
@@ -9786,11 +9771,14 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "gratingBlocked": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "gratingBlocked",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "gratingDetail": Object {
     "description": Object {
@@ -9919,6 +9907,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "gratingDetail",
     "name": Object {
       "children": Array [
@@ -9936,11 +9925,14 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "hearthActive": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "hearthActive",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "hearthCrest": Object {
     "description": Object {
@@ -10070,6 +10062,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "hearthCrest",
     "name": Object {
       "children": Array [
@@ -10087,6 +10080,7 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "hearthDetail": Object {
     "description": Object {
@@ -10162,6 +10156,7 @@ trapDoorOpen = false
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "hearthDetail",
     "name": Object {
       "children": Array [
@@ -10179,11 +10174,14 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "hearthPrimed": Object {
     "default": "true",
+    "fileName": undefined,
     "key": "hearthPrimed",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "intersection": Object {
     "description": Object {
@@ -10401,6 +10399,7 @@ trapDoorOpen = false
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "intersection",
     "name": Object {
       "children": Array [
@@ -10417,20 +10416,11 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "ironworkingTools": Object {
     "description": Object {
@@ -10448,6 +10438,7 @@ trapDoorOpen = false
       },
       "wrapperTag": undefined,
     },
+    "fileName": undefined,
     "key": "ironworkingTools",
     "name": Object {
       "children": Array [
@@ -10465,8 +10456,10 @@ trapDoorOpen = false
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "lowerLeftArm": Object {
+    "fileName": undefined,
     "key": "lowerLeftArm",
     "src": "
 if (determinedStatueLeftArm) {
@@ -10479,8 +10472,10 @@ if (determinedStatueLeftArm) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "lowerRightArm": Object {
+    "fileName": undefined,
     "key": "lowerRightArm",
     "src": "
 if (determinedStatueRightArm) {
@@ -10493,8 +10488,10 @@ if (determinedStatueRightArm) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "lowerRobedStatueHead": Object {
+    "fileName": undefined,
     "key": "lowerRobedStatueHead",
     "src": "
 if (robedStatueActive) {
@@ -10505,6 +10502,7 @@ if (robedStatueActive) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "nests": Object {
     "description": Object {
@@ -10522,6 +10520,7 @@ if (robedStatueActive) {
       },
       "wrapperTag": undefined,
     },
+    "fileName": undefined,
     "key": "nests",
     "name": Object {
       "children": Array [
@@ -10539,6 +10538,7 @@ if (robedStatueActive) {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "orchard": Object {
     "description": Object {
@@ -10931,6 +10931,7 @@ if (robedStatueActive) {
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "orchard",
     "name": Object {
       "children": Array [
@@ -10947,20 +10948,11 @@ if (robedStatueActive) {
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "purrFades": Object {
     "description": Object {
@@ -10977,6 +10969,7 @@ if (robedStatueActive) {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "purrFades",
     "rooms": Array [
       Object {
@@ -11044,8 +11037,10 @@ if (robedStatueActive) {
       },
     ],
     "tag": "Message",
+    "universalKey": undefined,
   },
   "raiseLeftArm": Object {
+    "fileName": undefined,
     "key": "raiseLeftArm",
     "src": "
 if (!determinedStatueLeftArm) {
@@ -11058,8 +11053,10 @@ if (!determinedStatueLeftArm) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "raiseRightArm": Object {
+    "fileName": undefined,
     "key": "raiseRightArm",
     "src": "
 if (!determinedStatueRightArm) {
@@ -11072,8 +11069,10 @@ if (!determinedStatueRightArm) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "raiseRobedStatueHead": Object {
+    "fileName": undefined,
     "key": "raiseRobedStatueHead",
     "src": "
 if (!robedStatueActive) {
@@ -11084,6 +11083,7 @@ if (!robedStatueActive) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "robedStatue": Object {
     "description": Object {
@@ -11205,6 +11205,7 @@ if (!robedStatueActive) {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "robedStatue",
     "name": Object {
       "children": Array [
@@ -11222,11 +11223,14 @@ if (!robedStatueActive) {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "robedStatueActive": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "robedStatueActive",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "robedStatueShoulders": Object {
     "description": Object {
@@ -11333,6 +11337,7 @@ if (!robedStatueActive) {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "robedStatueShoulders",
     "name": Object {
       "children": Array [
@@ -11350,8 +11355,10 @@ if (!robedStatueActive) {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "shakeFruitTrees": Object {
+    "fileName": undefined,
     "key": "shakeFruitTrees",
     "src": "
 me.narrate(\`\${me.Name} shakes a fruit tree, and some fruit drops from it.\`)
@@ -11371,8 +11378,10 @@ else {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "sing": Object {
+    "fileName": undefined,
     "key": "sing",
     "src": "
 me.narrate(\`\${me.Name} raises \${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.\`)
@@ -11390,6 +11399,7 @@ switch(glowingColumns) {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "singingColumn": Object {
     "description": Object {
@@ -11430,6 +11440,7 @@ switch(glowingColumns) {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "singingColumn",
     "name": Object {
       "children": Array [
@@ -11447,6 +11458,7 @@ switch(glowingColumns) {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "statueChamber": Object {
     "description": Object {
@@ -11694,6 +11706,7 @@ switch(glowingColumns) {
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "statueChamber",
     "name": Object {
       "children": Array [
@@ -11710,20 +11723,11 @@ switch(glowingColumns) {
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "stoopedStatue": Object {
     "description": Object {
@@ -11741,6 +11745,7 @@ switch(glowingColumns) {
       },
       "wrapperTag": undefined,
     },
+    "fileName": undefined,
     "key": "stoopedStatue",
     "name": Object {
       "children": Array [
@@ -11758,8 +11763,10 @@ switch(glowingColumns) {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "toggleBellowsRunning": Object {
+    "fileName": undefined,
     "key": "toggleBellowsRunning",
     "src": "
 const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
@@ -11808,8 +11815,10 @@ else {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "toggleGratingBlocked": Object {
+    "fileName": undefined,
     "key": "toggleGratingBlocked",
     "src": "
 if (gratingBlocked) {
@@ -11833,8 +11842,10 @@ else {
 gratingBlocked = !gratingBlocked
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "toggleHearthPrimed": Object {
+    "fileName": undefined,
     "key": "toggleHearthPrimed",
     "src": "
 const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
@@ -11885,6 +11896,7 @@ else {
 }
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "trapDoor": Object {
     "description": Object {
@@ -12002,6 +12014,7 @@ else {
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "trapDoor",
     "name": Object {
       "children": Array [
@@ -12019,13 +12032,17 @@ else {
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
   "trapDoorOpen": Object {
     "default": "false",
+    "fileName": undefined,
     "key": "trapDoorOpen",
     "tag": "Variable",
+    "universalKey": undefined,
   },
   "turnDeterminedHead": Object {
+    "fileName": undefined,
     "key": "turnDeterminedHead",
     "src": "
 if (determinedStatueHead) {
@@ -12045,6 +12062,7 @@ else {
 determinedStatueHead = !determinedStatueHead
 ",
     "tag": "Action",
+    "universalKey": undefined,
   },
   "waterDescription": Object {
     "description": Object {
@@ -12111,18 +12129,26 @@ determinedStatueHead = !determinedStatueHead
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "waterDescription",
     "tag": "Bookmark",
+    "universalKey": undefined,
   },
   "waterFlow": Object {
+    "dependencies": undefined,
+    "fileName": undefined,
     "key": "waterFlow",
     "src": "(determinedStatueComplete ? 1 : 0) + (robedStatueActive ? 1 : 0)",
     "tag": "Computed",
+    "universalKey": undefined,
   },
   "waterLevel": Object {
+    "dependencies": undefined,
+    "fileName": undefined,
     "key": "waterLevel",
     "src": " waterFlow * (gratingBlocked ? 2 : 1) ",
     "tag": "Computed",
+    "universalKey": undefined,
   },
   "well": Object {
     "description": Object {
@@ -12360,6 +12386,7 @@ determinedStatueHead = !determinedStatueHead
         "wrapperTag": undefined,
       },
     ],
+    "fileName": undefined,
     "key": "well",
     "name": Object {
       "children": Array [
@@ -12376,20 +12403,11 @@ determinedStatueHead = !determinedStatueHead
       },
       "wrapperTag": undefined,
     },
-    "shortName": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "ShortName",
-      },
-    },
-    "summary": Object {
-      "children": Array [],
-      "data": Object {
-        "tag": "Summary",
-      },
-    },
+    "shortName": undefined,
+    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
+    "universalKey": undefined,
   },
   "wellStatues": Object {
     "description": Object {
@@ -12663,6 +12681,7 @@ determinedStatueHead = !determinedStatueHead
         "tag": "Description",
       },
     },
+    "fileName": undefined,
     "key": "wellStatues",
     "name": Object {
       "children": Array [
@@ -12680,6 +12699,7 @@ determinedStatueHead = !determinedStatueHead
       "wrapperTag": undefined,
     },
     "tag": "Feature",
+    "universalKey": undefined,
   },
 }
 `;
