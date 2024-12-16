@@ -1,7 +1,6 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaCharacter, isSchemaRoom, isSchemaFeature, isSchemaKnowledge, isSchemaBookmark, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaTheme, isSchemaVariable, isSchemaComputed, isSchemaAction, isSchemaImage, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardNDJSON, isStandardRemove, isStandardReplace, isStandardRoom, isStandardTheme, isStandardVariable, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
-import { StandardizerAbstract } from './abstract'
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes"
 import { unique } from "../list"
@@ -174,22 +173,6 @@ export const standardItemToSchemaItem = (item: StandardComponentData): GenericTr
             }
     }
 }
-
-export class Standardizer extends StandardizerAbstract {}
-
-// export type StandardComponent = StandardCharacter |
-//     StandardRoom |
-//     StandardFeature |
-//     StandardKnowledge |
-//     StandardBookmark |
-//     StandardMap |
-//     StandardMessage |
-//     StandardMoment |
-//     StandardTheme |
-//     StandardVariable |
-//     StandardComputed |
-//     StandardAction |
-//     StandardImage
 
 export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)
