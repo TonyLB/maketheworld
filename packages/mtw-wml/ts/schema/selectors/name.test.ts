@@ -1,13 +1,12 @@
-import { Standardizer } from '../../standardize'
 import { schemaToWML, Schema } from ".."
 import { deIndentWML } from "../utils"
 import { selectName } from './name'
 import { selectItemsByKey } from "./itemsByKey"
+import { StandardForm } from '../../standardize'
 
 describe('name selector', () => {
     it('should select a single key from a normalForm', () => {
-        const testSchema = new Schema()
-        testSchema.loadWML(`
+        const test = new StandardForm(`
             <Asset key=(testOne)>
                 <Room key=(room1)>
                     <Name>Test room</Name>
@@ -27,8 +26,7 @@ describe('name selector', () => {
                 <Variable key=(testVar) default={false} />
             </Asset>
         `)
-        const testOne = new Standardizer(testSchema.schema)
-        expect(schemaToWML(selectName(selectItemsByKey('room1')(testOne.schema)))).toEqual(deIndentWML(`
+        expect(schemaToWML(selectName(selectItemsByKey('room1')([test.schema])))).toEqual(deIndentWML(`
             Test room
             <If {true}>: Addendum</If>
         `))
