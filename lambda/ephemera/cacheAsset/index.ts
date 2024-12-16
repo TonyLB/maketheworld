@@ -1,33 +1,20 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import {
     EphemeraCharacter,
-    EphemeraItem,
     EphemeraKeyMappingMixin,
     EphemeraPushArgs,
     EphemeraStateMappingMixin
 } from './baseClasses'
-import { defaultColorFromCharacterId } from '../lib/characterColor'
-import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { MessageBus } from '../messageBus/baseClasses'
 import { mergeIntoEphemera } from './mergeIntoEphemera'
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
     EphemeraId,
-    isEphemeraActionId,
     isEphemeraAssetId,
-    isEphemeraBookmarkId,
-    isEphemeraCharacterId,
-    isEphemeraComputedId,
-    isEphemeraFeatureId,
     isEphemeraId,
-    isEphemeraImageId,
-    isEphemeraKnowledgeId,
-    isEphemeraMapId,
-    isEphemeraMessageId,
-    isEphemeraMomentId,
-    isEphemeraRoomId,
-    isEphemeraVariableId
+    isEphemeraRoomId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
@@ -35,227 +22,17 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaComputed, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaImage, isSchemaImport, isSchemaMessage, isSchemaRoom, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
-import { selectDependencies } from '@tonylb/mtw-wml/ts/schema/selectors/dependencies'
-import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/schema/selectors/keysReferenced'
+import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaImage, isSchemaImport, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { EditWrappedStandardNode, StandardComponentData, unwrapStandardComponent, isStandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { StandardForm, standardItemToSchemaItem } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
-import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
-import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-
-// const ephemeraItemFromStandard = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: StandardComponentData): EphemeraItem | undefined => {
-//     const EphemeraId = assetWorkspace.standard?.byId?.[item.key]?.universalKey
-//     if (!EphemeraId) {
-//         return undefined
-//     }
-//     //
-//     // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
-//     //
-//     const dependencies = selectDependencies([standardItemToSchemaItem(item)])
-//     const stateMapping = dependencies.reduce<Record<string, StateItemId>>((previous, key) => {
-//         const universalKey = assetWorkspace.standard?.byId?.[key]?.universalKey
-//         if (universalKey && isStateItemId(universalKey)) {
-//             return { ...previous, [key]: universalKey }
-//         }
-//         return previous
-//     }, {})
-//     //
-//     // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
-//     //
-//     const keysReferenced = selectKeysReferenced([standardItemToSchemaItem(item)])
-//     const keyMapping = keysReferenced.reduce<Record<string, EphemeraId>>((previous, key) => {
-//         const universalKey = assetWorkspace.standard?.byId?.[key]?.universalKey
-//         if (universalKey && isEphemeraId(universalKey)) {
-//             return { ...previous, [key]: universalKey }
-//         }
-//         return previous
-//     }, {})
-//     const unwrapSchemaOutputField = <T extends SchemaTag>(node: EditWrappedStandardNode<T, SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag> | undefined, tagToRemove: SchemaTag["tag"]): GenericTree<SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag> => {
-//         if (!node) {
-//             return []
-//         }
-//         const tagTree = new SchemaTagTree([node])
-//         tagTree.prune({ match: tagToRemove })
-//         return tagTree.tree as GenericTree<SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaOutputTag>
-//     }
-//     if (isEphemeraRoomId(EphemeraId) && item.tag === 'Room') {
-//         return {
-//             key: item.key,
-//             EphemeraId: EphemeraId,
-//             shortName: unwrapSchemaOutputField(item.shortName, 'ShortName'),
-//             name: unwrapSchemaOutputField(item.name, 'Name'),
-//             summary: unwrapSchemaOutputField(item.summary, 'Summary'),
-//             render: unwrapSchemaOutputField(item.description, 'Description'),
-//             exits: item.exits,
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     if (isEphemeraFeatureId(EphemeraId) && item.tag === 'Feature') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             name: unwrapSchemaOutputField(item.name, 'Name'),
-//             render: unwrapSchemaOutputField(item.description, 'Description'),
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     if (isEphemeraKnowledgeId(EphemeraId) && item.tag === 'Knowledge') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             name: unwrapSchemaOutputField(item.name, 'Name'),
-//             render: unwrapSchemaOutputField(item.description, 'Description'),
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     if (isEphemeraBookmarkId(EphemeraId) && item.tag === 'Bookmark') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             render: unwrapSchemaOutputField(item.description, 'Description'),
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     if (isEphemeraMessageId(EphemeraId) && item.tag === 'Message') {
-//         const rooms = item.rooms
-//             .map(({ data: tag }) => {
-//                 if (isSchemaRoom(tag)) {
-//                     const roomId = assetWorkspace.standard?.byId?.[tag.key]?.universalKey
-//                     if (roomId && isEphemeraRoomId(roomId)) {
-//                         return [roomId]
-//                     }
-//                 }
-//                 return []
-//             })
-//             .flat(1)
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             rooms,
-//             render: unwrapSchemaOutputField(item.description, 'Description'),
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     if (isEphemeraMomentId(EphemeraId) && item.tag === 'Moment') {
-//         const messages = item.messages.map(({ data }) => {
-//             if (!isSchemaMessage(data)) {
-//                 return []
-//             }
-//             const universalKey = assetWorkspace.standard?.byId?.[data.key]?.universalKey
-//             if (universalKey && isEphemeraMessageId(universalKey)) {
-//                 return [universalKey]
-//             }
-//             return []
-//         }).flat(1)
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             messages,
-//             stateMapping
-//         }
-//     }
-//     if (isEphemeraMapId(EphemeraId) && item.tag === 'Map') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             name: unwrapSchemaOutputField(item.name, 'Name'),
-//             images: map(item.images, (node) => {
-//                 const { data, children } = node
-//                 if (isSchemaImage(data)) {
-//                     const fileLookup = assetWorkspace.standard?.byId?.[item.key]?.fileName
-//                     if (fileLookup) {
-//                         return [{
-//                             data: {
-//                                 ...data,
-//                                 fileURL: data.fileURL ?? fileLookup
-//                             },
-//                             children
-//                         }]
-//                     }
-//                 }
-//                 return [{ data, children }]
-//             }),
-//             rooms: item.positions,
-//             stateMapping,
-//             keyMapping
-//         }
-//     }
-//     const unwrappedItem = unwrapStandardComponent(item)
-//     if (isEphemeraCharacterId(EphemeraId) && unwrappedItem.tag === 'Character') {
-//         // const image = item.images.length > 0 && normal[item.images.slice(-1)[0]]
-//         // const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
-//         const { tag, ...pronouns } = unwrappedItem.pronouns?.data ?? { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
-//         const assets = (assetWorkspace.standard?.metaData ?? [])
-//             .filter(treeNodeTypeguard(isSchemaImport))
-//             .map(({ data }) => (data.from))
-//         const address = assetWorkspace.address
-//         const player = address.zone === 'Personal' ? address.player : undefined
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             address: assetWorkspace.address,
-//             Name: schemaOutputToString(unwrapSubject(unwrappedItem.name ?? { data: { tag: 'String', value: '' }, children: [] })?.children as GenericTree<SchemaOutputTag> ?? []),
-//             Pronouns: pronouns as Omit<SchemaPronounsTag, 'tag'>,
-//             FirstImpression: (unwrappedItem.firstImpression?.data as SchemaFirstImpressionTag)?.value ?? '',
-//             OneCoolThing: (unwrappedItem.oneCoolThing?.data as SchemaOneCoolThingTag)?.value ?? '',
-//             Outfit: (unwrappedItem.outfit?.data as SchemaOutfitTag)?.value ?? '',
-//             // image,
-//             assets,
-//             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
-//             // fileURL,
-//             Connected: false,
-//             ConnectionIds: [],
-//             RoomId: 'VORTEX',
-//             player
-//         }
-
-//     }
-//     if (isEphemeraActionId(EphemeraId) && item.tag === 'Action') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             src: item.src
-//         }    
-//     }
-//     if (isEphemeraVariableId(EphemeraId) && item.tag === 'Variable') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             default: item.default
-//         }
-//     }
-//     if (isEphemeraComputedId(EphemeraId) && item.tag === 'Computed') {
-//         return {
-//             key: item.key,
-//             EphemeraId,
-//             src: item.src,
-//             dependencies: (item.dependencies ?? [])
-//                 .map((key) => ({
-//                     key,
-//                     EphemeraId: (assetWorkspace.standard?.byId?.[key]?.universalKey ?? '')
-//                 }))
-//         }
-//     }
-//     if (isEphemeraAssetId(EphemeraId) || isEphemeraImageId(EphemeraId)) {
-//         return undefined
-//     }
-//     console.log(`WARNING: Unknown combination of types in cacheAsset:  NormalItem with tag '${item.tag}' and Ephemera wrapper: '${splitType(EphemeraId)[0]}'`)
-//     return undefined
-// }
 
 export const pushEphemera = async({
     EphemeraId,
