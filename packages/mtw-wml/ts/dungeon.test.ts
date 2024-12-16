@@ -4,8 +4,7 @@ import * as path from "path"
 import parse from './simpleParser'
 import tokenize from './parser/tokenizer'
 import SourceStream from "./parser/tokenizer/sourceStream"
-import { Standardizer } from "./standardize"
-import { Schema } from "./schema"
+import { StandardForm } from "./standardize"
 const file = path.join(__dirname, "./", "dungeon.wml")
 
 const dungeonSource = fs.readFileSync(file, "utf8")
@@ -21,9 +20,7 @@ describe('large WML test', () => {
     })
 
     it('should standardize properly', () => {
-        const schema = new Schema()
-        schema.loadWML(dungeonSource)
-        const standardizer = new Standardizer(schema.schema)
-        expect(standardizer.standardForm.byId).toMatchSnapshot()
+        const standard = new StandardForm(dungeonSource)
+        expect(standard.toJSON().byId).toMatchSnapshot()
     })
 })
