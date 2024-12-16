@@ -54,8 +54,8 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct"; }[] {
-        return []
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+        return (this.dependencies ?? []).map((key) => ({ key, referenceType: 'Dependency' }))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {

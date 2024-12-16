@@ -20,8 +20,12 @@ jest.mock('./dependencyUpdate')
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
-import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/ts/readOnly'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { isSchemaComputed, isSchemaConditionStatement, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
+import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
+import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -30,52 +34,61 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
-let mockTestAsset: StandardFormData = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
-let mockNamespaceMap: NamespaceMapping = [
-    { internalKey: 'Test', universalKey: 'ASSET#Test' },
-    { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
-]
-
-let mockProperties: WorkspaceProperties = { image1: { fileName: 'test.png' } }
-
 jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
-    return jest.fn().mockImplementation((address: any) => {
-        return {
-            status: {
-                json: 'Clean'
-            },
-            address,
-            get fileNameBase() {
-                if (address.zone === 'Personal') {
-                    return 'Personal/Test/Test'
-                }
-                else {
-                    return 'Library/Test'
-                }
-            },
-            loadJSON: jest.fn(),
-            standard: mockTestAsset,
-            namespaceIdToDB: mockNamespaceMap,
-            universalKey: jest.fn().mockImplementation((key) => {
-                const matchRecord = mockNamespaceMap.find(({ internalKey }) => (internalKey === key))
-                return matchRecord?.universalKey
-            }),
-            properties: mockProperties
-        }
-    })
+    return jest.fn()
 })
 
 const evaluateCodeMock = evaluateCode as jest.Mock
+const workspaceMock = ReadOnlyAssetWorkspace as jest.Mock
+
+const mockWorkspace = (standard: StandardForm) => (address: any) => {
+    return {
+        status: {
+            json: 'Clean'
+        },
+        address,
+        get fileNameBase() {
+            if (address.zone === 'Personal') {
+                return 'Personal/Test/Test'
+            }
+            else {
+                return 'Library/Test'
+            }
+        },
+        loadJSON: jest.fn(),
+        standard
+    }
+}
+
+const assignTestDependencies = (mappings: { typeGuard: (node: GenericTreeNode<SchemaTag>) => boolean, dependencies: string[] }[]) => (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
+    tree.map((node) => {
+        const mappedReturn = mappings.reduce<string[] | undefined>((previous, mapping) => {
+            if (previous) {
+                return previous
+            }
+            if (mapping.typeGuard(node)) {
+                return mapping.dependencies
+            }
+            return previous
+        }, undefined)
+        if (mappedReturn && (treeNodeTypeguard(isSchemaComputed)(node) || treeNodeTypeguard(isSchemaConditionStatement)(node))) {
+            return {
+                ...node,
+                data: { ...node.data, dependencies: mappedReturn }
+            }
+        }
+        return {
+            ...node,
+            children: assignTestDependencies(mappings)(node.children)
+        }
+    })
+)
 
 describe('cacheAsset', () => {
     const messageBusMock = { send: jest.fn() } as unknown as jest.Mocked<MessageBus>
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        mockTestAsset = { key: 'Test', tag: 'Asset', byId: {}, metaData: [] }
-        mockNamespaceMap = [
-            { internalKey: 'Test', universalKey: 'ASSET#Test' }
-        ]
         internalCacheMock.CharacterSessions.get.mockResolvedValue([])
         internalCacheMock.Graph.get.mockResolvedValue(new Graph(
             { 'ASSET#BASE': { key: 'ASSET#BASE'}, 'ASSET#Test': { key: 'ASSET#Test' } },
@@ -88,6 +101,7 @@ describe('cacheAsset', () => {
     })
 
     it('should skip processing when check option and already present', async () => {
+        workspaceMock.mockImplementation(mockWorkspace(new StandardForm('Test')))
         internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
         await cacheAsset({
@@ -106,64 +120,42 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = [
-            { internalKey: 'Test', universalKey: 'ASSET#Test' },
-            { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
-            { internalKey: 'active', universalKey: 'COMPUTED#XYZ' },
-            { internalKey: 'powered', universalKey: 'VARIABLE#QRS' },
-            { internalKey: 'switchedOn', universalKey: 'VARIABLE#TUV' },
-            { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' },
-            { internalKey: 'toggleSwitch', universalKey: 'ACTION#JKL' }
-        ]
-        mockTestAsset = {
-            key: 'Test',
-            tag: 'Asset',
-            metaData: [],
-            byId: {
-                ABC: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [
-                        { data: { tag: 'String', value: 'Vortex' }, children: [] },
-                        { data: { tag: 'If' }, children: [
-                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
-                        ] }
-                    ] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description'}, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
-                    exits: [],
-                    themes: []
-                },
-                testKnowledge: {
-                    key: 'testKnowledge',
-                    tag: 'Knowledge',
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
-                },
-                powered: {
-                    key: 'powered',
-                    tag: 'Variable',
-                    default: 'false'
-                },
-                switchedOn: {
-                    key: 'switchedOn',
-                    tag: 'Variable',
-                    default: 'true'
-                },
-                active: {
-                    key: 'active',
-                    tag: 'Computed',
-                    src: 'powered && switchedOn',
-                    dependencies: ['switchedOn', 'powered']
-                },
-                toggleSwitch: {
-                    key: 'toggleSwitch',
-                    tag: 'Action',
-                    src: 'switchedOn = !switchedOn',
+        const testStandard = new StandardForm(`
+            <Asset key=(Test)>
+                <Room key=(ABC)>
+                    <Name>
+                        Vortex<If {active}>(lit)</If>
+                    </Name>
+                    <Description>The lights are on</Description>
+                </Room>
+                <Knowledge key=(testKnowledge)>
+                    <Name>Knowledge is power</Name>
+                    <Description>There is so much to learn!</Description>
+                </Knowledge>
+                <Variable key=(powered) default={false} />
+                <Variable key=(switchedOn) default={true} />
+                <Computed key=(active) src={powered && switchedOn} />
+                <Action key=(toggleSwitch) src={switchedOn = !switchedOn} />
+            </Asset>
+            `).withUpdatedUniversalKeys((key) => {
+                switch(key) {
+                    case 'Test': return 'ASSET#Test'
+                    case 'ABC': return 'ROOM#DEF'
+                    case 'active': return 'COMPUTED#XYZ'
+                    case 'powered': return 'VARIABLE#QRS'
+                    case 'switchedOn': return 'VARIABLE#TUV'
+                    case 'testKnowledge': return 'KNOWLEDGE#GHI'
+                    case 'toggleSwitch': return 'ACTION#JKL'
                 }
-            }
-        }
+                return undefined
+            })
+            .mapContents(assignTestDependencies([
+                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['active'] }
+            ]))
+        const computedComponent = testStandard.byId.active as StandardComputed
+        computedComponent._payload._dependencies = ['switchedOn', 'powered']
+        
+        workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
         await cacheAsset({
             assetId: 'ASSET#Test',
@@ -174,18 +166,16 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: {
                     data: { tag: 'Name' },
                     children: [
                         { data: { tag: 'String', value: 'Vortex' }, children: [] },
                         { data: { tag: 'If' }, children: [
-                            { data: { tag: 'Statement', if: 'active', dependencies: [{ key: 'active', EphemeraId: 'COMPUTED#XYZ' }] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
+                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
                         ] }
                     ]
                 },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }] },
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on' }, children: [] }] },
                 exits: [],
                 themes: [],
                 tag: 'Room',
@@ -218,12 +208,12 @@ describe('cacheAsset', () => {
                 key: 'active',
                 tag: 'Computed',
                 src: 'powered && switchedOn',
-                dependencies: [
-                    { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
-                    { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
-                ],
+                dependencies: ['switchedOn', 'powered'],
                 keyMapping: {},
-                stateMapping: {}
+                stateMapping: {
+                    switchedOn: 'VARIABLE#TUV',
+                    powered: 'VARIABLE#QRS'
+                }
             },
             {
                 EphemeraId: 'ACTION#JKL',
@@ -239,7 +229,6 @@ describe('cacheAsset', () => {
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 ABC: 'ROOM#DEF',
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
@@ -266,54 +255,47 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = [
-            { internalKey: 'Test', universalKey: 'ASSET#Test' },
-            { internalKey: 'room1', universalKey: 'ROOM#ABC' },
-            { internalKey: 'map1', universalKey: 'MAP#DEF' },
-            { internalKey: 'image1', universalKey: 'IMAGE#GHI' }
-        ]
-        mockTestAsset = {
-            key: 'Test',
-            tag: 'Asset',
-            metaData: [],
-            byId: {
-                room1: {
-                    key: 'room1',
-                    tag: 'Room',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                    exits: [],
-                    themes: []
-                },
-                map1: {
-                    key: 'map1',
-                    tag: 'Map',
-                    name: { data: { tag: 'Name' }, children: [] },
-                    positions: [
-                        { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }
-                    ],
-                    images: [{ data: { tag: 'Image', key: 'image1' }, children: [] }],
-                    themes: []
+        const testStandard = new StandardForm(`
+            <Asset key=(test)>
+                <Room key=(room1)><Name>Vortex</Name></Room>
+                <Map key=(map1)>
+                    <Image key=(image1) />
+                    <Room key=(room1)><Position x="0" y="0" /></Room>
+                </Map>
+            </Asset>
+            `).withUpdatedUniversalKeys((key) => {
+                switch(key) {
+                    case 'Test': return 'ASSET#Test'
+                    case 'room1': return 'ROOM#ABC'
+                    case 'map1': return 'MAP#DEF'
+                    case 'image1': return 'IMAGE#GHI'
                 }
-            }
-        }
+                return undefined
+            })
+        const image = testStandard.byId.image1 as StandardImage
+        image._key._fileName = 'test.png'
+
+        workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
         await cacheAsset({
             assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'Test',
+            'test',
             [{
+                EphemeraId: 'IMAGE#GHI',
+                tag: 'Image',
+                key: 'image1',
+                fileName: 'test.png',
+                keyMapping: {},
+                stateMapping: {}
+            },
+            {
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
                 tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 exits: [],
                 themes: [],
                 stateMapping: {},
@@ -323,7 +305,6 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 tag: 'Map',
-                name: { data: { tag: 'Name' }, children: [] },
                 positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 themes: [],
@@ -333,17 +314,16 @@ describe('cacheAsset', () => {
             expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#Test",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 room1: 'ROOM#ABC',
                 map1: 'MAP#DEF',
                 image1: 'IMAGE#GHI'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#Test',
+            itemId: 'ASSET#test',
             edges: [],
             options: { direction: 'back' }
         }])
@@ -355,49 +335,28 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = [
-            { internalKey: 'Test', universalKey: 'ASSET#Test' },
-            { internalKey: 'ABC', universalKey: 'ROOM#ABC' },
-            { internalKey: 'DEF', universalKey: 'ROOM#DEF' },
-            { internalKey: 'open', universalKey: 'VARIABLE#QRS' }
-        ]
-        mockTestAsset = {
-            key: 'Test',
-            tag: 'Asset',
-            metaData: [],
-            byId: {
-                ABC: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                    exits: [],
-                    themes: []
-                },
-                DEF: {
-                    key: 'DEF',
-                    tag: 'Room',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                    exits: [
-                        { data: { tag: 'If' }, children: [{
-                            data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
-                            children: [{ data: { tag: 'Exit', to: 'ABC', key: 'DEF#ABC', from: 'DEF' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]}]
-                        }] }
-                    ],
-                    themes: []
-                },
-                open: {
-                    key: 'open',
-                    tag: 'Variable',
-                    default: 'false'
+        const testStandard = new StandardForm(`
+            <Asset key=(Test)>
+                <Room key=(ABC)><Name>Vortex</Name></Room>
+                <Room key=(DEF)>
+                    <Name>Elsewhere</Name>
+                    <If {open}><Exit to=(ABC)>Vortex</Exit></If>
+                </Room>
+                <Variable key=(open) default={false} />
+            </Asset>
+            `).withUpdatedUniversalKeys((key) => {
+                switch(key) {
+                    case 'ABC': return 'ROOM#ABC'
+                    case 'DEF': return 'ROOM#DEF'
+                    case 'open': return 'VARIABLE#QRS'
                 }
-            }
-        }
+                return undefined
+            })
+            .mapContents(assignTestDependencies([
+                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['open'] }
+            ]))
+
+        workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
         await cacheAsset({
             assetId: 'ASSET#Test',
@@ -411,10 +370,7 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 exits: [],
                 themes: [],
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -430,11 +386,8 @@ describe('cacheAsset', () => {
                     }]
                 }],
                 themes: [],
-                shortName: { data: { tag: 'ShortName' }, children: [] },
                 name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
-                keyMapping: { ABC: 'ROOM#ABC', DEF: 'ROOM#DEF' },
+                keyMapping: { ABC: 'ROOM#ABC' },
                 stateMapping: { open: 'VARIABLE#QRS' }
             },
             {
@@ -449,7 +402,6 @@ describe('cacheAsset', () => {
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
-                Test: 'ASSET#Test',
                 ABC: 'ROOM#ABC',
                 DEF: 'ROOM#DEF',
                 open: 'VARIABLE#QRS'
@@ -463,34 +415,22 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = [
-            { internalKey: 'Test', universalKey: 'ASSET#Test' },
-            { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
-        ]
-        mockTestAsset = {
-            key: 'Test',
-            tag: 'Asset',
-            metaData: [
-                {
-                    data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
-                    children: [{ data: { tag: 'Room', key: 'ABC' }, children: [] }]
+        const testStandard = new StandardForm(`
+            <Asset key=(Test)>
+                <Import from=(base)><Room key=(ABC) /></Import>
+                <Room key=(ABC)><Name>Vortex</Name></Room>
+            </Asset>
+            `).withUpdatedUniversalKeys((key) => {
+                switch(key) {
+                    case 'Test': return 'ASSET#Test'
+                    case 'ABC': return 'ROOM#DEF'
                 }
-            ],
-            byId: {
-                ABC: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                    exits: [],
-                    themes: []
-                }
-            }
-        }
+                return undefined
+            })
 
-        await cacheAsset({
+        workspaceMock.mockImplementation(mockWorkspace(testStandard))
+
+    await cacheAsset({
             assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
@@ -501,80 +441,4 @@ describe('cacheAsset', () => {
         }])
     })
 
-    it('should correctly cache character', async () => {
-        const mockEvaluate = jest.fn().mockReturnValue(true)
-        evaluateCodeMock.mockReturnValue(mockEvaluate)
-        internalCacheMock.CharacterMeta.get.mockResolvedValue({
-            EphemeraId: 'CHARACTER#Tess',
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            HomeId: 'ROOM#VORTEX',
-            Name: 'Tess',
-            Pronouns: {
-                subject: 'they',
-                object: 'them',
-                possessive: 'their',
-                adjective: 'theirs',
-                reflexive: 'themself'
-            },
-            assets: [],
-        })
-        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'CHARACTER#Tess', address: { fileName: 'Tess', zone: 'Personal', player: 'Test' } })
-
-        mockNamespaceMap = [
-            { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' },
-        ]
-        mockTestAsset = {
-            key: 'Tess',
-            tag: 'Character',
-            metaData: [
-                { data: { tag: 'Import', from: 'BASE', mapping: {} }, children: [] },
-                { data: { tag: 'Import', from: 'Test', mapping: {} }, children: [] }
-            ],
-            byId: {
-                Tess: {
-                    key: 'Tess',
-                    tag: 'Character',
-                    pronouns: { data: {
-                        tag: 'Pronouns',
-                        subject: 'they',
-                        object: 'them',
-                        possessive: 'their',
-                        adjective: 'theirs',
-                        reflexive: 'themself'
-                    }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-                    firstImpression: { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
-                    oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
-                    outfit: { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
-                    image: { data: { tag: 'Image', key: '' }, children: [] }
-                },
-            }
-        }
-
-        await cacheAsset({
-            assetId: 'CHARACTER#Tess',
-            messageBus: messageBusMock
-        })
-        // expect(setEdgesInternalMock).toHaveBeenCalledWith([{
-        //     itemId: 'ASSET#Tess',
-        //     edges: [{ target: 'ASSET#BASE', context: '' }, { target: 'ASSET#Test', context: '' }],
-        //     options: { direction: 'back' }
-        // }])
-        expect(internalCacheMock.CharacterMeta.set).toHaveBeenCalledWith({
-            EphemeraId: 'CHARACTER#Tess',
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            HomeId: 'ROOM#VORTEX',
-            Name: 'Tess',
-            Pronouns: {
-                subject: 'they',
-                object: 'them',
-                possessive: 'their',
-                adjective: 'theirs',
-                reflexive: 'themself'
-            },
-            assets: ['BASE', 'Test'],
-        })
-    })
 })

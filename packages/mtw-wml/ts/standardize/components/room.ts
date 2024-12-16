@@ -14,7 +14,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
-import linkReferenceKeys, { exitReferenceKeys } from "./utils/references"
+import linkReferenceKeys, { dependencyReferenceKeys, exitReferenceKeys } from "./utils/references"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
@@ -106,10 +106,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...linkReferenceKeys([this.summary, this.description].filter(excludeUndefined))
+            ...linkReferenceKeys([this.name, this.summary, this.description].filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Link' as const, key })),
+            ...dependencyReferenceKeys([this.name, this.summary, this.description, ...this.exits].filter(excludeUndefined))
+                .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
         ]

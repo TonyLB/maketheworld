@@ -94,7 +94,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return positionReferenceKeys(this.positions ?? [])
             .map((key) => ({ referenceType: 'Position', key }))
     }

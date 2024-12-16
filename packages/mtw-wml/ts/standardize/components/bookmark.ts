@@ -8,7 +8,7 @@ import { combineTaggedChildren } from "./utils/merge"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
-import linkReferenceKeys from "./utils/references"
+import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
@@ -56,9 +56,13 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
-        return linkReferenceKeys(this.description ? [this.description] : [])
-            .map((key) => ({ referenceType: 'Link', key }))
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+        return [
+            ...linkReferenceKeys(this.description ? [this.description] : [])
+                .map((key) => ({ referenceType: 'Link' as const, key })),
+            ...dependencyReferenceKeys(this.description ? [this.description] : [])
+                .map((key) => ({ referenceType: 'Dependency' as const, key }))
+        ]
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {

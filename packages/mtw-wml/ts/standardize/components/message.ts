@@ -11,7 +11,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
-import { directReferenceKeys } from "./utils/references"
+import { dependencyReferenceKeys, directReferenceKeys } from "./utils/references"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -71,9 +71,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
-        return directReferenceKeys(this.rooms)
-            .map((key) => ({ referenceType: 'Direct', key }))
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+        return [
+            ...directReferenceKeys(this.rooms)
+                .map((key) => ({ referenceType: 'Direct' as const, key })),
+            ...dependencyReferenceKeys(this.rooms)
+                .map((key) => ({ referenceType: 'Dependency' as const, key }))
+        ]
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
