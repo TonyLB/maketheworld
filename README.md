@@ -45,7 +45,7 @@ entire audience until you...
 ideas are ones that should be part of the world everyone sees. Perhaps folks will agree with your magical little town showing up *when someone wants to tell a story* about it, but will not agree to it being accessible all the time, to anyone. Fiction and communities can be complicated that way.
 - Leverage weak AI as a ghost-writer to reduce the sheer mind-numbing tedium of describing absolutely *everything* when all you really care about is (for instance) "This is a spooky cave" and "Spiders!"
 
-# What's the catch?
+# <a name="theCatch"></a>What's the catch?
 
 If you've paid even a little attention, you're likely aware that running cloud-native applications on AWS can get
 expensive, and running even weak AI can get **really** expensive. You may even be noting that nowhere in this
