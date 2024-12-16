@@ -8,9 +8,9 @@ import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { isSchemaComputed, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 
 type ParseWMLHandlerArguments = {
     address: AssetWorkspaceAddress;
@@ -39,21 +39,26 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 return { key, fileName: final }
             }))
         ])).slice(1) as ParseWMLAPIImage[]
-        if (imageFiles.length) {
+        if (imageFiles.length && assetWorkspace.standard) {
             assetWorkspace.status.json = 'Dirty'
+            const newStandard = assetWorkspace.standard._clone()
             imageFiles.forEach(({ key, fileName }) => {
-                (assetWorkspace as AssetWorkspace).properties[key] = { fileName }
+                const imageComponent = newStandard.byId[key]
+                if (imageComponent instanceof StandardImage) {
+                    newStandard._byId[key] = imageComponent.withFileName(fileName)
+                }
             })
+            assetWorkspace.standard = newStandard
         }
         if (assetWorkspace.status.json !== 'Clean') {
             if (!assetWorkspace.standard) {
                 return
             }
-            const standard = new StandardForm(assetWorkspace.standard)
+            
             //
             // Use static analysis of JS code to extract dependencies from the WML elements that use JS
             //
-            const standardWithDependencies = standard.mapContents((tree) => (tree.map((node) => {
+            assetWorkspace.standard = assetWorkspace.standard.mapContents((tree) => (tree.map((node) => {
                 if (treeNodeTypeguard(isSchemaConditionStatement)(node)) {
                     return {
                         ...node,
@@ -74,7 +79,6 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 }
                 return node
             })))
-            assetWorkspace.standard = standardWithDependencies.toJSON()
             await Promise.all([
                 assetWorkspace.pushJSON(),
                 assetWorkspace.pushWML(),

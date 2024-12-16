@@ -18,7 +18,6 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     // While waiting on incoming ndjson, create an editStandardizer to be merged with it.
     //
     const editStandard = new StandardForm(args.schema)
-    console.log(`editStandardizer: ${JSON.stringify(editStandard.toJSON(), null, 4)}`)
 
     //
     // Merge incoming changes with ndjson
@@ -27,10 +26,8 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
     if (!assetWorkspace.standard) {
         return {}
     }
-    const baseStandard = new StandardForm(assetWorkspace.standard)
-    console.log(`baseStandardizer: ${JSON.stringify(baseStandard.toJSON(), null, 4)}`)
     try {
-        const mergedStandard = baseStandard.merge(editStandard)
+        const mergedStandard = assetWorkspace.standard.merge(editStandard)
 
         console.log(`Merged standard: ${JSON.stringify(mergedStandard.toJSON(), null, 4)}`)
 
@@ -38,7 +35,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
         // Write ndjson and wml
         //
     
-        assetWorkspace.setJSON(mergedStandard.toJSON())
+        assetWorkspace.setJSON(mergedStandard)
         await Promise.all([
             assetWorkspace.pushJSON(),
             assetWorkspace.pushWML()

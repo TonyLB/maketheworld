@@ -5,6 +5,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { Readable, PassThrough, pipeline } from "node:stream"
 import { createGzip } from "node:zlib"
 import tar from "tar-stream"
+import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 
 export type BackupWMLArguments = {
     from: AssetWorkspaceAddress;
@@ -31,8 +32,11 @@ export const backupWML = async (args: BackupWMLArguments) => {
             Bucket: process.env.S3_BUCKET,
             Key: `${fromWorkspace.filePath}${fromWorkspace.fileName}.wml`
         })),
-        ...Object.entries(fromWorkspace.properties)
-            .map(async ([key, { fileName }]) => {
+        ...Object.values(fromWorkspace.standard?.byId ?? {})
+            .filter((component) => (component instanceof StandardImage))
+            .map((component) => ({ key: component.key, fileName: component.fileName }))
+            .filter(({ fileName }) => (fileName))
+            .map(async ({ key, fileName }) => {
                     const { Body, ContentLength } = await s3Client.send(new GetObjectCommand({
                         Bucket: process.env.IMAGES_BUCKET,
                         Key: fileName
