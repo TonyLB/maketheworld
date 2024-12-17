@@ -13,9 +13,10 @@
     "@aws-sdk/client-bedrock-runtime": "^3.609.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.49.0",
     "@aws-sdk/client-dynamodb": "^3.49.0",
+    "@aws-sdk/client-eventbridge": "^3.713.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
     "aws-xray-sdk": "^3.5.1",
-    "immer": "^9.0.12"
+    "immer": "^10.1.1"
   },
   "devDependencies": {
     "@types/jest": "^28.1.3",
