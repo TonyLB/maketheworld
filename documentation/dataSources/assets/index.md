@@ -7,4 +7,6 @@
 Events:
 
 - New Asset
-- Component Update
+- Asset Update [To Be Implemented]
+- Component Update [To Be Implemented]
+- Canon Update [To Be Implemented]
