@@ -165,6 +165,7 @@ Resources:
             Variables:
                 TABLE_PREFIX: !Ref TablePrefix
                 EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                EVENT_BRIDGE_SOURCE_NAME: 'mtw.connections'
                 COGNITO_USER_POOL_ID: !Ref UserPool
                 COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
         Policies:
@@ -341,6 +342,7 @@ Resources:
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          EVENT_BRIDGE_SOURCE_NAME: 'mtw.ephemera'
           SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
       Policies:
         - DynamoDBCrudPolicy:
@@ -1126,12 +1128,13 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                  EVENT_BRIDGE_SOURCE_NAME: 'mtw.assets'
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
                   UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
                   IMAGES_BUCKET: !Sub '${TablePrefix}-images'
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
                   COGNITO_POOL_ID: !Ref UserPool
-                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
                   PARSE_WML_SFN: !Ref ParseWMLStateMachine
                   CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
                   FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
@@ -1259,6 +1262,7 @@ Resources:
           Variables:
             FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+            EVENT_BRIDGE_SOURCE_NAME: 'mtw.messages'
         Policies:
           - SNSPublishMessagePolicy:
               TopicName: !GetAtt MTWFeedbackTopic.TopicName
@@ -1300,6 +1304,7 @@ Resources:
             FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+            EVENT_BRIDGE_SOURCE_NAME: 'mtw.wml'
             CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
         Policies:
           - DynamoDBCrudPolicy:
