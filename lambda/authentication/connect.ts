@@ -1,10 +1,7 @@
 
 import { v4 as uuidv4 } from 'uuid'
-import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-
-import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
-
-const ebClient = new EventBridgeClient({ region: process.env.AWS_REGION })
+import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 
 const confirmGuestCharacter = async ({ characterId, name }: { characterId?: string; name?: string }): Promise<void> => {
     //
@@ -93,14 +90,11 @@ export const connect = async (connectionId: string, userName: string, SessionId:
         ] as Promise<any>[])
     
         if (authenticated) {
-            await ebClient.send(new PutEventsCommand({
-                Entries: [{
-                    EventBusName: process.env.EVENT_BUS_NAME,
-                    Source: 'mtw.coordination',
-                    DetailType: 'Player Connected',
-                    Detail: JSON.stringify({ player: userName })
-                }]
-            }))
+            await eventBridgeClient.send([{
+                Source: 'mtw.coordination',
+                DetailType: 'Player Connected',
+                Detail: { player: userName }
+            }])
             return {
                 statusCode: 200
             }

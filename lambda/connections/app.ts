@@ -5,11 +5,11 @@ import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/t
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 import { atomicallyRemoveCharacterAdjacency, disconnect } from './disconnect'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 import { generateInvitationCode, validateInvitationCode } from "./invitationCodes"
 import { InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider"
-import { cognitoClient, ebClient } from "./clients"
+import { cognitoClient } from "./clients"
 import { createCognitoUser } from "./createUser"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
 export const handler = async (event: any) => {
 
@@ -223,14 +223,10 @@ export const handler = async (event: any) => {
                 }, {
                     retryErrors: ['TransactionCanceledException']
                 })
-                await ebClient.send(new PutEventsCommand({
-                    Entries: [{
-                        EventBusName: process.env.EVENT_BUS_NAME,
-                        Source: 'mtw.connections',
-                        DetailType: 'Session Disconnect',
-                        Detail: JSON.stringify({ sessionId })
-                    }]
-                }))
+                await eventBridgeClient.send([{
+                    DetailType: 'Session Disconnect',
+                    Detail: { sessionId }
+                }])
             })
         }
         return
