@@ -7,3 +7,4 @@
 Events:
 
 - Global Values Corrupted
+- Graph Corrupted [To Be Implemented]

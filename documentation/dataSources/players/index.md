@@ -7,3 +7,6 @@
 Events:
 
 - New Player
+- Authorization Update [To Be Implemented]
+- Assets Update [To Be Implemented]
+

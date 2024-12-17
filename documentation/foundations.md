@@ -71,10 +71,14 @@ service should expect that any other service will respond to work with the attit
 maybe, if I feel like it." Loose coupling is the opposite of *tight coupling*, in which service A might send a message
 to service B and then **wait** expectantly for service B to return results.
 
-The siren call of tight coupling is that it is (a) easier to conceptualize, and (b) performant. But don't. Systems
-built around tight coupling have a great deal of trouble being resilient and recovering from transient shocks, and
-they have *even more* trouble scaling smoothly to unexpected traffic. Make The World builds for loose coupling, and
-unless you have an exceptionally good reason to do otherwise, so should you.
+The siren call of tight coupling is that it can be (a) easier to conceptualize, (b) performant, and (c) cost-effective
+for very large numbers of small interactions. There are a few places in Make The World (connection lookups, 
+first-time message delivery) where systems are tightly coupled for these reasons.
+
+But for the most part, don't. Systems built around tight coupling have a great deal of trouble being resilient and
+recovering from transient shocks, and they have *even more* trouble scaling smoothly to unexpected traffic. Make The
+World builds for loose coupling by default, and unless you have an exceptionally good reason to do otherwise, so
+should you.
 
 ## Bi-directional client connections
 

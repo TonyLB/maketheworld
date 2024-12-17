@@ -14,5 +14,6 @@ Here are the base Data Sources of Make The World:
 - [Assets](assets/index.md)
 - [Connections](connections/index.md)
 - [Ephemera](ephemera/index.md)
+- [Messages](messages/index.md)
 - [WML](wml/index.md)
 - [Diagnostics](diagnostics/index.md)
