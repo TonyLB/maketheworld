@@ -14,15 +14,16 @@ const ebClientFactory = () => {
 type EventBridgeClientUtilitySendArgument = {
     DetailType: string;
     Detail: Record<string, any>;
+    Source?: string;
 }
 
 export const eventBridgeClient = {
     send: (events: EventBridgeClientUtilitySendArgument[]): Promise<PutEventsCommandOutput> => {
         const client = ebClientFactory()
         return client.send(new PutEventsCommand({
-            Entries: events.map(({ DetailType, Detail }) => ({
+            Entries: events.map(({ DetailType, Detail, Source = EVENT_BRIDGE_SOURCE_NAME }) => ({
                 EventBusName: EVENT_BUS_NAME,
-                Source: EVENT_BRIDGE_SOURCE_NAME,
+                Source,
                 DetailType,
                 Detail: JSON.stringify(Detail)
             }))
