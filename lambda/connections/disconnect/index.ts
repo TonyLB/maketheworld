@@ -1,7 +1,6 @@
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { ebClient } from "../clients"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import eventBridgeClient from '@tonylb/mtw-utilities/ts/eventBridge'
 
 export const atomicallyRemoveCharacterAdjacency = async (sessionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
@@ -32,14 +31,10 @@ export const atomicallyRemoveCharacterAdjacency = async (sessionId: string, char
                         },
                         deleteCondition: ({ sessions = [] }) => (sessions.length === 0),
                         deleteCallback: async () => {
-                            await ebClient.send(new PutEventsCommand({
-                                Entries: [{
-                                    EventBusName: process.env.EVENT_BUS_NAME,
-                                    Source: 'mtw.coordination',
-                                    DetailType: 'Disconnect Character',
-                                    Detail: JSON.stringify({ characterId })
-                                }]
-                            }))
+                            await eventBridgeClient.send([{
+                                DetailType: 'Disconnect Character',
+                                Detail: { characterId }
+                            }])
                         }
                     }
                 },

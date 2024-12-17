@@ -13,7 +13,9 @@ export const handler = async (event) => {
     }
 
     //
-    // Handle Cognito PostConfirm messages
+    // Handle Cognito PostConfirm messages (NOTE: To keep this package as lightweight as
+    // possible, we directly use the aws-sdk client, rather than importing the eventBridgeClient
+    // utility from mtw-utilities)
     //
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         await ebClient.send(new PutEventsCommand({

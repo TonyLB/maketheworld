@@ -1,8 +1,7 @@
-import { assetDB, connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import { ebClient } from "../clients"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { assetDB, connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
+import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from "../internalCache"
 
 export const healGlobalValues = async ({ shouldHealConnections = true, shouldHealGlobalAssets = true }) => {
@@ -42,14 +41,11 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
             const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
 
-            await ebClient.send(new PutEventsCommand({
-                Entries: [{
-                    EventBusName: process.env.EVENT_BUS_NAME,
-                    Source: 'mtw.coordination',
-                    DetailType: 'Set Canon Assets',
-                    Detail: JSON.stringify({ assetIds: globalAssetsSorted })
-                }]
-            }))
+            await eventBridgeClient.send([{
+                Source: 'mtw.coordination',
+                DetailType: 'Set Canon Assets',
+                Detail: { assetIds: globalAssetsSorted }
+            }])
         }
 
         if (shouldHealConnections) {

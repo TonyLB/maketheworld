@@ -1,4 +1,5 @@
 import { EventBridgeClient, PutEventsCommand, PutEventsCommandOutput } from "@aws-sdk/client-eventbridge"
+import AWSXRay from 'aws-xray-sdk'
 
 const { EVENT_BUS_NAME, EVENT_BRIDGE_SOURCE_NAME, AWS_REGION } = process.env
 
@@ -6,7 +7,7 @@ let eventBridgeClientSingleton: EventBridgeClient | undefined = undefined
 
 const ebClientFactory = () => {
     if (!eventBridgeClientSingleton) {
-        eventBridgeClientSingleton = new EventBridgeClient({ region: AWS_REGION })
+        eventBridgeClientSingleton = AWSXRay.captureAWSv3Client(new EventBridgeClient({ region: AWS_REGION }))
     }
     return eventBridgeClientSingleton
 }
