@@ -6,6 +6,5 @@
 
 Events:
 
-- New Asset
 - Asset Edited
 - Merge Conflict
