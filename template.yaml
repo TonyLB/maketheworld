@@ -447,6 +447,14 @@ Resources:
                 - Canonize Asset
                 - Decanonize Asset
                 - Disconnect Character
+        Players:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Sub ${TablePrefix}-bus
+            Pattern:
+              source:
+                - mtw.players
+              detail-type:
                 - Player Connected
         Development:
           Type: CloudWatchEvent

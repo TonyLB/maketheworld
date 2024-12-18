@@ -70,7 +70,7 @@ export const handler = async (event: any, context: any) => {
     }
 
     // Handle EventBridge messages
-    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
+    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development', 'mtw.players'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
