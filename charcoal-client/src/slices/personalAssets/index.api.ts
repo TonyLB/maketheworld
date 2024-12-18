@@ -181,7 +181,7 @@ export const parseWML: PersonalAssetsAction = ({
     const { images = [] } = await dispatch(socketDispatchPromise({
         message: 'parseWML',
         AssetId: id,
-        tag: base.tag,
+        tag: 'Asset',
         uploadName: s3Object,
         images: (saveImages || []).reduce<{ key: string; fileName: string }[]>((previous, { key, s3Object }) => {
             const loadKey = Object.keys(loadedImages).find((loadKey) => (loadedImages[loadKey].loadId === key))

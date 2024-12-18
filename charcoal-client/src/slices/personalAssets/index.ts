@@ -67,10 +67,10 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+            base: { key: '', byId: {}, metaData: [] },
             pendingEdits: [],
-            edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-            inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
+            edit: { key: '', byId: {}, metaData: [] },
+            inherited: { key: '', byId: {}, metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -95,10 +95,10 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                base: { key: '', tag: 'Asset', byId: {}, metaData: [] },
+                base: { key: '', byId: {}, metaData: [] },
                 pendingEdits: [],
-                edit: { key: '', tag: 'Asset', byId: {}, metaData: [] },
-                inherited: { key: '', tag: 'Asset', byId: {}, metaData: [] }
+                edit: { key: '', byId: {}, metaData: [] },
+                inherited: { key: '', byId: {}, metaData: [] }
             }
         },
         states: {

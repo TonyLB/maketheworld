@@ -33,7 +33,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ tree: [], standardForm: { key: '', tag: 'Asset', byId: {}, metaData: [] }, updateStandard: () => {}, mapId: '', onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], standardForm: { key: '', byId: {}, metaData: [] }, updateStandard: () => {}, mapId: '', onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -205,7 +205,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            standardForm,
+            standardForm: standardForm.toJSON(),
             updateStandard,
             mapId,
             onExitDrag: setExitDrag,
@@ -222,7 +222,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setToolSelected(action.value)
                 return
             case 'UpdateTree':
-                mapD3.update(action.tree, standardForm, updateStandard, mapId)
+                mapD3.update(action.tree, standardForm.toJSON(), updateStandard, mapId)
                 return
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
@@ -239,7 +239,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SelectParent':
                 return
             case 'AddRoom':
-                addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: action.roomId, x: action.x, y: action.y })
+                addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
             case 'UnlockRoom':
                 //
@@ -249,7 +249,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 if (relevantMapDThreeIterator) {
                     const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
                     if (relevantNode && relevantNode.cascadeNode) {
-                        addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
+                        addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
                     }
                 }
                 else {
@@ -261,7 +261,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                                 dispatch(addImport({ assetId: AssetId, fromAsset, type: 'Room', key: relevantContext.roomId }))
                             }
                         }
-                        addRoomFactory({ standard: standardForm, updateStandard, selectedPositions, updateSelected })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
+                        addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
                     }
                 }
                 return
@@ -277,7 +277,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
     }, [inheritedByAssetId, dispatch])
     useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ standardForm, selectedPositions, updateSelected, addImport: addExitImport })
+        const addExitFactoryOutput = addExitFactory({ standardForm: standardForm.toJSON(), selectedPositions, updateSelected, addImport: addExitImport })
         const onAddExit = (fromRoomId, toRoomId, double) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {

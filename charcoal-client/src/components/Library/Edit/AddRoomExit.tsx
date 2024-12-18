@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add'
 
 import { useLibraryAsset } from './LibraryAsset'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
+import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room';
 
 interface AddRoomExitProps {
     RoomId: string;
@@ -20,7 +21,7 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId }) => 
     const { standardForm, updateStandard } = useLibraryAsset()
     const roomComponent = useMemo(() => (standardForm.byId[RoomId]), [standardForm, RoomId])
     const addExitItem = useCallback(() => {
-        if (roomComponent && isStandardRoom(roomComponent)) {
+        if (roomComponent instanceof StandardRoom) {
             updateStandard({
                 type: 'spliceList',
                 componentKey: roomComponent.key,
