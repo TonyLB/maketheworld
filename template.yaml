@@ -337,7 +337,7 @@ Resources:
                   - mtw.wml
                 detail-type:
                   - Merge Conflict
-                  - Asset Edited
+                  - Asset Update
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:

@@ -6,5 +6,6 @@
 
 Events:
 
-- Asset Edited
+- Asset Update
+- Component Update [To Be Implemented]
 - Merge Conflict

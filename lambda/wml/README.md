@@ -19,7 +19,7 @@ As with most MTW data products, the WML product consists of the following:
 
 ---
 
-## Asset Edited
+## Asset Update
 - AssetId: `ASSET#{id}` | `CHARACTER#{id}`
 - RequestId: uuid
 - schema: A WML schema with (likely) edit elements such as Replace and Remove, as well as added new
