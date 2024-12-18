@@ -91,7 +91,7 @@ export const connect = async (connectionId: string, userName: string, SessionId:
     
         if (authenticated) {
             await eventBridgeClient.send([{
-                Source: 'mtw.coordination',
+                Source: 'mtw.players',
                 DetailType: 'Player Connected',
                 Detail: { player: userName }
             }])

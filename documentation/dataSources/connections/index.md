@@ -6,6 +6,7 @@
 
 Events:
 
-- Player Connected
+- Session Connect [To Be Implemented]
 - Session Disconnect
-- Player Disconnected
+- Character Active [To Be Implemented]
+- Character Inactive [To Be Implemented]
