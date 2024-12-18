@@ -521,7 +521,7 @@ export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ a
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
     const { event } = action.payload
-    if (event.detailType === 'Asset Edited') {
+    if (event.detailType === 'Asset Update') {
         const base = new StandardForm(state.base)
         const incomingSchema = new Schema()
         incomingSchema.loadWML(event.schema)

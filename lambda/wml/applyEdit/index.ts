@@ -41,7 +41,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
             assetWorkspace.pushWML()
         ])
         await eventBridgeClient.send([{
-            DetailType: 'Asset Edited',
+            DetailType: 'Asset Update',
             Detail: {
                 AssetId: args.AssetId,
                 RequestId: args.RequestId,
