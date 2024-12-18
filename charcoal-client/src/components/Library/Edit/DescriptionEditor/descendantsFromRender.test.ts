@@ -1,7 +1,7 @@
 import descendantsFromRender from "./descendantsFromRender"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 
-const stubStandard: StandardForm = new StandardForm({ key: '', tag: 'Asset', byId: {}, metaData: [] })
+const stubStandard: StandardForm = new StandardForm({ key: '', byId: {}, metaData: [] })
 
 describe('descendantsFromRender', () => {
     it('should return an empty paragraph from empty list', () => {
@@ -16,7 +16,6 @@ describe('descendantsFromRender', () => {
         ], {
             standard: new StandardForm({
                 key: '',
-                tag: 'Asset',
                 byId: {
                     testFeature: {
                         tag: 'Feature',
@@ -76,7 +75,6 @@ describe('descendantsFromRender', () => {
         ], {
             standard: new StandardForm({
                 key: '',
-                tag: 'Asset',
                 byId: {
                     testFeature: {
                         tag: 'Feature',

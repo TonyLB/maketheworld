@@ -49,11 +49,11 @@ import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { deepEqual } from '../../../lib/objects'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
+import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/components/character'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -404,7 +404,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
 
     const character = useMemo(() => {
         const character = standardForm.byId[standardForm.key]
-        if (character && character.tag === 'Character') {
+        if (character instanceof StandardCharacter) {
             return character
         }
         return undefined
