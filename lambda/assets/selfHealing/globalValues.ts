@@ -42,8 +42,8 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
 
             await eventBridgeClient.send([{
-                Source: 'mtw.coordination',
-                DetailType: 'Set Canon Assets',
+                Source: 'mtw.assets',
+                DetailType: 'Update Canon',
                 Detail: { assetIds: globalAssetsSorted }
             }])
         }

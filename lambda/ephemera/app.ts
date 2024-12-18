@@ -141,7 +141,7 @@ export const handler = async (event: any, context: any) => {
                 else {
                     return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
                 }
-            case 'Set Canon Assets':
+            case 'Update Canon':
                 const { assetIds } = event.detail
                 if (assetIds && Array.isArray(assetIds)) {
                     messageBus.send({
