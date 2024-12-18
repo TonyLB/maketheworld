@@ -23,14 +23,7 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
     const importsByAsset = await Promise.all(
         payloads.map(async ({ assetId, keys }) => {
             const standard = stripImportAndExport(await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] }))
-            const wrappedWithInheritedTag = {
-                data: standard.schema.data,
-                children: [{
-                    data: { tag: 'Inherited' as const },
-                    children: standard.schema.children
-                }]
-            }
-            const wml = schemaToWML([wrappedWithInheritedTag])
+            const wml = schemaToWML([standard.schema])
             return {
                 assetId,
                 wml
