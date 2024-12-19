@@ -8,8 +8,8 @@ import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { isSchemaComputed, isSchemaConditionStatement } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { isSchemaComputed, isSchemaConditionStatement } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 
 type ParseWMLHandlerArguments = {
