@@ -34,6 +34,10 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         transform: (event) => ({
             messageType: 'Subscription',
             source: 'mtw.wml',
+            //
+            // Address information is obfuscated when sent to the client
+            //
+            address: { zone: 'Draft', player: '' },
             detailType: 'Asset Update',
             AssetId: event.AssetId,
             RequestId: event.RequestId,
