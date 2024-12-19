@@ -1,3 +1,36 @@
+//
+// Duplicate of the types from AssetWorkspace, to avoid a full import
+//
+type AssetWorkspaceConstructorBase = {
+    fileName: string;
+    subFolder?: string;
+}
+
+type AssetWorkspaceConstructorCanon = {
+    zone: 'Canon';
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceConstructorLibrary = {
+    zone: 'Library';
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceConstructorPersonal = {
+    zone: 'Personal';
+    player: string;
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceConstructorDraft = {
+    zone: 'Draft';
+    player: string;
+}
+
+type AssetWorkspaceConstructorArchive = {
+    zone: 'Archive';
+    backupId: `BACKUP#${string}`;
+}
+
+export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft | AssetWorkspaceConstructorArchive
+
 export class EphemeraError extends Error {
     constructor(message: string) {
         super(message)

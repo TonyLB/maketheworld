@@ -44,6 +44,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<Record<string
             DetailType: 'Asset Update',
             Detail: {
                 AssetId: args.AssetId,
+                address: assetWorkspace.address,
                 RequestId: args.RequestId,
                 schema: args.schema
             }

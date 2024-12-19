@@ -1,3 +1,5 @@
+import { AssetWorkspaceAddress } from "./baseClasses";
+
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
     source: string;
@@ -39,6 +41,7 @@ export type SubscriptionClientMergeConflictMessage = {
 export type SubscriptionClientAssetEditedMessage = {
     source: 'mtw.wml';
     detailType: 'Asset Update';
+    address: AssetWorkspaceAddress;
     RequestId: string;
     AssetId: string;
     schema: string;
