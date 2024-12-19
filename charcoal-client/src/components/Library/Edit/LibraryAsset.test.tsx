@@ -43,17 +43,10 @@ const schemaConvert = new Schema()
 schemaConvert.loadWML(currentWML)
 const baseSchema = schemaConvert.schema
 
-const inheritedSchema = new Schema()
-inheritedSchema.loadWML(`<Asset key=(Test)>
-    <Inherited>
-        <Room key=(DEF)>
-            <Description>A welcome area</Description>
-        </Room>
-    </Inherited>
-</Asset>`)
-
 const standardForm = new StandardForm(baseSchema[0])
-const inherited = new StandardForm(inheritedSchema.schema[0])
+const inherited = new StandardForm(`<Asset key=(Test)>
+    <Room key=(DEF)><Description>A welcome area</Description></Room>
+</Asset>`)
 const combined = inherited.merge(standardForm)
 const schema = combined.schema
 
@@ -76,7 +69,7 @@ const store = mockStore({
                     inherited: inherited.toJSON(),
                     importDefaults: {},
                     importData: {
-                        BASE: inheritedSchema.schema
+                        BASE: [inherited.schema]
                     }
                 },
                 meta: {
