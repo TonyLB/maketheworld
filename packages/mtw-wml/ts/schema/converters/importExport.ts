@@ -1,4 +1,4 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaInheritedTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaInherited, isSchemaMeta, isSchemaRemove, isSchemaReplace, isSchemaSelected } from "../baseClasses"
+import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaMeta, isSchemaRemove, isSchemaReplace, isSchemaSelected } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -17,7 +17,6 @@ const importExportTemplates = {
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key }
     },
-    Inherited: {},
     Selected: {}
 } as const
 
@@ -87,12 +86,6 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(importExportTemplates.Image)(parseOpen)
         })
     },
-    Inherited: {
-        initialize: ({ parseOpen }): SchemaInheritedTag => ({
-            tag: 'Inherited',
-            ...validateProperties(importExportTemplates.Inherited)(parseOpen)
-        })
-    },
     Selected: {
         initialize: ({ parseOpen }): SchemaSelectedTag => ({
             tag: 'Selected',
@@ -145,16 +138,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                 ],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Inherited: ({ tag: { data: tag, children }, ...args}: PrintMapEntryArguments) => (
-        isSchemaInherited(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Inherited',
-                properties: [],
                 node: { data: tag, children }
             })
             : [{ printMode: PrintMode.naive, output: '' }]

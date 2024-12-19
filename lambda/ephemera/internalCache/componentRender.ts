@@ -33,7 +33,7 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaInherited, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
@@ -184,7 +184,7 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
                 to: lookupTarget
             }
         }
-        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) || isSchemaInherited(data) || isSchemaBookmark(data) ||  isSchemaReplace(data)) {
+        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) ||isSchemaBookmark(data) ||  isSchemaReplace(data)) {
             return { tag: 'String', value: '' }
         }
         if (isSchemaLineBreak(data)) {

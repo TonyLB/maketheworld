@@ -11,7 +11,7 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
         return treeTypeGuard({
             tree: tagTree
                 .filter({ match: 'Name' })
-                .reordered([{ match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                .reordered([{ match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
                 .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
                 .tree,
             typeGuard: isSchemaOutputTag
@@ -21,7 +21,7 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
     return treeTypeGuard({
         tree: tagTree
             .filter({ and: [{ match: optionsMatch(options) }, { match: 'Name' }] })
-            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
             .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
             .tree,
         typeGuard: isSchemaOutputTag
@@ -34,7 +34,7 @@ export const selectNameAsString = (tree: GenericTree<SchemaTag>, options={ tag: 
         return schemaOutputToString(treeTypeGuard({
             tree: tagTree
                 .filter({ match: 'Name' })
-                .reordered([{ match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                .reordered([{ match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
                 .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
                 .tree,
             typeGuard: isSchemaOutputTag
@@ -44,7 +44,7 @@ export const selectNameAsString = (tree: GenericTree<SchemaTag>, options={ tag: 
     return schemaOutputToString(treeTypeGuard({
         tree: tagTree
             .filter({ and: [{ match: optionsMatch(options) }, { match: 'Name' }] })
-            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+            .reordered([{ match: options.tag }, { match: 'Name' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
             .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
             .tree,
         typeGuard: isSchemaOutputTag
@@ -57,7 +57,7 @@ export const selectShortName = (tree: GenericTree<SchemaTag>, options={ tag: '',
         return treeTypeGuard({
             tree: tagTree
                 .filter({ match: 'ShortName' })
-                .reordered([{ match: 'ShortName' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+                .reordered([{ match: 'ShortName' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
                 .prune({ or: [{ before: { match: 'ShortName' } }, { match: 'ShortName' }] })
                 .tree,
             typeGuard: isSchemaOutputTag
@@ -67,7 +67,7 @@ export const selectShortName = (tree: GenericTree<SchemaTag>, options={ tag: '',
     return treeTypeGuard({
         tree: tagTree
             .filter({ and: [{ match: optionsMatch(options) }, { match: 'ShortName' }] })
-            .reordered([{ match: options.tag }, { match: 'ShortName' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }, { match: 'Inherited' }])
+            .reordered([{ match: options.tag }, { match: 'ShortName' }, { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }]}] }])
             .prune({ or: [{ before: { match: 'ShortName' } }, { match: 'ShortName' }] })
             .tree,
         typeGuard: isSchemaOutputTag

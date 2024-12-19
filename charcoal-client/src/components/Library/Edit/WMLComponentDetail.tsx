@@ -21,7 +21,7 @@ import { EditSchema } from './EditContext'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { isSchemaAsset, isSchemaCharacter, isSchemaInherited, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaOutputTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaOutputTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { unwrapSubject } from '@tonylb/mtw-wml/dist/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
@@ -30,11 +30,6 @@ import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
 import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/dist/standardize'
-import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
-
-const unwrapInherited = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
-    return tree.map((node) => (treeNodeTypeguard(isSchemaInherited)(node) ? unwrapInherited(node.children) : [{ ...node, children: unwrapInherited(node.children) }])).flat(1)
-}
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
