@@ -70,7 +70,7 @@ export const handler = async (event: any, context: any) => {
     }
 
     // Handle EventBridge messages
-    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development', 'mtw.players'].includes(event?.source || '')) {
+    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
@@ -156,6 +156,14 @@ export const handler = async (event: any, context: any) => {
                 }
             case 'Player Connected':
                 await confirmGuestCharacter(event.detail.player)
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
+            case 'Asset Update':
+                await cacheAsset({
+                    assetId: event.detail.AssetId,
+                    messageBus,
+                    updateOnly: true
+                })
                 await messageBus.flush()
                 return await extractReturnValue(messageBus)
         }
