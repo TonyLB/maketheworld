@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { schemaToWML } from '@tonylb/mtw-wml/dist/schema/index'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema/index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { s3Client } from "./clients"
