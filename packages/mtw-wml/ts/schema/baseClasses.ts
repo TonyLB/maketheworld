@@ -171,7 +171,7 @@ export type SchemaLinkTag = {
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
 export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
 export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
-export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
+export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
     isSchemaBookmark(tag) ||
@@ -370,7 +370,6 @@ export type SchemaWithContents = SchemaAssetTag |
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaShortName = (value: SchemaTag): value is SchemaShortNameTag => (value.tag === 'ShortName')
-export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
 export const isSchemaSummary = (value: SchemaTag): value is SchemaSummaryTag => (value.tag === 'Summary')
 export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => (value.tag === 'Replace')
@@ -398,13 +397,58 @@ export const isSchemaPronouns = (value: SchemaTag): value is SchemaPronounsTag =
 export const isSchemaOutfit = (value: SchemaTag): value is SchemaOutfitTag => (value.tag === 'Outfit')
 export const isSchemaImage = (value: SchemaTag): value is SchemaImageTag => (value.tag === 'Image')
 
-export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value.tag === 'Link')
-export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
-export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
-export const isSchemaSpacer = (value: SchemaTag): value is SchemaSpacerTag => (value.tag === 'Space')
-export const isSchemaCondition = (value: SchemaTag): value is SchemaConditionTag => (value.tag === 'If')
-export const isSchemaConditionStatement = (value: SchemaTag): value is SchemaConditionStatementTag => (value.tag === 'Statement')
-export const isSchemaConditionFallthrough = (value: SchemaTag): value is SchemaConditionFallthroughTag => (value.tag === 'Fallthrough')
+export const isSchemaString = (arg: any): arg is SchemaStringTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'String' &&
+    'value' in arg &&
+    typeof arg.value === 'string'
+)
+export const isSchemaLink = (arg: any): arg is SchemaLinkTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'Link' &&
+    'to' in arg &&
+    typeof arg.to === 'string' &&
+    'text' in arg &&
+    typeof arg.text === 'string'
+)
+export const isSchemaWhitespace = (arg: any): arg is SchemaWhitespaceTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'Whitespace'
+)
+export const isSchemaLineBreak = (arg: any): arg is SchemaLineBreakTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'br'
+)
+export const isSchemaSpacer = (arg: any): arg is SchemaSpacerTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'Space'
+)
+export const isSchemaCondition = (arg: any): arg is SchemaConditionTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'If' &&
+    (!arg.wrapperTag || typeof arg.wrapperTag === 'string')
+)
+export const isSchemaConditionStatement = (arg: any): arg is SchemaConditionStatementTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'Statement' &&
+    'if' in arg &&
+    typeof arg.if === 'string' &&
+    (!arg.selected || typeof arg.selected === 'boolean') &&
+    (!arg.dependencies || (Array.isArray(arg.dependencies) && arg.dependencies.every((entry) => (typeof entry === 'string'))))
+)
+export const isSchemaConditionFallthrough = (arg: any): arg is SchemaConditionFallthroughTag => (
+    typeof arg === 'object' &&
+    'tag' in arg &&
+    arg.tag === 'Fallthrough' &&
+    (!arg.selected || typeof arg.selected === 'boolean')
+)
 
 export const isSchemaAction = (value: SchemaTag): value is SchemaActionTag => (value.tag === 'Action')
 export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag => (value.tag === 'Variable')
