@@ -315,3 +315,51 @@ export class StandardRenderReplace extends StandardRenderAbstract implements Sta
         }
     }
 }
+
+export class StandardRender {
+    _payload: StandardRenderSimple | StandardRenderRemove | StandardRenderReplace;
+    
+    constructor(arg: any) {
+        if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
+            if (arg.length === 1) {
+                const node = arg[0]
+                if (typeof node !== 'string') {
+                    if (isSchemaRemove(node.data)) {
+                        this._payload = new StandardRenderRemove(node)
+                        return
+                    }
+                    else if (isSchemaReplace(node.data)) {
+                        this._payload = new StandardRenderReplace(node)
+                        return
+                    }
+                }
+            }
+            this._payload = new StandardRenderSimple(arg)
+        }
+        else {
+            throw new Error('Invalid argument to StandardRender constructor')
+        }
+    }
+
+    get plainString() {
+        return this._payload.plainString
+    }
+
+    toJSON() {
+        if (this._payload instanceof StandardRenderSimple) {
+            return this._payload.toJSON()
+        }
+        else {
+            return [this._payload.toJSON()]
+        }
+    }
+
+    toNDJSON() {
+        if (this._payload instanceof StandardRenderSimple) {
+            return this._payload.toNDJSON()
+        }
+        else {
+            return [this._payload.toNDJSON()]
+        }
+    }
+}
