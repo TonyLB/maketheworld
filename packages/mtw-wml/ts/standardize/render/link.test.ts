@@ -1,6 +1,6 @@
 import { StandardRenderLink } from './link';
-import { GenericTreeNode } from '../../tree/baseClasses';
-import { SchemaLinkTag } from '../../schema/baseClasses';
+import { GenericTreeNode, GenericTreeNodeFiltered } from '../../tree/baseClasses';
+import { SchemaLinkTag, SchemaOutputTag } from '../../schema/baseClasses';
 
 describe('StandardRenderLink', () => {
     it('should create an instance with valid arguments', () => {
@@ -28,9 +28,9 @@ describe('StandardRenderLink', () => {
     });
 
     it('should round-trip JSON representation', () => {
-        const arg: GenericTreeNode<SchemaLinkTag> = {
+        const arg: GenericTreeNodeFiltered<SchemaLinkTag, SchemaOutputTag> = {
             data: { to: 'Room1', text: 'Example', tag: 'Link' },
-            children: []
+            children: [{ data: { tag: 'String', value: 'Example' }, children: [] }]
         };
         const link = new StandardRenderLink(arg);
         expect(link.toJSON()).toEqual(arg);

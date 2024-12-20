@@ -1,5 +1,5 @@
-import { isSchemaLink, SchemaLinkTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
+import { isSchemaLink, SchemaLinkTag, SchemaOutputTag } from "../../schema/baseClasses"
+import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 
@@ -9,7 +9,7 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
 
     constructor(arg: any) {
         super()
-        if (isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaLink(arg.data) && arg.children.length === 0) {
+        if (isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaLink(arg.data)) {
             this._to = arg.data.to
             this._text = arg.data.text
         }
@@ -22,10 +22,10 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
         return `${this._text}`
     }
 
-    override toJSON(): GenericTreeNode<SchemaLinkTag> {
+    override toJSON(): GenericTreeNodeFiltered<SchemaLinkTag, SchemaOutputTag> {
         return {
             data: { tag: 'Link' as const, to: this._to, text: this._text },
-            children: []
+            children: [{ data: { tag: 'String' as const, value: this._text }, children: [] }]
         }
     }
 

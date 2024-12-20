@@ -9,6 +9,7 @@ export class StandardRenderString extends StandardRenderAbstract implements Stan
         super()
         if (typeof arg === 'string') {
             this._text = arg
+            return
         }
         else if (typeof arg === 'object') {
             if (
@@ -19,6 +20,7 @@ export class StandardRenderString extends StandardRenderAbstract implements Stan
                 arg.children.length === 0
             ) {
                 this._text = arg.data.value
+                return
             }
         }
         throw new Error('Invalid argument to StandardRenderString constructor')

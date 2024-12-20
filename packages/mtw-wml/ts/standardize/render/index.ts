@@ -63,13 +63,27 @@ export class StandardRenderSimple {
             }
             else {
                 const lastElement = previous[previous.length - 1]
+                if (lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderSpace) {
+                    return previous
+                }
+                if ((lastElement instanceof StandardRenderLineBreak || lastElement instanceof StandardRenderSpace) &&
+                    (renderElement instanceof StandardRenderLineBreak || renderElement instanceof StandardRenderSpace)) {
+                    return [...previous.slice(0, -1), new StandardRenderLineBreak({ data: { tag: 'br' }, children: [] })]
+                }
+                if (lastElement instanceof StandardRenderLineBreak && renderElement instanceof StandardRenderString) {
+                    return [...previous, new StandardRenderString(renderElement.plainString.trimStart())]
+                }
+                if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderLineBreak) {
+                    return [...previous.slice(0, -1), new StandardRenderString(lastElement.plainString.trimEnd()), renderElement]
+                }
                 if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderString) {
-                    return [...previous.slice(0, -1), new StandardRenderString(`${lastElement.plainString}${renderElement.plainString}`)]
+                    const whiteSpaceBetween = lastElement.plainString.endsWith(' ') || renderElement.plainString.startsWith(' ')
+                    return [...previous.slice(0, -1), new StandardRenderString(`${lastElement.plainString.trimEnd()}${whiteSpaceBetween ? ' ' : ''}${renderElement.plainString.trimStart()}`)]
                 }
                 else if (previous.length > 1) {
                     const previousToLast = previous[previous.length - 2]
                     if (previousToLast instanceof StandardRenderString && lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderString) {
-                        return [...previous.slice(0, -2), new StandardRenderString(`${previousToLast.plainString} ${renderElement.plainString}`)]
+                        return [...previous.slice(0, -2), new StandardRenderString(`${previousToLast.plainString.trimEnd()} ${renderElement.plainString.trimStart()}`)]
                     }
                 }
                 return [...previous, renderElement]
