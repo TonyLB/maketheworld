@@ -63,23 +63,43 @@ export class StandardRenderSimple {
             }
             else {
                 const lastElement = previous[previous.length - 1]
+                
+                //
+                // Combine adjacent Space tags
+                //
                 if (lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderSpace) {
                     return previous
                 }
+
+                //
+                // Check if both elements are either line breaks or spaces, combine to a single line break
+                //
                 if ((lastElement instanceof StandardRenderLineBreak || lastElement instanceof StandardRenderSpace) &&
                     (renderElement instanceof StandardRenderLineBreak || renderElement instanceof StandardRenderSpace)) {
                     return [...previous.slice(0, -1), new StandardRenderLineBreak({ data: { tag: 'br' }, children: [] })]
                 }
+
+                //
+                // Trim whitespace from strings adjoining line breaks
+                //
                 if (lastElement instanceof StandardRenderLineBreak && renderElement instanceof StandardRenderString) {
                     return [...previous, new StandardRenderString(renderElement.plainString.trimStart())]
                 }
                 if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderLineBreak) {
                     return [...previous.slice(0, -1), new StandardRenderString(lastElement.plainString.trimEnd()), renderElement]
                 }
+
+                //
+                // Check if both elements are strings, join them with a maximum of one space between
+                //
                 if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderString) {
                     const whiteSpaceBetween = lastElement.plainString.endsWith(' ') || renderElement.plainString.startsWith(' ')
                     return [...previous.slice(0, -1), new StandardRenderString(`${lastElement.plainString.trimEnd()}${whiteSpaceBetween ? ' ' : ''}${renderElement.plainString.trimStart()}`)]
                 }
+
+                //
+                // Check if the previous two are a string followed by a Space tag, and the current element is a string, join them all with a single space
+                //
                 else if (previous.length > 1) {
                     const previousToLast = previous[previous.length - 2]
                     if (previousToLast instanceof StandardRenderString && lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderString) {
