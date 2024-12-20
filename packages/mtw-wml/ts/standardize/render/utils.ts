@@ -5,7 +5,7 @@ export const isRenderTreeNode = (node: any): node is RenderTreeNode => {
     if (typeof node === "string") {
         return true
     } else if (typeof node === "object") {
-        if (isSchemaOutputTag(node.data) && Array.isArray(node.children)) {
+        if (node.data && isSchemaOutputTag(node.data) && Array.isArray(node.children)) {
             return node.children.every(isRenderTreeNode)
         }
     }

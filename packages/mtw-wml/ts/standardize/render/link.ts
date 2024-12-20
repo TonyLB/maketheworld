@@ -1,14 +1,15 @@
-import { isSchemaLink, SchemaLinkTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
-import { StandardRenderElement } from "./baseClasses"
+import { isSchemaLink, SchemaLinkTag, SchemaOutputTag } from "../../schema/baseClasses"
+import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 
-export class StandardRenderLink implements StandardRenderElement {
+export class StandardRenderLink extends StandardRenderAbstract implements StandardRenderElement {
     _to: string;
     _text: string;
 
     constructor(arg: any) {
-        if (isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaLink(arg.data) && arg.children.length === 0) {
+        super()
+        if (isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaLink(arg.data)) {
             this._to = arg.data.to
             this._text = arg.data.text
         }
@@ -17,21 +18,23 @@ export class StandardRenderLink implements StandardRenderElement {
         }
     }
 
-    get plainString() {
+    override get plainString() {
         return `${this._text}`
     }
 
-    toJSON(): GenericTreeNode<SchemaLinkTag> {
+    override toJSON(): GenericTreeNodeFiltered<SchemaLinkTag, SchemaOutputTag> {
         return {
             data: { tag: 'Link' as const, to: this._to, text: this._text },
-            children: []
+            children: [{ data: { tag: 'String' as const, value: this._text }, children: [] }]
         }
     }
 
-    toNDJSON() {
+    override toNDJSON() {
         return {
             data: { tag: 'Link' as const, to: this._to, text: this._text },
             children: []
         }
     }    
 }
+
+export default StandardRenderLink
