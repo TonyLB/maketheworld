@@ -157,25 +157,94 @@ export class StandardRenderSimple {
     //    * The base and incoming objects are different and incoming cannot be removed from the base
     //
     compare(incoming: StandardRenderSimple): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
+
+        const compareElements = (base: StandardRenderElement, incoming: StandardRenderElement): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderElement } => {
+            if (base instanceof StandardRenderString && incoming instanceof StandardRenderString) {
+                if (base.plainString.endsWith(incoming.plainString)) {
+                    const baseFirstStringRemainder = base.plainString.slice(0, base.plainString.length - incoming.plainString.length)
+                    if (!baseFirstStringRemainder) {
+                        return { outcome: 'Equal' }
+                    }
+                    else {
+                        return { outcome: 'Base Longer', remainder: new StandardRenderString(baseFirstStringRemainder) }
+                    }
+                }
+                else if (incoming.plainString.endsWith(base.plainString)) {
+                    const incomingFirstStringRemainder = incoming.plainString.slice(0, incoming.plainString.length - base.plainString.length)
+                    if (!incomingFirstStringRemainder) {
+                        return { outcome: 'Equal' }
+                    }
+                    else {
+                        return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incomingFirstStringRemainder) }
+                    }
+                }
+                else if (base.plainString === incoming.plainString) {
+                    return { outcome: 'Equal' }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
+            else {
+                return deepEqual(base.toJSON(), incoming.toJSON()) ? { outcome: 'Equal' } : { outcome: 'Conflict' }
+            }
+        }
         const base = this.clone()._elements
         const incomingElements = incoming.clone()._elements
         const baseLength = base.length
         const incomingLength = incomingElements.length
 
+        //
+        // Compare the end of the base and incoming objects, to see if one is a subset of the other.
+        // NOTE: While deepEqual is the right comparison for all but the *earliest* common element, the earliest common element
+        // requires special handling, as it may be a string that is a subset of the other string.
+        //
         if (baseLength > incomingLength) {
             const baseEnd = base.slice(baseLength - incomingLength)
-            if (baseEnd.every((element, index) => deepEqual(element.toJSON(), incomingElements[index].toJSON()))) {
-                return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base.slice(0, baseLength - incomingLength)) }
+            const baseFirstElementCompared = baseEnd[0]
+            const incomingFirstElementCompared = incomingElements[0]
+            if (baseEnd.slice(1).every((element, index) => deepEqual(element.toJSON(), incomingElements[index + 1].toJSON()))) {
+                const { outcome, remainder } = compareElements(baseFirstElementCompared, incomingFirstElementCompared)
+                console.log(`outcome: ${outcome}, remainder: ${remainder?.plainString}`)
+                if (outcome === 'Equal') {
+                    return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base.slice(0, baseLength - incomingLength)) }
+                }
+                if (outcome === 'Base Longer') {
+                    return { outcome, remainder: new StandardRenderSimple([...base.slice(0, baseLength - incomingLength), ...remainder ? [remainder] : []]) }
+                }
+                if (outcome === 'Incoming Longer' || outcome === 'Conflict') {
+                    return { outcome: 'Conflict' }
+                }
             }
         }
         else if (incomingLength > baseLength) {
             const incomingEnd = incomingElements.slice(incomingLength - baseLength)
-            if (incomingEnd.every((element, index) => deepEqual(element.toJSON(), base[index].toJSON()))) {
-                return { outcome: 'Incoming Longer', remainder: new StandardRenderSimple(incomingElements.slice(0, incomingLength - baseLength)) }
+            const baseFirstElementCompared = base[0]
+            const incomingFirstElementCompared = incomingEnd[0]
+            if (incomingEnd.slice(1).every((element, index) => deepEqual(element.toJSON(), base[index + 1].toJSON()))) {
+                const { outcome, remainder } = compareElements(baseFirstElementCompared, incomingFirstElementCompared)
+                if (outcome === 'Equal') {
+                    return { outcome: 'Incoming Longer', remainder: new StandardRenderSimple(incomingElements.slice(0, incomingLength - baseLength)) }
+                }
+                if (outcome === 'Incoming Longer') {
+                    return { outcome, remainder: new StandardRenderSimple([...incomingElements.slice(0, incomingLength - baseLength), ...remainder ? [remainder] : []]) }
+                }
+                if (outcome === 'Base Longer' || outcome === 'Conflict') {
+                    return { outcome: 'Conflict' }
+                }
             }
         }
-        else if (base.every((element, index) => deepEqual(element.toJSON(), incomingElements[index].toJSON()))) {
-            return { outcome: 'Equal' }
+        else if (base.slice(1).every((element, index) => deepEqual(element.toJSON(), incomingElements[index + 1].toJSON()))) {
+            const { outcome, remainder } = compareElements(base[0], incomingElements[0])
+            if (outcome === 'Equal') {
+                return { outcome: 'Equal' }
+            }
+            if (outcome === 'Base Longer') {
+                return { outcome, remainder: new StandardRenderSimple([...remainder ? [remainder] : []]) }
+            }
+            if (outcome === 'Incoming Longer') {
+                return { outcome, remainder: new StandardRenderSimple([...remainder ? [remainder] : []]) }
+            }
         }
         return { outcome: 'Conflict' }
     }
