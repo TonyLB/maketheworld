@@ -5,15 +5,17 @@ import StandardRenderSpace from "./space"
 import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaString, isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "../../schema/baseClasses"
+import { isSchemaString, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaCondition, isSchemaConditionStatement, isSchemaConditionFallthrough } from "../../schema/baseClasses"
+
+type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
 
 export class StandardRenderSimple {
-    _elements: StandardRenderElement[];
+    _elements: StandardRenderSimpleElement[];
 
     constructor(arg: any) {
         if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
             this._elements = arg
-                .map<StandardRenderElement | undefined>(node => {
+                .map<StandardRenderSimpleElement | undefined>(node => {
                     if (typeof node === 'string' || isSchemaString(node.data)) {
                         return new StandardRenderString(node)
                     }
@@ -32,12 +34,21 @@ export class StandardRenderSimple {
                 })
                 .filter(excludeUndefined)
         }
-        else if (Array.isArray(arg) && arg.every(element => element instanceof StandardRenderAbstract)) {
+        else if (Array.isArray(arg) && arg.every((element): element is StandardRenderSimpleElement => (
+            element instanceof StandardRenderString ||
+            element instanceof StandardRenderLineBreak ||
+            element instanceof StandardRenderLink ||
+            element instanceof StandardRenderSpace
+        ))) {
             this._elements = arg
         }
         else {
             throw new Error('Invalid argument to StandardRenderSimple constructor')
         }
+    }
+
+    get plainString() {
+        return this._elements.map(element => element.plainString).join('')
     }
 
     toJSON() {
@@ -111,5 +122,86 @@ export class StandardRenderSimple {
         }, [])
 
         return new StandardRenderSimple(mergedElements)
+    }
+}
+
+type RenderConditionalStatement = {
+    if: string
+    payload: StandardRenderSimple
+}
+
+type RenderConditionalFallthrough = {
+    payload: StandardRenderSimple
+}
+
+export class StandardRenderConditional extends StandardRenderAbstract implements StandardRenderElement {
+    _statements: RenderConditionalStatement[]
+    _fallthrough: RenderConditionalFallthrough | undefined
+
+    constructor(arg: any) {
+        super()
+        if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaCondition(arg.data))) {
+            throw new Error('Invalid argument to StandardRenderConditional constructor')
+        }
+        this._statements = arg.children
+            .map<RenderConditionalStatement | undefined>(node => {
+                if (!(typeof node === 'string') && isSchemaConditionStatement(node.data)) {
+                    return {
+                        if: node.data.if,
+                        payload: new StandardRenderSimple(node.children)
+                    }
+                }
+                return undefined
+            })
+            .filter(excludeUndefined)
+        this._fallthrough = arg.children
+            .map<RenderConditionalFallthrough | undefined>(node => {
+                if (!(typeof node === 'string') && isSchemaConditionFallthrough(node.data)) {
+                    return {
+                        payload: new StandardRenderSimple(node.children)
+                    }
+                }
+                return undefined
+            })
+            .find(excludeUndefined)
+        if (this._statements.length === 0) {
+            throw new Error('Invalid argument to StandardRenderConditional constructor')
+        }
+    }
+
+    override get plainString() {
+        return this._fallthrough ? this._fallthrough.payload.plainString : ''
+    }
+
+    override toJSON() {
+        return {
+            data: { tag: 'If' as const },
+            children: [
+                ...this._statements.map(({ if: condition, payload }) => ({
+                    data: { tag: 'Statement' as const, if: condition },
+                    children: payload.toJSON()
+                })),
+                ...(this._fallthrough ? [{
+                    data: { tag: 'Fallthrough' as const },
+                    children: this._fallthrough.payload.toJSON()
+                }] : [])
+            ]
+        }        
+    }
+
+    override toNDJSON() {
+        return {
+            data: { tag: 'If' as const },
+            children: [
+                ...this._statements.map(({ if: condition, payload }) => ({
+                    data: { tag: 'Statement' as const, if: condition },
+                    children: payload.toNDJSON()
+                })),
+                ...(this._fallthrough ? [{
+                    data: { tag: 'Fallthrough' as const },
+                    children: this._fallthrough.payload.toNDJSON()
+                }] : [])
+            ]
+        }
     }
 }

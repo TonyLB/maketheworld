@@ -1,4 +1,4 @@
-import { StandardRenderSimple } from './index'
+import { StandardRenderSimple, StandardRenderConditional } from './index'
 import { Schema } from '../../schema'
 
 describe('StandardRenderSimple', () => {
@@ -30,5 +30,22 @@ describe('StandardRenderSimple', () => {
     it('should trim whitespace in strings adjacent to line break', () => {
         const base = new StandardRenderSimple(['Test ', { data: { tag: 'br' }, children: [] }])
         expect(base.merge(new StandardRenderSimple([' Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+    })
+
+})
+
+describe('StandardRenderConditional', () => {
+    it('should create an instance from valid incoming schema', () => {
+        const schema = new Schema()
+        schema.loadWML(`
+            <If {true}>
+                Example<Link to=(Feature1)>Example</Link>
+            </If>
+            <Else>
+                Another Example<Space />
+            </Else>
+        `)
+        const render = new StandardRenderConditional(schema.schema[0])
+        expect(render.toJSON()).toEqual(schema.schema[0])
     })
 })
