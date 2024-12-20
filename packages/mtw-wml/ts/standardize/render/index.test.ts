@@ -1,4 +1,4 @@
-import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove } from './index'
+import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove, StandardRenderReplace } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 
@@ -23,6 +23,22 @@ describe('StandardRenderRemove', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRenderRemove(schema.schema[0])
+        expect(render.toJSON()).toEqual(schema.schema[0])
+    })
+})
+
+describe('StandardRenderReplace', () => {
+    it('should create an instance from valid incoming schema', () => {
+        const schema = new Schema()
+        schema.loadWML(`
+            <Replace>
+                Example<Link to=(Feature1)>Link</Link>
+            </Replace>
+            <With>
+                Another<Link to=(Feature2)>Link</Link>
+            </With>
+        `)
+        const render = new StandardRenderReplace(schema.schema[0])
         expect(render.toJSON()).toEqual(schema.schema[0])
     })
 })

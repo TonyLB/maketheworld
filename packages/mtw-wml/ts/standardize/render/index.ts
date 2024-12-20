@@ -16,8 +16,14 @@ import {
     isSchemaRemove,
     isSchemaReplace,
     isSchemaReplaceMatch,
-    isSchemaReplacePayload
+    isSchemaReplacePayload,
+    SchemaReplaceMatchTag,
+    SchemaReplacePayloadTag,
+    SchemaReplaceTag,
+    SchemaOutputTag,
+    SchemaRemoveTag
 } from "../../schema/baseClasses"
+import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -237,7 +243,7 @@ export class StandardRenderRemove extends StandardRenderAbstract implements Stan
         return ''
     }
 
-    override toJSON() {
+    override toJSON(): GenericTreeNodeFiltered<SchemaRemoveTag, SchemaOutputTag> {
         return {
             data: { tag: 'Remove' as const },
             children: this._payload.toJSON()
@@ -251,4 +257,61 @@ export class StandardRenderRemove extends StandardRenderAbstract implements Stan
         }
     }
 
+}
+
+export class StandardRenderReplace extends StandardRenderAbstract implements StandardRenderElement {
+    _match: StandardRenderSimple
+    _payload: StandardRenderSimple
+
+    constructor(arg: any) {
+        super()
+        if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaReplace(arg.data))) {
+            throw new Error('Invalid argument to StandardRenderReplace constructor')
+        }
+        this._match = new StandardRenderSimple(
+            arg.children
+                .filter((node): node is GenericTreeNode<SchemaReplaceMatchTag> => (typeof node !== 'string' && isSchemaReplaceMatch(node.data)))
+                .map((node) => node.children)
+                .flat(1)
+        )
+
+        this._payload = new StandardRenderSimple(
+            arg.children
+                .filter((node): node is GenericTreeNode<SchemaReplacePayloadTag> => (typeof node !== 'string' && isSchemaReplacePayload(node.data)))
+                .map((node) => node.children)
+                .flat(1)
+        )
+    }
+
+    override get plainString() {
+        return this._payload.plainString
+    }
+
+    override toJSON(): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaOutputTag> {
+        return {
+            data: { tag: 'Replace' as const },
+            children: [{
+                data: { tag: 'ReplaceMatch' as const },
+                children: this._match.toJSON()
+            },
+            {
+                data: { tag: 'ReplacePayload' as const },
+                children: this._payload.toJSON()
+            }]
+        }
+    }
+
+    override toNDJSON() {
+        return {
+            data: { tag: 'Replace' as const },
+            children: [{
+                data: { tag: 'ReplaceMatch' as const },
+                children: this._match.toNDJSON()
+            },
+            {
+                data: { tag: 'ReplacePayload' as const },
+                children: this._payload.toNDJSON()
+            }]
+        }
+    }
 }
