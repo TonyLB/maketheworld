@@ -1,4 +1,4 @@
-import { SchemaStringTag } from "../../schema/baseClasses";
+import { isSchemaString, SchemaStringTag } from "../../schema/baseClasses";
 import { GenericTreeNode } from "../../tree/baseClasses";
 import { StandardRenderElement } from "./baseClasses"
 
@@ -12,11 +12,7 @@ export class StandardRenderString implements StandardRenderElement {
         else if (typeof arg === 'object') {
             if (
                 'data' in arg &&
-                typeof arg.data === 'object' &&
-                'tag' in arg.data &&
-                arg.data.tag === 'String' &&
-                'value' in arg.data &&
-                typeof arg.data.value === 'string' &&
+                isSchemaString(arg.data) &&
                 'children' in arg &&
                 Array.isArray(arg.children) &&
                 arg.children.length === 0
