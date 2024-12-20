@@ -170,7 +170,7 @@ export type SchemaLinkTag = {
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
 export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaSelectedTag
 export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -180,7 +180,10 @@ export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaCondition(tag) ||
     isSchemaConditionStatement(tag) ||
     isSchemaConditionFallthrough(tag) ||
+    isSchemaRemove(tag) ||
     isSchemaReplace(tag) ||
+    isSchemaReplaceMatch(tag) ||
+    isSchemaReplacePayload(tag) ||
     isSchemaSelected(tag)
 )
 

@@ -1,5 +1,6 @@
-import { StandardRenderSimple, StandardRenderConditional } from './index'
-import { Schema } from '../../schema'
+import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove } from './index'
+import { Schema, schemaToWML } from '../../schema'
+import { deIndentWML } from '../../schema/utils'
 
 describe('StandardRenderConditional', () => {
     it('should create an instance from valid incoming schema', () => {
@@ -13,6 +14,15 @@ describe('StandardRenderConditional', () => {
             </Else>
         `)
         const render = new StandardRenderConditional(schema.schema[0])
+        expect(render.toJSON()).toEqual(schema.schema[0])
+    })
+})
+
+describe('StandardRenderRemove', () => {
+    it('should create an instance from valid incoming schema', () => {
+        const schema = new Schema()
+        schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
+        const render = new StandardRenderRemove(schema.schema[0])
         expect(render.toJSON()).toEqual(schema.schema[0])
     })
 })
@@ -61,6 +71,36 @@ describe('StandardRenderSimple', () => {
         `)
         const render = new StandardRenderSimple(schema.schema)
         expect(render.toJSON()).toEqual(schema.schema)
+    })
+
+    it('should correctly merge conditionals', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                False<Space />
+            </Else>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            Example
+            <Link to=(Feature1)>Link</Link>
+            <If {true}>
+                True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                False
+                <Space />
+            </Else>
+        `))
     })
 
 })

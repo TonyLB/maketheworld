@@ -5,7 +5,19 @@ import StandardRenderSpace from "./space"
 import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaString, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaCondition, isSchemaConditionStatement, isSchemaConditionFallthrough } from "../../schema/baseClasses"
+import {
+    isSchemaString,
+    isSchemaLineBreak,
+    isSchemaLink,
+    isSchemaSpacer,
+    isSchemaCondition,
+    isSchemaConditionStatement,
+    isSchemaConditionFallthrough,
+    isSchemaRemove,
+    isSchemaReplace,
+    isSchemaReplaceMatch,
+    isSchemaReplacePayload
+} from "../../schema/baseClasses"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -208,4 +220,35 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
             ]
         }
     }
+}
+
+export class StandardRenderRemove extends StandardRenderAbstract implements StandardRenderElement {
+    _payload: StandardRenderSimple
+
+    constructor(arg: any) {
+        super()
+        if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaRemove(arg.data))) {
+            throw new Error('Invalid argument to StandardRenderRemove constructor')
+        }
+        this._payload = new StandardRenderSimple(arg.children)
+    }
+
+    override get plainString() {
+        return ''
+    }
+
+    override toJSON() {
+        return {
+            data: { tag: 'Remove' as const },
+            children: this._payload.toJSON()
+        }
+    }
+
+    override toNDJSON() {
+        return {
+            data: { tag: 'Remove' as const },
+            children: this._payload.toNDJSON()
+        }
+    }
+
 }
