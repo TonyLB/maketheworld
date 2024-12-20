@@ -3,7 +3,7 @@ import { GenericTreeNode } from "../../tree/baseClasses";
 
 export type RenderTreeNode = string | {
     data: SchemaOutputTag;
-    children: RenderTreeNode;
+    children: RenderTree;
 }
 
 export type RenderTree = RenderTreeNode[]
