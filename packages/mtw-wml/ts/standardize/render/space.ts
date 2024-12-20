@@ -1,27 +1,30 @@
 import { isSchemaString, SchemaSpacerTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "../../tree/baseClasses"
-import { StandardRenderElement } from "./baseClasses"
+import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 
-export class StandardRenderSpace implements StandardRenderElement {
+export class StandardRenderSpace extends StandardRenderAbstract implements StandardRenderElement {
     constructor(arg: any) {
+        super()
         if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaString(arg.data) && arg.children.length === 0)) {
             throw new Error('Invalid argument to StandardRenderSpace constructor')
         }
     }
 
-    get plainString() {
+    override get plainString() {
         return ' '
     }
 
-    toJSON(): GenericTreeNode<SchemaSpacerTag> {
+    override toJSON(): GenericTreeNode<SchemaSpacerTag> {
         return {
             data: { tag: 'Space' as const },
             children: []
         }
     }
 
-    toNDJSON() {
+    override toNDJSON() {
         return ' '
     }    
 }
+
+export default StandardRenderSpace

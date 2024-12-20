@@ -1,11 +1,12 @@
 import { isSchemaString, SchemaStringTag } from "../../schema/baseClasses";
 import { GenericTreeNode } from "../../tree/baseClasses";
-import { StandardRenderElement } from "./baseClasses"
+import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 
-export class StandardRenderString implements StandardRenderElement {
+export class StandardRenderString extends StandardRenderAbstract implements StandardRenderElement {
     _text: string;
 
     constructor(arg: any) {
+        super()
         if (typeof arg === 'string') {
             this._text = arg
         }
@@ -23,18 +24,20 @@ export class StandardRenderString implements StandardRenderElement {
         throw new Error('Invalid argument to StandardRenderString constructor')
     }
 
-    get plainString() {
+    override get plainString() {
         return this._text
     }
 
-    toJSON(): GenericTreeNode<SchemaStringTag> {
+    override toJSON(): GenericTreeNode<SchemaStringTag> {
         return {
             data: { tag: 'String' as const, value: this._text },
             children: []
         }
     }
 
-    toNDJSON() {
+    override toNDJSON() {
         return this._text
     }
 }
+
+export default StandardRenderString
