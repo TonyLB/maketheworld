@@ -24,6 +24,8 @@ import {
     SchemaRemoveTag
 } from "../../schema/baseClasses"
 import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { MergeConflictError } from "../baseClasses"
+import { deepEqual } from "../../lib/objects"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -144,6 +146,38 @@ export class StandardRenderSimple {
         }, [])
 
         return new StandardRenderSimple(mergedElements)
+    }
+
+    //
+    // Compare two StandardRenderSimple objects, to see which of the following conditions applies:
+    //    * The base object is longer than the incoming object, and the incoming object matches the end of the base object, and could be removed
+    //    * The incoming object is longer than the base object, and the base object matches the end of the incoming object, so that the incoming
+    //      object could be removed from the base object and leave a remainder of "removal" still to be done
+    //    * The base and incoming objects are identical
+    //    * The base and incoming objects are different and incoming cannot be removed from the base
+    //
+    compare(incoming: StandardRenderSimple): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
+        const base = this.clone()._elements
+        const incomingElements = incoming.clone()._elements
+        const baseLength = base.length
+        const incomingLength = incomingElements.length
+
+        if (baseLength > incomingLength) {
+            const baseEnd = base.slice(baseLength - incomingLength)
+            if (baseEnd.every((element, index) => deepEqual(element.toJSON(), incomingElements[index].toJSON()))) {
+                return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base.slice(0, baseLength - incomingLength)) }
+            }
+        }
+        else if (incomingLength > baseLength) {
+            const incomingEnd = incomingElements.slice(incomingLength - baseLength)
+            if (incomingEnd.every((element, index) => deepEqual(element.toJSON(), base[index].toJSON()))) {
+                return { outcome: 'Incoming Longer', remainder: new StandardRenderSimple(incomingElements.slice(0, incomingLength - baseLength)) }
+            }
+        }
+        else if (base.every((element, index) => deepEqual(element.toJSON(), incomingElements[index].toJSON()))) {
+            return { outcome: 'Equal' }
+        }
+        return { outcome: 'Conflict' }
     }
 }
 
@@ -320,6 +354,10 @@ export class StandardRender {
     _payload: StandardRenderSimple | StandardRenderRemove | StandardRenderReplace;
     
     constructor(arg: any) {
+        if (arg instanceof StandardRenderSimple || arg instanceof StandardRenderRemove || arg instanceof StandardRenderReplace) {
+            this._payload = arg
+            return
+        }
         if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
             if (arg.length === 1) {
                 const node = arg[0]
@@ -361,5 +399,15 @@ export class StandardRender {
         else {
             return [this._payload.toNDJSON()]
         }
+    }
+
+    merge(incoming: StandardRender): StandardRender {
+        //
+        // If both payloads are StandardRenderSimple, merge them using the StandardRenderSimple merge method
+        //
+        if (this._payload instanceof StandardRenderSimple && incoming._payload instanceof StandardRenderSimple) {
+            return new StandardRender(this._payload.merge(incoming._payload))
+        }
+        throw new MergeConflictError('Cannot merge non-Simple StandardRender objects')
     }
 }
