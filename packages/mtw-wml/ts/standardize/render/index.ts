@@ -7,7 +7,7 @@ import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
 import { isSchemaString, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaCondition, isSchemaConditionStatement, isSchemaConditionFallthrough } from "../../schema/baseClasses"
 
-type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
+type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
 export class StandardRenderSimple {
     _elements: StandardRenderSimpleElement[];
@@ -28,6 +28,9 @@ export class StandardRenderSimple {
                     else if (isSchemaSpacer(node.data)) {
                         return new StandardRenderSpace(node)
                     }
+                    else if (isSchemaCondition(node.data)) {
+                        return new StandardRenderConditional(node)
+                    }
                     else {
                         return undefined
                     }
@@ -38,7 +41,8 @@ export class StandardRenderSimple {
             element instanceof StandardRenderString ||
             element instanceof StandardRenderLineBreak ||
             element instanceof StandardRenderLink ||
-            element instanceof StandardRenderSpace
+            element instanceof StandardRenderSpace ||
+            element instanceof StandardRenderConditional
         ))) {
             this._elements = arg
         }

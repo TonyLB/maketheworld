@@ -1,11 +1,27 @@
 import { StandardRenderSimple, StandardRenderConditional } from './index'
 import { Schema } from '../../schema'
 
+describe('StandardRenderConditional', () => {
+    it('should create an instance from valid incoming schema', () => {
+        const schema = new Schema()
+        schema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Example</Link>
+            </If>
+            <Else>
+                False<Space />
+            </Else>
+        `)
+        const render = new StandardRenderConditional(schema.schema[0])
+        expect(render.toJSON()).toEqual(schema.schema[0])
+    })
+})
+
 describe('StandardRenderSimple', () => {
     it('should create an instance from valid incoming schema', () => {
         const schema = new Schema()
         schema.loadWML(`
-            Example<Link to=(Feature1)>Example</Link><br />
+            Example<Link to=(Feature1)>Link</Link><br />
             Another Example<Space />
         `)
         const render = new StandardRenderSimple(schema.schema)
@@ -32,20 +48,19 @@ describe('StandardRenderSimple', () => {
         expect(base.merge(new StandardRenderSimple([' Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
     })
 
-})
-
-describe('StandardRenderConditional', () => {
-    it('should create an instance from valid incoming schema', () => {
+    it('should round-trip a schema with conditionals', () => {
         const schema = new Schema()
         schema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link><br />
             <If {true}>
-                Example<Link to=(Feature1)>Example</Link>
+                True<Link to=(Feature2)>Link</Link>
             </If>
             <Else>
-                Another Example<Space />
+                False<Space />
             </Else>
         `)
-        const render = new StandardRenderConditional(schema.schema[0])
-        expect(render.toJSON()).toEqual(schema.schema[0])
+        const render = new StandardRenderSimple(schema.schema)
+        expect(render.toJSON()).toEqual(schema.schema)
     })
+
 })
