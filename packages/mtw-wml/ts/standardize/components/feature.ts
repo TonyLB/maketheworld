@@ -16,6 +16,7 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    _global?: boolean;
     tag = 'Feature' as const
 
     constructor(previous?: StandardFeaturePayload) {
@@ -28,6 +29,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     fromJSON(props: StandardFeatureData) {
         this._name = props.name
         this._description = props.description
+        this._global = props.global
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -37,6 +39,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
             const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
             this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+            this._global = node.data.global
             return
         }
         throw new Error('Schema mismatch in StandardFeature constructor')
@@ -44,18 +47,20 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     get name() { return this._name }
     get description() { return this._description }
+    get global() { return this._global }
 
     toJSON(): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',
             name: this.name,
-            description: this.description
+            description: this.description,
+            ...(this.global ? { global: true } : {})
         }
     }
 
     schema(key: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Feature', key },
+            data: { tag: 'Feature', key, global: this.global },
             children: [this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
         }
     }
@@ -87,6 +92,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+    get global() { return this._payload.global }
 
     override clone(): StandardFeature {
         const returnValue = new StandardFeature(this)

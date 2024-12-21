@@ -10,7 +10,7 @@ describe('StandardFeature class', () => {
 
     it('should construct StandardFeature from WML', () => {
         const testSource = deIndentWML(`
-            <Feature key=(test)>
+            <Feature global key=(test)>
                 <Name>Name Test</Name>
                 <Description>Description Test</Description>
             </Feature>
@@ -19,6 +19,7 @@ describe('StandardFeature class', () => {
         expect(testFeature.key).toEqual('test')
         expect(testFeature.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
         expect(testFeature.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
+        expect(testFeature.global).toBe(true)
         expect(schemaToWML([testFeature.schema])).toEqual(testSource)
     })
 

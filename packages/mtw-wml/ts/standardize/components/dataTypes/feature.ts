@@ -6,6 +6,7 @@ export type StandardFeatureData = {
     tag: 'Feature';
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    global?: boolean;
 } & StandardBaseData
 
 export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
@@ -20,7 +21,8 @@ export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
         },
         {
             name: 'node',
-            description: 'node'
+            description: 'node',
+            global: 'boolean'
         })
     )
 }
