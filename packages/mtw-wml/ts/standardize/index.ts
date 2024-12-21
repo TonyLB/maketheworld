@@ -78,102 +78,6 @@ export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, E
     })
 )
 
-export const standardItemToSchemaItem = (item: StandardComponentData): GenericTreeNode<SchemaTag> => {
-    switch(item.tag) {
-        case 'Character':
-            const { tag, ...pronouns } = item.pronouns?.data ?? { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
-            return {
-                data: { tag: 'Character', key: item.key, Pronouns: 'subject' in pronouns ? pronouns : { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } },
-                children: [
-                    ...[item.name, item.pronouns, item.firstImpression, item.oneCoolThing, item.outfit].filter(excludeUndefined),
-                ]
-            }
-        case 'Room':
-            return {
-                data: { tag: 'Room', key: item.key },
-                children: defaultSelected([
-                    ...[item.shortName, item.name, item.summary, item.description].filter(excludeUndefined),
-                    ...item.exits
-                ])
-            }
-        case 'Feature':
-        case 'Knowledge':
-            return {
-                data: { tag: item.tag, key: item.key },
-                children: defaultSelected([item.name, item.description].filter(excludeUndefined))
-            }
-        case 'Bookmark':
-            return {
-                data: { tag: 'Bookmark', key: item.key },
-                children: defaultSelected(item.description?.children ?? [])
-            }
-        case 'Message':
-            return {
-                data: { tag: 'Message', key: item.key },
-                children: [
-                    ...item.rooms,
-                    ...item.description?.children ?? []
-                ]
-            }
-        case 'Moment':
-            return {
-                data: { tag: 'Moment', key: item.key },
-                children: item.messages
-            }
-        case 'Map':
-            return {
-                data: { tag: 'Map', key: item.key },
-                children: defaultSelected([
-                    item.name,
-                    ...item.images,
-                    ...item.positions
-                ].filter(excludeUndefined))
-            }
-        case 'Theme':
-            return {
-                data: { tag: 'Theme', key: item.key },
-                children: [
-                    item.name,
-                    ...item.rooms,
-                    ...item.maps
-                ].filter(excludeUndefined)
-            }
-        case 'Variable':
-            return {
-                data: { tag: 'Variable', key: item.key, default: item.default },
-                children: []
-            }
-        case 'Computed':
-            return {
-                data: { tag: item.tag, key: item.key, src: item.src, dependencies: item.dependencies },
-                children: []
-            }
-        case 'Action':
-            return {
-                data: { tag: item.tag, key: item.key, src: item.src },
-                children: []
-            }
-        case 'Image':
-            return {
-                data: { tag: item.tag, key: item.key },
-                children: []
-            }
-        case 'Remove':
-            return {
-                data: { tag: item.tag },
-                children: [standardItemToSchemaItem(item.component)]
-            }
-        case 'Replace':
-            return {
-                data: { tag: item.tag },
-                children: [
-                    { data: { tag: 'ReplaceMatch' }, children: [standardItemToSchemaItem(item.match)] },
-                    { data: { tag: 'ReplacePayload' }, children: [standardItemToSchemaItem(item.payload)] }
-                ]
-            }
-    }
-}
-
 export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)
 }
@@ -209,28 +113,6 @@ export const standardComponentSortOrder = (componentA: StandardComponent, compon
 // finds the correct constructor, and creates the sub-typed class
 //
 export const standardNonEditComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
-
-    // const subjectTypeguard = (arg: StandardComponentData | GenericTreeNode<SchemaTag>, typeGuard: (data: SchemaTag) => boolean): arg is GenericTreeNode<SchemaTag> => {
-    //     if (isSchemaTreeNode(arg)) {
-    //         const subject = unwrapSubject(arg)
-    //         if (subject && typeGuard(subject.data)) {
-    //             return true
-    //         }
-    //     }
-    //     return false
-    // }
-
-    // const unwrapStandardTypeguard = <T extends StandardComponentData>(typeguard: (component: StandardComponentData) => component is T) => (arg: StandardComponentData): arg is StandardRemoveData | StandardReplaceData | T => {
-    //     if (isStandardReplace(arg)) {
-    //         return unwrapStandardTypeguard(typeguard)(arg.payload)
-    //     }
-    //     else if (isStandardRemove(arg)) {
-    //         return unwrapStandardTypeguard(typeguard)(arg.component)
-    //     }
-    //     else {
-    //         return typeguard(arg)
-    //     }
-    // }
 
     if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaCharacter)(arg))) {
         return new StandardCharacter(arg)
@@ -744,6 +626,10 @@ const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItemById: R
     return { importItemById, exportItemById }
 }
 
+type ComponentProcessingTemplate = {
+    key: SchemaWithKey["tag"];
+}
+
 export class StandardForm {
     _key: string;
     _byId: Record<string, StandardComponent>;
@@ -824,12 +710,13 @@ export class StandardForm {
                 return unique(keysExtract(true), keysExtract(false)).sort()
             }
             const { importItemById, exportItemById } = importExportFromTree(node.children)
-            const standardizeComponentTagType = (componentKeys: SchemaWithKey["tag"][], tagTree: SchemaTagTree): void => {
+            const standardizeComponentTagType = (componentTemplates: ComponentProcessingTemplate[], tagTree: SchemaTagTree): void => {
                 //
                 // Loop through each tag in standard order
                 //
-                const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentKeys.map((key) => ({ match: key })) }
-                componentKeys.forEach((tag) => {
+                const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentTemplates.map(({ key }) => ({ match: key })) }
+                componentTemplates.forEach((processingTemplate) => {
+                    const { key: tag } = processingTemplate
                     //
                     // Loop through each key present for that tag
                     //
@@ -969,9 +856,26 @@ export class StandardForm {
                     ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree
                 ]
 
-                const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+                //
+                // Templates for the following component tags: 'Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
+                //
+                const componentTemplates: ComponentProcessingTemplate[] = [
+                    { key: 'Character' },
+                    { key: 'Image' },
+                    { key: 'Bookmark' },
+                    { key: 'Room' },
+                    { key: 'Feature' },
+                    { key: 'Knowledge' },
+                    { key: 'Map' },
+                    { key: 'Theme' },
+                    { key: 'Message' },
+                    { key: 'Moment' },
+                    { key: 'Variable' },
+                    { key: 'Computed' },
+                    { key: 'Action' }
+                ]
         
-                standardizeComponentTagType(componentKeys, tagTree)
+                standardizeComponentTagType(componentTemplates, tagTree)
                 return
             }
         }
