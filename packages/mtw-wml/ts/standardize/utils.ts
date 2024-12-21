@@ -4,7 +4,7 @@ import { SchemaTag } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTreeNode } from "../tree/baseClasses"
-import { StandardComponentData, StandardNodeKeys } from "./baseClasses"
+import { SerializeNDJSONMixin, StandardComponentData, StandardNodeKeys } from "./baseClasses"
 
 export const combineTagChildren = <T extends StandardComponentData, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
     if (!excludeUndefined(base[key])) {
@@ -34,4 +34,12 @@ export const nodeFromWML = (wml: string): GenericTreeNode<SchemaTag> => {
         throw new Error('Multiple elements in StandardComponent WML argument')
     }
     return schema.schema[0]
+}
+
+export const removeNDJSONOnlyProperties = (props: StandardComponentData & SerializeNDJSONMixin): Omit<StandardComponentData & SerializeNDJSONMixin, 'universalKey' | 'from' | 'exportAs'> => {
+    return Object.assign({}, 
+        ...Object.entries(props)
+            .filter(([key]) => (!['universalKey', 'from', 'exportAs'].includes(key)))
+            .map(([key, value]) => ({ [key]: value }))
+    )
 }
