@@ -245,6 +245,7 @@ export type SchemaRoomTag = {
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
+    global?: boolean;
 } & SchemaImportableBase
 
 export type SchemaKnowledgeTag = {

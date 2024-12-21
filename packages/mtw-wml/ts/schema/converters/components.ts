@@ -61,6 +61,7 @@ const componentTemplates = {
     },
     Feature: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        global: { required: false, type: ParsePropertyTypes.Boolean },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
     },
@@ -422,6 +423,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Feature',
             properties: [
+                { key: 'global', type: 'boolean', value: tag.global ?? false },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
