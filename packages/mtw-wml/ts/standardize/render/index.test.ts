@@ -359,4 +359,106 @@ describe('StandardRender', () => {
         const base = new StandardRender(baseSchema.schema)
         expect(() => base.merge(new StandardRender(incomingSchema.schema))).toThrow()
     })
+
+    it('should extend payload when merging simple incoming into replace base', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                Another Example
+            </With>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            Yet Another Example<Link to=(Feature1)>Link</Link>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                Another ExampleYet Another Example
+                <Link to=(Feature1)>Link</Link>
+            </With>
+        `))
+    })
+
+    it('should reduce payload when merging remove into replace base with longer payload', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                AnotherExample
+            </With>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove>Example</Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Replace>Example</Replace><With>Another</With>
+        `))
+    })
+
+    it('should extend match term when merging remove into replace base with shorter payload', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                Another Example
+            </With>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove>Yet Another Example</Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Remove>Yet Example</Remove>
+        `))
+    })
+
+    it('should chain replace terms when merging replace into replace', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                Another Example
+            </With>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>
+                Another Example
+            </Replace>
+            <With>
+                Yet Another Example
+            </With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Replace>Example</Replace><With>Yet Another Example</With>
+        `))
+    })
+
+    it('should throw merge conflict error when merging replace into term that does not match', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Link to=(Feature1)>Link</Link>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>Example</Replace><With>Another Example</With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        expect(() => base.merge(new StandardRender(incomingSchema.schema))).toThrow()
+    })
 })

@@ -205,7 +205,6 @@ export class StandardRenderSimple {
             const incomingFirstElementCompared = incomingElements[0]
             if (baseEnd.slice(1).every((element, index) => deepEqual(element.toJSON(), incomingElements[index + 1].toJSON()))) {
                 const { outcome, remainder } = compareElements(baseFirstElementCompared, incomingFirstElementCompared)
-                console.log(`outcome: ${outcome}, remainder: ${remainder?.plainString}`)
                 if (outcome === 'Equal') {
                     return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base.slice(0, baseLength - incomingLength)) }
                 }
@@ -370,8 +369,14 @@ export class StandardRenderReplace extends StandardRenderAbstract implements Sta
     _match: StandardRenderSimple
     _payload: StandardRenderSimple
 
-    constructor(arg: any) {
+    constructor(...args: any) {
         super()
+        const [arg, payloadArg] = args
+        if (payloadArg && arg instanceof StandardRenderSimple && payloadArg instanceof StandardRenderSimple) {
+            this._match = arg
+            this._payload = payloadArg
+            return
+        }
         if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaReplace(arg.data))) {
             throw new Error('Invalid argument to StandardRenderReplace constructor')
         }
@@ -517,13 +522,12 @@ export class StandardRender {
                     return new StandardRender(remainder ? remainder.merge(incomingPayload._payload) : incomingPayload._payload)
                 }
                 if (outcome === 'Incoming Longer') {
-                    return new StandardRender(new StandardRenderReplace({
-                        data: { tag: 'Replace' },
-                        children: [
-                            { data: { tag: 'ReplaceMatch' }, children: remainder?.toJSON() ?? [] },
-                            { data: { tag: 'ReplacePayload' }, children: incomingPayload._payload.toJSON() }
-                        ]
-                    }))
+                    if (remainder) {
+                        return new StandardRender(new StandardRenderReplace(remainder, incomingPayload._payload))
+                    }
+                    else {
+                        return new StandardRender(incomingPayload._payload)
+                    }
                 }
                 if (outcome === 'Conflict') {
                     throw new MergeConflictError()
@@ -537,26 +541,69 @@ export class StandardRender {
         //
         if (payload instanceof StandardRenderRemove) {
             if (incomingPayload instanceof StandardRenderSimple) {
-                return new StandardRender(new StandardRenderReplace({
-                    data: { tag: 'Replace' },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' }, children: payload._payload.toJSON() },
-                        { data: { tag: 'ReplacePayload' }, children: incomingPayload.toJSON() }
-                    ]
-                }))
+                return new StandardRender(new StandardRenderReplace(payload._payload, incomingPayload))
             }
             if (incomingPayload instanceof StandardRenderRemove) {
                 return new StandardRender(new StandardRenderRemove(payload._payload.merge(incomingPayload._payload)))
             }
             if (incomingPayload instanceof StandardRenderReplace) {
                 const mergedMatch = payload._payload.merge(incomingPayload._match)
-                return new StandardRender(new StandardRenderReplace({
-                    data: { tag: 'Replace' },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' }, children: mergedMatch.toJSON() },
-                        { data: { tag: 'ReplacePayload' }, children: incomingPayload._payload.toJSON() }
-                    ]
-                }))
+                return new StandardRender(new StandardRenderReplace(mergedMatch, incomingPayload._payload))
+            }
+        }
+        //
+        // If the base payload is a StandardRenderReplace, merge a simple payload by extending the
+        // replace payload, merge a remove by reducing the payload (if the remove is shorter) or
+        // extending the remove match terms (if it is longer), and merge a replace by chaining the
+        // operations
+        //
+        if (payload instanceof StandardRenderReplace) {
+            if (incomingPayload instanceof StandardRenderSimple) {
+                return new StandardRender(new StandardRenderReplace(payload._match, payload._payload.merge(incomingPayload)))
+            }
+            if (incomingPayload instanceof StandardRenderRemove) {
+                const { outcome, remainder } = payload._payload.compare(incomingPayload._payload)
+                if (outcome === 'Equal') {
+                    return new StandardRender(new StandardRenderRemove(payload._match))
+                }
+                if (outcome === 'Base Longer') {
+                    if (remainder) {
+                        return new StandardRender(new StandardRenderReplace(payload._match, remainder))
+                    }
+                    else {
+                        return new StandardRender(new StandardRenderRemove(payload._match))
+                    }
+                }
+                if (outcome === 'Incoming Longer') {
+                    if (remainder) {
+                        return new StandardRender(new StandardRenderRemove(remainder.merge(payload._match)))
+                    }
+                    else {
+                        return new StandardRender(new StandardRenderRemove(payload._match))
+                    }
+                }
+            }
+            if (incomingPayload instanceof StandardRenderReplace) {
+                const { outcome, remainder } = payload._payload.compare(incomingPayload._match)
+                if (outcome === 'Equal') {
+                    return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
+                }
+                if (outcome === 'Base Longer') {
+                    if (remainder) {
+                        return new StandardRender(new StandardRenderReplace(payload._match, remainder.merge(incomingPayload._payload)))
+                    }
+                    else {
+                        return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
+                    }
+                }
+                if (outcome === 'Incoming Longer') {
+                    if (remainder) {
+                        return new StandardRender(new StandardRenderReplace(remainder.merge(payload._match), incomingPayload._payload))
+                    }
+                    else {
+                        return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
+                    }
+                }
             }
         }
         throw new MergeConflictError()
