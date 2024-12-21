@@ -205,4 +205,98 @@ describe('StandardRender', () => {
         expect(render.toJSON()).toEqual(schema.schema)
     })
 
+    it('should merge simple incoming schema', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                False<Space />
+            </Else>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            Example
+            <Link to=(Feature1)>Link</Link>
+            <If {true}>
+                True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                False
+                <Space />
+            </Else>
+        `))
+    })
+
+    it('should merge remove incoming schema into simple base', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove><Link to=(Feature1)>Link</Link></Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual('Example')
+    })
+
+    it('should create remainder remove when incoming schema is longer', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Link to=(Feature1)>Link</Link>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual('<Remove>Example</Remove>')
+    })
+
+    it('should merge replace incoming schema into simple base', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>
+                <Link to=(Feature1)>Link</Link>
+            </Replace>
+            <With>
+                <Link to=(Feature2)>Link</Link>
+            </With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON(), { })).toEqual(deIndentWML(`
+            Example
+            <Link to=(Feature2)>Link</Link>
+        `))
+    })
+
+    it('should create remainder replace when incoming schema is longer', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Link to=(Feature1)>Link</Link>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>
+                Example<Link to=(Feature1)>Link</Link>
+            </Replace>
+            <With>
+                <Link to=(Feature2)>Link</Link>
+            </With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON(), { })).toEqual(deIndentWML(`
+            <Replace>Example</Replace><With><Link to=(Feature2)>Link</Link></With>
+        `))
+    })
 })
