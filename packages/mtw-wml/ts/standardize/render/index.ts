@@ -475,19 +475,21 @@ export class StandardRender {
     }
 
     merge(incoming: StandardRender): StandardRender {
-        if (this._payload instanceof StandardRenderSimple) {
+        const payload = this._payload
+        const incomingPayload = incoming._payload
+        if (payload instanceof StandardRenderSimple) {
             //
             // If both payloads are StandardRenderSimple, merge them using the StandardRenderSimple merge method
             //
-            if (incoming._payload instanceof StandardRenderSimple) {
-                return new StandardRender(this._payload.merge(incoming._payload))
+            if (incomingPayload instanceof StandardRenderSimple) {
+                return new StandardRender(payload.merge(incomingPayload))
             }
             //
             // To merge a StandardRenderRemove into a StandardRenderSimple, compare the matching payload and either
             // leave a Simple remainder (if the base is longer) or a Remove remainder (if the incoming is longer)
             //
-            else if (incoming._payload instanceof StandardRenderRemove) {
-                const { outcome, remainder } = this._payload.compare(incoming._payload._payload)
+            else if (incomingPayload instanceof StandardRenderRemove) {
+                const { outcome, remainder } = payload.compare(incomingPayload._payload)
                 if (outcome === 'Equal') {
                     return new StandardRender([])
                 }
@@ -506,20 +508,20 @@ export class StandardRender {
             // combine the base remainder with the Replace payload (if the base is longer) or create a Replace from
             // the matching remainder and the incoming payload (if the incoming is longer)
             //
-            else if (incoming._payload instanceof StandardRenderReplace) {
-                const { outcome, remainder } = this._payload.compare(incoming._payload._match)
+            else if (incomingPayload instanceof StandardRenderReplace) {
+                const { outcome, remainder } = payload.compare(incomingPayload._match)
                 if (outcome === 'Equal') {
-                    return new StandardRender(incoming._payload._payload)
+                    return new StandardRender(incomingPayload._payload)
                 }
                 if (outcome === 'Base Longer') {
-                    return new StandardRender(remainder ? remainder.merge(incoming._payload._payload) : incoming._payload._payload)
+                    return new StandardRender(remainder ? remainder.merge(incomingPayload._payload) : incomingPayload._payload)
                 }
                 if (outcome === 'Incoming Longer') {
                     return new StandardRender(new StandardRenderReplace({
                         data: { tag: 'Replace' },
                         children: [
                             { data: { tag: 'ReplaceMatch' }, children: remainder?.toJSON() ?? [] },
-                            { data: { tag: 'ReplacePayload' }, children: incoming._payload._payload.toJSON() }
+                            { data: { tag: 'ReplacePayload' }, children: incomingPayload._payload.toJSON() }
                         ]
                     }))
                 }
@@ -528,6 +530,35 @@ export class StandardRender {
                 }
             }
         }
-        throw new MergeConflictError('Cannot merge non-Simple StandardRender objects')
+        //
+        // If the base payload is a StandardRenderRemove, merge a simple payload into a
+        // replace, merge a remove by extending the match terms, and merge a replace by
+        // (similarly) extending the match terms of the replace
+        //
+        if (payload instanceof StandardRenderRemove) {
+            if (incomingPayload instanceof StandardRenderSimple) {
+                return new StandardRender(new StandardRenderReplace({
+                    data: { tag: 'Replace' },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' }, children: payload._payload.toJSON() },
+                        { data: { tag: 'ReplacePayload' }, children: incomingPayload.toJSON() }
+                    ]
+                }))
+            }
+            if (incomingPayload instanceof StandardRenderRemove) {
+                return new StandardRender(new StandardRenderRemove(payload._payload.merge(incomingPayload._payload)))
+            }
+            if (incomingPayload instanceof StandardRenderReplace) {
+                const mergedMatch = payload._payload.merge(incomingPayload._match)
+                return new StandardRender(new StandardRenderReplace({
+                    data: { tag: 'Replace' },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' }, children: mergedMatch.toJSON() },
+                        { data: { tag: 'ReplacePayload' }, children: incomingPayload._payload.toJSON() }
+                    ]
+                }))
+            }
+        }
+        throw new MergeConflictError()
     }
 }

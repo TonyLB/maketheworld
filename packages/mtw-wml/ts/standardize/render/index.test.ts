@@ -273,7 +273,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON(), { })).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
             Example
             <Link to=(Feature2)>Link</Link>
         `))
@@ -295,8 +295,68 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON(), { })).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
             <Replace>Example</Replace><With><Link to=(Feature2)>Link</Link></With>
         `))
+    })
+
+    it('should create replace when merging simple incoming schema into base remove', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Remove><Link to=(Feature1)>Link</Link></Remove>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            Example<Link to=(Feature2)>Link</Link>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Replace>
+                <Link to=(Feature1)>Link</Link>
+            </Replace>
+            <With>
+                Example
+                <Link to=(Feature2)>Link</Link>
+            </With>
+        `))
+    })
+
+    it('should extend match term when merging two remove schemas', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Remove>Example</Remove>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove>Another Example</Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Remove>ExampleAnother Example</Remove>
+        `))
+    })
+
+    it('should extend replace match terms when merging replace into remove', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Remove>Example</Remove>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>
+                Another Example
+            </Replace>
+            <With>
+                Yet Another Example
+            </With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <Replace>ExampleAnother Example</Replace><With>Yet Another Example</With>
+        `))
+    })
+
+    it('should throw merge conflict error when merging remove into term that does not match', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`<Link to=(Feature1)>Link</Link>`)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove>Example</Remove>`)
+        const base = new StandardRender(baseSchema.schema)
+        expect(() => base.merge(new StandardRender(incomingSchema.schema))).toThrow()
     })
 })
