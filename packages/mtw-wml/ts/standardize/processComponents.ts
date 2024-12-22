@@ -35,19 +35,18 @@ const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithK
 
 //
 // processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
-// NOTE: This function is not pure. It side-effects the byId object, rather than returning a new object functionally.
 //
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     tagTree: SchemaTagTree;
-    byId: Record<string, StandardComponent>;
     importItemById: Record<string, StandardImportItem>;
     exportItemById: Record<string, StandardExportItem>;
-}): void => {
+}): Record<string, StandardComponent> => {
     //
     // Loop through each tag in standard order
     //
-    const { componentTemplates, tagTree, byId, importItemById, exportItemById } = props
+    let byId: Record<string, StandardComponent> = {}
+    const { componentTemplates, tagTree, importItemById, exportItemById } = props
 
     const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentTemplates.map(({ key }) => ({ match: key })) }
     componentTemplates.forEach((processingTemplate) => {
@@ -173,6 +172,8 @@ export const processComponents = (props: {
             })
         })
     })
+
+    return byId
 }
 
 export default processComponents
