@@ -21,11 +21,13 @@ import {
     SchemaReplacePayloadTag,
     SchemaReplaceTag,
     SchemaOutputTag,
-    SchemaRemoveTag
+    SchemaRemoveTag,
+    SchemaTag
 } from "../../schema/baseClasses"
-import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 import { MergeConflictError } from "../baseClasses"
 import { deepEqual } from "../../lib/objects"
+import { StandardRemove } from "../edits"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -247,6 +249,16 @@ export class StandardRenderSimple {
         }
         return { outcome: 'Conflict' }
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRenderSimple {
+        return new StandardRenderSimple(this._elements.map(element => {
+            if (element instanceof StandardRenderConditional) {
+                return new StandardRenderConditional(callback([element.toJSON()]))
+            }
+            return callback([element.toJSON()])
+        }).flat(1))
+    }
+
 }
 
 type RenderConditionalStatement = {
@@ -608,4 +620,18 @@ export class StandardRender {
         }
         throw new MergeConflictError()
     }
+
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRender {
+        if (this._payload instanceof StandardRenderSimple) {
+            return new StandardRender(this._payload.mapContents(callback))
+        }
+        if (this._payload instanceof StandardRenderRemove) {
+            return new StandardRender(new StandardRenderRemove(this._payload._payload.mapContents(callback)))
+        }
+        if (this._payload instanceof StandardRenderReplace) {
+            return new StandardRender(new StandardRenderReplace(this._payload._match.mapContents(callback), this._payload._payload.mapContents(callback)))
+        }
+        throw new Error('Invalid StandardRender payload')
+    }
+
 }
