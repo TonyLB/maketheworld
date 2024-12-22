@@ -15,32 +15,37 @@ import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import linkReferenceKeys, { dependencyReferenceKeys, exitReferenceKeys } from "./utils/references"
+import { StandardRender } from "../render"
+import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
+import { stripUIFields } from "../render/utils"
+import { StandardToJSONOptions } from "./baseClasses"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
-    _shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
-    _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
-    _summary?: EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>;
-    _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    _shortName?: StandardRender;
+    _name?: StandardRender;
+    _summary?: StandardRender;
+    _description?: StandardRender;
     _exits: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
         if (previous) {
-            this._shortName = previous.shortName
-            this._name = previous.name
-            this._summary = previous.summary
-            this._description = previous.description
+            this._shortName = previous._shortName
+            this._name = previous._name
+            this._summary = previous._summary
+            this._description = previous._description
             this._exits = [...previous.exits]
             this._themes = [...previous.themes]
         }
     }
 
     fromJSON(props: StandardRoomData) {
-        this._shortName = props.shortName
-        this._name = props.name
-        this._summary = props.summary
-        this._description = props.description
+        const { shortName, name, summary, description } = props
+        this._shortName = extractStandardRender(shortName, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
+        this._name = extractStandardRender(name, isSchemaName, 'Schema mismatch in StandardRoom constructor')
+        this._summary = extractStandardRender(summary, isSchemaSummary, 'Schema mismatch in StandardRoom constructor')
+        this._description = extractStandardRender(description, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
         this._exits = props.exits
         this._themes = props.themes
     }
@@ -55,10 +60,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             const exitTagTree = tagTree
                 .filter({ match: 'Exit' })
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
-            this._shortName = outputNodeToStandardItem<SchemaShortNameTag, SchemaOutputTag>(shortNameItem, isSchemaShortName, isSchemaOutputTag, { tag: 'ShortName' }),
-            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
-            this._summary = outputNodeToStandardItem<SchemaSummaryTag, SchemaOutputTag>(summaryItem, isSchemaSummary, isSchemaOutputTag, { tag: 'Summary' }),
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' }),
+            this._shortName = extractStandardRender(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
+            this._name = extractStandardRender(nameItem as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>, isSchemaName, 'Schema mismatch in StandardRoom constructor')
+            this._summary = extractStandardRender(summaryItem as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>, isSchemaSummary, 'Schema mismatch in StandardRoom constructor')
+            this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
             this._themes = []
             return
@@ -66,20 +71,29 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         throw new Error('Schema mismatch in StandardRoom constructor')
     }
 
-    get shortName() { return this._shortName }
-    get name() { return this._name }
-    get summary() { return this._summary }
-    get description() { return this._description }
+    get shortName() { return rebuildSchemaFromStandardRender(this._shortName, { tag: 'ShortName' as const }) }
+    get name() { return rebuildSchemaFromStandardRender(this._name, { tag: 'Name' as const }) }
+    get summary() { return rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' as const }) }
+    get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get exits() { return this._exits }
     get themes() { return this._themes }
 
-    toJSON(): Omit<StandardRoomData, 'key' | 'universalKey'> {
+    toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
+        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Room',
-            shortName: this.shortName,
-            name: this.name,
-            summary: this.summary,
-            description: this.description,
+            shortName: stripUI
+                ? rebuildSchemaFromStandardRender(this._shortName?.mapContents(stripUIFields), { tag: 'ShortName' as const })
+                : this.shortName,
+            name: stripUI
+                ? rebuildSchemaFromStandardRender(this._name?.mapContents(stripUIFields), { tag: 'Name' as const })
+                : this.name,
+            summary: stripUI
+                ? rebuildSchemaFromStandardRender(this._summary?.mapContents(stripUIFields), { tag: 'Summary' as const })
+                : this.summary,
+            description: stripUI
+                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
+                : this.description,
             exits: this.exits,
             themes: this.themes
         }
@@ -97,10 +111,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
-        returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
-        returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
-        returnValue._shortName = combineTaggedChildren(this.shortName, incoming.shortName) as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>
-        returnValue._summary = combineTaggedChildren(this.summary, incoming.summary) as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
+        returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
+        returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._exits = applyEdits([...this.exits, ...incoming.exits])
         returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue as this
@@ -119,10 +133,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardRoomPayload(this)
-        returnValue._shortName = applyTreeCallbackToNode(callback)(returnValue._shortName) as GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag> | undefined
-        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
-        returnValue._summary = applyTreeCallbackToNode(callback)(returnValue._summary) as GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag> | undefined
-        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        if (returnValue._shortName) {
+            returnValue._shortName = returnValue._shortName.mapContents(callback)
+        }
+        if (returnValue._name) {
+            returnValue._name = returnValue._name.mapContents(callback)
+        }
+        if (returnValue._summary) {
+            returnValue._summary = returnValue._summary.mapContents(callback)
+        }
+        if (returnValue._description) {
+            returnValue._description = returnValue._description.mapContents(callback)
+        }
         returnValue._exits = callback(returnValue._exits)
         return returnValue as this
     }

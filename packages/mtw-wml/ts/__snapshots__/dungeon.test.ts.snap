@@ -7080,7 +7080,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -7487,7 +7486,6 @@ Object {
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "exits": Array [
       Object {
@@ -7542,7 +7540,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -7799,7 +7796,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "exits": Array [
       Object {
@@ -7854,7 +7850,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -8537,7 +8532,6 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8555,7 +8549,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "waterLevel >= 4",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8596,7 +8589,6 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8614,7 +8606,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "waterLevel < 4 && waterLevel >= 2",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8648,7 +8639,6 @@ trapDoorOpen = false
                     "text": "grated opening",
                     "to": "gratingDetail",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8666,7 +8656,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "waterLevel < 2",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8714,7 +8703,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8743,7 +8731,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8772,7 +8759,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8801,7 +8787,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8830,7 +8815,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8915,7 +8899,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -8947,7 +8930,6 @@ trapDoorOpen = false
             "text": "nests",
             "to": "nests",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -8982,7 +8964,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9011,7 +8992,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9040,7 +9020,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9069,7 +9048,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9098,7 +9076,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9127,7 +9104,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9156,7 +9132,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9241,7 +9216,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -9273,7 +9247,6 @@ trapDoorOpen = false
             "text": "iron-working tools",
             "to": "ironworkingTools",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9297,7 +9270,6 @@ trapDoorOpen = false
             "text": "strange devices",
             "to": "bellows",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9321,7 +9293,6 @@ trapDoorOpen = false
             "text": "open fireplace",
             "to": "hearthDetail",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9356,7 +9327,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9385,7 +9355,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9414,7 +9383,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9443,7 +9411,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9472,7 +9439,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9501,7 +9467,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9530,7 +9495,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9615,7 +9579,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -10100,7 +10063,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10129,7 +10091,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10158,7 +10119,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10187,7 +10147,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10216,7 +10175,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10301,7 +10259,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -10442,7 +10399,6 @@ if (robedStatueActive) {
             "text": "fruit trees",
             "to": "fruitTrees",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10500,7 +10456,6 @@ if (robedStatueActive) {
                       ],
                       "data": Object {
                         "if": "catsInOrchard",
-                        "selected": false,
                         "tag": "Statement",
                       },
                     },
@@ -10512,7 +10467,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "waterLevel >= 4",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10570,7 +10524,6 @@ if (robedStatueActive) {
                       ],
                       "data": Object {
                         "if": "catsInOrchard",
-                        "selected": false,
                         "tag": "Statement",
                       },
                     },
@@ -10582,7 +10535,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "waterLevel < 4",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10611,7 +10563,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10640,7 +10591,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10669,7 +10619,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10698,7 +10647,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10727,7 +10675,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10756,7 +10703,6 @@ if (robedStatueActive) {
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10823,7 +10769,6 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -11340,7 +11285,6 @@ switch(glowingColumns) {
             "text": "carved columns",
             "to": "columns",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11364,7 +11308,6 @@ switch(glowingColumns) {
             "text": "trap door",
             "to": "trapDoor",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11393,7 +11336,6 @@ switch(glowingColumns) {
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11422,7 +11364,6 @@ switch(glowingColumns) {
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11451,7 +11392,6 @@ switch(glowingColumns) {
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11480,7 +11420,6 @@ switch(glowingColumns) {
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11509,7 +11448,6 @@ switch(glowingColumns) {
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11576,7 +11514,6 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,
@@ -12013,7 +11950,6 @@ determinedStatueHead = !determinedStatueHead
             "text": "statues",
             "to": "wellStatues",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12026,14 +11962,6 @@ determinedStatueHead = !determinedStatueHead
           "children": Array [],
           "data": Object {
             "tag": "Space",
-          },
-        },
-        Object {
-          "children": Array [],
-          "data": Object {
-            "display": undefined,
-            "key": "waterDescription",
-            "tag": "Bookmark",
           },
         },
         Object {
@@ -12056,7 +11984,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "hearthActive && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12085,7 +12012,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12114,7 +12040,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12143,7 +12068,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12172,7 +12096,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "hearthActive && !birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12239,7 +12162,6 @@ determinedStatueHead = !determinedStatueHead
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "shortName": undefined,
     "summary": undefined,

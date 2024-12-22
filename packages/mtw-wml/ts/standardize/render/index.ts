@@ -548,6 +548,9 @@ export class StandardRender {
         //
         if (payload instanceof StandardRenderRemove) {
             if (incomingPayload instanceof StandardRenderSimple) {
+                if (deepEqual(payload._payload.toJSON(), incomingPayload.toJSON())) {
+                    return new StandardRender([])
+                }
                 return new StandardRender(new StandardRenderReplace(payload._payload, incomingPayload))
             }
             if (incomingPayload instanceof StandardRenderRemove) {
@@ -555,6 +558,9 @@ export class StandardRender {
             }
             if (incomingPayload instanceof StandardRenderReplace) {
                 const mergedMatch = payload._payload.merge(incomingPayload._match)
+                if (deepEqual(mergedMatch.toJSON(), incomingPayload._payload.toJSON())) {
+                    return new StandardRender([])
+                }
                 return new StandardRender(new StandardRenderReplace(mergedMatch, incomingPayload._payload))
             }
         }
@@ -566,7 +572,11 @@ export class StandardRender {
         //
         if (payload instanceof StandardRenderReplace) {
             if (incomingPayload instanceof StandardRenderSimple) {
-                return new StandardRender(new StandardRenderReplace(payload._match, payload._payload.merge(incomingPayload)))
+                const mergedPayload = payload._payload.merge(incomingPayload)
+                if (deepEqual(payload._match.toJSON(), mergedPayload.toJSON())) {
+                    return new StandardRender([])
+                }
+                return new StandardRender(new StandardRenderReplace(payload._match, mergedPayload))
             }
             if (incomingPayload instanceof StandardRenderRemove) {
                 const { outcome, remainder } = payload._payload.compare(incomingPayload._payload)
@@ -575,6 +585,9 @@ export class StandardRender {
                 }
                 if (outcome === 'Base Longer') {
                     if (remainder) {
+                        if (deepEqual(payload._match.toJSON(), remainder.toJSON())) {
+                            return new StandardRender([])
+                        }
                         return new StandardRender(new StandardRenderReplace(payload._match, remainder))
                     }
                     else {
@@ -593,21 +606,38 @@ export class StandardRender {
             if (incomingPayload instanceof StandardRenderReplace) {
                 const { outcome, remainder } = payload._payload.compare(incomingPayload._match)
                 if (outcome === 'Equal') {
+                    if (deepEqual(payload._match.toJSON(), incomingPayload._payload.toJSON())) {
+                        return new StandardRender([])
+                    }
                     return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
                 }
                 if (outcome === 'Base Longer') {
                     if (remainder) {
-                        return new StandardRender(new StandardRenderReplace(payload._match, remainder.merge(incomingPayload._payload)))
+                        const mergedPayload = remainder.merge(incomingPayload._payload)
+                        if (deepEqual(payload._match.toJSON(), mergedPayload.toJSON())) {
+                            return new StandardRender([])
+                        }
+                        return new StandardRender(new StandardRenderReplace(payload._match, mergedPayload))
                     }
                     else {
+                        if (deepEqual(payload._match.toJSON(), incomingPayload._payload.toJSON())) {
+                            return new StandardRender([])
+                        }
                         return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
                     }
                 }
                 if (outcome === 'Incoming Longer') {
                     if (remainder) {
-                        return new StandardRender(new StandardRenderReplace(remainder.merge(payload._match), incomingPayload._payload))
+                        const mergedMatch = remainder.merge(payload._match)
+                        if (deepEqual(mergedMatch.toJSON(), incomingPayload._payload.toJSON())) {
+                            return new StandardRender([])
+                        }
+                        return new StandardRender(new StandardRenderReplace(mergedMatch, incomingPayload._payload))
                     }
                     else {
+                        if (deepEqual(payload._match.toJSON(), incomingPayload._payload.toJSON())) {
+                            return new StandardRender([])
+                        }
                         return new StandardRender(new StandardRenderReplace(payload._match, incomingPayload._payload))
                     }
                 }
