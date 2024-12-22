@@ -12,22 +12,26 @@ import { outputNodeToStandardItem } from "./utils/constructor"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
 import { combineTaggedChildren } from "./utils/merge"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
+import { StandardRender } from "../render"
+import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
+import { stripUIFields } from "../render/utils"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
-    _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
-    _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    _name?: StandardRender;
+    _description?: StandardRender;
     tag = 'Knowledge' as const
 
     constructor(previous?: StandardKnowledgePayload) {
         if (previous) {
-            this._name = previous.name
-            this._description = previous.description
+            this._name = previous._name
+            this._description = previous._description
         }
     }
 
     fromJSON(props: StandardKnowledgeData) {
-        this._name = props.name
-        this._description = props.description
+        const { name, description } = props
+        this._name = extractStandardRender(name, isSchemaName, 'Schema mismatch in StandardKnowledge constructor')
+        this._description = extractStandardRender(description, isSchemaDescription, 'Schema mismatch in StandardKnowledge constructor')
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -35,21 +39,26 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
             const tagTree = new SchemaTagTree(node.children)
             const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
             const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
-            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' }),
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
+            this._name = extractStandardRender(nameItem as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>, isSchemaName, 'Schema mismatch in StandardKnowledge constructor')
+            this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardKnowledge constructor')
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
     }
 
-    get name() { return this._name }
-    get description() { return this._description }
-
-    toJSON(): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
+    get name() { return rebuildSchemaFromStandardRender(this._name, { tag: 'Name' as const }) }
+    get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
+    
+    toJSON(options): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
+        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Knowledge',
-            name: this.name,
-            description: this.description
+            name: stripUI
+                ? rebuildSchemaFromStandardRender(this._name?.mapContents(stripUIFields), { tag: 'Name' as const })
+                : this.name,
+            description: stripUI
+                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
+                : this.description
         }
     }
 
@@ -62,8 +71,8 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     merge(incoming: this): this {
         const returnValue = new StandardKnowledgePayload()
-        returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
-        returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+        returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
+        returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         return returnValue as this
     }
 
@@ -78,8 +87,12 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardKnowledgePayload(this)
-        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
-        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
+        if (returnValue._name) {
+            returnValue._name = returnValue._name.mapContents(callback)
+        }
+        if (returnValue._description) {
+            returnValue._description = returnValue._description.mapContents(callback)
+        }
         return returnValue as this
     }
 }
