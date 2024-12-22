@@ -102,6 +102,61 @@ export class StandardRenderSimple {
                 const lastElement = previous[previous.length - 1]
                 
                 //
+                // Aggregate Conditional tags that can be combined
+                //
+                if (lastElement instanceof StandardRenderConditional && renderElement instanceof StandardRenderConditional) {
+                    const minimumLength = Math.min(lastElement._statements.length, renderElement._statements.length)
+                    //
+                    // Statements are incompatible if they have different conditions
+                    //
+                    const statementsCompatible = lastElement._statements.slice(0, minimumLength).every((statement, index) => {
+                        return statement.if === renderElement._statements[index].if
+                    })
+                    //
+                    // Fallthroughs are incompatible if they would conflict with a non-fallthrough element in a longer statement
+                    // list in the other conditional
+                    //
+                    const fallthroughCompatible = !(
+                        (lastElement._statements.length > minimumLength && renderElement._fallthrough) ||
+                        (renderElement._statements.length > minimumLength && lastElement._fallthrough)
+                    )
+                    if (statementsCompatible && fallthroughCompatible) {
+                        //
+                        // Zip together the statements, leaving undefined entries in pairings of a longer statement list with a shorter
+                        //
+                        const zippedStatements: { previous?: RenderConditionalStatement, incoming?: RenderConditionalStatement }[] =
+                            lastElement._statements.length > renderElement._statements.length
+                                ? lastElement._statements.map((statement, index) => ({ previous: statement, incoming: renderElement._statements[index] }))
+                                : renderElement._statements.map((statement, index) => ({ previous: lastElement._statements[index], incoming: statement }))
+                        const mergedStatements = zippedStatements.map(({ previous, incoming }) => {
+                            if (previous && incoming) {
+                                return { if: previous.if, payload: previous.payload.merge(incoming.payload) }
+                            }
+                            else if (previous) {
+                                return { if: previous.if, payload: previous.payload }
+                            }
+                            else if (incoming) {
+                                return { if: incoming.if, payload: incoming.payload }
+                            }
+                            else {
+                                throw new Error('Invalid conditional merge state')
+                            }
+                        })
+                        const mergedConditional = new StandardRenderConditional()
+                        mergedConditional._statements = mergedStatements
+                        if (lastElement._fallthrough || renderElement._fallthrough) {
+                            mergedConditional._fallthrough = lastElement._fallthrough && renderElement._fallthrough
+                                ? { payload: lastElement._fallthrough.payload.merge(renderElement._fallthrough.payload) }
+                                : lastElement._fallthrough || renderElement._fallthrough
+                        }
+                        return [...previous.slice(0, -1), mergedConditional]
+                    }
+                    else {
+                        return [...previous, renderElement]
+                    }
+                }
+
+                //
                 // Combine adjacent Space tags
                 //
                 if (lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderSpace) {
@@ -137,7 +192,7 @@ export class StandardRenderSimple {
                 //
                 // Check if the previous two are a string followed by a Space tag, and the current element is a string, join them all with a single space
                 //
-                else if (previous.length > 1) {
+                if (previous.length > 1) {
                     const previousToLast = previous[previous.length - 2]
                     if (previousToLast instanceof StandardRenderString && lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderString) {
                         return [...previous.slice(0, -2), new StandardRenderString(`${previousToLast.plainString.trimEnd()} ${renderElement.plainString.trimStart()}`)]
@@ -269,8 +324,12 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
     _statements: RenderConditionalStatement[]
     _fallthrough: RenderConditionalFallthrough | undefined
 
-    constructor(arg: any) {
+    constructor(arg?: any) {
         super()
+        if (typeof arg === 'undefined') {
+            this._statements = []
+            return
+        }
         if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaCondition(arg.data))) {
             throw new Error('Invalid argument to StandardRenderConditional constructor')
         }
