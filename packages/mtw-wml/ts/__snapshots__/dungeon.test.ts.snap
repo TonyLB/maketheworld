@@ -1272,44 +1272,6 @@ if (robedStatueActive) {
       Object {
         "key": "key",
         "type": 0,
-        "value": "wellStatues",
-      },
-    ],
-    "tag": "Feature",
-    "type": 0,
-  },
-  Object {
-    "properties": Array [],
-    "tag": "Description",
-    "type": 0,
-  },
-  Object {
-    "properties": Array [],
-    "tag": "Space",
-    "type": 1,
-  },
-  Object {
-    "text": "weeping,",
-    "type": 3,
-  },
-  Object {
-    "properties": Array [],
-    "tag": "Space",
-    "type": 1,
-  },
-  Object {
-    "tag": "Description",
-    "type": 2,
-  },
-  Object {
-    "tag": "Feature",
-    "type": 2,
-  },
-  Object {
-    "properties": Array [
-      Object {
-        "key": "key",
-        "type": 0,
         "value": "robedStatue",
       },
     ],
@@ -7168,7 +7130,6 @@ Object {
                     "text": "stop the bellows",
                     "to": "toggleBellowsRunning",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -7186,7 +7147,6 @@ Object {
               ],
               "data": Object {
                 "if": "bellowsRunning",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7227,7 +7187,6 @@ Object {
                     "text": "start the bellows",
                     "to": "toggleBellowsRunning",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -7239,7 +7198,6 @@ Object {
               ],
               "data": Object {
                 "if": "!bellowsRunning",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7268,7 +7226,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -7316,7 +7273,6 @@ Object {
               ],
               "data": Object {
                 "if": "birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7345,7 +7301,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -7487,7 +7442,6 @@ Object {
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7516,7 +7470,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -7619,7 +7572,6 @@ Object {
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "fileName": undefined,
     "key": "childStatue",
@@ -7636,7 +7588,6 @@ Object {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -7676,7 +7627,6 @@ trapDoorOpen = false
             "text": "column with singing people",
             "to": "singingColumn",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7717,7 +7667,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7747,7 +7696,6 @@ trapDoorOpen = false
             "text": "column with cats",
             "to": "catColumn",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7782,7 +7730,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "birdsInOrchard",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -7812,7 +7759,6 @@ trapDoorOpen = false
             "text": "column with birds",
             "to": "birdColumn",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7847,7 +7793,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -7954,7 +7899,6 @@ trapDoorOpen = false
             "text": "turn the head",
             "to": "turnDeterminedHead",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -7994,7 +7938,6 @@ trapDoorOpen = false
                     "text": "lower the right arm",
                     "to": "lowerRightArm",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8012,7 +7955,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueRightArm",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8039,7 +7981,6 @@ trapDoorOpen = false
                     "text": "raise the right arm",
                     "to": "raiseRightArm",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8056,7 +7997,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -8097,7 +8037,6 @@ trapDoorOpen = false
                     "text": "lower the left arm",
                     "to": "lowerLeftArm",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8109,7 +8048,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueLeftArm",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8143,7 +8081,6 @@ trapDoorOpen = false
                     "text": "raise the left arm",
                     "to": "raiseLeftArm",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -8154,7 +8091,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -8236,7 +8172,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueHead",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -8263,7 +8198,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -8300,7 +8234,6 @@ trapDoorOpen = false
             "text": "neck",
             "to": "determinedNeck",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -8329,7 +8262,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -9739,7 +9671,6 @@ trapDoorOpen = false
             "text": "shake a tree",
             "to": "shakeFruitTrees",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -9768,7 +9699,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -9828,7 +9758,6 @@ trapDoorOpen = false
                     "text": "open the flow",
                     "to": "toggleGratingBlocked",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -9840,7 +9769,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "gratingBlocked",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9881,7 +9809,6 @@ trapDoorOpen = false
                     "text": "block the flow",
                     "to": "toggleGratingBlocked",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -9893,7 +9820,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!gratingBlocked",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -9922,7 +9848,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -9976,7 +9901,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthPrimed",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10011,7 +9935,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthPrimed",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10048,7 +9971,6 @@ trapDoorOpen = false
             "text": "turn the crest",
             "to": "toggleHearthPrimed",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10077,7 +9999,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -10107,7 +10028,6 @@ trapDoorOpen = false
             "text": "crest",
             "to": "hearthCrest",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -10142,7 +10062,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -10171,7 +10090,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -10436,7 +10354,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "fileName": undefined,
     "key": "ironworkingTools",
@@ -10453,7 +10370,6 @@ trapDoorOpen = false
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -10518,7 +10434,6 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "fileName": undefined,
     "key": "nests",
@@ -10535,7 +10450,6 @@ if (robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -11127,7 +11041,6 @@ if (!robedStatueActive) {
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11154,7 +11067,6 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -11191,7 +11103,6 @@ if (!robedStatueActive) {
             "text": "shoulders",
             "to": "robedStatueShoulders",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11220,7 +11131,6 @@ if (!robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -11273,7 +11183,6 @@ if (!robedStatueActive) {
                     "text": "lower the head",
                     "to": "lowerRobedStatueHead",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11285,7 +11194,6 @@ if (!robedStatueActive) {
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -11312,7 +11220,6 @@ if (!robedStatueActive) {
                     "text": "raise the head",
                     "to": "raiseRobedStatueHead",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11323,7 +11230,6 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -11352,7 +11258,6 @@ if (!robedStatueActive) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -11426,7 +11331,6 @@ switch(glowingColumns) {
             "text": "sing",
             "to": "sing",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -11455,7 +11359,6 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -11743,7 +11646,6 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Description",
       },
-      "wrapperTag": undefined,
     },
     "fileName": undefined,
     "key": "stoopedStatue",
@@ -11760,7 +11662,6 @@ switch(glowingColumns) {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -11959,7 +11860,6 @@ else {
                     "text": "close the door",
                     "to": "closeTrapDoor",
                   },
-                  "wrapperTag": undefined,
                 },
                 Object {
                   "children": Array [],
@@ -11971,7 +11871,6 @@ else {
               ],
               "data": Object {
                 "if": "trapDoorOpen",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12000,7 +11899,6 @@ else {
               ],
               "data": Object {
                 "if": "!trapDoorOpen",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12029,7 +11927,6 @@ else {
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,
@@ -12434,7 +12331,6 @@ determinedStatueHead = !determinedStatueHead
             "text": "child",
             "to": "childStatue",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12458,7 +12354,6 @@ determinedStatueHead = !determinedStatueHead
             "text": "robed figure",
             "to": "robedStatue",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12481,10 +12376,8 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": false,
                 "tag": "Statement",
               },
-              "wrapperTag": undefined,
             },
             Object {
               "children": Array [
@@ -12497,42 +12390,6 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
-                "selected": true,
-                "tag": "Fallthrough",
-              },
-              "wrapperTag": undefined,
-            },
-          ],
-          "data": Object {
-            "tag": "If",
-          },
-        },
-        Object {
-          "children": Array [
-            Object {
-              "children": Array [
-                Object {
-                  "children": Array [],
-                  "data": Object {
-                    "tag": "Space",
-                  },
-                },
-                Object {
-                  "children": Array [],
-                  "data": Object {
-                    "tag": "String",
-                    "value": "weeping,",
-                  },
-                },
-                Object {
-                  "children": Array [],
-                  "data": Object {
-                    "tag": "Space",
-                  },
-                },
-              ],
-              "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -12569,7 +12426,6 @@ determinedStatueHead = !determinedStatueHead
             "text": "stooped figure",
             "to": "stoopedStatue",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12610,7 +12466,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "determinedStatueHead",
-                "selected": false,
                 "tag": "Statement",
               },
             },
@@ -12637,7 +12492,6 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
-                "selected": true,
                 "tag": "Fallthrough",
               },
             },
@@ -12667,7 +12521,6 @@ determinedStatueHead = !determinedStatueHead
             "text": "figure striding",
             "to": "determinedStatue",
           },
-          "wrapperTag": undefined,
         },
         Object {
           "children": Array [],
@@ -12696,7 +12549,6 @@ determinedStatueHead = !determinedStatueHead
       "data": Object {
         "tag": "Name",
       },
-      "wrapperTag": undefined,
     },
     "tag": "Feature",
     "universalKey": undefined,

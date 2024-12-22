@@ -133,11 +133,6 @@
             </Description>
         </Feature>
     </If><Else>
-        <Feature key=(wellStatues)>
-            <Description>
-                <Space />weeping,<Space />
-            </Description>
-        </Feature>
         <Feature key=(robedStatue)>
             <Description>
                 <Space />
