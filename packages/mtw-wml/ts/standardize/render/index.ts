@@ -264,6 +264,7 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
 
     constructor(arg: any) {
         super()
+        console.log(`conditional arg: ${JSON.stringify(arg, null, 4)}`)
         if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaCondition(arg.data))) {
             throw new Error('Invalid argument to StandardRenderConditional constructor')
         }

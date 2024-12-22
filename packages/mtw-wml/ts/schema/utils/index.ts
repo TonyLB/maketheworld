@@ -94,7 +94,7 @@ export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag,
 // unwrapSubject takes a schema node that might be a replace or remove, and returns the first tag in the tree hierarchy
 // that is *not* an edit tag (i.e., the subject content being edited)
 //
-export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (value: SchemaTag) => value is SubType) => (node: GenericTreeNode<SchemaTag>): node is EditWrappedStandardNode<SchemaTag, SubType> => {
+export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (value: SchemaTag) => value is SubType) => (node: GenericTreeNode<SchemaTag>): node is EditWrappedStandardNode<SubType, SchemaTag> => {
     if (
         treeNodeTypeguard(isSchemaRemove)(node) ||
         treeNodeTypeguard(isSchemaReplace)(node) ||

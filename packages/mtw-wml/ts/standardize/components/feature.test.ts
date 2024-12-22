@@ -68,7 +68,7 @@ describe('StandardFeature class', () => {
             <Feature key=(testFeature)>
                 <Name>Spooky Lobby</Name>
                 <Description>
-                    A plain lobby.<Space />Shadows cling to the corners of the room.
+                    A plain lobby. Shadows cling to the corners of the room.
                 </Description>
             </Feature>
         `))
