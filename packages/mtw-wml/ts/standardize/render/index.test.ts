@@ -461,4 +461,46 @@ describe('StandardRender', () => {
         const base = new StandardRender(baseSchema.schema)
         expect(() => base.merge(new StandardRender(incomingSchema.schema))).toThrow()
     })
+
+    it('should mapContents on simple payload', () => {
+        const schema = new Schema()
+        schema.loadWML(`
+            Example<Link to=(Feature1)>Link</Link><br />
+            Another Example<Space />
+        `)
+        const render = new StandardRender(schema.schema)
+        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual(
+            ['String', 'Link', 'br', 'String', 'Space'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
+        )
+    })
+
+    it('should mapContents on replace payload', () => {
+        const schema = new Schema()
+        schema.loadWML(`
+            <Replace>
+                Example<Link to=(Feature1)>Link</Link>
+            </Replace>
+            <With>
+                Another Example<Link to=(Feature2)>Link</Link>
+            </With>
+        `)
+        const render = new StandardRender(schema.schema)
+        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
+            data: { tag: 'Replace' },
+            children: [
+                { data: { tag: 'ReplaceMatch' }, children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] })) },
+                { data: { tag: 'ReplacePayload' }, children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] })) }
+            ]
+        }])
+    })
+
+    it('should mapContents on remove payload', () => {
+        const schema = new Schema()
+        schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
+        const render = new StandardRender(schema.schema)
+        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
+            data: { tag: 'Remove' },
+            children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
+        }])
+    })
 })
