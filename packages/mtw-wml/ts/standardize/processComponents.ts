@@ -3,7 +3,7 @@ import { isImportable, isSchemaImport, SchemaTag, SchemaWithKey } from "../schem
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { StandardExportItem, StandardImportItem } from "./components/metaData"
@@ -39,6 +39,7 @@ const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithK
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     tagTree: SchemaTagTree;
+    schema: GenericTree<SchemaTag>;
     importItemById: Record<string, StandardImportItem>;
     exportItemById: Record<string, StandardExportItem>;
 }): Record<string, StandardComponent> => {

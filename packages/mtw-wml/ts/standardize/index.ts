@@ -201,6 +201,7 @@ export class StandardForm {
                 this._byId = processComponents({
                     componentTemplates,
                     tagTree,
+                    schema: asset.children,
                     importItemById,
                     exportItemById
                 })
