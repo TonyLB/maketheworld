@@ -16,6 +16,7 @@ import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClas
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
+import { StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -32,7 +33,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
-    toJSON(): Omit<D, 'key' | 'universalKey'>;
+    toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     tag: SchemaWithKey["tag"];
     referencedKeys(): StandardComponentReferenceKey[];
@@ -52,8 +53,8 @@ export interface StandardComponent {
     export?: StandardExportItem;
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
-    toJSON(options?: { stripUniversalKey?: boolean }): StandardComponentData & SerializeNDJSONMixin;
-    toNDJSON(args: { from?: { assetId: string; key: string; }; exportAs?: string; }): StandardComponentData & SerializeNDJSONMixin;
+    toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
+    toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
@@ -111,17 +112,17 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue
         }
 
-        toJSON(options?: { stripUniversalKey?: boolean }): D {
+        toJSON(options?: StandardToJSONOptions): D {
             return {
                 ...this._key.toJSON(options),
-                ...this._payload.toJSON(),
+                ...this._payload.toJSON(options),
                 ...(this.import ? { from: this.import.toJSON() } : {}),
                 ...(this.export ? { exportAs: this.export.toJSON() } : {})
             } as D
         }
 
-        toNDJSON(args): D {
-            return this.toJSON()
+        toNDJSON(options?: StandardToJSONOptions): D {
+            return this.toJSON(options)
         }
 
         get schema(): GenericTreeNode<SchemaTag> {

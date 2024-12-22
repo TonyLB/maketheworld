@@ -21,6 +21,6 @@ describe('large WML test', () => {
 
     it('should standardize properly', () => {
         const standard = new StandardForm(dungeonSource)
-        expect(standard.toJSON().byId).toMatchSnapshot()
+        expect(standard.toJSON({ stripUIFields: true, stripUniversalKey: true }).byId).toMatchSnapshot()
     })
 })

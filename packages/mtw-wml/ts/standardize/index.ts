@@ -22,6 +22,7 @@ import processComponents, { ComponentProcessingTemplate } from "./processCompone
 import { StandardRemove, StandardReplace } from "./edits"
 import { standardComponentFactory } from "./componentFactory"
 import importExportFromTree from "./importExportFromTree"
+import { StandardToJSONOptions } from "./components/baseClasses"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {
@@ -348,7 +349,7 @@ export class StandardForm {
     get byId(): Record<string, StandardComponent> { return this._byId }
     get key(): string { return this._key }
 
-    toJSON(options?: { stripUniversalKey?: boolean }): StandardFormData {
+    toJSON(options?: StandardToJSONOptions): StandardFormData {
         return {
             key: this._key,
             metaData: this.metaData,
