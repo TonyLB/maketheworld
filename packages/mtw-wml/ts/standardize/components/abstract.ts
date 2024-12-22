@@ -2,6 +2,7 @@ import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTa
 import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
+import { StandardToJSONOptions } from "./baseClasses";
 import { StandardBaseData } from "./dataTypes/abstract"
 import { isSchemaTreeNode } from "./utils";
 
@@ -10,7 +11,7 @@ export interface ComponentInterface {
     universalKey?: string;
     schema: GenericTreeNode<SchemaTag>;
     clone(): this;
-    toJSON(): Record<string, any>;
+    toJSON(options?: StandardToJSONOptions): Record<string, any>;
     merge(incoming: this): this | undefined;
     withUniversalKey(key: string): this;
 }
@@ -63,11 +64,13 @@ export class StandardComponentAbstract implements ComponentInterface {
     get payload(): StandardComponentAbstract { return this }
     get universalKey(): string | undefined { return this._universalKey}
 
-    toJSON(): StandardBaseData & SerializeNDJSONMixin {
-        return {
-            key: this.key,
-            universalKey: this.universalKey
-        }
+    toJSON({ stripUniversalKey = false }): StandardBaseData & SerializeNDJSONMixin {
+        return stripUniversalKey
+            ? { key: this.key }
+            : {
+                key: this.key,
+                universalKey: this.universalKey
+            }
     }
 
     clone(): this {

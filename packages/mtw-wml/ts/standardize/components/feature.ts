@@ -13,6 +13,7 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
+import { StandardToJSONOptions } from "./baseClasses"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: StandardRender;
@@ -51,11 +52,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get global() { return this._global }
 
-    toJSON(): Omit<StandardFeatureData, 'key' | 'universalKey'> {
+    toJSON(options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
+        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Feature',
-            name: this.name,
-            description: this.description,
+            name: stripUI ? stripUIFields(this.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined : this.name,
+            description: stripUI ? stripUIFields(this.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined : this.description,
             ...(this.global ? { global: true } : {})
         }
     }
