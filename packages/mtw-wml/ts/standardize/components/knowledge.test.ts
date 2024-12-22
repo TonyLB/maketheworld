@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaName } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaName, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
@@ -67,7 +67,7 @@ describe('StandardKnowledge class', () => {
             <Knowledge key=(testKnowledge)>
                 <Name>Spooky Lobby</Name>
                 <Description>
-                    A plain lobby.<Space />Shadows cling to the corners of the room.
+                    A plain lobby. Shadows cling to the corners of the room.
                 </Description>
             </Knowledge>
         `))
@@ -82,11 +82,8 @@ describe('StandardKnowledge class', () => {
         `)
         const callback = (tree) => {
             return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaDescription)(node) || treeNodeTypeguard(isSchemaName)(node)) {
-                    return {
-                        ...node,
-                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
-                    }
+                if (treeNodeTypeguard(isSchemaString)(node)) {
+                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
                 }
                 else {
                     return {
