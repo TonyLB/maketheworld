@@ -56,8 +56,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Feature',
-            name: stripUI ? stripUIFields(this.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined : this.name,
-            description: stripUI ? stripUIFields(this.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined : this.description,
+            name: stripUI
+                ? rebuildSchemaFromStandardRender(this._name?.mapContents(stripUIFields), { tag: 'Name' as const })
+                : this.name,
+            description: stripUI
+                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
+                : this.description,
             ...(this.global ? { global: true } : {})
         }
     }
@@ -87,25 +91,11 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardFeaturePayload(this)
-        const name = returnValue.name
-        if (name) {
-            const nameNode = applyTreeCallbackToNode(callback)(name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
-            if (nameNode) {
-                returnValue._name = extractStandardRender<SchemaNameTag>(nameNode, isSchemaName, 'Schema mismatch in StandardFeature constructor')
-            }
-            else {
-                returnValue._name = undefined
-            }
+        if (returnValue._name) {
+            returnValue._name = returnValue._name.mapContents(callback)
         }
-        const description = returnValue.description
-        if (description) {
-            const descriptionNode = applyTreeCallbackToNode(callback)(description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
-            if (descriptionNode) {
-                returnValue._description = extractStandardRender<SchemaDescriptionTag>(descriptionNode, isSchemaDescription, 'Schema mismatch in StandardFeature constructor')
-            }
-            else {
-                returnValue._description = undefined
-            }
+        if (returnValue._description) {
+            returnValue._description = returnValue._description.mapContents(callback)
         }
         return returnValue as this
     }

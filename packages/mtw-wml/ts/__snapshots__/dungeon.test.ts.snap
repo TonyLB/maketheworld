@@ -7146,7 +7146,6 @@ Object {
               ],
               "data": Object {
                 "if": "bellowsRunning",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7198,7 +7197,6 @@ Object {
               ],
               "data": Object {
                 "if": "!bellowsRunning",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7272,7 +7270,6 @@ Object {
               ],
               "data": Object {
                 "if": "birdsInOrchard",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7439,7 +7436,6 @@ Object {
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7660,7 +7656,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7724,7 +7719,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "birdsInOrchard",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7948,7 +7942,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueRightArm",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -7991,7 +7984,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -8043,7 +8035,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueLeftArm",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -8087,7 +8078,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -8168,7 +8158,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "determinedStatueHead",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -8195,7 +8184,6 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -9755,7 +9743,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "gratingBlocked",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -9807,7 +9794,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!gratingBlocked",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -9887,7 +9873,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthPrimed",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -9922,7 +9907,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "!hearthPrimed",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -10049,7 +10033,6 @@ trapDoorOpen = false
               ],
               "data": Object {
                 "if": "hearthActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -11016,7 +10999,6 @@ if (!robedStatueActive) {
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -11043,7 +11025,6 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -11169,7 +11150,6 @@ if (!robedStatueActive) {
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -11206,7 +11186,6 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -11839,7 +11818,6 @@ else {
               ],
               "data": Object {
                 "if": "trapDoorOpen",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -11868,7 +11846,6 @@ else {
               ],
               "data": Object {
                 "if": "!trapDoorOpen",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -12339,7 +12316,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "robedStatueActive",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -12354,7 +12330,6 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },
@@ -12431,7 +12406,6 @@ determinedStatueHead = !determinedStatueHead
               ],
               "data": Object {
                 "if": "determinedStatueHead",
-                "selected": undefined,
                 "tag": "Statement",
               },
             },
@@ -12458,7 +12432,6 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
-                "selected": undefined,
                 "tag": "Fallthrough",
               },
             },

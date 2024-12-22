@@ -251,12 +251,7 @@ export class StandardRenderSimple {
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRenderSimple {
-        return new StandardRenderSimple(this._elements.map(element => {
-            if (element instanceof StandardRenderConditional) {
-                return new StandardRenderConditional(callback([element.toJSON()]))
-            }
-            return callback([element.toJSON()])
-        }).flat(1))
+        return new StandardRenderSimple(callback(this.toJSON()))
     }
 
 }
