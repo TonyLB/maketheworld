@@ -33,13 +33,14 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
 
 export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: StandardRender | undefined, data: D): EditWrappedStandardNode<D, SchemaOutputTag> | undefined => (
     render
-        ? render instanceof StandardRenderRemove
-            ? { data: { tag: 'Remove' }, children: [{ data, children: render._payload.toJSON() }] }
-            : render instanceof StandardRenderReplace
+        ? (render._payload instanceof StandardRenderRemove
+            ? { data: { tag: 'Remove' as const }, children: [{ data, children: render._payload._payload.toJSON() }] }
+            : render._payload instanceof StandardRenderReplace
                 ? { data: { tag: 'Replace' }, children: [
-                    { data: { tag: 'ReplaceMatch' }, children: [{ data, children: render._match.toJSON() }] },
-                    { data: { tag: 'ReplacePayload' }, children: [{ data, children: render._payload.toJSON() }] }
+                    { data: { tag: 'ReplaceMatch' }, children: [{ data, children: render._payload._match.toJSON() }] },
+                    { data: { tag: 'ReplacePayload' }, children: [{ data, children: render._payload._payload.toJSON() }] }
                 ]}
                 : { data, children: render.toJSON() }
+            ) as EditWrappedStandardNode<D, SchemaOutputTag>
         : undefined
 )

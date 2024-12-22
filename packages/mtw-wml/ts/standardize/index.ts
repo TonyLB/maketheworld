@@ -612,7 +612,7 @@ export class StandardForm {
                 if (returnValue instanceof StandardRoom) {
                     returnValue._payload = new StandardRoomPayload()
                     if ((request.requestType === 'ShortName' || request.requestType === 'Exit') && component instanceof StandardRoom) {
-                        returnValue._payload._shortName = component.shortName
+                        returnValue._payload._shortName = component._payload._shortName
                         if (request.requestType === 'Exit') {
                             returnValue._payload._exits = component.exits
                         }

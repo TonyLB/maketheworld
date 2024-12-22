@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaExit, isSchemaName, isSchemaSummary } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaExit, isSchemaName, isSchemaString, isSchemaSummary } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
@@ -223,7 +223,7 @@ describe('StandardRoom class', () => {
             <Room key=(testRoomOne)>
                 <Name>Spooky Lobby</Name>
                 <Description>
-                    A plain lobby.<Space />Shadows cling to the corners of the room.
+                    A plain lobby. Shadows cling to the corners of the room.
                 </Description>
             </Room>
         `))
@@ -240,11 +240,8 @@ describe('StandardRoom class', () => {
         `)
         const callback = (tree) => {
             return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaDescription)(node) || treeNodeTypeguard(isSchemaName)(node) || treeNodeTypeguard(isSchemaSummary)(node)) {
-                    return {
-                        ...node,
-                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
-                    }
+                if (treeNodeTypeguard(isSchemaString)(node)) {
+                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
                 }
                 else {
                     return {
@@ -259,7 +256,7 @@ describe('StandardRoom class', () => {
                 <Name>LobbyNarf!</Name>
                 <Summary>A lobbyNarf!</Summary>
                 <Description>A plain lobby.Narf!</Description>
-                <Exit to=(testRoomTwo)>exit</Exit>
+                <Exit to=(testRoomTwo)>exitNarf!</Exit>
             </Room>
         `))
     })

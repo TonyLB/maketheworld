@@ -462,6 +462,30 @@ describe('StandardRender', () => {
         expect(() => base.merge(new StandardRender(incomingSchema.schema))).toThrow()
     })
 
+    it('should reduce down to a no-op when merging replaces with identical payloads', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <Replace>
+                Example
+            </Replace>
+            <With>
+                Another Example
+            </With>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <Replace>
+                Another Example
+            </Replace>
+            <With>
+                Example
+            </With>
+        `)
+        const base = new StandardRender(baseSchema.schema)
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual('')
+    })
+
     it('should mapContents on simple payload', () => {
         const schema = new Schema()
         schema.loadWML(`
@@ -503,4 +527,5 @@ describe('StandardRender', () => {
             children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
         }])
     })
+
 })

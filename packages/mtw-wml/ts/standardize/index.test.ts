@@ -256,11 +256,11 @@ describe('StandardForm', () => {
                         data: { tag: 'If' },
                         children: [
                             {
-                                data: { tag: 'Statement', if: 'true', selected: false },
+                                data: { tag: 'Statement', if: 'true' },
                                 children: [{ data: { tag: 'String', value: 'True' }, children: [] }]
                             },
                             {
-                                data: { tag: 'Fallthrough', selected: true },
+                                data: { tag: 'Fallthrough' },
                                 children: [{ data: { tag: 'String', value: 'False' }, children: [] }]
                             }
                         ]
@@ -1082,9 +1082,9 @@ describe('StandardForm', () => {
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
-                    <Name>Lobby<Space />(at night)</Name>
+                    <Name>Lobby (at night)</Name>
                     <Description>
-                        A plain lobby.<Space />Shadows cling to the corners of the room.
+                        A plain lobby. Shadows cling to the corners of the room.
                     </Description>
                 </Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
@@ -1125,9 +1125,9 @@ describe('StandardForm', () => {
                     <Room key=(testRoomThree) />
                 </Import>
                 <Room key=(testRoomOne)>
-                    <Name>Lobby<Space />(at night)</Name>
+                    <Name>Lobby (at night)</Name>
                     <Description>
-                        A plain lobby.<Space />Shadows cling to the corners of the room.
+                        A plain lobby. Shadows cling to the corners of the room.
                     </Description>
                 </Room>
                 <Room key=(testRoomThree)><Name>Test Three</Name></Room>
