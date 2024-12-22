@@ -528,4 +528,161 @@ describe('StandardRender', () => {
         }])
     })
 
+    it('should combine adjacent conditional tags with compatible statements', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Link</Link>
+            </If>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                Another True<Link to=(Feature2)>Link</Link>
+            </If>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <If {true}>
+                True
+                <Link to=(Feature1)>Link</Link>
+                Another True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+        `))
+    })
+
+    it('should not combine adjacent conditional tags with incompatible statements', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Link</Link>
+            </If>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {false}>
+                False<Link to=(Feature2)>Link</Link>
+            </If>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <If {true}>
+                True
+                <Link to=(Feature1)>Link</Link>
+            </If>
+            <If {false}>
+                False
+                <Link to=(Feature2)>Link</Link>
+            </If>
+        `))
+    })
+
+    it('should combine adjacent conditional tags with compatible statements and fallthrough', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Link</Link>
+            </If>
+            <Else>
+                Base Fallthrough<Space />
+            </Else>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                Another True<Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                Incoming Fallthrough
+            </Else>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <If {true}>
+                True
+                <Link to=(Feature1)>Link</Link>
+                Another True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                Base Fallthrough Incoming Fallthrough
+            </Else>
+        `))
+    })
+
+    it('should combine adjacent conditional tags with compatible fallthrough in the first tag', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Link</Link>
+            </If>
+            <Else>
+                Base Fallthrough<Space />
+            </Else>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                Another True<Link to=(Feature2)>Link</Link>
+            </If>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <If {true}>
+                True
+                <Link to=(Feature1)>Link</Link>
+                Another True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                Base Fallthrough
+                <Space />
+            </Else>
+        `))
+    })
+
+    it('should not combine adjacent conditional tags with incompatible fallthrough', () => {
+        const baseSchema = new Schema()
+        baseSchema.loadWML(`
+            <If {true}>
+                True<Link to=(Feature1)>Link</Link>
+            </If>
+            <ElseIf {false}>
+                Base Else If
+            </ElseIf>
+        `)
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`
+            <If {true}>
+                Another True<Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                Fallthrough
+            </Else>
+        `)
+        const base = new StandardRenderSimple(baseSchema.schema)
+        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
+        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+            <If {true}>
+                True
+                <Link to=(Feature1)>Link</Link>
+            </If>
+            <ElseIf {false}>
+                Base Else If
+            </ElseIf>
+            <If {true}>
+                Another True
+                <Link to=(Feature2)>Link</Link>
+            </If>
+            <Else>
+                Fallthrough
+            </Else>
+        `))
+    })
+
 })
