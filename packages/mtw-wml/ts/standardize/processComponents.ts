@@ -1,16 +1,16 @@
-import { unique } from "../list";
+import { unique } from "../list"
 import { isImportable, isSchemaImport, SchemaTag, SchemaWithKey } from "../schema/baseClasses"
-import applyEdits from "../schema/treeManipulation/applyEdits";
-import { TagListItem, TagTreeMatchOperation } from "../tagTree";
-import SchemaTagTree from "../tagTree/schema";
-import { treeNodeTypeguard } from "../tree/baseClasses";
-import { standardComponentFactory } from "./componentFactory";
-import { StandardComponent } from "./components/component";
-import { StandardExportItem, StandardImportItem } from "./components/metaData";
-import importExportFromTree from "./importExportFromTree";
+import applyEdits from "../schema/treeManipulation/applyEdits"
+import { TagListItem, TagTreeMatchOperation } from "../tagTree"
+import SchemaTagTree from "../tagTree/schema"
+import { treeNodeTypeguard } from "../tree/baseClasses"
+import { standardComponentFactory } from "./componentFactory"
+import { StandardComponent } from "./components/component"
+import { StandardExportItem, StandardImportItem } from "./components/metaData"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];
+    legalParents?: SchemaWithKey["tag"];
 }
 
 const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
