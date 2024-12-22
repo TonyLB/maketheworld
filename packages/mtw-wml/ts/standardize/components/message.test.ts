@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "../../tree/baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
@@ -61,7 +61,7 @@ describe('StandardMessage class', () => {
             <Message key=(test)>
                 <Room key=(testRoom) />
                 <Room key=(testRoomTwo) />
-                Message test<Space />(extended)
+                Message test (extended)
             </Message>
         `))
     })
@@ -75,11 +75,8 @@ describe('StandardMessage class', () => {
         `)
         const callback = (tree) => {
             return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaDescription)(node)) {
-                    return {
-                        ...node,
-                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
-                    }
+                if (treeNodeTypeguard(isSchemaString)(node)) {
+                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
                 }
                 else {
                     return {

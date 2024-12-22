@@ -8,13 +8,15 @@ import { componentClassFactory, ComponentConstructorMethods, StandardComponent }
 import { StandardMessageData } from "./dataTypes/message"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { outputNodeToStandardItem } from "./utils/constructor"
-import { applyTreeCallbackToNode } from "./utils/mapContents"
-import { combineTaggedChildren } from "./utils/merge"
 import { dependencyReferenceKeys, directReferenceKeys } from "./utils/references"
+import { StandardRender } from "../render"
+import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
+import { stripUIFields } from "../render/utils"
+import { StandardToJSONOptions } from "./baseClasses"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
-    _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    _description?: StandardRender;
     _rooms: GenericTree<SchemaTag> = [];
     tag = 'Message' as const
 
@@ -26,7 +28,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     }
 
     fromJSON(props: StandardMessageData) {
-        this._description = props.description
+        this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
         this._rooms = props.rooms
     }
 
@@ -35,21 +37,24 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const tagTree = new SchemaTagTree(node.children)
             const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
+            this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
             const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            this._description = outputNodeToStandardItem<SchemaDescriptionTag, SchemaOutputTag>(descriptionItem, isSchemaDescription, isSchemaOutputTag, { tag: 'Description' })
             this._rooms = roomTagTree.tree
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
     }
 
-    get description() { return this._description }
+    get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get rooms() { return this._rooms }
 
-    toJSON(): Omit<StandardMessageData, 'key' | 'universalKey'> {
+    toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
+        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Message',
-            description: this.description,
+            description: stripUI
+                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
+                : this.description,
             rooms: this.rooms
         }
     }
@@ -66,7 +71,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     merge(incoming: this): this {
         const returnValue = new StandardMessagePayload()
-        returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
+        returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
         return returnValue as this
     }
@@ -82,7 +87,9 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardMessagePayload(this)
-        returnValue._description = applyTreeCallbackToNode(callback)(returnValue._description) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> | undefined
+        if (returnValue._description) {
+            returnValue._description = returnValue._description.mapContents(callback)
+        }
         returnValue._rooms = callback(returnValue._rooms)
         return returnValue as this
     }
