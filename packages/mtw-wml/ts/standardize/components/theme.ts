@@ -117,6 +117,10 @@ export class StandardTheme extends componentClassFactory(StandardThemePayload, '
         return new StandardTheme(super.merge(incoming) as StandardTheme)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardTheme(super.withKey(key) as StandardTheme)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardTheme(super.withUniversalKey(key) as StandardTheme)
     }

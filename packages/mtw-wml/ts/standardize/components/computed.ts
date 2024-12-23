@@ -77,6 +77,10 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         return new StandardComputed(super.merge(incoming) as StandardComputed)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardComputed(super.withKey(key) as StandardComputed)
+    }
+
     override withUniversalKey(key: string): StandardComponent {
         return new StandardComputed(super.withUniversalKey(key) as StandardComputed)
     }

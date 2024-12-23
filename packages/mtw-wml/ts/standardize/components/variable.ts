@@ -71,6 +71,10 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
         return new StandardVariable(super.merge(incoming) as StandardVariable)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardVariable(super.withKey(key) as StandardVariable)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardVariable(super.withUniversalKey(key) as StandardVariable)
     }

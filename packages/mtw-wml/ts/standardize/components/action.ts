@@ -75,6 +75,10 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
         return new StandardAction(super.merge(incoming) as StandardAction)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardAction(super.withKey(key) as StandardAction)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardAction(super.withUniversalKey(key) as StandardAction)
     }

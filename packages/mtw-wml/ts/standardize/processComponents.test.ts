@@ -4,6 +4,7 @@ import { deIndentWML } from "../schema/utils"
 import SchemaTagTree from "../tagTree/schema"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { ImportItemContent, ExportItemContent } from "./components/metaData"
+import StandardRoom from "./components/room"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Character' },
@@ -60,6 +61,7 @@ describe("processComponents", () => {
             exportItemById: {}
         })
 
+        expect(result.test instanceof StandardRoom).toBe(true)
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
                 <Room key=(test)>
