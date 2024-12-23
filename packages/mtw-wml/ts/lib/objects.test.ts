@@ -1,4 +1,4 @@
-import { objectMap, objectFilter, deepEqual } from './objects'
+import { objectMap, objectFilter, deepEqual, objectMerge } from './objects'
 
 describe('Objects utility functions', () => {
 
@@ -75,6 +75,19 @@ describe('Objects utility functions', () => {
                 { foo: 'bar', test: []},
                 { foo: 'bar', test: []}
             )).toBe(true)
+        })
+    })
+
+    describe('objectMerge', () => {
+        it('should correctly merge two objects', () => {
+            expect(objectMerge(
+                { One: { Test: 1 }, Two: { Test: 2 }},
+                { Two: { Test: 3 }, Three: { Test: 4 }}
+            )).toEqual({
+                One: { itemA: { Test: 1 }},
+                Two: { itemA: { Test: 2 }, itemB: { Test: 3 }},
+                Three: { itemB: { Test: 4 }}
+            })
         })
     })
 
