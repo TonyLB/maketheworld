@@ -20,7 +20,7 @@ import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { StandardExportItem, StandardImportItem } from "./components/metaData"
-import { StandardRemove } from "./edits"
+import { mergeWithEdits, StandardRemove } from "./edits"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];
@@ -63,7 +63,7 @@ const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<str
     return Object.entries(newById).reduce((previous, [key, value]) => {
         const base = previous[key]
         if (base) {
-            const merged = base.merge(value)
+            const merged = mergeWithEdits(base, value)
             if (merged) {
                 const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
                 const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
