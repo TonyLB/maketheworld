@@ -27,7 +27,7 @@ import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];
-    legalParents?: SchemaWithKey["tag"];
+    legalParents?: SchemaWithKey["tag"][];
 }
 
 const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithKey["tag"]) => {
@@ -213,6 +213,16 @@ export const processComponents = (props: {
                             ? temp?.withExport(new ExportItemRemove(exportRename))
                             : temp?.withExport(new ExportItemContent(exportRename))
                     : temp
+
+                //
+                // If the template has legalParents, extract the nearest legal parent tags from the componentContext
+                //
+                const legalParentTags = template.legalParents ?? []
+                const ancestorTags = componentContext.filter(({ tag }) => (legalParentTags.includes(tag)))
+                const parentTag = ancestorTags.slice(-1)[0]
+                //
+                // TODO: Implement parentTag logic as more features are built out to require it.
+                //
 
                 //
                 // Wrap the component contents in conditional statements as necessary
