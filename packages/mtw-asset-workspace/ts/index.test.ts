@@ -277,8 +277,8 @@ describe('AssetWorkspace', () => {
             const testSource = `
                 <Asset key=(Test)>
                     <Import from=(testAsset)>
-                        <Room key=(a123) from=(base) />
-                        <Feature key=(c789) from=(Feature2) />
+                        <Room key=(base) as=(a123) />
+                        <Feature key=(Feature2) as=(c789) />
                     </Import>
                     <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
                     <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>

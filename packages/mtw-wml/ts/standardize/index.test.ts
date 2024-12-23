@@ -675,7 +675,7 @@ describe('StandardForm', () => {
     it('should render imports correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
-                <Variable key=(testVar) from=(power) />
+                <Variable key=(power) as=(testVar) />
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
@@ -692,7 +692,7 @@ describe('StandardForm', () => {
                 <Import from=(vanishingPoint)>
                     <Room key=(testRoomOne) />
                     <Map key=(testMap) />
-                    <Variable key=(testVar) from=(power) />
+                    <Variable key=(power) as=(testVar) />
                 </Import>
                 <Room key=(testRoomOne)>
                     <Description>Test Room One</Description>
@@ -752,7 +752,7 @@ describe('StandardForm', () => {
     it('should render renamed imports correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Import from=(vanishingPoint)>
-                <Room key=(testRoomTwo) from=(testRoomOne)>
+                <Room key=(testRoomOne) as=(testRoomTwo)>
                     <ShortName>Test</ShortName>
                 </Room>
             </Import>
@@ -760,7 +760,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(vanishingPoint)>
-                    <Room key=(testRoomTwo) from=(testRoomOne) />
+                    <Room key=(testRoomOne) as=(testRoomTwo) />
                 </Import>
                 <Room key=(testRoomTwo)><ShortName>Test</ShortName></Room>
             </Asset>
@@ -1560,7 +1560,7 @@ describe('StandardForm', () => {
     it('should round-trip imports through NDJSON', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
-                <Import from=(testImport)><Room key=(testRoom) from=(testIn) /></Import>
+                <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
                 <Room key=(testRoom)><ShortName>Test</ShortName></Room>
             </Asset>
         `)

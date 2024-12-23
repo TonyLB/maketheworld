@@ -259,11 +259,18 @@ export class StandardForm {
             .filter((component) => (Boolean(component.import)))
             .sort(standardComponentSortOrder)
             .reduce((previous, component): Record<string, GenericTree<SchemaTag>> => {
-                const maybeAddFromKey = (data: SchemaTag, from: string): SchemaTag => {
-                    return {
-                        ...data,
-                        from: from !== (data as SchemaWithKey).key ? from : undefined
-                    } as SchemaTag
+                const maybeAddAsKey = (data: SchemaTag, from: string): SchemaTag => {
+                    const originalKey = (data as SchemaWithKey).key
+                    if (from === originalKey) {
+                        return data
+                    }
+                    else {
+                        return {
+                            ...data,
+                            as: originalKey,
+                            key: from
+                        } as SchemaWithKey
+                    }
                 }
                 const schema = component.schema
                 if (component.import instanceof ImportItemRemove) {
@@ -273,7 +280,7 @@ export class StandardForm {
                             ...(previous[component.import.assetId] ?? []),
                             {
                                 data: { tag: 'Remove' as const },
-                                children: [{ data: maybeAddFromKey(schema.data, component.import.fromKey), children: [] }]
+                                children: [{ data: maybeAddAsKey(schema.data, component.import.fromKey), children: [] }]
                             }
                         ]
                     }
@@ -286,8 +293,8 @@ export class StandardForm {
                             {
                                 data: { tag: 'Replace' as const },
                                 children: [
-                                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: maybeAddFromKey(schema.data, component.import.fromKey), children: [] }] },
-                                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: maybeAddFromKey(schema.data, component.import._payload.fromKey), children: [] }] }
+                                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: maybeAddAsKey(schema.data, component.import.fromKey), children: [] }] },
+                                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: maybeAddAsKey(schema.data, component.import._payload.fromKey), children: [] }] }
                                 ]
                             }
                         ]
@@ -304,7 +311,7 @@ export class StandardForm {
                     [component.import.assetId]: [
                         ...(previous[component.import.assetId] ?? []),
                         {
-                            data: maybeAddFromKey(schema.data, component.import.fromKey),
+                            data: maybeAddAsKey(schema.data, component.import.fromKey),
                             children: []
                         }
                     ]

@@ -102,7 +102,7 @@ export const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItem
                         .filter(excludeUndefined)
                         .map(({ data }) => (data))
                         .filter(isImportable)
-                        .map(({ key, from }) => ({ [key]: new ImportItemRemove(child.data.from, from ?? key) }))
+                        .map(({ key, as }) => ({ [as ?? key]: new ImportItemRemove(child.data.from, key) }))
                         .reduce<Record<string, StandardImportItem>>(mergeImportIntoEntries, previous)
                 }
             }
@@ -116,7 +116,7 @@ export const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItem
                     .filter(excludeUndefined)
                     .map(({ data }) => (data))
                     .filter(isImportable)
-                    .map(({ key, from }) => ({ [key]: new ImportItemRemove(node.data.from, from ?? key) }))
+                    .map(({ key, as }) => ({ [as ?? key]: new ImportItemRemove(node.data.from, key) }))
                 const replaceActions = node.children
                     .filter(treeNodeTypeguard(isSchemaReplace))
                     .map(({ children }) => ({
@@ -125,9 +125,9 @@ export const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItem
                     }))
                     .map(({ match, payload }) => (
                         (match && treeNodeTypeguard(isImportable)(match) && payload && treeNodeTypeguard(isImportable)(payload))
-                            ? [{ [match.data.key]: new ImportItemReplace(
-                                { assetId: node.data.from, fromKey: match.data.from ?? match.data.key },
-                                { assetId: node.data.from, fromKey: payload.data.from ?? payload.data.key }
+                            ? [{ [match.data.as ?? match.data.key]: new ImportItemReplace(
+                                { assetId: node.data.from, fromKey: match.data.key },
+                                { assetId: node.data.from, fromKey: payload.data.key }
                             ) }]
                             : []
                     ))
@@ -135,7 +135,7 @@ export const importExportFromTree = (tree: GenericTree<SchemaTag>): { importItem
                 const contentActions = node.children
                     .filter(treeNodeTypeguard(isImportable))
                     .map(({ data }) => (data))
-                    .map(({ key, from }) => ({ [key]: new ImportItemContent(node.data.from, from ?? key) }))
+                    .map(({ key, as }) => ({ [as ?? key]: new ImportItemContent(node.data.from, key) }))
                 return contentActions.reduce(
                     mergeImportIntoEntries,
                     replaceActions.reduce(

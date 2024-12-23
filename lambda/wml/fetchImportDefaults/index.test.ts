@@ -37,10 +37,10 @@ describe('fetchImports', () => {
         <Import from=(testImportAssetOne)>
             <Room key=(testImportOne) />
             <Room key=(testImportStubOne) />
-            <Room key=(testImportTwo) from=(testImportFoo) />
+            <Room key=(testImportFoo) as=(testImportTwo) />
         </Import>
         <Import from=(testImportAssetTwo)>
-            <Room key=(testImportThree) from=(basic) />
+            <Room key=(basic) as=(testImportThree) />
         </Import>
         <Room key=(testFeatures)>
             <Description>
@@ -48,7 +48,7 @@ describe('fetchImports', () => {
             </Description>
         </Room>
         <Import from=(testImportAssetFour)>
-            <Feature key=(featureImport) from=(testFeature) />
+            <Feature key=(testFeature) as=(featureImport) />
             <Room key=(testRoomWithFeatures) />
         </Import>
     </Asset>`)
@@ -77,8 +77,8 @@ describe('fetchImports', () => {
         </Room>
         <Room key=(stub) />
         <Import from=(testImportAssetThree)>
-            <Room key=(stub) from=(basicTwo) />
-            <Room key=(basic) from=(basicOne) />
+            <Room key=(basicTwo) as=(stub) />
+            <Room key=(basicOne) as=(basic) />
         </Import>
     </Asset>`)
     const testImportThree = new StandardForm(`<Asset key=(testImportAssetThree)>

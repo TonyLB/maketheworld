@@ -320,7 +320,7 @@ describe("processComponents", () => {
         const testSource = `
             <Asset key=(Test)>
                 <Import from=(testImport)>
-                    <Room key=(base) as =(testRoom)>
+                    <Room key=(base) as=(testRoom)>
                         <Description>Test</Description>
                     </Room>
                 </Import>

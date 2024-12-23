@@ -102,7 +102,7 @@ describe('recursiveFetchImports', () => {
                     <Import from=(testImportAsset)>
                         <Room key=(testImportOne) />
                         <Room key=(testImportStubOne) />
-                        <Room key=(testImportTwo) from=(testImportFoo) />
+                        <Room key=(testImportFoo) as=(testImportTwo) />
                     </Import>
                 </Asset>
             `),
@@ -145,7 +145,7 @@ describe('recursiveFetchImports', () => {
                         <Exit to=(testImport)>test exit</Exit>
                     </Room>
                     <Import from=(testImportAsset)>
-                        <Room key=(testImport) from=(testImportFoo) />
+                        <Room key=(testImportFoo) as=(testImport) />
                     </Import>
                 </Asset>
             `),
@@ -173,7 +173,7 @@ describe('recursiveFetchImports', () => {
                 <Asset key=(testFinal)>
                     <Room key=(testImport) />
                     <Import from=(testImportAssetOne)>
-                        <Room key=(testImport) from=(basic) />
+                        <Room key=(basic) as=(testImport) />
                     </Import>
                 </Asset>
             `),
@@ -187,8 +187,8 @@ describe('recursiveFetchImports', () => {
                     </Room>
                     <Room key=(Stub1) />
                     <Import from=(testImportAssetTwo)>
-                        <Room key=(Stub1) from=(basicTwo) />
-                        <Room key=(basic) from=(basicOne) />
+                        <Room key=(basicTwo) as=(Stub1) />
+                        <Room key=(basicOne) as=(basic) />
                     </Import>
                 </Asset>
             `),
@@ -220,7 +220,7 @@ describe('recursiveFetchImports', () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`<Asset key=(testFinal)>
                 <Import from=(testImport)>
-                    <Feature key=(featureImport) from=(testFeature) />
+                    <Feature key=(testFeature) as=(featureImport) />
                     <Room key=(testRoomWithFeatures) />
                 </Import>
             </Asset>`),

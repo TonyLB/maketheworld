@@ -35,9 +35,9 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             return {
                 data: {
                     ...initialTag,
-                    mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, from, tag }) => ({
+                    mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
                         ...previous,
-                        [key]: { key: from || key, type: tag }
+                        [as ?? key]: { key, type: tag }
                     }), {})
                 },
                 children
