@@ -1,3 +1,4 @@
+import { objectMerge } from "../lib/objects"
 import { unique } from "../list"
 import {
     isImportable,
@@ -11,7 +12,9 @@ import {
     isSchemaAsset,
     isSchemaExport,
     isSchemaRemove,
-    isSchemaReplace
+    isSchemaReplace,
+    isSchemaReplaceMatch,
+    isSchemaReplacePayload
 } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -20,7 +23,7 @@ import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { StandardExportItem, StandardImportItem } from "./components/metaData"
-import { mergeWithEdits, StandardRemove } from "./edits"
+import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];
@@ -129,6 +132,37 @@ export const processComponents = (props: {
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
             return mergeByIds(previous, processComponents({ ...props, schema: item.children, inContextOfRemove: true }))
+        }
+
+        //
+        // If the item is a replace, manually create byId entries for the ReplaceMatch and ReplacePayload entries,
+        // then use objectMerge to generate a key-by-key comparison of the two:
+        //    - If the key is present in both, merge a StandardReplace entry
+        //    - If the key is present only in the ReplaceMatch, merge a StandardRemove entry
+        //    - If the key is present only in the ReplacePayload, merge the StandardComponent entry
+        //
+        if (treeNodeTypeguard(isSchemaReplace)(item)) {
+            const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+            const replacePayload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
+            if (replaceMatch && replacePayload) {
+                const matchById = processComponents({ ...props, schema: replaceMatch.children })
+                const payloadById = processComponents({ ...props, schema: replacePayload.children })
+                const mergedById = objectMerge(matchById, payloadById)
+                const replaceById = Object.entries(mergedById).reduce<Record<string, StandardComponent>>((previous, [key, { itemA: matchComponent, itemB: payloadComponent }]) => {
+                    if (matchComponent && payloadComponent) {
+                        return { ...previous, [key]: new StandardReplace(matchComponent, payloadComponent) }
+                    }
+                    if (matchComponent) {
+                        return { ...previous, [key]: new StandardRemove(matchComponent) }
+                    }
+                    if (payloadComponent) {
+                        return { ...previous, [key]: payloadComponent }
+                    }
+                    return previous
+                }, {})
+                return mergeByIds(previous, replaceById)
+            }
+            throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
 
         //

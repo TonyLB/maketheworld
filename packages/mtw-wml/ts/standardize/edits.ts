@@ -160,7 +160,21 @@ export class StandardReplace implements StandardComponent {
     _match: StandardComponent;
     _payload: StandardComponent
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Replace' as const;
-    constructor(props: string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace) {
+    constructor(...propsArray: [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace] | [StandardComponent, StandardComponent]) {
+        if (propsArray.length > 1) {
+            const match = propsArray[0] as StandardComponent
+            const payload = propsArray[1] as StandardComponent
+            if (!(match.key === payload.key && match.tag === payload.tag)) {
+                console.log(`Match: ${JSON.stringify(match.toJSON())}`)
+                console.log(`Payload: ${JSON.stringify(payload.toJSON())}`)
+                throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
+            }
+            this._match = match
+            this._payload = payload
+            this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+            return
+        }
+        const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
         if (props instanceof StandardReplace) {
             this._key = props._key
             this._match = props._match.clone()
@@ -194,11 +208,11 @@ export class StandardReplace implements StandardComponent {
         }
         const match = standardNonEditComponentFactory(props.match)
         if (!match) {
-            throw new Error('No payload found in StandardRemove constructor call.')
+            throw new Error('No payload found in StandardReplace constructor call.')
         }
         const payload = standardNonEditComponentFactory(props.payload)
         if (!payload) {
-            throw new Error('No payload found in StandardRemove constructor call.')
+            throw new Error('No payload found in StandardReplkace constructor call.')
         }
         if (!(match.key === payload.key && match.tag === payload.tag)) {
             throw new Error('Match and payload mistmatch in StandardReplace constructor call.')

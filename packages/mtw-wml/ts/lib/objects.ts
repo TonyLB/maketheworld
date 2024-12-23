@@ -66,7 +66,7 @@ export const deepEqual = (objA: any, objB: any): boolean => {
 // objectMerge merges two objects into a new object with the same keys, but with a record indicating
 // the values for one or both of the objects, as appropriate
 //
-export const objectMerge = <D>(objectA: ConstrainedMap<D>, objectB: ConstrainedMap<D>): ConstrainedMap<{ itemA: D } | { itemB: D } | { itemA: D; itemB: D }> => {
+export const objectMerge = <D>(objectA: ConstrainedMap<D>, objectB: ConstrainedMap<D>): ConstrainedMap<{ itemA?: D; itemB?: D }> => {
     const keys = unique(Object.keys(objectA), Object.keys(objectB))
     return keys.reduce((previous, key) => {
         const itemA = objectA[key]
