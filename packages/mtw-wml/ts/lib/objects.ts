@@ -3,6 +3,9 @@
 // when we no that no excess values will be included
 //
 // Borrowed from: https://stackoverflow.com/questions/60141960/typescript-key-value-relation-preserving-object-entries-type
+
+import { unique } from "../list"
+
 //
 type PickByValue<T, V> = Pick<T, { [K in keyof T]: T[K] extends V ? K : never }[keyof T]>
 export type Entries<T> = {
@@ -57,4 +60,26 @@ export const deepEqual = (objA: any, objB: any): boolean => {
             .every(([key, value]) => (deepEqual(value, objB?.[key])))
     }
     return false
+}
+
+//
+// objectMerge merges two objects into a new object with the same keys, but with a record indicating
+// the values for one or both of the objects, as appropriate
+//
+export const objectMerge = <D>(objectA: ConstrainedMap<D>, objectB: ConstrainedMap<D>): ConstrainedMap<{ itemA: D } | { itemB: D } | { itemA: D; itemB: D }> => {
+    const keys = unique(Object.keys(objectA), Object.keys(objectB))
+    return keys.reduce((previous, key) => {
+        const itemA = objectA[key]
+        const itemB = objectB[key]
+        if (typeof itemA !== 'undefined' && typeof itemB !== 'undefined') {
+            return { ...previous, [key]: { itemA, itemB } }
+        }
+        if (typeof itemA !== 'undefined') {
+            return { ...previous, [key]: { itemA } }
+        }
+        if (typeof itemB !== 'undefined') {
+            return { ...previous, [key]: { itemB } }
+        }
+        return previous
+    }, {} as ConstrainedMap<{ itemA: D } | { itemB: D } | { itemA: D; itemB: D }>)
 }
