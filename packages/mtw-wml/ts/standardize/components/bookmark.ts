@@ -85,6 +85,10 @@ export class StandardBookmark extends componentClassFactory(StandardBookmarkPayl
         return new StandardBookmark(super.merge(incoming) as StandardBookmark)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardBookmark(super.withKey(key) as StandardBookmark)
+    }
+
     override withUniversalKey(key: string): StandardComponent {
         return new StandardBookmark(super.withUniversalKey(key) as StandardBookmark)
     }

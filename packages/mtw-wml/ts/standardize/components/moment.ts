@@ -83,6 +83,10 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.merge(incoming) as StandardMoment)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardMoment(super.withKey(key) as StandardMoment)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardMoment(super.withUniversalKey(key) as StandardMoment)
     }

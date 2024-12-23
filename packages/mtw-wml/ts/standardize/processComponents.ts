@@ -199,7 +199,8 @@ export const processComponents = (props: {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
                 const dynamicRename: string = (metaDataContext !== 'Import' || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
-                const component = standardComponentFactory(item)
+                const temp = standardComponentFactory(item)
+                const component = temp
                     ?.withKey(dynamicRename)
                     ?.withImport(importItemById[dynamicRename])
                     ?.withExport(exportItemById[dynamicRename])

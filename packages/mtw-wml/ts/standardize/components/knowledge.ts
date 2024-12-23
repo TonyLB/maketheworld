@@ -111,6 +111,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardKnowledge(super.withKey(key) as StandardKnowledge)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardKnowledge(super.withUniversalKey(key) as StandardKnowledge)
     }

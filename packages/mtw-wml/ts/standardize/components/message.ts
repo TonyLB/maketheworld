@@ -109,6 +109,10 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.merge(incoming) as StandardMessage)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardMessage(super.withKey(key) as StandardMessage)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardMessage(super.withUniversalKey(key) as StandardMessage)
     }

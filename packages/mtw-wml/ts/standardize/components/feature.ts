@@ -115,6 +115,10 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.merge(incoming) as StandardFeature)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardFeature(super.withKey(key) as StandardFeature)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardFeature(super.withUniversalKey(key) as StandardFeature)
     }

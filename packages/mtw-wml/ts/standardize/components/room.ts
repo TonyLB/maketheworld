@@ -155,6 +155,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get exits() { return this._payload.exits }
     get themes() { return this._payload.themes }
 
+    constructor(props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom) {
+        super(props)
+    }
+
     override clone(): StandardRoom {
         const returnValue = new StandardRoom(this)
         returnValue._payload = new StandardRoomPayload(this._payload)
@@ -163,6 +167,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardRoom(super.merge(incoming) as StandardRoom)
+    }
+
+    override withKey(key: string): StandardComponent {
+        return new StandardRoom(super.withKey(key) as StandardRoom)
     }
 
     override withUniversalKey(key: string): StandardComponent {

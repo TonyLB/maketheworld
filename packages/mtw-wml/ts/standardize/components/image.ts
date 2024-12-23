@@ -60,6 +60,10 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.merge(incoming) as StandardImage)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardImage(super.withKey(key) as StandardImage)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardImage(super.withUniversalKey(key) as StandardImage)
     }

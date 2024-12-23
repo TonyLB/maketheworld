@@ -123,6 +123,10 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.merge(incoming) as StandardMap)
     }
 
+    override withKey(key: string): StandardComponent {
+        return new StandardMap(super.withKey(key) as StandardMap)
+    }
+    
     override withUniversalKey(key: string): StandardComponent {
         return new StandardMap(super.withUniversalKey(key) as StandardMap)
     }
