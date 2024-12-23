@@ -375,7 +375,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 //
                 { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
                 { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -394,7 +393,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Theme',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -425,7 +423,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'global', type: 'boolean', value: tag.global ?? false },
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -443,7 +440,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Knowledge',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -456,7 +452,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Bookmark',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children }
@@ -489,7 +484,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Map',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }

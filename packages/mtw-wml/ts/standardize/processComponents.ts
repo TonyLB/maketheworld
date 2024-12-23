@@ -22,7 +22,7 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
-import { StandardExportItem, StandardImportItem } from "./components/metaData"
+import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove, StandardExportItem, StandardImportItem } from "./components/metaData"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
 
 export type ComponentProcessingTemplate = {
@@ -95,7 +95,7 @@ export const processComponents = (props: {
     conditionalContext?: ConditionalContextItem[];
     componentContext?: { key: string; tag: SchemaWithKey["tag"]; }[];
     inContextOfRemove?: boolean;
-    metaDataContext?: 'Import' | 'Export';
+    metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
 }): Record<string, StandardComponent> => {
     //
     // Loop through each tag in standard order
@@ -118,13 +118,13 @@ export const processComponents = (props: {
         // If the item is an import, set metaDataContext to 'Import'
         //
         if (treeNodeTypeguard(isSchemaImport)(item)) {
-            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: 'Import' }))
+            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } }))
         }
         //
         // If the item is an export, set metaDataContext to 'Export'
         //
         if (treeNodeTypeguard(isSchemaExport)(item)) {
-            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: 'Export' }))
+            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Export' } }))
         }
 
         //
@@ -198,12 +198,22 @@ export const processComponents = (props: {
         if (treeNodeTypeguard(isSchemaWithKey)(item)) {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
-                const dynamicRename: string = (metaDataContext !== 'Import' || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
+                //
+                // Decode the key and import/export fields for the component
+                //
+                const dynamicRename: string = (!(metaDataContext?.type === 'Import') || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
+                const exportRename: string = (metaDataContext?.type === 'Export' || treeNodeTypeguard(isSchemaAsset)(item)) ? (item.data as any).as ?? item.data.key : item.data.key
                 const temp = standardComponentFactory(item)
-                const component = temp
-                    ?.withKey(dynamicRename)
-                    ?.withImport(importItemById[dynamicRename])
-                    ?.withExport(exportItemById[dynamicRename])
+                const component = metaDataContext
+                    ? metaDataContext.type === 'Import'
+                        ? inContextOfRemove
+                            ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key))
+                            : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key))
+                        : inContextOfRemove
+                            ? temp?.withExport(new ExportItemRemove(exportRename))
+                            : temp?.withExport(new ExportItemContent(exportRename))
+                    : temp
+
                 //
                 // Wrap the component contents in conditional statements as necessary
                 //
@@ -228,10 +238,10 @@ export const processComponents = (props: {
                         }
                     })
                 }, component)
-                const editWrappedComponent = inContextOfRemove ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
+                const editWrappedComponent = (!metaDataContext && inContextOfRemove) ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
                 return mergeByIds(
                     mergeByIds(previous, { [component.key]: editWrappedComponent }),
-                    processComponents({ ...props, schema: item.children, componentContext: [...componentContext, { key: component.key, tag: item.data.tag }] })
+                    processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: component.key, tag: item.data.tag }] })
                 )
             }
         }

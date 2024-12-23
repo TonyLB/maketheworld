@@ -11,7 +11,6 @@ type SchemaWrapper = {
 }
 
 export type SchemaImportableBase = SchemaBase & {
-    from?: string;
     as?: string;
 }
 

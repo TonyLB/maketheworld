@@ -58,7 +58,6 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'default', type: 'expression', value: tag.default ?? '' },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }
@@ -73,7 +72,6 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }
@@ -88,7 +86,6 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }

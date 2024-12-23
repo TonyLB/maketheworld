@@ -16,7 +16,7 @@ describe('schemaFromParse', () => {
             <Asset key=(Test)>
                 <Meta key=(ABC) time="1234" />
                 <Import from=(BASE)>
-                    <Variable key=(power) from=(basePower) />
+                    <Variable key=(basePower) as=(power) />
                     <Room key=(overview) />
                     <Knowledge key=(baseInfo) />
                 </Import>
@@ -92,7 +92,7 @@ describe('schemaFromParse', () => {
                         tag: "Import"
                     },
                     children: [
-                        { data: { tag: 'Variable', key: 'power', from: 'basePower' }, children: [] },
+                        { data: { tag: 'Variable', key: 'basePower', as: 'power' }, children: [] },
                         { data: { tag: 'Room', key: 'overview' }, children: [] },
                         { data: { tag: 'Knowledge', key: 'baseInfo' }, children: [] }
                     ]
@@ -1034,7 +1034,7 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(BASE)>
-                    <Room key=(test) from=(Room1) />
+                    <Room key=(Room1) as=(test) />
                     <Room key=(testTwo) />
                 </Import>
                 <Variable key=(testVar) default={false} />
