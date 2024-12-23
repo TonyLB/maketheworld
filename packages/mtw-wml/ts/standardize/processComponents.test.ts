@@ -359,4 +359,51 @@ describe("processComponents", () => {
             `)
         })
     })
+
+    it('should parse a replace tag', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Replace>
+                    <Room key=(test)>
+                        <Description>Test</Description>
+                    </Room>
+                    <Feature key=(toRemove)>
+                        <Description>Test</Description>
+                    </Feature>
+                </Replace>
+                <With>
+                    <Room key=(test)>
+                        <Description>Changed</Description>
+                    </Room>
+                    <Feature key=(toAdd)>
+                        <Description>Added</Description>
+                    </Feature>
+                </With>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const tagTree = new SchemaTagTree(schema.schema)
+        const result = processComponents({
+            componentTemplates,
+            tagTree,
+            schema: schema.schema,
+            importItemById: {},
+            exportItemById: {}
+        })
+        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
+            'test': deIndentWML(`
+                <Replace><Room key=(test)><Description>Test</Description></Room></Replace>
+                <With><Room key=(test)><Description>Changed</Description></Room></With>
+            `),
+            'toRemove': deIndentWML(`
+                <Remove>
+                    <Feature key=(toRemove)><Description>Test</Description></Feature>
+                </Remove>
+            `),
+            'toAdd': deIndentWML(`
+                <Feature key=(toAdd)><Description>Added</Description></Feature>
+            `)
+        })
+    })
 })
