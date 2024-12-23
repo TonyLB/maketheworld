@@ -3,7 +3,7 @@ import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import SchemaTagTree from "../tagTree/schema"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
-import { ImportItemContent } from "./components/metaData"
+import { ImportItemContent, ExportItemContent } from "./components/metaData"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Character' },
@@ -303,5 +303,34 @@ describe("processComponents", () => {
             `)
         })
     })
-    
+
+    it('should correctly extract data from exports with dynamic rename', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Export>
+                    <Room key=(base) as =(testRoom)>
+                        <Description>Test</Description>
+                    </Room>
+                </Export>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const tagTree = new SchemaTagTree(schema.schema)
+        const result = processComponents({
+            componentTemplates,
+            tagTree,
+            schema: schema.schema,
+            importItemById: {},
+            exportItemById: {
+                'base': new ExportItemContent('testRoom')
+            }
+        })
+        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
+            'base': deIndentWML(`
+                <Room key=(base)><Description>Test</Description></Room>
+            `)
+        })
+    })
+
 })

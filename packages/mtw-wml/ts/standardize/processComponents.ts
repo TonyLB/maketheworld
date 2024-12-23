@@ -10,7 +10,8 @@ import {
     isSchemaWithKey,
     isSchemaAsset,
     SchemaAssetTag,
-    SchemaStoryTag
+    SchemaStoryTag,
+    isSchemaExport
 } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -90,6 +91,7 @@ export const processComponents = (props: {
     conditionalContext?: ConditionalContextItem[];
     componentContext?: { key: string; tag: SchemaWithKey["tag"]; }[];
     inContextOfRemove?: boolean;
+    metaDataContext?: 'Import' | 'Export';
 }): Record<string, StandardComponent> => {
     //
     // Loop through each tag in standard order
@@ -103,10 +105,24 @@ export const processComponents = (props: {
         exportItemById,
         conditionalContext = [],
         componentContext = [],
-        inContextOfRemove = false
+        inContextOfRemove = false,
+        metaDataContext
     } = props
 
     const recursiveById = schema.reduce<Record<string, StandardComponent>>((previous, item) => {
+        //
+        // If the item is an import, set metaDataContext to 'Import'
+        //
+        if (treeNodeTypeguard(isSchemaImport)(item)) {
+            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: 'Import' }))
+        }
+        //
+        // If the item is an export, set metaDataContext to 'Export'
+        //
+        if (treeNodeTypeguard(isSchemaExport)(item)) {
+            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: 'Export' }))
+        }
+
         //
         // If the item is a condition, process each sub-statement with the condition added to the context.
         //
@@ -140,7 +156,7 @@ export const processComponents = (props: {
         if (treeNodeTypeguard(isSchemaWithKey)(item)) {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
-                const dynamicRename: string = treeNodeTypeguard(isSchemaAsset)(item) ? item.data.key : (item.data as any).as ?? item.data.key
+                const dynamicRename: string = (metaDataContext !== 'Import' || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
                 const component = standardComponentFactory(item)
                     ?.withKey(dynamicRename)
                     ?.withImport(importItemById[dynamicRename])
