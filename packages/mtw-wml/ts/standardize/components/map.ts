@@ -43,11 +43,11 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             const tagTree = new SchemaTagTree(node.children)
             const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
             const positionsTagTree = tagTree
-                .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { or: [{ match: 'Position' }, { match: 'Exit' }] }])
+                .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
                 .prune({ not: { or: [
-                    { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }, { match: 'Exit' }
+                    { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }
                 ]}})
-                .reorderedSiblings([['Room', 'Exit', 'Position'], ['If']])
+                .reorderedSiblings([['Room', 'Position'], ['If']])
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })

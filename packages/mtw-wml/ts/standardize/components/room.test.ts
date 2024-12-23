@@ -50,6 +50,21 @@ describe('StandardRoom class', () => {
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
 
+    it('should ignore Position tags', () => {
+        const testSource = deIndentWML(`
+            <Room key=(test)>
+                <Name>Name Test</Name>
+                <Position x="0" y="100" />
+            </Room>
+        `)
+        const testRoom = new StandardRoom(testSource)
+        expect(testRoom.key).toEqual('test')
+        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
+            <Room key=(test)><Name>Name Test</Name></Room>
+        `))
+    })
+
     // it('should construct StandardRoom removal from schema', () => {
     //     const schema = new Schema()
     //     const testSource = deIndentWML(`

@@ -501,11 +501,7 @@ export class StandardForm {
             }
             if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'Exit') {
                 const returnValue = component.clone()
-                console.log(`returnValue: ${JSON.stringify(returnValue.toJSON(), null, 4)}`)
-                console.log(`component is Room: ${component instanceof StandardRoom}`)
-                console.log(`returnValue prototype: ${returnValue.constructor.name}`)
                 if (returnValue instanceof StandardRoom) {
-                    console.log(`Room!`)
                     returnValue._payload = new StandardRoomPayload()
                     if ((request.requestType === 'ShortName' || request.requestType === 'Exit') && component instanceof StandardRoom) {
                         returnValue._payload._shortName = component._payload._shortName
@@ -523,7 +519,7 @@ export class StandardForm {
                 return returnValue
             }
         }
-        console.log(`returnValue prototypes: ${Object.entries(returnValue.byId).map(([key, value]) => `${key}: ${value.constructor.name}`).join(', ')}`)
+
         returnValue._byId = Object.assign({},
             ...(Object.entries(requestTypeByKey)
                 .map(([key, request]) => (

@@ -60,6 +60,20 @@ describe('StandardMap class', () => {
         expect(testMap.toJSON()).toEqual(testMapData)
     })
 
+    it('should ignore non-position children of Room tags', () => {
+        const testMap = new StandardMap(deIndentWML(`
+            <Map key=(testMap)>
+                <Name>Lobby</Name>
+                <Room key=(testRoom)>
+                    <Position x="100" y="100" />
+                    <Name>Room Name</Name>
+                    <Exit to=(testRoomTwo)>Exit</Exit>
+                </Room>
+            </Map>
+        `))
+        expect(testMap.positions).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [{ data: { tag: 'Position', x: 100, y: 100 }, children: [] }] }])
+    })
+
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Map key=(testMap)>
