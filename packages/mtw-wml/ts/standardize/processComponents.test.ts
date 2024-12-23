@@ -277,6 +277,45 @@ describe("processComponents", () => {
         })
     })
 
+    it('should correctly parse a map', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Map key=(testMap)>
+                    <Room key=(testRoom)>
+                        <Description>Test</Description>
+                        <Position x="0" y="100" />
+                        <Exit to=(testTwo)>Test Exit</Exit>
+                    </Room>
+                </Map>
+                <Room key=(testTwo) />
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const tagTree = new SchemaTagTree(schema.schema)
+        const result = processComponents({
+            componentTemplates,
+            tagTree,
+            schema: schema.schema,
+            importItemById: {},
+            exportItemById: {}
+        })
+        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
+            'testMap': deIndentWML(`
+                <Map key=(testMap)><Room key=(testRoom)><Position x="0" y="100" /></Room></Map>
+            `),
+            'testRoom': deIndentWML(`
+                <Room key=(testRoom)>
+                    <Description>Test</Description>
+                    <Exit to=(testTwo)>Test Exit</Exit>
+                </Room>
+            `),
+            'testTwo': deIndentWML(`
+                <Room key=(testTwo) />
+            `)
+        })
+    })
+
     it('should correctly extract data from imports with dynamic rename', () => {
         const testSource = `
             <Asset key=(Test)>
