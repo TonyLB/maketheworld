@@ -9,9 +9,9 @@ import {
     SchemaWithKey,
     isSchemaWithKey,
     isSchemaAsset,
-    SchemaAssetTag,
-    SchemaStoryTag,
-    isSchemaExport
+    isSchemaExport,
+    isSchemaRemove,
+    isSchemaReplace
 } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
@@ -20,6 +20,7 @@ import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { StandardExportItem, StandardImportItem } from "./components/metaData"
+import { mergeWithEdits, StandardRemove } from "./edits"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];
@@ -62,7 +63,7 @@ const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<str
     return Object.entries(newById).reduce((previous, [key, value]) => {
         const base = previous[key]
         if (base) {
-            const merged = base.merge(value)
+            const merged = mergeWithEdits(base, value)
             if (merged) {
                 const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
                 const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
@@ -124,6 +125,13 @@ export const processComponents = (props: {
         }
 
         //
+        // If the item is a remove, set inContextOfRemove to true
+        //
+        if (treeNodeTypeguard(isSchemaRemove)(item)) {
+            return mergeByIds(previous, processComponents({ ...props, schema: item.children, inContextOfRemove: true }))
+        }
+
+        //
         // If the item is a condition, process each sub-statement with the condition added to the context.
         //
         if (treeNodeTypeguard(isSchemaCondition)(item)) {
@@ -167,7 +175,7 @@ export const processComponents = (props: {
                 if (!component) {
                     return previous
                 }
-                const wrappedComponent = conditionalContext.reduceRight((previous, conditionItem) => {
+                const conditionalWrappedComponent = conditionalContext.reduceRight((previous, conditionItem) => {
                     return previous.mapContents((content): GenericTree<SchemaTag> => {
                         if (content.length) {
                             return [{
@@ -185,8 +193,9 @@ export const processComponents = (props: {
                         }
                     })
                 }, component)
+                const editWrappedComponent = inContextOfRemove ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
                 return mergeByIds(
-                    mergeByIds(previous, { [component.key]: wrappedComponent }),
+                    mergeByIds(previous, { [component.key]: editWrappedComponent }),
                     processComponents({ ...props, schema: item.children, componentContext: [...componentContext, { key: component.key, tag: item.data.tag }] })
                 )
             }

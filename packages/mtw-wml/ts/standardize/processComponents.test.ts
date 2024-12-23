@@ -333,4 +333,30 @@ describe("processComponents", () => {
         })
     })
 
+    it('should parse a remove tag', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Remove>
+                    <Room key=(test)>
+                        <Description>Test</Description>
+                    </Room>
+                </Remove>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const tagTree = new SchemaTagTree(schema.schema)
+        const result = processComponents({
+            componentTemplates,
+            tagTree,
+            schema: schema.schema,
+            importItemById: {},
+            exportItemById: {}
+        })
+        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
+            'test': deIndentWML(`
+                <Remove><Room key=(test)><Description>Test</Description></Room></Remove>
+            `)
+        })
+    })
 })

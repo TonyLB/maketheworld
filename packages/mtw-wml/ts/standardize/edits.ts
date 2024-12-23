@@ -2,8 +2,9 @@ import { deepEqual } from "../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaWithKey, SchemaTag, SchemaWithKey } from "../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses";
 import { MergeConflictError, SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
+import StandardComponentAbstract from "./components/abstract";
 import { StandardComponent } from "./components/component";
-import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
+import { isStandardRemove, StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { KeyPayload } from "./components/key";
 import { StandardExportItem, StandardImportItem } from "./components/metaData";
@@ -20,7 +21,7 @@ export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
     tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Remove' as const;
-    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove) {
+    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
@@ -46,12 +47,18 @@ export class StandardRemove implements StandardComponent {
             this._key._universalKey = match.universalKey
             return
         }
-        const match = standardNonEditComponentFactory(props.component)
-        if (!match) {
-            throw new Error('No payload found in StandardRemove constructor call.')
+        if (isStandardRemove(props)) {
+            const match = standardNonEditComponentFactory(props.component)
+            if (!match) {
+                throw new Error('No payload found in StandardRemove constructor call.')
+            }
+            this._match = match
+            this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+            return
         }
-        this._match = match
-        this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+        this._key = new KeyPayload({ key: props.key, universalKey: props.universalKey })
+        this._match = props as StandardComponent
+        return
     }
 
     get key() { return this._key.key }
@@ -310,4 +317,100 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
+}
+
+export const mergeWithEdits = (base: StandardComponent, incomingComponent: StandardComponent): StandardComponent | undefined => {
+    //
+    // Branch out to the several possible cases of combining edit tags and/or content
+    //
+    if (base) {
+        if (incomingComponent) {
+            if (base instanceof StandardRemove) {
+                if (incomingComponent instanceof StandardRemove) {
+                    throw new Error('StandardRemove types cannot be directly merged')
+                }
+                if (incomingComponent instanceof StandardReplace) {
+                    throw new MergeConflictError()
+                }
+                //
+                // A remove operation followed by an add should be merged into a Replace
+                //
+                return new StandardReplace({
+                    key: base.key,
+                    tag: 'Replace',
+                    match: base._match.toJSON() as StandardComponentNonEditData,
+                    payload: incomingComponent.toJSON() as StandardComponentNonEditData
+                })
+            }
+            else if (base instanceof StandardReplace) {
+                //
+                // A replace followed by a remove should be merged into a remove of the original content
+                //
+                if (incomingComponent instanceof StandardRemove) {
+                    if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                        throw new MergeConflictError()
+                    }
+                    return new StandardRemove({
+                        key: base.key,
+                        tag: 'Remove',
+                        component: base._match.toJSON() as StandardComponentNonEditData
+                    })
+                }
+                //
+                // Two replace operations should be merged into a single chained operation
+                //
+                if (incomingComponent instanceof StandardReplace) {
+                    if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                        throw new MergeConflictError()
+                    }
+                    return new StandardReplace({
+                        key: base.key,
+                        tag: 'Replace',
+                        match: base._match.toJSON() as StandardComponentNonEditData,
+                        payload: incomingComponent._payload.toJSON() as StandardComponentNonEditData
+                    })
+                }
+                //
+                // A replace operation followed by more content should be merged to a replace with combined payload
+                //
+                const mergedPayload = base._payload.merge(incomingComponent)
+                if (!mergedPayload) {
+                    throw new MergeConflictError()
+                }
+                return new StandardReplace({
+                    key: base.key,
+                    tag: 'Replace',
+                    match: base._match.toJSON() as StandardComponentNonEditData,
+                    payload: mergedPayload.toJSON() as StandardComponentNonEditData
+                })
+            }
+            else {
+                //
+                // Remove should evaluate the match and then remove the relevant component
+                //
+                if (incomingComponent instanceof StandardRemove) {
+                    if (!deepEqual(removeNDJSONOnlyProperties(base.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                        throw new MergeConflictError()
+                    }
+                    return undefined
+                }
+                //
+                // Replace should evaluate the match and then replace the relevant component
+                //
+                if (incomingComponent instanceof StandardReplace) {
+                    if (!deepEqual(removeNDJSONOnlyProperties(base.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
+                        throw new MergeConflictError()
+                    }
+                    return incomingComponent._payload
+                }
+                return base.merge(incomingComponent as any)
+            }
+        }
+        else {
+            return base
+        }
+    }
+    else {
+        return incomingComponent
+    }
 }
