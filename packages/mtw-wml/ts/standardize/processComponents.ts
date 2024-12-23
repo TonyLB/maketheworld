@@ -1,5 +1,14 @@
 import { unique } from "../list"
-import { isImportable, isSchemaImport, SchemaTag, SchemaWithKey } from "../schema/baseClasses"
+import {
+    isImportable,
+    isSchemaCondition,
+    isSchemaConditionStatement,
+    isSchemaConditionFallthrough,
+    isSchemaImport,
+    SchemaTag,
+    SchemaWithKey,
+    isSchemaWithKey
+} from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
@@ -33,6 +42,39 @@ const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: SchemaWithK
     return unique(keysExtract(true), keysExtract(false)).sort()
 }
 
+type ConditionalContextItem = {
+    previousStatementConditions: string[];
+} & ({
+    condition: string;
+    fallthrough: false;
+} | {
+    fallthrough: true;
+})
+
+//
+// mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
+//
+const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<string, StandardComponent>): Record<string, StandardComponent> => {
+    return Object.entries(newById).reduce((previous, [key, value]) => {
+        const base = previous[key]
+        if (base) {
+            const merged = base.merge(value)
+            if (merged) {
+                const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
+                const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
+                return { ...previous, [key]: merged.withImport(mergedImport).withExport(mergedExport) }
+            }
+            else {
+                const { [key]: _, ...rest } = previous
+                return rest
+            }
+        }
+        else {
+            return { ...previous, [key]: value }
+        }
+    }, byId)
+}
+
 //
 // processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
 //
@@ -42,13 +84,92 @@ export const processComponents = (props: {
     schema: GenericTree<SchemaTag>;
     importItemById: Record<string, StandardImportItem>;
     exportItemById: Record<string, StandardExportItem>;
+    conditionalContext?: ConditionalContextItem[];
+    componentContext?: { key: string; tag: SchemaWithKey["tag"]; }[];
+    inContextOfRemove?: boolean;
 }): Record<string, StandardComponent> => {
     //
     // Loop through each tag in standard order
     //
     let byId: Record<string, StandardComponent> = {}
-    const { componentTemplates, tagTree, importItemById, exportItemById } = props
+    const {
+        componentTemplates,
+        tagTree,
+        schema,
+        importItemById,
+        exportItemById,
+        conditionalContext = [],
+        componentContext = [],
+        inContextOfRemove = false
+    } = props
 
+    const recursiveById = schema.reduce<Record<string, StandardComponent>>((previous, item) => {
+        //
+        // If the item is a condition, process each sub-statement with the condition added to the context.
+        //
+        if (treeNodeTypeguard(isSchemaCondition)(item)) {
+            const { accumulatedById } = item.children.reduce<{ accumulatedById: Record<string, StandardComponent>; contextItem?: ConditionalContextItem; }>(({ accumulatedById, contextItem }, item) => {
+                if (contextItem?.fallthrough) {
+                    throw new Error('A statement or fallthrough occurring after a fallthrough node is an error.')
+                }
+                if (treeNodeTypeguard(isSchemaConditionStatement)(item)) {
+                    const { if: condition } = item.data
+                    const newContextItem: ConditionalContextItem = { condition, fallthrough: false, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
+                    return {
+                        accumulatedById: mergeByIds(accumulatedById, processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })),
+                        contextItem: newContextItem
+                    }
+                }
+                if (treeNodeTypeguard(isSchemaConditionFallthrough)(item)) {
+                    if (contextItem?.fallthrough) {
+                        throw new Error('A statement or fallthrough occurring after a fallthrough node is an error.')
+                    }
+                    const newContextItem: ConditionalContextItem = { fallthrough: true, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
+                    return {
+                        accumulatedById: mergeByIds(accumulatedById, processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })),
+                        contextItem: newContextItem
+                    }
+                }
+                return { accumulatedById, contextItem }
+            }, { accumulatedById: previous })
+            return accumulatedById
+        }
+        if (treeNodeTypeguard(isSchemaWithKey)(item)) {
+            const template = componentTemplates.find(({ key }) => (key === item.data.tag))
+            if (template) {
+                const component = standardComponentFactory(item)
+                //
+                // Wrap the component contents in conditional statements as necessary
+                //
+                if (!component) {
+                    return previous
+                }
+                const wrappedComponent = conditionalContext.reduceRight((previous, conditionItem) => {
+                    return previous.mapContents((content): GenericTree<SchemaTag> => {
+                        if (content.length) {
+                            return [{
+                                data: { tag: 'If' as const },
+                                children: [
+                                    ...conditionItem.previousStatementConditions.map((condition) => ({ data: { tag: 'Statement' as const, if: condition }, children: [] })),
+                                    conditionItem.fallthrough
+                                        ? { data: { tag: 'Fallthrough' as const }, children: content }
+                                        : { data: { tag: 'Statement' as const, if: conditionItem.condition }, children: content }
+                                ]
+                            }]
+                        }
+                        else {
+                            return []
+                        }
+                    })
+                }, component)
+                return mergeByIds(
+                    mergeByIds(previous, { [component.key]: wrappedComponent }),
+                    processComponents({ ...props, schema: item.children, componentContext: [...componentContext, { key: component.key, tag: item.data.tag }] })
+                )
+            }
+        }
+        return mergeByIds(previous, processComponents({ ...props, schema: item.children }))
+    }, {})
     const anyKeyedComponent: TagTreeMatchOperation<SchemaTag> = { or: componentTemplates.map(({ key }) => ({ match: key })) }
     componentTemplates.forEach((processingTemplate) => {
         const { key: tag } = processingTemplate
@@ -174,7 +295,7 @@ export const processComponents = (props: {
         })
     })
 
-    return byId
+    return recursiveById
 }
 
 export default processComponents
