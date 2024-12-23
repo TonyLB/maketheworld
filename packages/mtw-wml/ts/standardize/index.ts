@@ -198,10 +198,10 @@ export class StandardForm {
                 ]
         
                 const { importItemById, exportItemById } = importExportFromTree(asset.children)
-                processComponents({
+                this._byId = processComponents({
                     componentTemplates,
                     tagTree,
-                    byId: this._byId,
+                    schema: asset.children,
                     importItemById,
                     exportItemById
                 })
