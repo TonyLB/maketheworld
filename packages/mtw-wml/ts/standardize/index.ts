@@ -83,21 +83,55 @@ export const hasShortName = (component: StandardComponent): component is Standar
     return (component instanceof StandardRoom)
 }
 
-export const standardComponentSortOrder = (componentA: StandardComponent, componentB: StandardComponent): number => {
+export const standardComponentSortOrder = (byId: Record<string, StandardComponent>) => (componentA: StandardComponent, componentB: StandardComponent): number => {
+    //
+    // Subcomponents will have keys that start with their ancestry, separated by periods (i.e. "Room1.Feature1").
+    // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
+    // Next, see if the two keys have ancestors not in common:  If so, use the passed byId object to look up the
+    // ancestor(s) and compare against those instead.
+    // Finally, if they are peers in terms of ancestry, compare the two keys directly.
+    //
+    const keyA = componentA.key
+    const keyB = componentB.key
+    if (keyA.startsWith(`${keyB}.`)) {
+        return 1
+    }
+    if (keyB.startsWith(`${keyA}.`)) {
+        return -1
+    }
+    const ancestorsA = keyA.split('.').slice(0, -1)
+    const ancestorsB = keyB.split('.').slice(0, -1)
+    const { commonAncestors } = ancestorsA.reduce<{ commonAncestors: string[]; differenceHasOccurred: boolean }>((previous, ancestor, index) => {
+        if (previous.differenceHasOccurred) {
+            return previous
+        }
+        if (ancestorsB[index] === ancestor) {
+            return { ...previous, commonAncestors: [...previous.commonAncestors, ancestor] }
+        }
+        return { ...previous, differenceHasOccurred: true }
+    }, { commonAncestors: [], differenceHasOccurred: false })
+    const commonAncestorString = commonAncestors.join('.')
+
+    const differingAncestorsA = ancestorsA.slice(commonAncestors.length)
+    const differingAncestorsB = ancestorsB.slice(commonAncestors.length)
+
+    const elementToCompareA = differingAncestorsA.length ? byId[[commonAncestorString, differingAncestorsA[0]].filter((value) => (value)).join('.')] : componentA
+    const elementToCompareB = differingAncestorsB.length ? byId[[commonAncestorString, differingAncestorsB[0]].filter((value) => (value)).join('.')] : componentB
+    
     const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-    const tagA = ((componentA instanceof StandardRemove || componentA instanceof StandardReplace)
-        ? componentA._match.tag
-        : componentA.tag) as SchemaWithKey["tag"]
-    const tagB = ((componentB instanceof StandardRemove || componentB instanceof StandardReplace)
-        ? componentB._match.tag
-        : componentB.tag) as SchemaWithKey["tag"]
+    const tagA = ((elementToCompareA instanceof StandardRemove || elementToCompareA instanceof StandardReplace)
+        ? elementToCompareA._match.tag
+        : elementToCompareA.tag) as SchemaWithKey["tag"]
+    const tagB = ((elementToCompareB instanceof StandardRemove || elementToCompareB instanceof StandardReplace)
+        ? elementToCompareB._match.tag
+        : elementToCompareB.tag) as SchemaWithKey["tag"]
     const indexA = componentKeys.indexOf(tagA)
     const indexB = componentKeys.indexOf(tagB)
     if (indexA !== indexB) {
         return indexA - indexB
     }
     else {
-        return componentA.key.localeCompare(componentB.key)
+        return elementToCompareA.key.localeCompare(elementToCompareB.key)
     }
 }
 
@@ -217,7 +251,7 @@ export class StandardForm {
     get metaData(): GenericTree<SchemaTag> {
         const exportContents: GenericTree<SchemaTag> = Object.values(this._byId)
             .filter((component) => (Boolean(component.export)))
-            .sort(standardComponentSortOrder)
+            .sort(standardComponentSortOrder(this._byId))
             .map((component): GenericTreeNode<SchemaTag> => {
                 const schema = component.schema
                 if (component.export instanceof ExportItemRemove) {
@@ -260,7 +294,7 @@ export class StandardForm {
 
         const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
             .filter((component) => (Boolean(component.import)))
-            .sort(standardComponentSortOrder)
+            .sort(standardComponentSortOrder(this._byId))
             .reduce((previous, component): Record<string, GenericTree<SchemaTag>> => {
                 const maybeAddAsKey = (data: SchemaTag, from: string): SchemaTag => {
                     const originalKey = (data as SchemaWithKey).key
@@ -374,7 +408,7 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
-            .sort(standardComponentSortOrder)
+            .sort(standardComponentSortOrder(this._byId))
             .map((component) => (component.toNDJSON({
                 // from: importById[component.key], exportAs: exportById[component.key]
             })))
@@ -387,7 +421,7 @@ export class StandardForm {
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
         const children = Object.values(this._byId)
-            .sort(standardComponentSortOrder)
+            .sort(standardComponentSortOrder(this._byId))
             .map((component) => (component.schema))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))

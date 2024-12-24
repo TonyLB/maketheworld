@@ -1556,63 +1556,121 @@ describe('StandardForm', () => {
 
     })
 
-    // it('should round-trip all component types through NDJSON', () => {
-    //     const testWML = deIndentWML(`
-    //         <Asset key=(test)>
-    //             <Image key=(testBackground) />
-    //             <Room key=(testRoom)>
-    //                 <ShortName>Vortex</ShortName>
-    //                 <Name>Vortex</Name>
-    //                 <Description>Vortex Desc</Description>
-    //             </Room>
-    //             <Feature key=(testFeature)>
-    //                 <Name>Clocktower</Name>
-    //                 <Description>
-    //                     A tower built of white sandstone blocks, with an ornate clock set on
-    //                     the northern face.
-    //                 </Description>
-    //             </Feature>
-    //             <Knowledge key=(testKnowledge)>
-    //                 <Name>Learn</Name>
-    //                 <Description>There is so much to know!</Description>
-    //             </Knowledge>
-    //             <Map key=(testMap)>
-    //                 <Image key=(testBackground) />
-    //                 <Room key=(testRoom)><Position x="0" y="100" /></Room>
-    //             </Map>
-    //             <Message key=(openDoor)><Room key=(testRoom) />The door opens!</Message>
-    //             <Moment key=(openDoorMoment)><Message key=(openDoor) /></Moment>
-    //             <Variable key=(open) default={false} />
-    //             <Computed key=(closed) src={!open} />
-    //             <Action key=(toggleOpen) src={open = !open} />
-    //         </Asset>
-    //     `)
-    //     const testSource = new StandardForm(testWML)
-    //     testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-    //     testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#002')
-    //     testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
-    //     testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
-    //     testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
-    //     testSource._byId.openDoor = testSource._byId.openDoor.withUniversalKey('MESSAGE#006')
-    //     testSource._byId.openDoorMoment = testSource._byId.openDoorMoment.withUniversalKey('MOMENT#007')
-    //     testSource._byId.open = testSource._byId.open.withUniversalKey('VARIABLE#008')
-    //     testSource._byId.closed = testSource._byId.closed.withUniversalKey('COMPUTED#009')
-    //     testSource._byId.toggleOpen = testSource._byId.toggleOpen.withUniversalKey('ACTION#010')
+    it('should round-trip all component types through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Image key=(testBackground) />
+                <Room key=(testRoom)>
+                    <ShortName>Vortex</ShortName>
+                    <Name>Vortex</Name>
+                    <Description>Vortex Desc</Description>
+                </Room>
+                <Feature key=(testFeature)>
+                    <Name>Clocktower</Name>
+                    <Description>
+                        A tower built of white sandstone blocks, with an ornate clock set on
+                        the northern face.
+                    </Description>
+                </Feature>
+                <Knowledge key=(testKnowledge)>
+                    <Name>Learn</Name>
+                    <Description>There is so much to know!</Description>
+                </Knowledge>
+                <Map key=(testMap)>
+                    <Image key=(testBackground) />
+                    <Room key=(testRoom)><Position x="0" y="100" /></Room>
+                </Map>
+                <Message key=(openDoor)><Room key=(testRoom) />The door opens!</Message>
+                <Moment key=(openDoorMoment)><Message key=(openDoor) /></Moment>
+                <Variable key=(open) default={false} />
+                <Computed key=(closed) src={!open} />
+                <Action key=(toggleOpen) src={open = !open} />
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
+        testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#002')
+        testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
+        testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
+        testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
+        testSource._byId.openDoor = testSource._byId.openDoor.withUniversalKey('MESSAGE#006')
+        testSource._byId.openDoorMoment = testSource._byId.openDoorMoment.withUniversalKey('MOMENT#007')
+        testSource._byId.open = testSource._byId.open.withUniversalKey('VARIABLE#008')
+        testSource._byId.closed = testSource._byId.closed.withUniversalKey('COMPUTED#009')
+        testSource._byId.toggleOpen = testSource._byId.toggleOpen.withUniversalKey('ACTION#010')
 
-    //     const ndjson = testSource.toNDJSON()
-    //     const test = new StandardForm(ndjson)
-    //     expect(schemaToWML([test.schema])).toEqual(testWML)
-    //     expect(test.byId.testBackground.universalKey).toEqual('IMAGE#001')
-    //     expect(test.byId.testRoom.universalKey).toEqual('ROOM#002')
-    //     expect(test.byId.testFeature.universalKey).toEqual('FEATURE#003')
-    //     expect(test.byId.testKnowledge.universalKey).toEqual('KNOWLEDGE#004')
-    //     expect(test.byId.testMap.universalKey).toEqual('MAP#005')
-    //     expect(test.byId.openDoor.universalKey).toEqual('MESSAGE#006')
-    //     expect(test.byId.openDoorMoment.universalKey).toEqual('MOMENT#007')
-    //     expect(test.byId.open.universalKey).toEqual('VARIABLE#008')
-    //     expect(test.byId.closed.universalKey).toEqual('COMPUTED#009')
-    //     expect(test.byId.toggleOpen.universalKey).toEqual('ACTION#010')
-    // })
+        const ndjson = testSource.toNDJSON()
+        const test = new StandardForm(ndjson)
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+        expect(test.byId.testBackground.universalKey).toEqual('IMAGE#001')
+        expect(test.byId.testRoom.universalKey).toEqual('ROOM#002')
+        expect(test.byId.testFeature.universalKey).toEqual('FEATURE#003')
+        expect(test.byId.testKnowledge.universalKey).toEqual('KNOWLEDGE#004')
+        expect(test.byId.testMap.universalKey).toEqual('MAP#005')
+        expect(test.byId.openDoor.universalKey).toEqual('MESSAGE#006')
+        expect(test.byId.openDoorMoment.universalKey).toEqual('MOMENT#007')
+        expect(test.byId.open.universalKey).toEqual('VARIABLE#008')
+        expect(test.byId.closed.universalKey).toEqual('COMPUTED#009')
+        expect(test.byId.toggleOpen.universalKey).toEqual('ACTION#010')
+    })
+
+    it('should group sub-components correctly in NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Feature key=(testGlobal)>
+                    <Description>Global</Description>
+                </Feature>
+                <Room key=(testRoom)>
+                    <Feature key=(testLocal)>
+                        <Name>Clocktower</Name>
+                        <Description>
+                            A tower built of white sandstone blocks, with an ornate clock set on
+                            the northern face.
+                        </Description>
+                    </Feature>
+                    <Feature global key=(testGlobal) />
+                    <Name>Vortex</Name>
+                </Room>
+                <Room key=(testRoomTwo) />
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#001')
+        testSource._byId.testRoomTwo = testSource._byId.testRoomTwo.withUniversalKey('ROOM#002')
+        testSource._byId.testGlobal = testSource._byId.testGlobal.withUniversalKey('FEATURE#003')
+        testSource._byId["testRoom.testLocal"] = testSource._byId["testRoom.testLocal"].withUniversalKey('FEATURE#004')
+
+        console.log(`testSource: ${JSON.stringify(testSource.toJSON(), null, 4)}`)
+        const ndjson = testSource.toNDJSON()
+        expect(ndjson).toEqual([
+            { tag: 'Asset', key: 'test', universalKey: 'ASSET#test' },
+            {
+                tag: 'Room',
+                key: 'testRoom',
+                universalKey: 'ROOM#001',
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                features: [{ key: 'testLocal', tag: 'Feature' }, { key: 'testGlobal', global: true, tag: 'Feature' }],
+                exits: [],
+                themes: []
+            },
+            {
+                tag: 'Feature',
+                key: 'testRoom.testLocal',
+                universalKey: 'FEATURE#004',
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'A tower built of white sandstone blocks, with an ornate clock set on the northern face.' }, children: [] }] },
+                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Clocktower' }, children: [] }] }
+            },
+            { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002', exits: [], themes: [] },
+            {
+                tag: 'Feature',
+                key: 'testGlobal',
+                universalKey: 'FEATURE#003',
+                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Global' }, children: [] }] }
+            }
+        ])
+        // const test = new StandardForm(ndjson)
+        // expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
 
     it('should round-trip imports through NDJSON', () => {
         const testWML = deIndentWML(`
