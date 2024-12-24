@@ -103,7 +103,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
-    get global() { return this._payload.global }
+    override get global() { return this._payload.global }
 
     override clone(): StandardFeature {
         const returnValue = new StandardFeature(this)

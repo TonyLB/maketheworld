@@ -22,6 +22,7 @@ export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookm
 
 export type StandardReferenceData = {
     tag: SchemaWithKey["tag"];
+    global?: boolean;
 } & StandardBaseData & SerializeNDJSONMixin
 
 

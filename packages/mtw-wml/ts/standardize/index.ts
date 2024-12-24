@@ -186,7 +186,10 @@ export class StandardForm {
                     { key: 'Image' },
                     { key: 'Bookmark' },
                     { key: 'Room' },
-                    { key: 'Feature' },
+                    {
+                        key: 'Feature',
+                        legalParents: ['Room']
+                    },
                     { key: 'Knowledge' },
                     { key: 'Map' },
                     { key: 'Theme' },

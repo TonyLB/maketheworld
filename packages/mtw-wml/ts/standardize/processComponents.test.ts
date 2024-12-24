@@ -11,7 +11,10 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Image' },
     { key: 'Bookmark' },
     { key: 'Room' },
-    { key: 'Feature' },
+    {
+        key: 'Feature',
+        legalParents: ['Room']
+    },
     { key: 'Knowledge' },
     { key: 'Map' },
     { key: 'Theme' },
@@ -74,6 +77,51 @@ describe("processComponents", () => {
                 <Feature key=(testFeature)>
                     <Description><If {false}>Four</If></Description>
                 </Feature>
+            `)
+        })
+    })
+
+    it('should correctly localize subcomponents', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Name>Test Room</Name>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Description>Three</Description>
+                    <Feature key=(testLocal)>
+                        <Description>Local</Description>
+                    </Feature>
+                    <Feature global key=(testGlobal)>
+                        <Description>Global</Description>
+                    </Feature>
+                </Room>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const tagTree = new SchemaTagTree(schema.schema)
+        const result = processComponents({
+            componentTemplates,
+            tagTree,
+            schema: schema.schema,
+            importItemById: {},
+            exportItemById: {}
+        })
+        expect((objectMap(result, (component) => (schemaToWML([component.schema]))))).toEqual({
+            'test': deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(testLocal) />
+                    <Feature global key=(testGlobal) />
+                    <Name>Test Room</Name>
+                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Description>Three</Description>
+                </Room>
+            `),
+            'test.testLocal': deIndentWML(`
+                <Feature key=(test.testLocal)><Description>Local</Description></Feature>
+            `),
+            'testGlobal': deIndentWML(`
+                <Feature global key=(testGlobal)><Description>Global</Description></Feature>
             `)
         })
     })

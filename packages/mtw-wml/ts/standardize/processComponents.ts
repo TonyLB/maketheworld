@@ -220,16 +220,19 @@ export const processComponents = (props: {
                 const legalParentTags = template.legalParents ?? []
                 const ancestorTags = componentContext.filter(({ tag }) => (legalParentTags.includes(tag)))
                 const parentTag = ancestorTags.slice(-1)[0]
+
+                if (!component) {
+                    return previous
+                }
+
                 //
-                // TODO: Implement parentTag logic as more features are built out to require it.
+                // Localize the key for the component if it is not global, and has a parent tag
                 //
+                const localizedComponent = (parentTag && !component.global) ? component.withKey(`${parentTag.key}.${component.key}`) : component
 
                 //
                 // Wrap the component contents in conditional statements as necessary
                 //
-                if (!component) {
-                    return previous
-                }
                 const conditionalWrappedComponent = conditionalContext.reduceRight((previous, conditionItem) => {
                     return previous.mapContents((content): GenericTree<SchemaTag> => {
                         if (content.length) {
@@ -247,7 +250,7 @@ export const processComponents = (props: {
                             return []
                         }
                     })
-                }, component)
+                }, localizedComponent)
                 const editWrappedComponent = (!metaDataContext && inContextOfRemove) ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
                 return mergeByIds(
                     mergeByIds(previous, { [component.key]: editWrappedComponent }),
