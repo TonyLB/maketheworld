@@ -1,6 +1,8 @@
-import { SchemaTag } from "../../../schema/baseClasses";
+import { SchemaTag, SchemaWithKey } from "../../../schema/baseClasses";
 import { GenericTree } from "../../../tree/baseClasses";
+import { SerializeNDJSONMixin } from "../../baseClasses";
 import { isSchemaTreeNode } from "../utils";
+import { StandardBaseData } from "./abstract";
 import { StandardActionData, isStandardAction } from "./action";
 import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { isStandardCharacter, StandardCharacterData } from "./character";
@@ -18,6 +20,11 @@ import { StandardVariableData, isStandardVariable } from "./variable";
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookmark, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
+export type StandardReferenceData = {
+    tag: SchemaWithKey["tag"];
+} & StandardBaseData & SerializeNDJSONMixin
+
+
 export type StandardComponentNonEditData =
     StandardCharacterData |
     StandardRoomData |
@@ -31,7 +38,8 @@ export type StandardComponentNonEditData =
     StandardVariableData |
     StandardComputedData |
     StandardActionData |
-    StandardImageData
+    StandardImageData |
+    StandardReferenceData
 
 export type StandardRemoveData = {
     key: string;
