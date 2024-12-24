@@ -15,7 +15,7 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
         const valueStartIdx = sourceStream.position
         if (sourceStream.lookAhead(1).match(/[A-Za-z\_]/)) {
             sourceStream.consume(1)
-            while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\_]/)) {
+            while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\_\.]/)) {
                 sourceStream.consume(1)
             }    
         }

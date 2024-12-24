@@ -272,6 +272,23 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should parse key with periods', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test)>
+                <Room key=(ABC.DEF) />
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "Test"
+            },
+            children: [
+                { data: { tag: 'Room', key: 'ABC.DEF' }, children: [] }
+            ]
+        }])
+    })
+
     it('should parse asset update key', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test) update>
