@@ -66,6 +66,7 @@ export class StandardRemove implements StandardComponent {
     get fileName() { return this._key.fileName }
     get import() { return this._match.import }
     get export() { return this._match.export }
+    get global() { return this._match.global }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this._match.referencedKeys()
@@ -227,6 +228,7 @@ export class StandardReplace implements StandardComponent {
     get fileName() { return this._key.fileName }
     get import() { return this._match.import }
     get export() { return this._match.export }
+    get global() { return this._match.global }
 
     clone(): StandardReplace {
         return new StandardReplace(this)

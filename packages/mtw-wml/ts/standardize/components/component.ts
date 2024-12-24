@@ -44,6 +44,7 @@ export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
     universalKey?: string;
+    global?: boolean;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
@@ -101,6 +102,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get tag(): SchemaWithKey["tag"] { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
+        get global(): boolean | undefined { return true }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
