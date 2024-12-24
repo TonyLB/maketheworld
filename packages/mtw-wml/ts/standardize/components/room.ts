@@ -1,6 +1,6 @@
 import { defaultSelected } from ".."
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaDescription, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
+import { isSchemaDescription, isSchemaFeature, isSchemaName, isSchemaOutputTag, isSchemaRoom, isSchemaShortName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
@@ -16,6 +16,9 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
+import StandardReference from "./reference"
+import { StandardReferenceData } from "./dataTypes"
+import { unique } from "../../list"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
@@ -24,6 +27,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _description?: StandardRender;
     _exits: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
+    _features: StandardReference[] = [];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -34,6 +38,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._description = previous._description
             this._exits = [...previous.exits]
             this._themes = [...previous.themes]
+            this._features = previous._features.map((reference) => (reference.clone()))
         }
     }
 
@@ -45,6 +50,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._description = extractStandardRender(description, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
         this._exits = props.exits
         this._themes = props.themes
+        this._features = props.features?.map((reference) => (new StandardReference(reference))) ?? []
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -63,6 +69,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
             this._themes = []
+            this._features = node.children.filter(treeNodeTypeguard(isSchemaFeature)).map((reference) => (new StandardReference(reference)))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -74,6 +81,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get exits() { return this._exits }
     get themes() { return this._themes }
+    get features() { return this._features }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
@@ -92,7 +100,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
                 : this.description,
             exits: this.exits,
-            themes: this.themes
+            themes: this.themes,
+            ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
         }
     }
 
@@ -100,6 +109,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
+                ...this.features.map((reference) => (reference.schema)),
                 ...[this.shortName, this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits
             ]
@@ -114,6 +124,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._exits = applyEdits([...this.exits, ...incoming.exits])
         returnValue._themes = [...this.themes, ...incoming.themes]
+        returnValue._features = unique([...this.features, ...incoming.features].map(({ key }) => key)).map((key) => (new StandardReference({ key, tag: 'Feature' })))
         return returnValue as this
     }
 
@@ -125,6 +136,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
+            ...this.features.map(({ key }) => ({ referenceType: 'Direct' as const, key }))
         ]
     }
 
@@ -154,6 +166,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get description() { return this._payload.description }
     get exits() { return this._payload.exits }
     get themes() { return this._payload.themes }
+    get features() { return this._payload.features }
 
     constructor(props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom) {
         super(props)

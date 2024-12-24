@@ -1,3 +1,4 @@
+import { StandardReferenceData } from ".";
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../../schema/baseClasses"
 import { GenericTree, GenericTreeFiltered } from "../../../tree/baseClasses"
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
@@ -11,6 +12,7 @@ export type StandardRoomData = {
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
+    features?: StandardReferenceData[]
 } & StandardBaseData
 
 export const isStandardRoom = (arg: any): arg is StandardRoomData => {
