@@ -1,6 +1,6 @@
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTreeNodeFiltered } from "../tree/baseClasses";
-import { isStandardComponent } from "./components/dataTypes";
+import { isStandardComponent, StandardComponentNonEditData, StandardReferenceData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
@@ -17,6 +17,7 @@ import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
+import StandardReference from "./components/reference";
 
 export class StandardizerError extends Error {}
 export class MergeConflictError extends StandardizerError {
@@ -61,7 +62,8 @@ export type StandardComponentDataNonEdit =
     StandardVariable |
     StandardComputed |
     StandardAction |
-    StandardImage
+    StandardImage |
+    StandardReferenceData
 
 export type StandardRemove = {
     tag: 'Remove';
@@ -109,7 +111,7 @@ export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
 export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!["Remove", "Replace"].includes(value.tag))
 
-export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponentData => {
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponentNonEditData => {
     switch(tag) {
         case 'Room':
             return {
@@ -132,8 +134,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
         case 'Variable':
             return {
                 tag: 'Variable' as const,
-                key,
-                default: 'false',
+                key
             }
         case 'Computed':
             return {
