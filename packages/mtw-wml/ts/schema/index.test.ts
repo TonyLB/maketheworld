@@ -289,6 +289,33 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should parse room with feature included', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test)>
+                <Room key=(ABC)>
+                    <Feature key=(DEF) />
+                </Room>
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                key: "Test"
+            },
+            children: [
+                {
+                    data: {
+                        tag: "Room",
+                        key: "ABC"
+                    },
+                    children: [
+                        { data: { tag: 'Feature', key: 'DEF' }, children: [] }
+                    ]
+                }
+            ]
+        }])
+    })
+
     it('should parse asset update key', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test) update>
