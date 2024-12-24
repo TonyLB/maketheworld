@@ -357,6 +357,63 @@ describe('StandardForm', () => {
         `))
     })
 
+    it('should correctly return JSON for features nested in rooms', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>One</Description>
+                <Feature key=(testLocal)>
+                    <Description>Local</Description>
+                </Feature>
+                <Feature global key=(testGlobal)>
+                    <Description>Global</Description>
+                </Feature>
+            </Room>
+            <Room key=(testTwo) />
+        </Asset>`)
+        expect(test.toJSON()).toEqual({
+            key: 'Test',
+            metaData: [],
+            byId: {
+                test: {
+                    tag: 'Room',
+                    key: 'test',
+                    themes: [],
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'One' }, children: [] }] },
+                    exits: [],
+                    features: [
+                        { tag: 'Feature', key: 'testLocal' },
+                        { tag: 'Feature', global: true, key: 'testGlobal' }
+                    ]
+                },
+                ['test.testLocal']: {
+                    tag: 'Feature',
+                    key: 'test.testLocal',
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Local' }, children: [] }] }
+                },
+                testGlobal: {
+                    tag: 'Feature',
+                    key: 'testGlobal',
+                    global: true,
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Global' }, children: [] }] }
+                },
+                testTwo: {
+                    tag: 'Room',
+                    key: 'testTwo',
+                    themes: [],
+                    exits: []
+                }
+            }
+        })
+        // expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+        //     <Asset key=(Test)>
+        //         <Room key=(test)>
+        //             <Description>One<br />Two</Description>
+        //         </Room>
+        //         <Room key=(testTwo) />
+        //     </Asset>
+        // `))
+    })
+
     it('should combine render in nested rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
