@@ -24,6 +24,10 @@ describe('keyValueTokenizer', () => {
         const testStream = new SourceStream('(Test_1)></Room>')
         expect(keyValueTokenizer(testStream)).toMatchSnapshot()
     })
+    it('should accept periods in keys', () => {
+        const testStream = new SourceStream('(Test.Room)></Room>')
+        expect(keyValueTokenizer(testStream)).toMatchSnapshot()
+    })
     it('should reject illegal characters', () => {
         const testStream = new SourceStream('(Test-1)></Room>')
         expect(() => { keyValueTokenizer(testStream) }).toThrow(TokenizeException)

@@ -34,6 +34,13 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
+    it('should parse key with periods', () => {
+        const testTokens = tokenizer(new SourceStream('<Asset key=(Test.Test)></Asset>'))
+        expect(parse(testTokens)).toEqual([
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test.Test' }] },
+            { type: ParseTypes.Close, tag: 'Asset' }
+        ])
+    })
     it('should parse elements correctly', () => {
         const testTokens = tokenizer(new SourceStream(`
             <Asset key=(Test) fileName="test">

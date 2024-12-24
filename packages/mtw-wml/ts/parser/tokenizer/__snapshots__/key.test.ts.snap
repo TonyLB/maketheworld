@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`keyValueTokenizer should accept periods in keys 1`] = `
+Object {
+  "endIdx": 10,
+  "startIdx": 0,
+  "type": "KeyValue",
+  "value": "Test.Room",
+}
+`;
+
 exports[`keyValueTokenizer should tokenize with whitespace around value 1`] = `
 Object {
   "endIdx": 7,
