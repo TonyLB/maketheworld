@@ -11,7 +11,7 @@ import { componentClassFactory, ComponentConstructorMethods, StandardComponent }
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import linkReferenceKeys, { dependencyReferenceKeys, exitReferenceKeys } from "./utils/references"
+import linkReferenceKeys, { dependencyReferenceKeys, exitReferenceKeys, mergeUniqueReferences } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
@@ -124,7 +124,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._exits = applyEdits([...this.exits, ...incoming.exits])
         returnValue._themes = [...this.themes, ...incoming.themes]
-        returnValue._features = unique([...this.features, ...incoming.features].map(({ key }) => key)).map((key) => (new StandardReference({ key, tag: 'Feature' })))
+        returnValue._features = mergeUniqueReferences(this.features, incoming.features)
         return returnValue as this
     }
 

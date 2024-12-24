@@ -2,7 +2,8 @@ import { isSchemaFeature, isSchemaWithKey, SchemaFeatureTag, SchemaTag, SchemaWi
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { defaultComponentFromTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
-import { StandardComponentData, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
+import { isStandardFeature, StandardComponentData, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
+import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 
@@ -36,7 +37,11 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
     get global() { return this._global }
 
     toJSON(): Omit<StandardComponentNonEditData, 'key' | 'universalKey'> {
-        const { key, ...rest } = defaultComponentFromTag(this.tag, '')
+        const defaultTag = defaultComponentFromTag(this.tag, '')
+        const { key, ...rest } = defaultTag
+        if (isStandardFeature(defaultTag)) {
+            return { ...rest, global: this._global } as Omit<StandardFeatureData, 'key' | 'universalKey'>
+        }
         return rest
     }
 
@@ -57,7 +62,11 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
     }
 
     merge(incoming: this): this {
-        return this
+        const returnValue = new StandardReferencePayload(this)
+        if (incoming.global) {
+            returnValue._global = true
+        }
+        return returnValue as this
     }
     
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {

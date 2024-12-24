@@ -2,6 +2,7 @@ import { unique } from "../../../list"
 import { isImportable, isSchemaConditionStatement, isSchemaExit, isSchemaLink, isSchemaRoom, SchemaTag } from "../../../schema/baseClasses"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "../../../tree/baseClasses"
+import StandardReference from "../reference"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree
@@ -78,4 +79,18 @@ export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
         .map(({ to }) => (to)))
 }
 
+export const mergeUniqueReferences = (...referenceLists: StandardReference[][]): StandardReference[] => {
+    const referencesById = referenceLists.reduce<Record<string, StandardReference>>((previous, references) => (
+        references.reduce<Record<string, StandardReference>>((accumulator, reference) => {
+            const previousReference = accumulator[reference.key]
+            return {
+                ...accumulator,
+                [reference.key]: previousReference ? previousReference.merge(reference) as StandardReference : reference
+            }
+        }, previous)
+    ), {})
+    return Object.values(referencesById)
+}
+
 export default linkReferenceKeys
+
