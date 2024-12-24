@@ -1,4 +1,4 @@
-import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
+import { isSchemaFeature, isSchemaWithKey, SchemaFeatureTag, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
 import { defaultComponentFromTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
@@ -8,24 +8,32 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: SchemaWithKey["tag"] = 'Room';
+    _global?: boolean;
 
     constructor(previous?: StandardReferencePayload) {
         if (previous) {
             this.tag = previous.tag
+            this._global = previous.global
         }
     }
 
     fromJSON(props: StandardReferenceData) {
         this.tag = props.tag
+        this._global = props.global
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
+        if (treeNodeTypeguard(isSchemaFeature)(node)) {
+            this._global = node.data.global
+        }
         if (treeNodeTypeguard(isSchemaWithKey)(node)) {
             this.tag = node.data.tag
             return
         }
         throw new Error('Schema mismatch in StandardReference constructor')
     }
+
+    get global() { return this._global }
 
     toJSON(): Omit<StandardComponentNonEditData, 'key' | 'universalKey'> {
         const { key, ...rest } = defaultComponentFromTag(this.tag, '')
@@ -35,6 +43,12 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
     schema(key: string): GenericTreeNode<SchemaTag> {
         if (this.tag === 'Asset' || this.tag === 'Story' || this.tag === 'Character') {
             throw new Error('Character, Asset and Story references are not allowed in StandardReference')
+        }
+        if (this.tag === 'Feature') {
+            return {
+                data: { tag: this.tag, global: this._global, key } as SchemaFeatureTag,
+                children: []
+            }
         }
         return {
             data: { tag: this.tag, key } as SchemaTag,
