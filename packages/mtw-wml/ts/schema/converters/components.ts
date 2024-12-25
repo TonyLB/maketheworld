@@ -112,38 +112,38 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    Description: {
-        initialize: ({ parseOpen }): SchemaDescriptionTag => ({
-            tag: 'Description',
-            ...validateProperties(componentTemplates.Description)(parseOpen)
-        }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
-            if (!isSchemaDescription(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
-    Summary: {
-        initialize: ({ parseOpen }): SchemaSummaryTag => ({
-            tag: 'Summary',
-            ...validateProperties(componentTemplates.Summary)(parseOpen)
-        }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
-            if (!isSchemaSummary(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
+    // Description: {
+    //     initialize: ({ parseOpen }): SchemaDescriptionTag => ({
+    //         tag: 'Description',
+    //         ...validateProperties(componentTemplates.Description)(parseOpen)
+    //     }),
+    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
+    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
+    //         if (!isSchemaDescription(initialTag)) {
+    //             throw new Error('Type mismatch on schema finalize')
+    //         }
+    //         return {
+    //             data: initialTag,
+    //             children: compressWhitespace(children)
+    //         }
+    //     }
+    // },
+    // Summary: {
+    //     initialize: ({ parseOpen }): SchemaSummaryTag => ({
+    //         tag: 'Summary',
+    //         ...validateProperties(componentTemplates.Summary)(parseOpen)
+    //     }),
+    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
+    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
+    //         if (!isSchemaSummary(initialTag)) {
+    //             throw new Error('Type mismatch on schema finalize')
+    //         }
+    //         return {
+    //             data: initialTag,
+    //             children: compressWhitespace(children)
+    //         }
+    //     }
+    // },
     Bookmark: {
         initialize: ({ parseOpen }): SchemaBookmarkTag => {
             const { display, ...rest } = validateProperties(componentTemplates.Bookmark)(parseOpen)
@@ -167,22 +167,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    Name: {
-        initialize: ({ parseOpen }): SchemaNameTag => ({
-            tag: 'Name',
-            ...validateProperties(componentTemplates.Name)(parseOpen)
-        }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => {
-            if (!isSchemaName(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
+    // Name: {
+    //     initialize: ({ parseOpen }): SchemaNameTag => ({
+    //         tag: 'Name',
+    //         ...validateProperties(componentTemplates.Name)(parseOpen)
+    //     }),
+    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
+    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => {
+    //         if (!isSchemaName(initialTag)) {
+    //             throw new Error('Type mismatch on schema finalize')
+    //         }
+    //         return {
+    //             data: initialTag,
+    //             children: compressWhitespace(children)
+    //         }
+    //     }
+    // },
     ShortName: {
         initialize: ({ parseOpen }): SchemaShortNameTag => ({
             tag: 'ShortName',
@@ -326,30 +326,30 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
-    Description: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-        tagRender({
-            ...args,
-            tag: 'Description',
-            properties: [],
-            node: { data, children }
-        })
-    ),
-    Summary: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-        tagRender({
-            ...args,
-            tag: 'Summary',
-            properties: [],
-            node: { data, children }
-        })
-    ),
-    Name: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-        tagRender({
-            ...args,
-            tag: 'Name',
-            properties: [],
-            node: { data, children }
-        })
-    ),
+    // Description: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+    //     tagRender({
+    //         ...args,
+    //         tag: 'Description',
+    //         properties: [],
+    //         node: { data, children }
+    //     })
+    // ),
+    // Summary: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+    //     tagRender({
+    //         ...args,
+    //         tag: 'Summary',
+    //         properties: [],
+    //         node: { data, children }
+    //     })
+    // ),
+    // Name: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+    //     tagRender({
+    //         ...args,
+    //         tag: 'Name',
+    //         properties: [],
+    //         node: { data, children }
+    //     })
+    // ),
     ShortName: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,

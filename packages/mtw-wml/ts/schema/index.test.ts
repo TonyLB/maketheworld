@@ -22,18 +22,20 @@ describe('schemaFromParse', () => {
                 </Import>
                 <Room key=(ABC)>
                     <ShortName>Vortex</ShortName>
-                    <Name>Vortex</Name>
-                    <Description>
-                        <Space />
-                        Vortex<If {open}>
-                            : Open
-                        </If><ElseIf {!closed}>
-                            : Indeterminate
-                        </ElseIf><Else>
-                            : Closed
-                        </Else>
-                        <Link to=(toggleOpen)>(toggle)</Link>
-                    </Description>
+                    <Example key=(Example1)>
+                        <Name>Vortex</Name>
+                        <Description>
+                            <Space />
+                            Vortex<If {open}>
+                                : Open
+                            </If><ElseIf {!closed}>
+                                : Indeterminate
+                            </ElseIf><Else>
+                                : Closed
+                            </Else>
+                            <Link to=(toggleOpen)>(toggle)</Link>
+                        </Description>
+                    </Example>
                 </Room>
                 <If {open}>
                     <Room key=(ABC)>
@@ -108,38 +110,41 @@ describe('schemaFromParse', () => {
                         children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                     },
                     {
-                        data: { tag: 'Name' },
-                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
-                    },
-                    {
-                        data: { tag: "Description" },
-                        children: [
-                            { data: { tag: "Space" }, children: [] },
-                            { data: { tag: "String", value: "Vortex" }, children: [] },
-                            {
-                                data: { tag: "If" },
-                                children: [
-                                    { data: { tag: "Statement", if: "open" }, children: [{ data: { tag: "String", value: ": Open" }, children: [] }] },
-                                    { data: { tag: "Statement", if: "!closed" }, children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }] },
-                                    { data: { tag: "Fallthrough" }, children: [{ data: { tag: "String", value: ": Closed" }, children: [] }] }
-                                ],
-                            },
-                            {
-                                data: {
-                                    tag: "String",
-                                    value: " "    
+                        data: { tag: 'Example', key: 'Example1' },
+                        children: [                    {
+                            data: { tag: 'Name' },
+                            children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                        },
+                        {
+                            data: { tag: "Description" },
+                            children: [
+                                { data: { tag: "Space" }, children: [] },
+                                { data: { tag: "String", value: "Vortex" }, children: [] },
+                                {
+                                    data: { tag: "If" },
+                                    children: [
+                                        { data: { tag: "Statement", if: "open" }, children: [{ data: { tag: "String", value: ": Open" }, children: [] }] },
+                                        { data: { tag: "Statement", if: "!closed" }, children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }] },
+                                        { data: { tag: "Fallthrough" }, children: [{ data: { tag: "String", value: ": Closed" }, children: [] }] }
+                                    ],
                                 },
-                                children: []
-                            },
-                            {
-                                data: {
-                                    tag: "Link",
-                                    text: "(toggle)",
-                                    to: "toggleOpen"    
+                                {
+                                    data: {
+                                        tag: "String",
+                                        value: " "    
+                                    },
+                                    children: []
                                 },
-                                children: [{ data: { tag: 'String', value: '(toggle)' }, children: [] }]
-                            },
-                        ],
+                                {
+                                    data: {
+                                        tag: "Link",
+                                        text: "(toggle)",
+                                        to: "toggleOpen"    
+                                    },
+                                    children: [{ data: { tag: 'String', value: '(toggle)' }, children: [] }]
+                                },
+                            ],
+                        }]
                     }],
                 },
                 {
@@ -804,16 +809,18 @@ describe('schemaToWML', () => {
             <Asset key=(Test)>
                 <Room key=(VORTEX)>
                     <ShortName>Vortex</ShortName>
-                    <Name>Vortex</Name>
-                    <Summary>
-                        You float in a swirling mass of energy and debris.
-                        <Link to=(doors)>Doors</Link> to other realms drift around you.
-                    </Summary>
-                    <Description>
-                        You float in a swirling mass of energy and debris.
-                        <Link to=(doors)>Doors</Link> to other realms drift around you.
-                        Crackling bursts of energy snap through space in the distance.
-                    </Description>
+                    <Example key=(example1)>
+                        <Name>Vortex</Name>
+                        <Summary>
+                            You float in a swirling mass of energy and debris.
+                            <Link to=(doors)>Doors</Link> to other realms drift around you.
+                        </Summary>
+                        <Description>
+                            You float in a swirling mass of energy and debris.
+                            <Link to=(doors)>Doors</Link> to other realms drift around you.
+                            Crackling bursts of energy snap through space in the distance.
+                        </Description>
+                    </Example>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
                 <Feature global key=(doors)>

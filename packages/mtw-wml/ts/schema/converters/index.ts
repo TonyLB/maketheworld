@@ -16,6 +16,7 @@ import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
+import { exampleConverters, examplePrintMap } from "./example"
 
 const validationTemplates = {
     Asset: {
@@ -45,6 +46,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         }),
         typeCheckContents: isSchemaAssetContents,
     },
+    ...exampleConverters,
     ...characterConverters,
     ...componentConverters,
     ...computationConverters,
@@ -71,6 +73,7 @@ export const printMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
+    ...examplePrintMap,
     ...characterPrintMap,
     ...componentPrintMap,
     ...computationPrintMap,
