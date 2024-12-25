@@ -404,14 +404,34 @@ describe('StandardForm', () => {
                 }
             }
         })
-        // expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-        //     <Asset key=(Test)>
-        //         <Room key=(test)>
-        //             <Description>One<br />Two</Description>
-        //         </Room>
-        //         <Room key=(testTwo) />
-        //     </Asset>
-        // `))
+    })
+
+    it('should correctly return schema for features nested in rooms', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Description>One</Description>
+                <Feature key=(testLocal)>
+                    <Description>Local</Description>
+                </Feature>
+                <Feature global key=(testGlobal)>
+                    <Description>Global</Description>
+                </Feature>
+            </Room>
+            <Room key=(testTwo) />
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Feature key=(testLocal)><Description>Local</Description></Feature>
+                    <Feature global key=(testGlobal) />
+                    <Description>One</Description>
+                </Room>
+                <Room key=(testTwo) />
+                <Feature global key=(testGlobal)>
+                    <Description>Global</Description>
+                </Feature>
+            </Asset>
+        `))
     })
 
     it('should combine render in nested rooms', () => {
@@ -1668,8 +1688,6 @@ describe('StandardForm', () => {
                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Global' }, children: [] }] }
             }
         ])
-        // const test = new StandardForm(ndjson)
-        // expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
     it('should round-trip imports through NDJSON', () => {

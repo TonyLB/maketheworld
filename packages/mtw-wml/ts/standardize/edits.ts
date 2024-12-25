@@ -101,6 +101,13 @@ export class StandardRemove implements StandardComponent {
         }
     }
 
+    nestedSchema(byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Remove' },
+            children: [this._match.nestedSchema(byId)]
+        }
+    }
+
     merge(incoming: StandardComponent): StandardComponent | undefined {
         throw new Error('StandardRemove types cannot be directly merged')
     }
@@ -260,6 +267,16 @@ export class StandardReplace implements StandardComponent {
             children: [
                 { data: { tag: 'ReplaceMatch' }, children: [this._match.schema] },
                 { data: { tag: 'ReplacePayload' }, children: [this._payload.schema] }
+            ]
+        }
+    }
+
+    nestedSchema(byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Replace' },
+            children: [
+                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(byId)] },
+                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(byId)] }
             ]
         }
     }

@@ -116,6 +116,21 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
+    nestedSchema(key: string, byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Room', key },
+            children: [
+                ...this.features.map((reference) => (
+                    reference.global
+                        ? reference.schema
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key)
+                )).filter(excludeUndefined),
+                ...[this.shortName, this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
+                ...this.exits
+            ]
+        }
+    }
+
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName

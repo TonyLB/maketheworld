@@ -80,6 +80,8 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
 
 export class StandardReference extends componentClassFactory(StandardReferencePayload, 'StandardReference') {
 
+    override get global() { return this._payload.global }
+
     override clone(): StandardReference {
         const returnValue = new StandardReference(this)
         returnValue._payload = new StandardReferencePayload(this._payload)
