@@ -35,6 +35,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
+    nestedSchema?(key: string, byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag>;
     tag: SchemaWithKey["tag"];
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
@@ -57,6 +58,7 @@ export interface StandardComponent {
     toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
+    nestedSchema(byId: Record<string, StandardComponent>, localKey?: string): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
@@ -129,6 +131,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         get schema(): GenericTreeNode<SchemaTag> {
             return this._payload.schema(this.key)
+        }
+
+        nestedSchema(byId: Record<string, StandardComponent>, localKey?: string): GenericTreeNode<SchemaTag> {
+            return this._payload.nestedSchema
+                ? this._payload.nestedSchema(localKey ?? this.key, byId)
+                : this._payload.schema(localKey ?? this.key)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
