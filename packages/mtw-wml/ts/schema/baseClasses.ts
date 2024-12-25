@@ -230,6 +230,11 @@ export type SchemaNameTag = {
     tag: 'Name';
 } & SchemaBase
 
+export type SchemaExampleTag = {
+    tag: 'Example';
+    key: string;
+} & SchemaImportableBase
+
 export type SchemaShortNameTag = {
     tag: 'ShortName';
 } & SchemaBase
@@ -327,6 +332,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaBookmarkTag |
     SchemaShortNameTag |
     SchemaNameTag |
+    SchemaExampleTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaKnowledgeTag |
@@ -361,6 +367,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaMapTag |
     SchemaShortNameTag |
     SchemaNameTag |
+    SchemaExampleTag |
     SchemaFirstImpressionTag |
     SchemaOneCoolThingTag |
     SchemaOutfitTag |
@@ -385,6 +392,7 @@ export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaKnowledge = (value: SchemaTag): value is SchemaKnowledgeTag => (value.tag === 'Knowledge')
 export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value.tag === 'Room')
+export const isSchemaExample = (value: SchemaTag): value is SchemaExampleTag => (value.tag === 'Example')
 export const isSchemaPosition = (value: SchemaTag): value is SchemaPositionTag => (value.tag === 'Position')
 export const isSchemaTheme = (value: SchemaTag): value is SchemaThemeTag => (value.tag === 'Theme')
 export const isSchemaPrompt = (value: SchemaTag): value is SchemaPromptTag => (value.tag === 'Prompt')
