@@ -20,7 +20,7 @@ export const combineTagChildren = <T extends StandardComponentData, K extends St
     return combinedSchema.length ? { ...combinedSchema[0], id: (base[key] as any).id || (incoming[key] as any).id } as T[K] : undefined
 }
 
-export const isLegalKey = (value: string) => (value.match(/^[a-zA-Z\_][a-zA-Z0-9\_]+$/))
+export const isLegalKey = (value: string) => (value.match(/^[a-zA-Z\_][a-zA-Z0-9\_\.]+$/))
 
 export const nodeFromWML = (wml: string): GenericTreeNode<SchemaTag> => {
     const schema = new Schema()
