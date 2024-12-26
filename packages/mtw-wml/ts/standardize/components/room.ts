@@ -63,10 +63,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             const exitTagTree = tagTree
                 .filter({ match: 'Exit' })
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
-            this._shortName = extractStandardRender(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
-            this._name = extractStandardRender(nameItem as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>, isSchemaName, 'Schema mismatch in StandardRoom constructor')
-            this._summary = extractStandardRender(summaryItem as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>, isSchemaSummary, 'Schema mismatch in StandardRoom constructor')
-            this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
+            this._shortName = extractStandardRender<SchemaShortNameTag>(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
+            this._name = extractStandardRender<SchemaNameTag>(nameItem as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>, isSchemaName, 'Schema mismatch in StandardRoom constructor')
+            this._summary = extractStandardRender<SchemaSummaryTag>(summaryItem as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag>, isSchemaSummary, 'Schema mismatch in StandardRoom constructor')
+            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
             this._themes = []
             this._features = node.children.filter(treeNodeTypeguard(isSchemaFeature)).map((reference) => (new StandardReference(reference)))

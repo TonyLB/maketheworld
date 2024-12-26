@@ -6,6 +6,7 @@ import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
 import { StandardCharacterData } from "./components/dataTypes/character";
 import { StandardComputedData } from "./components/dataTypes/computed";
+import { StandardExampleData } from "./components/dataTypes/example";
 import { StandardFeatureData } from "./components/dataTypes/feature";
 import { StandardImageData } from "./components/dataTypes/image";
 import { StandardKnowledgeData } from "./components/dataTypes/knowledge";
@@ -17,7 +18,6 @@ import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
-import StandardReference from "./components/reference";
 
 export class StandardizerError extends Error {}
 export class MergeConflictError extends StandardizerError {
@@ -51,6 +51,7 @@ export type StandardImage = StandardImageData
 
 export type StandardComponentDataNonEdit =
     StandardCharacter |
+    StandardExampleData |
     StandardRoom |
     StandardFeature |
     StandardKnowledge |
