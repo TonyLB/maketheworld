@@ -62,15 +62,21 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Example',
-            name: stripUI
-                ? this._name?.mapContents(stripUIFields).toJSON()
-                : this._name?.toJSON(),
-            summary: stripUI
-                ? this._summary?.mapContents(stripUIFields).toJSON()
-                : this._summary?.toJSON(),
-            description: stripUI
-                ? this._description?.mapContents(stripUIFields).toJSON()
-                : this._description?.toJSON()
+            name: this._name?.toJSON().length === 0
+                ? undefined
+                : stripUI
+                    ? this._name?.mapContents(stripUIFields).toJSON()
+                    : this._name?.toJSON(),
+            summary: this._summary?.toJSON().length === 0
+                ? undefined
+                : stripUI
+                    ? this._summary?.mapContents(stripUIFields).toJSON()
+                    : this._summary?.toJSON(),
+            description: this._description?.toJSON().length === 0
+                ? undefined
+                : stripUI
+                    ? this._description?.mapContents(stripUIFields).toJSON()
+                    : this._description?.toJSON()
         }
     }
 
@@ -121,6 +127,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get name() { return this._payload.name }
     get summary() { return this._payload.summary }
     get description() { return this._payload.description }
+    override get global() { return false }
 
     constructor(props: string | StandardExampleData | GenericTreeNode<SchemaTag> | StandardExample) {
         super(props)

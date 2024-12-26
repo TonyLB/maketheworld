@@ -1,8 +1,8 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
-import { isStandardNDJSON, MergeConflictError, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
-import { isStandardComponent, isStandardForm, StandardComponentData, StandardComponentNonEditData, StandardFormData } from "./components/dataTypes"
+import { isStandardComponent, isStandardForm, StandardComponentData, StandardFormData } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import applyEdits from "../schema/treeManipulation/applyEdits"
@@ -13,10 +13,10 @@ import StandardMap from "./components/map"
 import { isSchemaTreeNode } from "./components/utils"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { isLegalKey, nodeFromWML, removeNDJSONOnlyProperties } from "./utils"
+import { isLegalKey, nodeFromWML } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/component"
-import { deepEqual, objectMap } from "../lib/objects"
+import { objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
@@ -231,7 +231,11 @@ export class StandardForm {
                     { key: 'Moment' },
                     { key: 'Variable' },
                     { key: 'Computed' },
-                    { key: 'Action' }
+                    { key: 'Action' },
+                    {
+                        key: 'Example',
+                        legalParents: ['Room']
+                    }
                 ]
         
                 const { importItemById, exportItemById } = importExportFromTree(asset.children)

@@ -12,7 +12,8 @@ export type StandardRoomData = {
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
-    features?: StandardReferenceData[]
+    features?: StandardReferenceData[];
+    examples?: StandardReferenceData[];
 } & StandardBaseData
 
 export const isStandardRoom = (arg: any): arg is StandardRoomData => {

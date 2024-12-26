@@ -40,7 +40,9 @@ export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: Sta
                     { data: { tag: 'ReplaceMatch' }, children: [{ data, children: render._payload._match.toJSON() }] },
                     { data: { tag: 'ReplacePayload' }, children: [{ data, children: render._payload._payload.toJSON() }] }
                 ]}
-                : { data, children: render.toJSON() }
-            ) as EditWrappedStandardNode<D, SchemaOutputTag>
+                : render.toJSON().length
+                    ? { data, children: render.toJSON() }
+                    : undefined
+            ) as EditWrappedStandardNode<D, SchemaOutputTag> | undefined
         : undefined
 )
