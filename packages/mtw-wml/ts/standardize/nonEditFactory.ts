@@ -1,4 +1,4 @@
-import { isSchemaAction, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaFeature, isSchemaImage, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaTheme, isSchemaVariable, SchemaTag } from "../schema/baseClasses"
+import { isSchemaAction, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaExample, isSchemaFeature, isSchemaImage, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaTheme, isSchemaVariable, SchemaTag } from "../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import StandardAction from "./components/action"
@@ -7,6 +7,7 @@ import StandardCharacter from "./components/character"
 import { StandardComponent } from "./components/component"
 import StandardComputed from "./components/computed"
 import StandardFeature from "./components/feature"
+import StandardExample from "./components/example"
 import StandardImage from "./components/image"
 import StandardKnowledge from "./components/knowledge"
 import StandardMap from "./components/map"
@@ -16,6 +17,7 @@ import StandardRoom from "./components/room"
 import StandardTheme from "./components/theme"
 import { isSchemaTreeNode } from "./components/utils"
 import StandardVariable from "./components/variable"
+import { isStandardExample } from "./components/dataTypes/example"
 
 //
 // standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,
@@ -25,6 +27,9 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
 
     if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaCharacter)(arg))) {
         return new StandardCharacter(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardExample(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaExample)(arg))) {
+        return new StandardExample(arg)
     }
     if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRoom)(arg))) {
         return new StandardRoom(arg)

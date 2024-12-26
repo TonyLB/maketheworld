@@ -2,7 +2,7 @@ import StandardRenderString from "./string"
 import StandardRenderLineBreak from "./lineBreak"
 import StandardRenderLink from "./link"
 import StandardRenderSpace from "./space"
-import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
+import { RenderTree, StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
 import {
@@ -527,7 +527,7 @@ export class StandardRender {
         return this._payload.plainString
     }
 
-    toJSON() {
+    toJSON(): GenericTree<SchemaOutputTag> {
         if (this._payload instanceof StandardRenderSimple) {
             return this._payload.toJSON()
         }
@@ -536,7 +536,7 @@ export class StandardRender {
         }
     }
 
-    toNDJSON() {
+    toNDJSON(): RenderTree {
         if (this._payload instanceof StandardRenderSimple) {
             return this._payload.toNDJSON()
         }
