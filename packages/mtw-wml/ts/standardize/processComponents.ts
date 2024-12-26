@@ -88,10 +88,7 @@ const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<str
 //
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
-    tagTree: SchemaTagTree;
     schema: GenericTree<SchemaTag>;
-    importItemById: Record<string, StandardImportItem>;
-    exportItemById: Record<string, StandardExportItem>;
     conditionalContext?: ConditionalContextItem[];
     componentContext?: { key: string; tag: SchemaWithKey["tag"]; }[];
     inContextOfRemove?: boolean;
@@ -100,13 +97,9 @@ export const processComponents = (props: {
     //
     // Loop through each tag in standard order
     //
-    let byId: Record<string, StandardComponent> = {}
     const {
         componentTemplates,
-        tagTree,
         schema,
-        importItemById,
-        exportItemById,
         conditionalContext = [],
         componentContext = [],
         inContextOfRemove = false,

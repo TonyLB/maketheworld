@@ -8094,14 +8094,7 @@ trapDoorOpen = false
           "children": Array [],
           "data": Object {
             "tag": "String",
-            "value": "Striding statue's neck",
-          },
-        },
-        Object {
-          "children": Array [],
-          "data": Object {
-            "tag": "String",
-            "value": "Striding statue neck",
+            "value": "Striding statue's neckStriding statue neck",
           },
         },
       ],
