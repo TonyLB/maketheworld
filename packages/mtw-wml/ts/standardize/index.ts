@@ -1,5 +1,5 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
 import { isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardFormData } from "./components/dataTypes"
@@ -199,18 +199,9 @@ export class StandardForm {
             this._metaData = []
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
-                const tagTree = new SchemaTagTree([node])
-                tagTree._merge = ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } })
-                const assetTree = tagTree.tree
-                if (assetTree.length !== 1) {
-                    throw new Error('Too many assets in Standarizer')
-                }
-                const asset = assetTree[0] as GenericTreeNodeFiltered<SchemaAssetTag, SchemaTag>
-                this._key = asset.data.key
+                this._key = node.data.key
 
-                this._metaData = [
-                    ...tagTree.filter({ match: 'Meta' }).prune({ not: { match: 'Meta' }}).tree
-                ]
+                this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
 
                 //
                 // Templates for the following component tags: 'Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
@@ -238,14 +229,7 @@ export class StandardForm {
                     }
                 ]
         
-                const { importItemById, exportItemById } = importExportFromTree(asset.children)
-                this._byId = processComponents({
-                    componentTemplates,
-                    tagTree,
-                    schema: asset.children,
-                    importItemById,
-                    exportItemById
-                })
+                this._byId = processComponents({ componentTemplates, schema: node.children })
                 return
             }
         }

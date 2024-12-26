@@ -29,13 +29,9 @@ describe("processComponents", () => {
     it('should return an empty object when given an empty object', () => {
         const schema = new Schema()
         schema.loadWML(`<Asset key=(test) />`)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
         expect(result).toEqual({})
     })
@@ -55,13 +51,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
-            schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
+            schema: schema.schema
         })
 
         expect(result.test instanceof StandardRoom).toBe(true)
@@ -99,13 +91,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
         expect((objectMap(result, (component) => (schemaToWML([component.schema]))))).toEqual({
             'test': deIndentWML(`
@@ -155,13 +143,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(test)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
@@ -202,13 +186,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(test)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
@@ -250,13 +230,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(test)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
@@ -295,13 +271,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
@@ -340,13 +312,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'testMap': deIndentWML(`
@@ -376,15 +344,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {
-                'testRoom': new ImportItemContent('testImport', 'base')
-            },
-            exportItemById: {}
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'testRoom': deIndentWML(`
@@ -405,15 +367,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {
-                'base': new ExportItemContent('testRoom')
-            }
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'base': deIndentWML(`
@@ -434,13 +390,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
@@ -472,13 +424,9 @@ describe("processComponents", () => {
         `
         const schema = new Schema()
         schema.loadWML(testSource)
-        const tagTree = new SchemaTagTree(schema.schema)
         const result = processComponents({
             componentTemplates,
-            tagTree,
             schema: schema.schema,
-            importItemById: {},
-            exportItemById: {}
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
