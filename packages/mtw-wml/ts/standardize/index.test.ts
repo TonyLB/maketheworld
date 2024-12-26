@@ -406,6 +406,41 @@ describe('StandardForm', () => {
         })
     })
 
+    it('should correctly return JSON for examples nested in rooms', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Example key=(testLocal)>
+                    <Description>Description Test</Description>
+                </Example>
+            </Room>
+            <Room key=(testTwo) />
+        </Asset>`)
+        expect(test.toJSON()).toEqual({
+            key: 'Test',
+            metaData: [],
+            byId: {
+                test: {
+                    tag: 'Room',
+                    key: 'test',
+                    themes: [],
+                    exits: [],
+                    examples: [{ tag: 'Example', key: 'testLocal' }]
+                },
+                ['test.testLocal']: {
+                    tag: 'Example',
+                    key: 'test.testLocal',
+                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                },
+                testTwo: {
+                    tag: 'Room',
+                    key: 'testTwo',
+                    themes: [],
+                    exits: []
+                }
+            }
+        })
+    })
+
     it('should correctly return schema for features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
@@ -430,6 +465,27 @@ describe('StandardForm', () => {
                 <Feature global key=(testGlobal)>
                     <Description>Global</Description>
                 </Feature>
+            </Asset>
+        `))
+    })
+
+    it('should correctly return schema for examples nested in rooms', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Example key=(testLocal)>
+                    <Description>Description Test</Description>
+                </Example>
+            </Room>
+            <Room key=(testTwo) />
+        </Asset>`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Example key=(testLocal)>
+                        <Description>Description Test</Description>
+                    </Example>
+                </Room>
+                <Room key=(testTwo) />
             </Asset>
         `))
     })
@@ -1660,7 +1716,6 @@ describe('StandardForm', () => {
         testSource._byId.testGlobal = testSource._byId.testGlobal.withUniversalKey('FEATURE#003')
         testSource._byId["testRoom.testLocal"] = testSource._byId["testRoom.testLocal"].withUniversalKey('FEATURE#004')
 
-        console.log(`testSource: ${JSON.stringify(testSource.toJSON(), null, 4)}`)
         const ndjson = testSource.toNDJSON()
         expect(ndjson).toEqual([
             { tag: 'Asset', key: 'test', universalKey: 'ASSET#test' },

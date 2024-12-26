@@ -114,6 +114,11 @@ export const isStandardNonEdit = (value: StandardComponentData): value is Exclud
 
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponentNonEditData => {
     switch(tag) {
+        case 'Example':
+            return {
+                tag,
+                key
+            }
         case 'Room':
             return {
                 tag,
