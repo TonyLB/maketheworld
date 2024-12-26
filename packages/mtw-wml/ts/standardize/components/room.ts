@@ -123,19 +123,19 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    nestedSchema(key: string, byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, key: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Room', key },
             children: [
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
                 )).filter(excludeUndefined),
                 ...[this.shortName, this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits

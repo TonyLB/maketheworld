@@ -441,6 +441,48 @@ describe('StandardForm', () => {
         })
     })
 
+    it('should correct return JSON for examples nested in features nested in rooms', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Room key=(test)>
+                <Feature key=(testFeature)>
+                    <Example key=(testLocal)>
+                        <Description>Description Test</Description>
+                    </Example>
+                </Feature>
+            </Room>
+            <Room key=(testTwo) />
+        </Asset>`)
+        expect(test.toJSON()).toEqual({
+            key: 'Test',
+            metaData: [],
+            byId: {
+                test: {
+                    tag: 'Room',
+                    key: 'test',
+                    themes: [],
+                    exits: [],
+                    features: [{ tag: 'Feature', key: 'testFeature' }]
+                },
+                ['test.testFeature']: {
+                    tag: 'Feature',
+                    key: 'test.testFeature',
+                    examples: [{ tag: 'Example', key: 'testLocal' }]
+                },
+                ['test.testFeature.testLocal']: {
+                    tag: 'Example',
+                    key: 'test.testFeature.testLocal',
+                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                },
+                testTwo: {
+                    tag: 'Room',
+                    key: 'testTwo',
+                    themes: [],
+                    exits: []
+                }
+            }
+        })
+    })
+
     it('should correctly return schema for features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
@@ -462,9 +504,7 @@ describe('StandardForm', () => {
                     <Description>One</Description>
                 </Room>
                 <Room key=(testTwo) />
-                <Feature global key=(testGlobal)>
-                    <Description>Global</Description>
-                </Feature>
+                <Feature key=(testGlobal)><Description>Global</Description></Feature>
             </Asset>
         `))
     })
@@ -488,6 +528,23 @@ describe('StandardForm', () => {
                 <Room key=(testTwo) />
             </Asset>
         `))
+    })
+
+    it('should correctly return schema for examples nested in features nested in rooms', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Feature key=(testFeature)>
+                        <Example key=(testLocal)>
+                            <Description>Description Test</Description>
+                        </Example>
+                    </Feature>
+                </Room>
+                <Room key=(testTwo) />
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
     it('should combine render in nested rooms', () => {
