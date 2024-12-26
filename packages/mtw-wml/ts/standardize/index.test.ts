@@ -292,17 +292,17 @@ describe('StandardForm', () => {
     it('should combine descriptions in rooms and features', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
-                <Summary>
-                    One
-                    <br />
-                </Summary>
-                <Description>Three</Description>
+                <Example key=(testExample)>
+                    <Summary>
+                        One
+                        <br />
+                    </Summary>
+                    <Description>Three</Description>
+                </Example>
             </Room>
             <If {false}>
                 <Room key=(test)>
-                    <Summary>
-                        Two
-                    </Summary>
+                    <Example key=(testExample)><Summary>Two</Summary></Example>
                 </Room>
                 <Feature key=(testFeature)>
                     <Description>
@@ -311,15 +311,17 @@ describe('StandardForm', () => {
                 </Feature>
             </If>
             <Room key=(test)>
-                <Name>Test Room</Name>
+                <Example key=(testExample)><Name>Test Room</Name></Example>
             </Room>
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
-                    <Description>Three</Description>
+                    <Example key=(testExample)>
+                        <Name>Test Room</Name>
+                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Description>Three</Description>
+                    </Example>
                 </Room>
                 <Feature key=(testFeature)>
                     <Description><If {false}>Four</If></Description>
