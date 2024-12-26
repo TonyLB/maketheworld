@@ -68,13 +68,13 @@ describe('StandardExample class', () => {
             StandardExample,
             `<Example key=(testExample)>
                 <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
-                <Summary><Remove>Text</Remove></Summary>
+                <Summary><Remove><Space />Text</Remove></Summary>
                 <Description><Space />Shadows cling to the corners of the room.</Description>
             </Example>`
         )).toEqual(deIndentWML(`
             <Example key=(testExample)>
                 <Name>Spooky Lobby</Name>
-                <Summary>Summary </Summary>
+                <Summary>Summary</Summary>
                 <Description>
                     A plain lobby. Shadows cling to the corners of the room.
                 </Description>

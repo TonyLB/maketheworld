@@ -242,67 +242,64 @@ export class StandardRenderSimple {
                     return { outcome: 'Conflict' }
                 }
             }
+            else if (base instanceof StandardRenderString && incoming instanceof StandardRenderSpace) {
+                if (base.plainString.endsWith(' ')) {
+                    return { outcome: 'Base Longer', remainder: new StandardRenderString(base.plainString.slice(0, -1)) }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
+            else if (base instanceof StandardRenderSpace && incoming instanceof StandardRenderString) {
+                if (incoming.plainString.startsWith(' ')) {
+                    return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incoming.plainString.slice(1)) }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
             else {
                 return deepEqual(base.toJSON(), incoming.toJSON()) ? { outcome: 'Equal' } : { outcome: 'Conflict' }
             }
         }
-        const base = this.clone()._elements
-        const incomingElements = incoming.clone()._elements
-        const baseLength = base.length
-        const incomingLength = incomingElements.length
+        let base = this.clone()._elements
+        let incomingElements = incoming.clone()._elements
 
         //
         // Compare the end of the base and incoming objects, to see if one is a subset of the other.
-        // NOTE: While deepEqual is the right comparison for all but the *earliest* common element, the earliest common element
-        // requires special handling, as it may be a string that is a subset of the other string.
         //
-        if (baseLength > incomingLength) {
-            const baseEnd = base.slice(baseLength - incomingLength)
-            const baseFirstElementCompared = baseEnd[0]
-            const incomingFirstElementCompared = incomingElements[0]
-            if (baseEnd.slice(1).every((element, index) => deepEqual(element.toJSON(), incomingElements[index + 1].toJSON()))) {
-                const { outcome, remainder } = compareElements(baseFirstElementCompared, incomingFirstElementCompared)
-                if (outcome === 'Equal') {
-                    return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base.slice(0, baseLength - incomingLength)) }
-                }
-                if (outcome === 'Base Longer') {
-                    return { outcome, remainder: new StandardRenderSimple([...base.slice(0, baseLength - incomingLength), ...remainder ? [remainder] : []]) }
-                }
-                if (outcome === 'Incoming Longer' || outcome === 'Conflict') {
-                    return { outcome: 'Conflict' }
-                }
-            }
-        }
-        else if (incomingLength > baseLength) {
-            const incomingEnd = incomingElements.slice(incomingLength - baseLength)
-            const baseFirstElementCompared = base[0]
-            const incomingFirstElementCompared = incomingEnd[0]
-            if (incomingEnd.slice(1).every((element, index) => deepEqual(element.toJSON(), base[index + 1].toJSON()))) {
-                const { outcome, remainder } = compareElements(baseFirstElementCompared, incomingFirstElementCompared)
-                if (outcome === 'Equal') {
-                    return { outcome: 'Incoming Longer', remainder: new StandardRenderSimple(incomingElements.slice(0, incomingLength - baseLength)) }
-                }
-                if (outcome === 'Incoming Longer') {
-                    return { outcome, remainder: new StandardRenderSimple([...incomingElements.slice(0, incomingLength - baseLength), ...remainder ? [remainder] : []]) }
-                }
-                if (outcome === 'Base Longer' || outcome === 'Conflict') {
-                    return { outcome: 'Conflict' }
-                }
-            }
-        }
-        else if (base.slice(1).every((element, index) => deepEqual(element.toJSON(), incomingElements[index + 1].toJSON()))) {
-            const { outcome, remainder } = compareElements(base[0], incomingElements[0])
+        while(base.length > 0 && incomingElements.length > 0) {
+            const baseLastElement = base[base.length - 1]
+            const incomingLastElement = incomingElements[incomingElements.length - 1]
+            const { outcome, remainder } = compareElements(baseLastElement, incomingLastElement)
             if (outcome === 'Equal') {
-                return { outcome: 'Equal' }
+                base = base.slice(0, -1)
+                incomingElements = incomingElements.slice(0, -1)
             }
-            if (outcome === 'Base Longer') {
-                return { outcome, remainder: new StandardRenderSimple([...remainder ? [remainder] : []]) }
+            else if (outcome === 'Base Longer') {
+                base = [...base.slice(0, -1), remainder as StandardRenderSimpleElement]
+                incomingElements = incomingElements.slice(0, -1)
             }
-            if (outcome === 'Incoming Longer') {
-                return { outcome, remainder: new StandardRenderSimple([...remainder ? [remainder] : []]) }
+            else if (outcome === 'Incoming Longer') {
+                base = base.slice(0, -1)
+                incomingElements = [...incomingElements.slice(0, -1), remainder as StandardRenderSimpleElement]
+            }
+            else if (outcome === 'Conflict') {
+                break
             }
         }
-        return { outcome: 'Conflict' }
+        if (base.length === 0 && incomingElements.length === 0) {
+            return { outcome: 'Equal' }
+        }
+        else if (base.length === 0) {
+            return { outcome: 'Incoming Longer', remainder: new StandardRenderSimple(incomingElements) }
+        }
+        else if (incomingElements.length === 0) {
+            return { outcome: 'Base Longer', remainder: new StandardRenderSimple(base) }
+        }
+        else {
+            return { outcome: 'Conflict' }
+        }
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRenderSimple {

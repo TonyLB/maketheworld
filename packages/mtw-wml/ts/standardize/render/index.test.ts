@@ -257,6 +257,14 @@ describe('StandardRender', () => {
         expect(schemaToWML(merged.toJSON())).toEqual('<Remove>Example</Remove>')
     })
 
+    it('should correctly interpret a Space prefix in a remove schema matching mid-string space', () => {
+        const incomingSchema = new Schema()
+        incomingSchema.loadWML(`<Remove><Space />More</Remove>`)
+        const base = new StandardRender([{ data: { tag: 'String', value: 'Text More' }, children: [] }])
+        const merged = base.merge(new StandardRender(incomingSchema.schema))
+        expect(merged.toNDJSON()).toEqual(['Text'])
+    })
+
     it('should merge replace incoming schema into simple base', () => {
         const baseSchema = new Schema()
         baseSchema.loadWML(`
