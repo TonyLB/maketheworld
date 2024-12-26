@@ -225,7 +225,7 @@ export class StandardForm {
                     { key: 'Action' },
                     {
                         key: 'Example',
-                        legalParents: ['Room', 'Feature']
+                        legalParents: ['Room', 'Feature', 'Knowledge']
                     }
                 ]
         

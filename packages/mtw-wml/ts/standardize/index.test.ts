@@ -443,6 +443,32 @@ describe('StandardForm', () => {
         })
     })
 
+    it('should correctly return JSON for examples nested in Knowledge', () => {
+        const test = new StandardForm(`<Asset key=(Test)>
+            <Knowledge key=(test)>
+                <Example key=(testLocal)>
+                    <Description>Description Test</Description>
+                </Example>
+            </Knowledge>
+        </Asset>`)
+        expect(test.toJSON()).toEqual({
+            key: 'Test',
+            metaData: [],
+            byId: {
+                test: {
+                    tag: 'Knowledge',
+                    key: 'test',
+                    examples: [{ tag: 'Example', key: 'testLocal' }]
+                },
+                ['test.testLocal']: {
+                    tag: 'Example',
+                    key: 'test.testLocal',
+                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                }
+            }
+        })
+    })
+
     it('should correct return JSON for examples nested in features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
@@ -530,6 +556,20 @@ describe('StandardForm', () => {
                 <Room key=(testTwo) />
             </Asset>
         `))
+    })
+
+    it('should correctly return schema for examples nested in knowledge', () => {
+        const testSource = deIndentWML(`
+            <Asset key=(Test)>
+                <Knowledge key=(test)>
+                    <Example key=(testLocal)>
+                        <Description>Description Test</Description>
+                    </Example>
+                </Knowledge>
+            </Asset>
+        `)
+        const test = new StandardForm(testSource)
+        expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
     it('should correctly return schema for examples nested in features nested in rooms', () => {
