@@ -1,3 +1,4 @@
+import { StandardReferenceData } from ".";
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag } from "../../../schema/baseClasses";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract";
 import { checkAll, checkTypes } from "./typeguards";
@@ -6,6 +7,7 @@ export type StandardFeatureData = {
     tag: 'Feature';
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
+    examples?: StandardReferenceData[];
     global?: boolean;
 } & StandardBaseData
 
