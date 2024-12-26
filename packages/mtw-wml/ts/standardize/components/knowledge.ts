@@ -78,6 +78,20 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         }
     }
 
+    nestedSchema(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag> {
+        return {
+            data: { tag: 'Knowledge', key: localKey },
+            children: [
+                ...this.examples.map((reference) => (
+                    reference.global
+                        ? reference.schema
+                        : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, reference.key, `${globalKey}.${reference.key}`)
+                )).filter(excludeUndefined),
+                ...[this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
+            ]
+        }
+    }
+
     merge(incoming: this): this {
         const returnValue = new StandardKnowledgePayload()
         returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
