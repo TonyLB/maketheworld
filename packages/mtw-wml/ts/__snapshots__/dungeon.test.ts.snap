@@ -7144,6 +7144,7 @@ Object {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "bellowsRunning",
                 "tag": "Statement",
               },
@@ -7195,6 +7196,7 @@ Object {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!bellowsRunning",
                 "tag": "Statement",
               },
@@ -7268,6 +7270,7 @@ Object {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "birdsInOrchard",
                 "tag": "Statement",
               },
@@ -7434,6 +7437,7 @@ Object {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive",
                 "tag": "Statement",
               },
@@ -7652,6 +7656,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive",
                 "tag": "Statement",
               },
@@ -7715,6 +7720,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "birdsInOrchard",
                 "tag": "Statement",
               },
@@ -7936,6 +7942,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "determinedStatueRightArm",
                 "tag": "Statement",
               },
@@ -8029,6 +8036,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "determinedStatueLeftArm",
                 "tag": "Statement",
               },
@@ -8145,6 +8153,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "determinedStatueHead",
                 "tag": "Statement",
               },
@@ -8541,6 +8550,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "waterLevel >= 4",
                 "tag": "Statement",
               },
@@ -8598,6 +8608,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "waterLevel < 4 && waterLevel >= 2",
                 "tag": "Statement",
               },
@@ -8648,6 +8659,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "waterLevel < 2",
                 "tag": "Statement",
               },
@@ -8695,6 +8707,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -8723,6 +8736,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -8751,6 +8765,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -8779,6 +8794,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -8807,6 +8823,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -8865,6 +8882,7 @@ trapDoorOpen = false
             ],
             "data": Object {
               "if": "waterLevel < 4",
+              "selected": undefined,
               "tag": "Statement",
             },
           },
@@ -8953,6 +8971,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive",
                 "tag": "Statement",
               },
@@ -8981,6 +9000,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive",
                 "tag": "Statement",
               },
@@ -9009,6 +9029,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9037,6 +9058,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9065,6 +9087,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9093,6 +9116,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9121,6 +9145,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9179,6 +9204,7 @@ trapDoorOpen = false
             ],
             "data": Object {
               "if": "!hearthActive",
+              "selected": undefined,
               "tag": "Statement",
             },
           },
@@ -9313,6 +9339,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive",
                 "tag": "Statement",
               },
@@ -9341,6 +9368,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive",
                 "tag": "Statement",
               },
@@ -9369,6 +9397,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9397,6 +9426,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9425,6 +9455,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9453,6 +9484,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9481,6 +9513,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -9539,6 +9572,7 @@ trapDoorOpen = false
             ],
             "data": Object {
               "if": "!hearthActive",
+              "selected": undefined,
               "tag": "Statement",
             },
           },
@@ -9689,6 +9723,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "gratingBlocked",
                 "tag": "Statement",
               },
@@ -9740,6 +9775,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!gratingBlocked",
                 "tag": "Statement",
               },
@@ -9819,6 +9855,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthPrimed",
                 "tag": "Statement",
               },
@@ -9853,6 +9890,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthPrimed",
                 "tag": "Statement",
               },
@@ -9979,6 +10017,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive",
                 "tag": "Statement",
               },
@@ -10046,6 +10085,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10074,6 +10114,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10102,6 +10143,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10130,6 +10172,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10158,6 +10201,7 @@ trapDoorOpen = false
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10439,6 +10483,7 @@ if (robedStatueActive) {
                         },
                       ],
                       "data": Object {
+                        "dependencies": undefined,
                         "if": "catsInOrchard",
                         "tag": "Statement",
                       },
@@ -10450,6 +10495,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "waterLevel >= 4",
                 "tag": "Statement",
               },
@@ -10507,6 +10553,7 @@ if (robedStatueActive) {
                         },
                       ],
                       "data": Object {
+                        "dependencies": undefined,
                         "if": "catsInOrchard",
                         "tag": "Statement",
                       },
@@ -10518,6 +10565,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "waterLevel < 4",
                 "tag": "Statement",
               },
@@ -10546,6 +10594,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10574,6 +10623,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10602,6 +10652,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10630,6 +10681,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10658,6 +10710,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10686,6 +10739,7 @@ if (robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -10927,6 +10981,7 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "robedStatueActive",
                 "tag": "Statement",
               },
@@ -11078,6 +11133,7 @@ if (!robedStatueActive) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "robedStatueActive",
                 "tag": "Statement",
               },
@@ -11319,6 +11375,7 @@ switch(glowingColumns) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11347,6 +11404,7 @@ switch(glowingColumns) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11375,6 +11433,7 @@ switch(glowingColumns) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11403,6 +11462,7 @@ switch(glowingColumns) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11431,6 +11491,7 @@ switch(glowingColumns) {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11738,6 +11799,7 @@ else {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "trapDoorOpen",
                 "tag": "Statement",
               },
@@ -11766,6 +11828,7 @@ else {
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!trapDoorOpen",
                 "tag": "Statement",
               },
@@ -11967,6 +12030,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -11995,6 +12059,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -12023,6 +12088,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
                 "tag": "Statement",
               },
@@ -12051,6 +12117,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -12079,6 +12146,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "hearthActive && !birdsInOrchard",
                 "tag": "Statement",
               },
@@ -12221,6 +12289,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "robedStatueActive",
                 "tag": "Statement",
               },
@@ -12311,6 +12380,7 @@ determinedStatueHead = !determinedStatueHead
                 },
               ],
               "data": Object {
+                "dependencies": undefined,
                 "if": "determinedStatueHead",
                 "tag": "Statement",
               },

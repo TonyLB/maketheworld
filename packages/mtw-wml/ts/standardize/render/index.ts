@@ -310,6 +310,7 @@ export class StandardRenderSimple {
 
 type RenderConditionalStatement = {
     if: string
+    dependencies?: string[];
     payload: StandardRenderSimple
 }
 
@@ -335,6 +336,7 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
                 if (!(typeof node === 'string') && isSchemaConditionStatement(node.data)) {
                     return {
                         if: node.data.if,
+                        dependencies: node.data.dependencies,
                         payload: new StandardRenderSimple(node.children)
                     }
                 }
@@ -364,8 +366,8 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
         return {
             data: { tag: 'If' as const },
             children: [
-                ...this._statements.map(({ if: condition, payload }) => ({
-                    data: { tag: 'Statement' as const, if: condition },
+                ...this._statements.map(({ if: condition, dependencies, payload }) => ({
+                    data: { tag: 'Statement' as const, if: condition, dependencies },
                     children: payload.toJSON()
                 })),
                 ...(this._fallthrough ? [{
@@ -380,8 +382,8 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
         return {
             data: { tag: 'If' as const },
             children: [
-                ...this._statements.map(({ if: condition, payload }) => ({
-                    data: { tag: 'Statement' as const, if: condition },
+                ...this._statements.map(({ if: condition, dependencies, payload }) => ({
+                    data: { tag: 'Statement' as const, if: condition, dependencies },
                     children: payload.toNDJSON()
                 })),
                 ...(this._fallthrough ? [{

@@ -197,7 +197,7 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
             return { tag: 'String', value: ' ' }
         }
         return data
-    })
+    }) as any
 }
 
 //

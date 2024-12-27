@@ -284,14 +284,6 @@ describe('cacheAsset', () => {
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
             'test',
             [{
-                EphemeraId: 'IMAGE#GHI',
-                tag: 'Image',
-                key: 'image1',
-                fileName: 'test.png',
-                keyMapping: {},
-                stateMapping: {}
-            },
-            {
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
                 tag: 'Room',
@@ -309,6 +301,14 @@ describe('cacheAsset', () => {
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 themes: [],
                 keyMapping: { room1: 'ROOM#ABC' },
+                stateMapping: {}
+            },
+            {
+                EphemeraId: 'IMAGE#GHI',
+                tag: 'Image',
+                key: 'image1',
+                fileName: 'test.png',
+                keyMapping: {},
                 stateMapping: {}
             }],
             expect.any(Object)

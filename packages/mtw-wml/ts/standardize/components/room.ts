@@ -104,7 +104,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             description: stripUI
                 ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
                 : this.description,
-            exits: this.exits,
+            exits: stripUI ? stripUIFields(this.exits) : this.exits,
             themes: this.themes,
             ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
