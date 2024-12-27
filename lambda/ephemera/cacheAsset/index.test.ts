@@ -250,10 +250,12 @@ describe('cacheAsset', () => {
             DataCategory: "Meta::Asset",
             scopeMap: {
                 ABC: 'ROOM#DEF',
+                'ABC.base': 'EXAMPLE#MNO',
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
                 switchedOn: 'VARIABLE#TUV',
                 testKnowledge: 'KNOWLEDGE#GHI',
+                'testKnowledge.base': 'EXAMPLE#PQR',
                 toggleSwitch: 'ACTION#JKL'
             }
         })

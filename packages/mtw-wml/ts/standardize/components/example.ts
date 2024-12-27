@@ -80,7 +80,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    toNDJSON(): Omit<StandardExampleNDJSONData, 'key' | 'universalKey'> {
+    toNDJSON(options?: StandardToJSONOptions): Omit<StandardExampleNDJSONData, 'key' | 'universalKey'> {
         return {
             tag: 'Example',
             name: this._name?.toNDJSON().length === 0
@@ -178,10 +178,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withExport(exportData) as StandardExample)
     }
 
-    override toNDJSON(): StandardExampleNDJSONData {
+    override toNDJSON(options?: StandardToJSONOptions): StandardExampleNDJSONData {
         return {
-            ...this._key.toJSON(),
-            ...this._payload.toNDJSON(),
+            ...this._key.toJSON(options),
+            ...this._payload.toNDJSON(options),
             ...(this.import ? { from: this.import.toJSON() } : {}),
             ...(this.export ? { exportAs: this.export.toJSON() } : {})
         }
