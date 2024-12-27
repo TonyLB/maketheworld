@@ -23,7 +23,7 @@ export class StandardRenderSpace extends StandardRenderAbstract implements Stand
     }
 
     override toNDJSON() {
-        return ' '
+        return this.toJSON()
     }    
 }
 

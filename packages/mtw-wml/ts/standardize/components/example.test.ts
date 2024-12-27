@@ -111,4 +111,22 @@ describe('StandardExample class', () => {
             </Example>
         `))
     })
+
+    it('should return condensed RenderSchema on NDJSON', () => {
+        const test = new StandardExample(`
+            <Example key=(testExample)>
+                <Name>Lobby<If {active}><Space />(lit)</If></Name>
+                <Summary>Summary</Summary>
+                <Description>A plain lobby.</Description>
+            </Example>
+        `)
+        expect(test.toNDJSON()).toEqual({
+            key: 'testExample',
+            tag: 'Example',
+            name: ['Lobby', { data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: 'active' }, children: [{ data: { tag: 'Space' }, children: [] }, '(lit)'] }] }],
+            summary: ['Summary'],
+            description: ['A plain lobby.']
+        })
+    })
+
 })

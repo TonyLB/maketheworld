@@ -1,5 +1,6 @@
 import { SchemaOutputTag } from "../../../schema/baseClasses"
 import { GenericTree } from "../../../tree/baseClasses";
+import { RenderTree, RenderTreeNode } from "../../render/baseClasses";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 
@@ -8,6 +9,13 @@ export type StandardExampleData = {
     name?: GenericTree<SchemaOutputTag>;
     summary?: GenericTree<SchemaOutputTag>;
     description?: GenericTree<SchemaOutputTag>;
+} & StandardBaseData
+
+export type StandardExampleNDJSONData = {
+    tag: 'Example';
+    name?: RenderTree;
+    summary?: RenderTree;
+    description?: RenderTree;
 } & StandardBaseData
 
 export const isStandardExample = (arg: any): arg is StandardExampleData => {

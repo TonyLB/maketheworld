@@ -33,6 +33,7 @@ import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/charact
 import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 
 export const pushEphemera = async({
     EphemeraId,
@@ -82,24 +83,6 @@ export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, '
     })
 }
 
-const stripUIFieldsFromStandardForm = (standard: StandardForm): StandardForm => {
-    const stripUIFields = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
-        tree.map((node) => {
-            if (treeNodeTypeguard(isSchemaConditionStatement)(node) || treeNodeTypeguard(isSchemaConditionFallthrough)(node)) {
-                return {
-                    data: { ...node.data, selected: undefined },
-                    children: stripUIFields(node.children)
-                }
-            }
-            return {
-                ...node,
-                children: stripUIFields(node.children)
-            }
-        })
-    )
-    return standard.mapContents(stripUIFields)
-}
-
 type CacheAssetArguments = {
     messageBus: MessageBus;
     assetId: EphemeraAssetId | EphemeraCharacterId;
@@ -135,12 +118,11 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             }
         }
     
-        // const ephemeraExtractor = ephemeraItemFromStandard(assetWorkspace)
-        const ephemeraItems: (StandardComponentData & { EphemeraId: EphemeraId })[] = Object.values(stripUIFieldsFromStandardForm(assetWorkspace.standard).byId || {})
+        const ephemeraItems: (StandardComponentData & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
             .filter(excludeUndefined)
             .map((item) => {
                 if (item instanceof StandardCharacter || item instanceof StandardVariable) {
-                    return item.toJSON({ stripUniversalKey: true })
+                    return item.toJSON({ stripUniversalKey: true, stripUIFields: true })
                 }
                 //
                 // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
@@ -169,7 +151,11 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                     return previous
                 }, {})
                 return {
-                    ...item.toJSON({ stripUniversalKey: true }),
+                    ...(
+                        item instanceof StandardExample 
+                            ? item.toNDJSON({ stripUniversalKey: true, stripUIFields: true })
+                            : item.toJSON({ stripUniversalKey: true, stripUIFields: true })
+                    ),
                     keyMapping,
                     stateMapping,
                     ...(item instanceof StandardMap
