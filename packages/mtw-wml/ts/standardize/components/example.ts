@@ -13,7 +13,7 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 
-export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleData> {
+export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
     _summary?: StandardRender;
     _description?: StandardRender;
@@ -27,7 +27,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    fromJSON(props: StandardExampleData) {
+    fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
         const { name, summary, description } = props
         this._name = new StandardRender(name)
         this._summary = new StandardRender(summary)
@@ -144,7 +144,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get description() { return this._payload.description }
     override get global() { return false }
 
-    constructor(props: string | StandardExampleData | GenericTreeNode<SchemaTag> | StandardExample) {
+    constructor(props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample) {
         super(props)
     }
 
