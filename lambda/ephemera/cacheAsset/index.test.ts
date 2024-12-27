@@ -123,14 +123,18 @@ describe('cacheAsset', () => {
         const testStandard = new StandardForm(`
             <Asset key=(Test)>
                 <Room key=(ABC)>
-                    <Name>
-                        Vortex<If {active}>(lit)</If>
-                    </Name>
-                    <Description>The lights are on</Description>
+                    <Example key=(base)>
+                        <Name>
+                            Vortex<If {active}>(lit)</If>
+                        </Name>
+                        <Description>The lights are on</Description>
+                    </Example>
                 </Room>
                 <Knowledge key=(testKnowledge)>
-                    <Name>Knowledge is power</Name>
-                    <Description>There is so much to learn!</Description>
+                    <Example key=(base)>
+                        <Name>Knowledge is power</Name>
+                        <Description>There is so much to learn!</Description>
+                    </Example>
                 </Knowledge>
                 <Variable key=(powered) default={false} />
                 <Variable key=(switchedOn) default={true} />
@@ -146,6 +150,8 @@ describe('cacheAsset', () => {
                     case 'switchedOn': return 'VARIABLE#TUV'
                     case 'testKnowledge': return 'KNOWLEDGE#GHI'
                     case 'toggleSwitch': return 'ACTION#JKL'
+                    case 'ABC.base': return 'EXAMPLE#MNO'
+                    case 'testKnowledge.base': return 'EXAMPLE#PQR'
                 }
                 return undefined
             })
@@ -166,28 +172,42 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                name: {
-                    data: { tag: 'Name' },
-                    children: [
-                        { data: { tag: 'String', value: 'Vortex' }, children: [] },
-                        { data: { tag: 'If' }, children: [
-                            { data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: [{ data: { tag: 'String', value: '(lit)' }, children: [] }]}
-                        ] }
-                    ]
-                },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'The lights are on' }, children: [] }] },
                 exits: [],
                 themes: [],
                 tag: 'Room',
-                stateMapping: { active: 'COMPUTED#XYZ' },
-                keyMapping: {}
+                stateMapping: {},
+                keyMapping: {},
+                examples: [{ tag: 'Example', key: 'base' }]
+            },
+            {
+                EphemeraId: 'EXAMPLE#MNO',
+                key: 'ABC.base',
+                tag: 'Example',
+                name: [
+                    'Vortex',
+                    { 
+                        data: { tag: 'If' },
+                        children: [{ data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: ['(lit)'] }]
+                    }
+                ],
+                description: ['The lights are on'],
+                keyMapping: {},
+                stateMapping: { active: 'COMPUTED#XYZ' }
             },
             {
                 EphemeraId: 'KNOWLEDGE#GHI',
                 key: 'testKnowledge',
                 tag: 'Knowledge',
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] },
+                keyMapping: {},
+                stateMapping: {},
+                examples: [{ tag: 'Example', key: 'base' }]
+            },
+            {
+                EphemeraId: 'EXAMPLE#PQR',
+                key: 'testKnowledge.base',
+                tag: 'Example',
+                name: ['Knowledge is power'],
+                description: ['There is so much to learn!'],
                 keyMapping: {},
                 stateMapping: {}
             },

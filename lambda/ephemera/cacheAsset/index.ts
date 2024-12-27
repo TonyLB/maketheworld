@@ -33,6 +33,7 @@ import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/charact
 import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 
 export const pushEphemera = async({
     EphemeraId,
@@ -150,7 +151,11 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                     return previous
                 }, {})
                 return {
-                    ...item.toJSON({ stripUniversalKey: true, stripUIFields: true }),
+                    ...(
+                        item instanceof StandardExample 
+                            ? item.toNDJSON({ stripUniversalKey: true, stripUIFields: true })
+                            : item.toJSON({ stripUniversalKey: true, stripUIFields: true })
+                    ),
                     keyMapping,
                     stateMapping,
                     ...(item instanceof StandardMap
