@@ -7,13 +7,18 @@ import {
 } from './baseClasses'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { MessageBus } from '../messageBus/baseClasses'
-import { mergeIntoEphemera } from './mergeIntoEphemera'
+import { mergeIntoEphemera, mergeIntoExamples } from './mergeIntoEphemera'
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
+    EphemeraFeatureId,
     EphemeraId,
+    EphemeraKnowledgeId,
+    EphemeraRoomId,
     isEphemeraAssetId,
+    isEphemeraFeatureId,
     isEphemeraId,
+    isEphemeraKnowledgeId,
     isEphemeraRoomId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
@@ -120,6 +125,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     
         const ephemeraItems: (StandardComponentData & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
             .filter(excludeUndefined)
+            .filter((component) => (!(component instanceof StandardExample)))
             .map((item) => {
                 if (item instanceof StandardCharacter || item instanceof StandardVariable) {
                     return item.toJSON({ stripUniversalKey: true, stripUIFields: true })
@@ -186,7 +192,29 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 
-        await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
+        const examplesByComponentUniversalKey = Object.values(assetWorkspace.standard.byId || {})
+            .filter((item) => (item instanceof StandardExample))
+            .reduce<Record<EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, StandardExample[]>>((previous, example) => {
+                const parentKey = example.key.split('.').slice(0, -1).join('.')
+                if (!parentKey) {
+                    return previous
+                }
+                const parentUniversalKey = assetWorkspace.standard?.byId?.[parentKey]?.universalKey
+                if (!(parentUniversalKey && (isEphemeraRoomId(parentUniversalKey) || isEphemeraFeatureId(parentUniversalKey) || isEphemeraKnowledgeId(parentUniversalKey)))) {
+                    return previous
+                }
+                return {
+                    ...previous,
+                    [parentUniversalKey]: [
+                        ...(previous[parentUniversalKey] || []),
+                        example
+                    ]
+                }
+            }, {})
+        await Promise.all([
+            mergeIntoEphemera(assetId, ephemeraItems, graphUpdate),
+            mergeIntoExamples(assetId, examplesByComponentUniversalKey)
+        ])
 
         const assets = (assetWorkspace.standard?.metaData ?? [])
             .filter(treeNodeTypeguard(isSchemaImport))

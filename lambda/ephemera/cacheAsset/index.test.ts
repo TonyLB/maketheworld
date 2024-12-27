@@ -10,7 +10,7 @@ import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update/index'
 jest.mock('@tonylb/mtw-utilities/ts/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/ts/computation/sandbox'
 jest.mock('./mergeIntoEphemera')
-import { mergeIntoEphemera } from './mergeIntoEphemera'
+import { mergeIntoEphemera, mergeIntoExamples } from './mergeIntoEphemera'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
@@ -26,6 +26,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml
 import { isSchemaComputed, isSchemaConditionStatement, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -33,6 +34,7 @@ import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
+const mergeIntoExamplesMock = mergeIntoExamples as jest.Mock
 
 jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn()
@@ -180,36 +182,12 @@ describe('cacheAsset', () => {
                 examples: [{ tag: 'Example', key: 'base' }]
             },
             {
-                EphemeraId: 'EXAMPLE#MNO',
-                key: 'ABC.base',
-                tag: 'Example',
-                name: [
-                    'Vortex',
-                    { 
-                        data: { tag: 'If' },
-                        children: [{ data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: ['(lit)'] }]
-                    }
-                ],
-                description: ['The lights are on'],
-                keyMapping: {},
-                stateMapping: { active: 'COMPUTED#XYZ' }
-            },
-            {
                 EphemeraId: 'KNOWLEDGE#GHI',
                 key: 'testKnowledge',
                 tag: 'Knowledge',
                 keyMapping: {},
                 stateMapping: {},
                 examples: [{ tag: 'Example', key: 'base' }]
-            },
-            {
-                EphemeraId: 'EXAMPLE#PQR',
-                key: 'testKnowledge.base',
-                tag: 'Example',
-                name: ['Knowledge is power'],
-                description: ['There is so much to learn!'],
-                keyMapping: {},
-                stateMapping: {}
             },
             {
                 EphemeraId: 'VARIABLE#QRS',
@@ -245,6 +223,30 @@ describe('cacheAsset', () => {
             }],
             expect.any(Object)
         )
+        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
+        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+            ['ROOM#DEF']: [{
+                key: 'ABC.base',
+                tag: 'Example',
+                universalKey: 'EXAMPLE#MNO',
+                name: [
+                    'Vortex',
+                    { 
+                        data: { tag: 'If' },
+                        children: [{ data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: ['(lit)'] }]
+                    }
+                ],
+                description: ['The lights are on']
+            }],
+            ['KNOWLEDGE#GHI']: [{
+                key: 'testKnowledge.base',
+                tag: 'Example',
+                universalKey: 'EXAMPLE#PQR',
+                name: ['Knowledge is power'],
+                description: ['There is so much to learn!']
+            }]
+        })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
