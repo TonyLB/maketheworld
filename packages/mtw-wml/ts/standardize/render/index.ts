@@ -27,7 +27,6 @@ import {
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 import { MergeConflictError } from "../baseClasses"
 import { deepEqual } from "../../lib/objects"
-import { StandardRemove } from "../edits"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 

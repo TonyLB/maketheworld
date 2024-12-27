@@ -11,7 +11,7 @@ import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import { StandardExampleData } from "./dataTypes/example"
+import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleData> {
     _name?: StandardRender;
@@ -77,6 +77,21 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
                 : stripUI
                     ? this._description?.mapContents(stripUIFields).toJSON()
                     : this._description?.toJSON()
+        }
+    }
+
+    toNDJSON(): Omit<StandardExampleNDJSONData, 'key' | 'universalKey'> {
+        return {
+            tag: 'Example',
+            name: this._name?.toNDJSON().length === 0
+                ? undefined
+                : this._name?.mapContents(stripUIFields).toNDJSON(),
+            summary: this._summary?.toNDJSON().length === 0
+                ? undefined
+                : this._summary?.mapContents(stripUIFields).toNDJSON(),
+            description: this._description?.toNDJSON().length === 0
+                ? undefined
+                : this._description?.mapContents(stripUIFields).toNDJSON()
         }
     }
 
@@ -161,6 +176,15 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
         return new StandardExample(super.withExport(exportData) as StandardExample)
+    }
+
+    override toNDJSON(): StandardExampleNDJSONData {
+        return {
+            ...this._key.toJSON(),
+            ...this._payload.toNDJSON(),
+            ...(this.import ? { from: this.import.toJSON() } : {}),
+            ...(this.export ? { exportAs: this.export.toJSON() } : {})
+        }
     }
 
 }
