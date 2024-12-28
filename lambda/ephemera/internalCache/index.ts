@@ -19,6 +19,7 @@ import CacheAssetAddress from './assetAddress';
 import CacheCharacterSessions from './characterSessions';
 import CacheSessionConnections from './sessionConnections';
 import CachePlayerSessions from './playerSessions';
+import CacheExamples from './examples';
 
 type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
 
@@ -154,6 +155,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(CachePlayerSessions(CacheCharacterSessions(CacheSessionConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(OrchestrateMessages(CacheAssetAddress(CacheGlobal(CacheBase))))))))))))))))
+const InternalCache = CacheExamples(CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(CachePlayerSessions(CacheCharacterSessions(CacheSessionConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(OrchestrateMessages(CacheAssetAddress(CacheGlobal(CacheBase)))))))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache
