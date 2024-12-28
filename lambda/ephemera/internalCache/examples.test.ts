@@ -1,0 +1,134 @@
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ExamplesData } from './examples'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
+
+const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+
+describe('ExamplesData', () => {
+    let examplesData: ExamplesData
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        examplesData = new ExamplesData()
+    })
+
+    it('should fetch examples correctly', async () => {
+        ephemeraMock.query.mockResolvedValue([{
+            EphemeraId: 'ROOM#TestOne',
+            DataCategory: 'EXAMPLE#Base::TestAsset',
+            scopedId: 'example1',
+            name: ['Example Name'],
+            description: ['Example Description'],
+            summary: ['Example Summary']
+        }])
+
+        const output = await examplesData.get(['ROOM#TestOne'])
+        expect(output).toEqual({
+            'ROOM#TestOne': [{
+                assetId: 'TestAsset',
+                examples: [
+                    new StandardExample({
+                        tag: 'Example',
+                        key: 'example1',
+                        universalKey: 'Base',
+                        name: ['Example Name'],
+                        description: ['Example Description'],
+                        summary: ['Example Summary']
+                    })
+                ]
+            }]
+        })
+        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.query).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'ROOM#TestOne' },
+            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+            ExpressionAttributeValues: {
+                ':dcPrefix': 'EXAMPLE#'
+            },
+            ProjectionFields: ['DataCategory', 'scopedId', 'name', 'description', 'summary']
+        })
+    })
+
+    it('should handle empty fetch results', async () => {
+        ephemeraMock.query.mockResolvedValue([])
+
+        const output = await examplesData.get(['ROOM#TestOne'])
+        expect(output).toEqual({
+            'ROOM#TestOne': []
+        })
+        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.query).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'ROOM#TestOne' },
+            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+            ExpressionAttributeValues: {
+                ':dcPrefix': 'EXAMPLE#'
+            },
+            ProjectionFields: ['DataCategory', 'scopedId', 'name', 'description', 'summary']
+        })
+    })
+
+    it('should set and get overridden examples', async () => {
+        const example = new StandardExample({
+            tag: 'Example',
+            key: 'example1',
+            universalKey: 'Base',
+            name: ['Example Name'],
+            description: ['Example Description'],
+            summary: ['Example Summary']
+        })
+
+        examplesData.set('ROOM#TestOne', [{
+            assetId: 'TestAsset',
+            examples: [example]
+        }])
+
+        const output = await examplesData.get(['ROOM#TestOne'])
+        expect(output).toEqual({
+            'ROOM#TestOne': [{
+                assetId: 'TestAsset',
+                examples: [example]
+            }]
+        })
+        expect(examplesData.isOverridden('ROOM#TestOne')).toBe(true)
+    })
+
+    it('should invalidate cache correctly', async () => {
+        const example = new StandardExample({
+            tag: 'Example',
+            key: 'example1',
+            universalKey: 'Base',
+            name: ['Example Name'],
+            description: ['Example Description'],
+            summary: ['Example Summary']
+        })
+
+        examplesData.set('ROOM#TestOne', [{
+            assetId: 'TestAsset',
+            examples: [example]
+        }])
+
+        examplesData.invalidate('ROOM#TestOne')
+        expect(examplesData.isOverridden('ROOM#TestOne')).toBeUndefined()
+
+        ephemeraMock.query.mockResolvedValue([{
+            EphemeraId: 'ROOM#TestOne',
+            DataCategory: 'EXAMPLE#Base::TestAsset',
+            scopedId: 'example1',
+            name: ['Example Name'],
+            description: ['Example Description'],
+            summary: ['Example Summary']
+        }])
+
+        const output = await examplesData.get(['ROOM#TestOne'])
+        expect(output).toEqual({
+            'ROOM#TestOne': [{
+                assetId: 'TestAsset',
+                examples: [example]
+            }]
+        })
+        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
+    })
+})
