@@ -9,9 +9,9 @@ import { CacheConstructor } from './baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
 
-type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
+export type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
 
-type ExamplesReturn = {
+export type ExamplesReturn = {
     assetId: string;
     examples: StandardExample[];
 }

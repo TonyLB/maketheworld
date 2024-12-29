@@ -40,6 +40,7 @@ import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
+import CacheExamples, { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -218,6 +219,7 @@ const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTr
 }
 
 export class ComponentRenderData {
+    _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn>>;
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
     _componentMeta: (EphemeraId: ComponentMetaId, assetList: string[]) => Promise<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
@@ -228,12 +230,14 @@ export class ComponentRenderData {
     _Dependencies: Record<string, StateItemId[]> = {}
     
     constructor(
+        examples: ExamplesData,
         evaluateCode: EvaluateCodeData,
         componentMeta: ComponentMetaData,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData
     ) {
+        this._examples = (keys) => (examples.get(keys))
         this._evaluateCode = (address) => (evaluateCode.get(address))
         this._componentMeta = (EphemeraId, assetList) => (componentMeta.getAcrossAssets(EphemeraId, assetList))
         this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
@@ -444,6 +448,11 @@ export class ComponentRenderData {
             return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
                 Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>
         }
+        
+        //
+        // TODO: ISS-4879: Refactor to use internalCache examples rather than construct output from componentMeta
+        //
+
         if (isEphemeraRoomId(EphemeraId)) {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
@@ -762,6 +771,7 @@ export class ComponentRenderData {
 }
 
 export const ComponentRender = <GBase extends (
+        ReturnType<typeof CacheExamples> &
         ReturnType<typeof ComponentMeta> &
         ReturnType<typeof AssetState> &
         ReturnType<typeof CacheRoomCharacterLists> &
@@ -774,6 +784,7 @@ export const ComponentRender = <GBase extends (
         constructor(...rest: any) {
             super(...rest)
             this.ComponentRender = new ComponentRenderData(
+                this.Examples,
                 this.EvaluateCode,
                 this.ComponentMeta,
                 this.RoomCharacterList,
