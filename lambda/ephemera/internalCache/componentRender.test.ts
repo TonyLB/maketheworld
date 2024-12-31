@@ -2,6 +2,7 @@ import { EphemeraMapId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseCla
 import internalCache from "../internalCache"
 import { ComponentMetaItem } from "./componentMeta"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
 // import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
 // import { componentAppearanceReduce } from "./componentRender"
 
@@ -11,110 +12,6 @@ describe('ComponentRender cache handler', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
-    })
-
-    it('should render only appearances whose condition succeeds', async () => {
-        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-            EphemeraId: 'CHARACTER#Test',
-            Name: 'Tess',
-            assets: ['Personal'],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-        })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-            Base: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Base',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testOne' },
-                        children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }]
-                    }]
-                }] },
-                description: { data: { tag: 'Description' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testOne' },
-                        children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
-                    }]
-                },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testTwo' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                }] },
-                exits: [],
-                themes: [],
-                key: 'testRoom',
-                stateMapping: {
-                    testOne: 'VARIABLE#One',
-                    testTwo: 'VARIABLE#Two'
-                },
-                keyMapping: {}
-            },
-            Personal: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Base',
-                tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testThree' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                }] },
-                description: { data: { tag: 'Description' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testThree' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testFour' },
-                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
-                    }]
-                }] },
-                exits: [],
-                themes: [],
-                key: 'testRoom',
-                stateMapping: {
-                    testThree: 'VARIABLE#Three',
-                    testFour: 'VARIABLE#Four'
-                },
-                keyMapping: {}
-            }
-        })
-        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
-            return Boolean(['testOne', 'testFour'].includes(source))
-        })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
-        ])
-        const output = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base', 'Personal'])
-        expect(output).toEqual({
-            RoomId: 'ROOM#TestOne',
-            ShortName: [{ tag: 'String', value: 'TestRoom' }],
-            Name: [],
-            Summary: [],
-            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-            Description: [{ tag: 'String', value: 'FirstSecond' }],
-            Exits: [],
-            assets: {
-                ['ASSET#Base']: 'testRoom',
-                ['ASSET#Personal']: 'testRoom'
-            }
-        })
     })
 
     it('should render room descriptions and headers differently', async () => {
@@ -128,14 +25,27 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
+        jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
+            'ROOM#TestOne': [{
+                assetId: 'TestAsset',
+                examples: [
+                    new StandardExample({
+                        tag: 'Example',
+                        key: 'example1',
+                        universalKey: 'Base',
+                        name: ['Example Name'],
+                        description: ['Description'],
+                        summary: ['Summary']
+                    })
+                ]
+            }]
+        })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 tag: 'Room',
                 shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
-                summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary' }, children: [] }] },
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description' }, children: [] }] },
                 exits: [],
                 themes: [],
                 key: 'testRoom',
@@ -150,7 +60,7 @@ describe('ComponentRender cache handler', () => {
         expect(descriptionOutput).toEqual({
             RoomId: 'ROOM#TestOne',
             ShortName: [{ tag: 'String', value: 'TestRoom' }],
-            Name: [],
+            Name: [{ tag: 'String', value: 'Example Name'}],
             Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'Description' }],
@@ -163,7 +73,7 @@ describe('ComponentRender cache handler', () => {
         expect(summaryOutput).toEqual({
             RoomId: 'ROOM#TestOne',
             ShortName: [{ tag: 'String', value: 'TestRoom' }],
-            Name: [],
+            Name: [{ tag: 'String', value: 'Example Name'}],
             Summary: [{ tag: 'String', value: 'Summary' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [],

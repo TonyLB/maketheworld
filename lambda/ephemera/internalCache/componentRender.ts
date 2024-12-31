@@ -1,9 +1,9 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraCondition } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData, TaggedLink } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
-import { unique } from '@tonylb/mtw-utilities/ts/lists';
+import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import AssetState, { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
     EphemeraAssetId,
@@ -33,7 +33,7 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaLinkTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer, isSchemaString } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
@@ -41,6 +41,7 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutp
 import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 import CacheExamples, { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
+import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -86,21 +87,6 @@ export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (a
             return [node]
         }
     }))).flat(1)
-    // const callback = async (tag: T): Promise<boolean> => {
-    //     if (isSchemaCondition(tag)) {
-    //         const conditionEvaluations = await Promise.all(
-    //             tag.conditions.map(async ({ if: source, not }) => {
-    //                 const evaluation = await evaluateCode({ source, mapping })
-    //                 return not ? !evaluation : evaluation
-    //             })
-    //         )
-    //         return conditionEvaluations.reduce<boolean>((previous, evaluation) => (previous && evaluation), true)
-    //     }
-    //     return true
-    // }
-    // const filteredTree = await asyncFilter({ tree, callback })
-    // const tagTree = new SchemaTagTree(filteredTree)
-    // const finalTree = tagTree.prune({ match: 'If' })
     if (typeGuard) {
         return treeTypeGuard({ tree: finalTree, typeGuard })
     }
@@ -201,6 +187,38 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
     }) as any
 }
 
+const renderTreeToTaggedMessage = (tree: RenderTree): TaggedMessageContentFlat[] => {
+    return tree.map((node) => {
+        if (typeof node === 'string') {
+            return { tag: 'String' as const, value: node }
+        }
+        const { data } = node
+        if (isSchemaString(data)) {
+            return data
+        }
+        if (isSchemaLink(data)) {
+            const lookupTarget = data.to
+            if (!(isEphemeraFeatureId(lookupTarget) || isEphemeraActionId(lookupTarget) || isEphemeraCharacterId(lookupTarget) || isEphemeraKnowledgeId(lookupTarget))) {
+                return { tag: 'String' as const, value: '' }
+            }
+            return {
+                ...data,
+                to: lookupTarget
+            } as TaggedLink
+        }
+        if (isSchemaLineBreak(data)) {
+            return { tag: 'LineBreak' as const }
+        }
+        if (isSchemaSpacer(data)) {
+            return { tag: 'String' as const, value: ' ' }
+        }
+        if (isSchemaSelected(data)) {
+            return { tag: 'String' as const, value: ' ' }
+        }
+        return undefined
+    }).filter(excludeUndefined)
+}
+
 //
 // deflattenSchemaOutputTags is a temporary conversion between legacy TaggedMessageContentFlat format and
 // unconditional SchemaOutputTag trees
@@ -219,7 +237,7 @@ const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTr
 }
 
 export class ComponentRenderData {
-    _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn>>;
+    _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
     _componentMeta: (EphemeraId: ComponentMetaId, assetList: string[]) => Promise<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
@@ -458,12 +476,12 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1)
+            const exampleMap = await this._examples([EphemeraId])
+            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
             const [roomCharacterList, exits, rest] = (await Promise.all([
                 this._roomCharacterList(EphemeraId),
                 evaluateSchemaPromise(assetData, 'exits' as any),
-                (getOptions && ('header' in getOptions) && getOptions.header)
-                    ? mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', description: 'Description' }, ['description' as any])
-                    : mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName', name: 'Name', summary: 'Summary', description: 'Description' }, ['summary' as any])
+                mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName' }, [])
             ]))
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
@@ -472,7 +490,12 @@ export class ComponentRenderData {
                     Characters: roomCharacterList.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
                     assets,
                     Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
-                    ...rest
+                    ...rest,
+                    Name: renderTreeToTaggedMessage(naiveFirstExample.name ?? []),
+                    ...((getOptions && ('header' in getOptions) && getOptions.header)
+                        ? { Summary: renderTreeToTaggedMessage(naiveFirstExample.summary ?? []), Description: [] }
+                        : { Description: renderTreeToTaggedMessage(naiveFirstExample.description ?? []), Summary: [] }
+                    )
                 }
             }
         }
