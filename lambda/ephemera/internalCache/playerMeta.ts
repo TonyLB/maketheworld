@@ -1,5 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheGlobalData } from '.'
+import CacheGlobalData from './global'
 
 export type PlayerMetaItem = {
     key: string;
