@@ -9,9 +9,9 @@ import { CacheConstructor } from './baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
 
-type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
+export type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
 
-type ExamplesReturn = {
+export type ExamplesReturn = {
     assetId: string;
     examples: StandardExample[];
 }
@@ -32,7 +32,7 @@ export class ExamplesData {
     flush() {
         this._ExamplesCache.flush()
     }
-    async get(keys: ExampleComponentId[]): Promise<Record<ExampleComponentId, ExamplesReturn>> {
+    async get(keys: ExampleComponentId[]): Promise<Record<ExampleComponentId, ExamplesReturn[]>> {
         this._ExamplesCache.add({
             promiseFactory: async (keys: string[]) => {
                 return await Promise.all(keys.map(async (componentId) => {
@@ -90,7 +90,7 @@ export class ExamplesData {
         })
         return Object.assign({}, ...(await Promise.all(
             keys.map(async (EphemeraId) => ({ [EphemeraId]: await this._ExamplesCache.get(EphemeraId) }))
-        ))) as Record<ExampleComponentId, ExamplesReturn>
+        ))) as Record<ExampleComponentId, ExamplesReturn[]>
     }
 
     set(EphemeraId: ExampleComponentId, value: ExamplesReturn[]) {
