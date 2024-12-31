@@ -1,5 +1,4 @@
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 
 export class CacheSessionConnectionsData {
     ConnectionsBySessionId: Record<string, Promise<string[] | undefined>> = {};
@@ -30,15 +29,4 @@ export class CacheSessionConnectionsData {
     }
 }
 
-export const CacheSessionConnections = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheSessionConnections extends Base {
-        SessionConnections: CacheSessionConnectionsData = new CacheSessionConnectionsData()
-
-        override clear() {
-            this.SessionConnections.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheSessionConnections
+export default CacheSessionConnectionsData

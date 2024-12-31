@@ -55,17 +55,5 @@ export type RoomCharacterListItem = {
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Bookmark' | 'Map'
 export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Bookmark', 'Map'].includes(tag))
 
-export class CacheBase {
-    clear() {}
-    async flush() {}
-}
-
-type Constructor<T = {}> = new (...args: any[]) => T;
-
-export type CacheConstructor = Constructor<{
-    clear(): void;
-    flush(): Promise<void>;
-}>
-
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))

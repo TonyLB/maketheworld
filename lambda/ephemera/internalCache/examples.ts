@@ -5,7 +5,6 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { DeferredCache } from './deferredCache'
-import { CacheConstructor } from './baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
 
@@ -110,15 +109,4 @@ export class ExamplesData {
     }
 }
 
-export const CacheExamples = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheExamples extends Base {
-        Examples: ExamplesData = new ExamplesData()
-
-        override clear() {
-            this.Examples.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheExamples
+export default ExamplesData

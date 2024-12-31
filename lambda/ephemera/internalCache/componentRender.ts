@@ -1,10 +1,10 @@
-import { ComponentMeta, ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './componentMeta'
+import { ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraCondition } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData, TaggedLink } from '@tonylb/mtw-interfaces/ts/messages'
-import { CacheGlobal, CacheGlobalData } from '.';
+import { CacheGlobalData } from '.';
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
-import AssetState, { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
+import { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
     EphemeraAssetId,
     EphemeraBookmarkId,
@@ -28,20 +28,20 @@ import {
     isEphemeraRoomId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { RoomCharacterListItem, StateItemId } from './baseClasses';
-import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
+import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaDescriptionTag, SchemaLinkTag, SchemaOutputTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer, isSchemaString } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer, isSchemaString } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardBookmark, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
-import CacheExamples, { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
+import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses';
+import { CacheRoomCharacterListsData } from './roomCharacterLists';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -793,43 +793,4 @@ export class ComponentRenderData {
     }
 }
 
-export const ComponentRender = <GBase extends (
-        ReturnType<typeof CacheExamples> &
-        ReturnType<typeof ComponentMeta> &
-        ReturnType<typeof AssetState> &
-        ReturnType<typeof CacheRoomCharacterLists> &
-        ReturnType<typeof CacheGlobal> &
-        ReturnType<typeof CacheCharacterMeta>
-    )>(Base: GBase) => {
-    return class ComponentMeta extends Base {
-        ComponentRender: ComponentRenderData;
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.ComponentRender = new ComponentRenderData(
-                this.Examples,
-                this.EvaluateCode,
-                this.ComponentMeta,
-                this.RoomCharacterList,
-                this.Global,
-                this.CharacterMeta
-            )
-        }
-        override clear() {
-            this.ComponentRender.clear()
-            super.clear()
-        }
-        override async flush() {
-            await Promise.all([
-                this.ComponentRender.flush(),
-                super.flush()
-            ])
-        }
-        override _invalidateAssetCallback(EphemeraId: StateItemId): void {
-            super._invalidateAssetCallback(EphemeraId)
-            this.ComponentRender.invalidateByEphemeraId(EphemeraId)
-        }
-    }
-}
-
-export default ComponentRender
+export default ComponentRenderData

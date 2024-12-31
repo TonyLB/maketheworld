@@ -85,16 +85,14 @@ describe('PublishMessage', () => {
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             Name: '',
-            ConnectionIds: ['Y123'],
             SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
             Name: '',
-            ConnectionIds: ['Y456'],
             SessionIds: ['Z456']
         }])
-        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? 'Y123' : 'Y456' ))
+        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? ['Y123'] : ['Y456'] ))
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
@@ -152,16 +150,14 @@ describe('PublishMessage', () => {
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             Name: '',
-            ConnectionIds: ['Y123'],
             SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
             Name: '',
-            ConnectionIds: ['Y456'],
             SessionIds: ['Z456']
         }])
-        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? 'Y123' : 'Y456' ))
+        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? ['Y123'] : ['Y456'] ))
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',

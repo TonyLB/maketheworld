@@ -1,5 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheGlobal, CacheGlobalData } from '.';
+import { CacheGlobalData } from '.'
 
 export type PlayerMetaItem = {
     key: string;
@@ -44,22 +44,4 @@ export class CachePlayerMetaData {
     }
 }
 
-export const CachePlayerMeta = <GBase extends ReturnType<typeof CacheGlobal>>(Base: GBase) => {
-    return class CachePlayerMeta extends Base {
-        PlayerMeta: CachePlayerMetaData
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.PlayerMeta = new CachePlayerMetaData(
-                this.Global
-            )
-        }
-
-        override clear() {
-            this.PlayerMeta.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CachePlayerMeta
+export default CachePlayerMetaData

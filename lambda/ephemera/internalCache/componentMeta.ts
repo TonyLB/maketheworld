@@ -1,9 +1,8 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
-import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'
 
-import { EphemeraRoom, EphemeraFeature, EphemeraKnowledge, EphemeraBookmark, EphemeraMap, EphemeraMessage, EphemeraMoment, EphemeraVariable, EphemeraComputed, EphemeraItem, EphemeraAction, EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
+import { EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
 import {
     EphemeraActionId,
     EphemeraBookmarkId,
@@ -236,25 +235,4 @@ export class ComponentMetaData {
     }
 }
 
-export const ComponentMeta = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class ComponentMeta extends Base {
-        ComponentMeta: ComponentMetaData;
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.ComponentMeta = new ComponentMetaData()
-        }
-        override clear() {
-            this.ComponentMeta.clear()
-            super.clear()
-        }
-        override async flush() {
-            await Promise.all([
-                this.ComponentMeta.flush(),
-                super.flush()
-            ])
-        }
-    }
-}
-
-export default ComponentMeta
+export default ComponentMetaData

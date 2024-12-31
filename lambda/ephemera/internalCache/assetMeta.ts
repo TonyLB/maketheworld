@@ -1,6 +1,5 @@
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 
 export type AssetMetaItem = {
     EphemeraId: EphemeraAssetId;
@@ -50,15 +49,4 @@ export class CacheAssetMetaData {
     }
 }
 
-export const CacheAssetMeta = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheAssetMeta extends Base {
-        AssetMeta: CacheAssetMetaData = new CacheAssetMetaData()
-
-        override clear() {
-            this.AssetMeta.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheAssetMeta
+export default CacheAssetMetaData

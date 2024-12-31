@@ -75,7 +75,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
             reflexive: 'themself'
         }
     })
-    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', Sessions: ['abcdef'] }])
+    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', SessionIds: ['abcdef'] }])
 }
 
 describe('moveCharacter', () => {
