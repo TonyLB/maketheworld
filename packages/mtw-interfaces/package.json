@@ -9,6 +9,9 @@
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
+  "dependencies": {
+    "@tonylb/mtw-wml": "file:../mtw-wml"
+  },
   "devDependencies": {
     "@types/jest": "^29.1.2",
     "esbuild": "^0.15.10",

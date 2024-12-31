@@ -1,5 +1,27 @@
-import { EphemeraActionId, EphemeraAssetId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import {
+    EphemeraActionId,
+    EphemeraAssetId,
+    EphemeraBookmarkId,
+    EphemeraCharacterId,
+    EphemeraFeatureId,
+    EphemeraKnowledgeId,
+    EphemeraMapId,
+    EphemeraNotificationId,
+    EphemeraRoomId,
+    isEphemeraActionId,
+    isEphemeraAssetId,
+    isEphemeraBookmarkId,
+    isEphemeraCharacterId,
+    isEphemeraComputedId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraMapId,
+    isEphemeraRoomId,
+    isEphemeraVariableId,
+    LegalCharacterColor
+} from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
+import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
 
 export type MessageAddressing = {
     MessageId: string;
@@ -353,7 +375,7 @@ export const taggedMessageToString = (message: (TaggedMessageContent | TaggedMes
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
-    Message: TaggedMessageContentFlat[];
+    Message: RenderTree;
 } & MessageAddressing
 
 export type RoomExit = {
@@ -392,16 +414,16 @@ const validateRoomCharacterList = (items: any) => {
 }
 
 export type BookmarkDescribeData = {
-    Description: TaggedMessageContentFlat[];
+    Description: RenderTree;
     BookmarkId: EphemeraBookmarkId;
     assets?: EphemeraAssetId[];
 }
 
 export type RoomDescribeData = {
-    Description: TaggedMessageContentFlat[];
-    ShortName: TaggedMessageContentFlat[];
-    Name: TaggedMessageContentFlat[];
-    Summary: TaggedMessageContentFlat[];
+    Description: RenderTree;
+    ShortName: RenderTree;
+    Name: RenderTree;
+    Summary: RenderTree;
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
@@ -413,8 +435,8 @@ export type RoomDescription = {
 } & RoomDescribeData & MessageAddressing
 
 export type FeatureDescribeData = {
-    Description: TaggedMessageContentFlat[];
-    Name: TaggedMessageContentFlat[];
+    Description: RenderTree;
+    Name: RenderTree;
     FeatureId: EphemeraFeatureId;
     assets?: Record<EphemeraAssetId, string>;
 }
@@ -424,8 +446,8 @@ export type FeatureDescription = {
 } & FeatureDescribeData & MessageAddressing
 
 export type KnowledgeDescribeData = {
-    Description: TaggedMessageContentFlat[];
-    Name: TaggedMessageContentFlat[];
+    Description: RenderTree;
+    Name: RenderTree;
     KnowledgeId: EphemeraKnowledgeId;
     assets?: Record<EphemeraAssetId, string>;
 }
@@ -447,7 +469,7 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    name: TaggedMessageContentFlat[];
+    name: RenderTree;
     fileURL?: string;
     rooms: MapDescribeRoom[];
     assets?: Record<EphemeraAssetId, string>;
@@ -522,17 +544,17 @@ type MessageCharacterInfo = {
 
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
-    Message: TaggedMessageContentFlat[];
+    Message: RenderTree;
 } & MessageAddressing & MessageCharacterInfo
 
 export type CharacterNarration = {
     DisplayProtocol: 'NarrateMessage';
-    Message: TaggedMessageContentFlat[];
+    Message: RenderTree;
 } & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OOCMessage';
-    Message: TaggedMessageContentFlat[];
+    Message: RenderTree;
 } & MessageAddressing & MessageCharacterInfo
 
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
