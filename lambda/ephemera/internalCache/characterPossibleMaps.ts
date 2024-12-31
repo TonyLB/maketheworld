@@ -1,7 +1,7 @@
 import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
+import CacheCharacterMetaData from './characterMeta';
 import { DeferredCache } from './deferredCache';
-import CacheGraph, { GraphCacheType } from './graph';
+import { GraphCacheType } from './graph';
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId) => (`${CharacterId}::${EphemeraId}`)
 
@@ -56,20 +56,4 @@ export class CacheCharacterPossibleMapsData {
     }
 }
 
-export const CacheCharacterPossibleMaps = <GBase extends ReturnType<typeof CacheCharacterMeta> & ReturnType<typeof CacheGraph>>(Base: GBase) => {
-    return class CacheCharacterPossibleMaps extends Base {
-        CharacterPossibleMaps: CacheCharacterPossibleMapsData;
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
-        }
-
-        override clear() {
-            this.CharacterPossibleMaps.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheCharacterPossibleMaps
+export default CacheCharacterPossibleMapsData

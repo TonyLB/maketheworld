@@ -1,6 +1,5 @@
 import { EphemeraAssetId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types';
 
 export type AssetRoomsItem = {
@@ -83,18 +82,3 @@ export class CacheRoomAssetsData {
     }
 
 }
-
-export const CacheAssetRooms = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheAssetRooms extends Base {
-        AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
-        RoomAssets: CacheRoomAssetsData = new CacheRoomAssetsData()
-
-        override clear() {
-            this.AssetRooms.clear()
-            this.RoomAssets.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheAssetRooms

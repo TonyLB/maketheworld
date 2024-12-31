@@ -1,7 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { CacheConstructor } from "./baseClasses"
-
 export type MessageGroupId = string;
 
 type OrchestrateMessagesGroup = {
@@ -126,21 +124,4 @@ export class OrchestrateMessagesData {
     }
 }
 
-
-export const OrchestrateMessages = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class OrchestrateMessages extends Base {
-        OrchestrateMessages: OrchestrateMessagesData
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.OrchestrateMessages = new OrchestrateMessagesData()
-        }
-
-        override clear() {
-            this.OrchestrateMessages.clear()
-            super.clear()
-        }
-    }
-}
-
-export default OrchestrateMessages
+export default OrchestrateMessagesData

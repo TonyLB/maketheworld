@@ -1,6 +1,6 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
+import { RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {
     CharacterListByRoom: Record<EphemeraRoomId, RoomCharacterListItem[]> = {};
@@ -33,15 +33,4 @@ export class CacheRoomCharacterListsData {
     }
 }
 
-export const CacheRoomCharacterLists = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheRoomCharacterLists extends Base {
-        RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
-
-        override clear() {
-            this.RoomCharacterList.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheRoomCharacterLists
+export default CacheRoomCharacterListsData

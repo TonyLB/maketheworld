@@ -1,6 +1,5 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 import { RoomStackItem } from '../moveCharacter';
 import { SchemaPronouns } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 
@@ -57,15 +56,4 @@ export class CacheCharacterMetaData {
     }
 }
 
-export const CacheCharacterMeta = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheCharacterMeta extends Base {
-        CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
-
-        override clear() {
-            this.CharacterMeta.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheCharacterMeta
+export default CacheCharacterMetaData

@@ -8,7 +8,7 @@ import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
-import CacheGraph, { GraphEdgeType, GraphNodeType } from './graph';
+import { GraphEdgeType, GraphNodeType } from './graph';
 import { objectMap } from '../lib/objects';
 import { StateItemId, isStateItemId } from './baseClasses';
 
@@ -209,37 +209,3 @@ export class AssetMap {
         }
     }
 }
-
-export const AssetState = <GBase extends ReturnType<typeof CacheGraph>>(Base: GBase) => {
-    return class AssetState extends Base {
-        StateCache: StateData
-        AssetState: AssetStateData
-        EvaluateCode: EvaluateCodeData
-        AssetMap: AssetMap
-
-        constructor(...rest: any) {
-            super()
-            this.StateCache = new StateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
-            this.AssetState = new AssetStateData(this.StateCache)
-            this.EvaluateCode = new EvaluateCodeData(this.AssetState)
-            this.AssetMap = new AssetMap(this.GraphNodes, this.GraphEdges)
-        }
-        override clear() {
-            this.StateCache.clear()
-            this.EvaluateCode.clear()
-            super.clear()
-        }
-        override async flush() {
-            await Promise.all([
-                this.StateCache.flush(),
-                super.flush()
-            ])
-        }
-
-        _invalidateAssetCallback(EphemeraId: StateItemId): void {
-            this.EvaluateCode.invalidateByAssetStateId(EphemeraId)
-        }
-    }
-}
-
-export default AssetState

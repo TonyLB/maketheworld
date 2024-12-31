@@ -1,6 +1,5 @@
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 
 export class CacheCharacterSessionsData {
     CharacterSessionsById: Record<EphemeraCharacterId, Promise<string[] | undefined>> = {};
@@ -25,15 +24,4 @@ export class CacheCharacterSessionsData {
     }
 }
 
-export const CacheCharacterSessions = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheCharacterSessions extends Base {
-        CharacterSessions: CacheCharacterSessionsData = new CacheCharacterSessionsData()
-
-        override clear() {
-            this.CharacterSessions.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheCharacterSessions
+export default CacheCharacterSessionsData

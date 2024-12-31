@@ -1,13 +1,12 @@
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 
-import { CacheBase } from "./baseClasses";
-import OrchestrateMessages from "./orchestrateMessages";
+import { InternalCache } from '.'
 
 const uuidv4Mock = uuidv4 as jest.Mock
 
 describe ('OrchestrateMessages', () => {
-    const testCache = new (OrchestrateMessages(CacheBase))()
+    const testCache = new InternalCache()
 
     beforeEach(() => {
         jest.clearAllMocks()

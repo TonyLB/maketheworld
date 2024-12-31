@@ -1,32 +1,32 @@
-import { CacheConstructor, CacheBase, isStateItemId } from './baseClasses'
+import { isStateItemId } from './baseClasses'
 
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
-import { CacheRoomCharacterListsData } from './roomCharacterLists';
-import { CacheCharacterMetaData } from './characterMeta';
+import CacheRoomCharacterListsData from './roomCharacterLists';
+import CacheCharacterMetaData from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
-import { AssetMap, AssetStateData, AssetStateMapping, EvaluateCodeData, StateData } from './assetState';
-import { ComponentMetaData } from './componentMeta';
+import { AssetMap, AssetStateData, EvaluateCodeData, StateData } from './assetState';
+import ComponentMetaData from './componentMeta';
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import { CacheAssetMetaData } from './assetMeta';
+import CacheAssetMetaData from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
-import { OrchestrateMessagesData } from './orchestrateMessages';
-import { CacheAssetAddressData } from './assetAddress';
-import { CacheCharacterSessionsData } from './characterSessions';
-import { CacheSessionConnectionsData } from './sessionConnections';
-import { CachePlayerSessionsData } from './playerSessions';
+import OrchestrateMessagesData from './orchestrateMessages';
+import CacheAssetAddressData from './assetAddress';
+import CacheCharacterSessionsData from './characterSessions';
+import CacheSessionConnectionsData from './sessionConnections';
+import CachePlayerSessionsData from './playerSessions';
 import GraphCache from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
-import {CacheBase as GraphCacheBase, GraphDBHandler } from '@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses';
+import { CacheBase as GraphCacheBase, GraphDBHandler } from '@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses';
 import withPrimitives from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/primitives';
 import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
-import { ExamplesData } from './examples';
-import { ComponentRenderData } from './componentRender';
-import { CacheCharacterPossibleMapsData } from './characterPossibleMaps';
-import { CachePlayerMetaData } from './playerMeta';
+import ExamplesData from './examples';
+import ComponentRenderData from './componentRender';
+import CacheCharacterPossibleMapsData from './characterPossibleMaps';
+import CachePlayerMetaData from './playerMeta';
 
 
 type CacheGlobalKeys = 'ConnectionId' | 'SessionId' | 'RequestId' | 'player' | 'assets' | 'sessions' | 'mapSubscriptions'
@@ -152,17 +152,6 @@ export class CacheGlobalData {
     }
 }
 
-export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheGlobal extends Base {
-        Global: CacheGlobalData = new CacheGlobalData()
-
-        override clear() {
-            this.Global.clear()
-            super.clear()
-        }
-    }
-}
-
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: ephemeraDB._client,
     tableName: ephemeraDB._tableName,
@@ -171,7 +160,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
     options: { getBatchSize: 50 }
 })
 
-class InternalCache {
+export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     PlayerMeta: CachePlayerMetaData;
     AssetAddress: CacheAssetAddressData = new CacheAssetAddressData()
@@ -260,6 +249,5 @@ class InternalCache {
 
 }
 
-// const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(CacheExamples(AssetState(ComponentMeta(CacheGraph(CachePlayerSessions(CacheCharacterSessions(CacheSessionConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(OrchestrateMessages(CacheAssetAddress(CacheGlobal(CacheBase)))))))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache
