@@ -2,7 +2,7 @@ import { ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './compone
 import { DeferredCache } from './deferredCache'
 import { EphemeraCondition } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, BookmarkDescribeData, KnowledgeDescribeData, TaggedLink } from '@tonylb/mtw-interfaces/ts/messages'
-import { CacheGlobalData } from '.';
+import CacheGlobalData from './global';
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
