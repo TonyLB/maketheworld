@@ -34,24 +34,6 @@ exports[`flattenTaggedMessageContent should correctly evaluate conditionals 1`] 
 ]
 `;
 
-exports[`flattenTaggedMessageContent should correctly expand after tag 1`] = `
-[
-  {
-    "tag": "String",
-    "value": "OneTwoThreeFour",
-  },
-]
-`;
-
-exports[`flattenTaggedMessageContent should correctly expand before tag 1`] = `
-[
-  {
-    "tag": "String",
-    "value": "OneTwoThreeFour",
-  },
-]
-`;
-
 exports[`flattenTaggedMessageContent should correctly expand replace tag 1`] = `
 [
   {

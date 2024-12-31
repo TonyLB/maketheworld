@@ -30,7 +30,7 @@ export class StandardRenderString extends StandardRenderAbstract implements Stan
         return this._text
     }
 
-    override toJSON(): GenericTreeNode<SchemaStringTag> {
+    override toJSON() {
         return {
             data: { tag: 'String' as const, value: this._text },
             children: []
