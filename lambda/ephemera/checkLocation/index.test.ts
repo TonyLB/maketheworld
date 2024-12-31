@@ -258,7 +258,7 @@ describe('checkLocation', () => {
             ],
             ['draftOne']
         )
-        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: [] }])
+        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', SessionIds: [] }])
         await checkLocation({
             payloads: [{ type: 'CheckLocation', roomId: 'ROOM#Oubliette', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
             messageBus: messageBusMock
@@ -306,7 +306,7 @@ describe('checkLocation', () => {
             ],
             ['draftOne']
         )
-        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: [] }])
+        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', SessionIds: [] }])
         const assetGraph = new Graph<string, { key: string }, { context?: string }>(
             {
                 'ASSET#primitives': { key: 'ASSET#primitives' },

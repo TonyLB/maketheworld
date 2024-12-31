@@ -164,7 +164,7 @@ export class EvaluateCodeData {
     }
 }
 
-class AssetMap {
+export class AssetMap {
     _GraphNodes: GraphNodeType;
     _GraphEdges: GraphEdgeType;
     constructor(GraphNodes: GraphNodeType, GraphEdges: GraphEdgeType) {
