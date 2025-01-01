@@ -3,7 +3,7 @@ import { FunctionComponent, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { getNotification } from "../../slices/notifications/selectors"
-import TaggedMessageContent from "../Message/TaggedMessageContent"
+import RenderTreeContent from "../Message/RenderTreeContent"
 import Grid from "@mui/material/Grid"
 import { markNotificationRead } from "../../slices/notifications/index.api"
 
@@ -33,7 +33,7 @@ export const NotificationDetail: FunctionComponent<NotificationDetailProps> = ({
                         Message
                     </Grid>
                     <Grid item xs={10}>
-                        <TaggedMessageContent list={notification.Message} onClickLink={() => {}} />
+                        <RenderTreeContent list={notification.Message} onClickLink={() => {}} />
                     </Grid>
                 </Grid>
                 : null

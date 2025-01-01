@@ -7,7 +7,7 @@ import {
 
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
-import TaggedMessageContent from './TaggedMessageContent'
+import RenderTreeContent from './RenderTreeContent'
 
 import { CharacterSpeech } from '@tonylb/mtw-interfaces/dist/messages'
 import MessageComponent from './MessageComponent'
@@ -88,7 +88,7 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                     {message.Name}
                 </Box>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
+                    <RenderTreeContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </SpeechBubble>
 
