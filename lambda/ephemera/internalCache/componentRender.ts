@@ -448,7 +448,7 @@ export class ComponentRenderData {
                 }
             }
         }
-        if (isEphemeraFeatureId(EphemeraId)) {
+        if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
@@ -458,25 +458,10 @@ export class ComponentRenderData {
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
-                    FeatureId: EphemeraId,
+                    ...(isEphemeraFeatureId(EphemeraId) ? { FeatureId: EphemeraId } : { KnowledgeId: EphemeraId }),
                     assets,
                     Name: naiveFirstExample.toNDJSON().name ?? [],
                     Description: naiveFirstExample.toNDJSON().description ?? []
-                }
-            }
-        }
-        if (isEphemeraKnowledgeId(EphemeraId)) {
-            const assets = Object.assign({}, ...allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-                .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardKnowledge>[]
-            const rest = await mapEvaluatedSchemaOutputPromise<StandardKnowledge, KnowledgeDescribeData>({ name: 'Name', description: 'Description' })
-            return {
-                dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
-                description: {
-                    KnowledgeId: EphemeraId,
-                    assets,
-                    ...rest
                 }
             }
         }
