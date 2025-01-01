@@ -49,10 +49,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                                 type: 'PublishMessage',
                                 targets: [RoomId, `!${characterId}`],
                                 displayProtocol: 'WorldMessage',
-                                message: [{
-                                    tag: 'String',
-                                    value: `${Name || 'Someone'} has disconnected.`
-                                }]
+                                message: [`${Name || 'Someone'} has disconnected.`]
                             })
                             messageBus.send({
                                 type: 'RoomUpdate',
@@ -138,10 +135,7 @@ export const disconnectCharacterMessage = async ({ payloads }: { payloads: Disco
                     type: 'PublishMessage',
                     targets: [RoomId, `!${characterId}`],
                     displayProtocol: 'WorldMessage',
-                    message: [{
-                        tag: 'String',
-                        value: `${Name || 'Someone'} has disconnected.`
-                    }]
+                    message: [`${Name || 'Someone'} has disconnected.`]
                 })
                 messageBus.send({
                     type: 'RoomUpdate',

@@ -168,10 +168,7 @@ describe('moveCharacter', () => {
             type: 'PublishMessage',
             targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
-            message: [{
-                tag: 'String',
-                value: 'Test has left.'
-            }],
+            message: ['Test has left.'],
             messageGroupId: 'UUID#Before'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -189,10 +186,7 @@ describe('moveCharacter', () => {
             type: 'PublishMessage',
             targets: ['ROOM#TestTwo', 'CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
-            message: [{
-                tag: 'String',
-                value: 'Test has arrived.'
-            }],
+            message: ['Test has arrived.'],
             messageGroupId: 'UUID#After'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -268,10 +262,7 @@ describe('moveCharacter', () => {
             type: 'PublishMessage',
             targets: ['ROOM#VORTEX', '!CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
-            message: [{
-                tag: 'String',
-                value: 'Test has connected.'
-            }],
+            message: ['Test has connected.'],
             messageGroupId: 'UUID#After'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

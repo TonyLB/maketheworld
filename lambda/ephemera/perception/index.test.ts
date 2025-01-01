@@ -85,10 +85,7 @@ describe('Perception message', () => {
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
-                Description: [{
-                    tag: 'String',
-                    value: 'Test Message'
-                }],
+                Description: ['Test Message'],
                 MessageId: 'MESSAGE#Test',
                 rooms: ['ROOM#VORTEX', 'ROOM#ABC']
             })
@@ -105,10 +102,7 @@ describe('Perception message', () => {
                 type: 'PublishMessage',
                 displayProtocol: 'WorldMessage',
                 targets: ['CHARACTER#TESS'],
-                message: [{
-                    tag: 'String',
-                    value: 'Test Message'
-                }],
+                message: ['Test Message'],
                 messageGroupId: 'UUID#1'
             })
         })
@@ -208,10 +202,7 @@ describe('Perception message', () => {
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
-                Description: [{
-                    tag: 'String',
-                    value: 'Test Message'
-                }],
+                Description: ['Test Message'],
                 MessageId: 'MESSAGE#Test',
                 rooms: ['ROOM#ABC']
             })

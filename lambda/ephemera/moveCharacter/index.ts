@@ -113,10 +113,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
                                         displayProtocol: 'WorldMessage',
-                                        message: [{
-                                            tag: 'String',
-                                            value: `${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`
-                                        }],
+                                        message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
                                         messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId)
                                     })
                                 }
@@ -156,10 +153,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     type: 'PublishMessage',
                                     targets: [payload.roomId, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],
                                     displayProtocol: 'WorldMessage',
-                                    message: [{
-                                        tag: 'String',
-                                        value: `${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.' }`
-                                    }],
+                                    message: [`${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.' }`],
                                     messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId)
                                 })
                             }

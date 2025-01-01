@@ -41,7 +41,7 @@ describe('PublishMessage', () => {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
-                message: [{ tag: 'String', value: 'Test' }]
+                message: ['Test']
             }]
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -49,7 +49,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
@@ -60,7 +60,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -73,7 +73,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -98,7 +98,7 @@ describe('PublishMessage', () => {
                 type: 'PublishMessage',
                 targets: ['ROOM#ABC'],
                 displayProtocol: 'WorldMessage',
-                message: [{ tag: 'String', value: 'Test' }]
+                message: ['Test']
             }]
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -106,7 +106,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -114,7 +114,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
@@ -125,7 +125,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -138,7 +138,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#456",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -163,7 +163,7 @@ describe('PublishMessage', () => {
                 type: 'PublishMessage',
                 targets: ['ROOM#ABC', '!CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
-                message: [{ tag: 'String', value: 'Test' }]
+                message: ['Test']
             }]
         })
         expect(messageDeltaDBMock.putItem).not.toHaveBeenCalledWith({
@@ -171,7 +171,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -179,7 +179,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(apiClientMock.send).not.toHaveBeenCalledWith({
@@ -190,7 +190,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -203,7 +203,7 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#456",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Test' }],
+                    Message: ['Test'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
@@ -224,21 +224,21 @@ describe('PublishMessage', () => {
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
                 messageGroupId: 'UUID#3',
-                message: [{ tag: 'String', value: 'Test leaves' }]
+                message: ['Test leaves']
             },
             {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
                 messageGroupId: 'UUID#2',
-                message: [{ tag: 'String', value: 'Test arrives' }]
+                message: ['Test arrives']
             },
             {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
                 messageGroupId: 'UUID#1',
-                message: [{ tag: 'String', value: 'Room description' }]
+                message: ['Room description']
             }]
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -246,7 +246,7 @@ describe('PublishMessage', () => {
             DeltaId: "999999999999::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 999999999999,
-            Message: [{ tag: 'String', value: 'Test leaves' }],
+            Message: ['Test leaves'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -254,7 +254,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000000::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000000,
-            Message: [{ tag: 'String', value: 'Room description' }],
+            Message: ['Room description'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
@@ -262,7 +262,7 @@ describe('PublishMessage', () => {
             DeltaId: "1000000000001::MESSAGE#UUID",
             RowId: "MESSAGE#UUID",
             CreatedTime: 1000000000001,
-            Message: [{ tag: 'String', value: 'Test arrives' }],
+            Message: ['Test arrives'],
             DisplayProtocol: 'WorldMessage'
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
@@ -273,21 +273,21 @@ describe('PublishMessage', () => {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 999999999999,
-                    Message: [{ tag: 'String', value: 'Test leaves' }],
+                    Message: ['Test leaves'],
                     DisplayProtocol: 'WorldMessage'
                 },
                 {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
-                    Message: [{ tag: 'String', value: 'Room description' }],
+                    Message: ['Room description'],
                     DisplayProtocol: 'WorldMessage'
                 },
                 {
                     Target: "CHARACTER#123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000001,
-                    Message: [{ tag: 'String', value: 'Test arrives' }],
+                    Message: ['Test arrives'],
                     DisplayProtocol: 'WorldMessage'
                 }]
             })
