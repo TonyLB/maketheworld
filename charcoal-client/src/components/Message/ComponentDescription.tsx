@@ -17,8 +17,9 @@ import {
     isTaggedText
 } from '@tonylb/mtw-interfaces/dist/messages'
 
-import TaggedMessageContent from './TaggedMessageContent'
+import RenderTreeContent from './RenderTreeContent'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { StandardRender } from '@tonylb/mtw-wml/dist/standardize/render'
 
 type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescriptionType> = {
     message: T;
@@ -31,6 +32,7 @@ type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescr
 
 export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel, onClickLink, toolActions }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
+    const standardName = new StandardRender(Name)
     const bevelCSS = bevel
         ? `polygon(
             0% ${bevel},
@@ -61,12 +63,12 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 padding-bottom: 5px;
             `}>
                 <Typography variant='h5' align='left'>
-                    { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
+                    { standardName.plainString }
                 </Typography>
                 <Divider />
                 {
                     Description.length
-                        ? <TaggedMessageContent list={Description} onClickLink={onClickLink} />
+                        ? <RenderTreeContent list={Description} onClickLink={onClickLink} />
                         : <em>No description</em>
                 }
             </Box>

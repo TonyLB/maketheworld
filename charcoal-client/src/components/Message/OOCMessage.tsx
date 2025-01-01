@@ -7,7 +7,7 @@ import {
 
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
-import TaggedMessageContent from './TaggedMessageContent'
+import RenderTreeContent from './RenderTreeContent'
 
 import { OutOfCharacterMessage } from '@tonylb/mtw-interfaces/dist/messages'
 import MessageComponent from './MessageComponent'
@@ -112,7 +112,7 @@ export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, varian
                     {message.Name} (out of character)
                 </Box>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
+                    <RenderTreeContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </OOCBubble>
 

@@ -9,7 +9,7 @@ import {
 
 import MessageComponent from './MessageComponent'
 import { WorldMessage as WorldMessageType } from '@tonylb/mtw-interfaces/dist/messages'
-import TaggedMessageContent from './TaggedMessageContent'
+import RenderTreeContent from './RenderTreeContent'
 
 interface WorldMessageProps {
     message: WorldMessageType;
@@ -41,7 +41,7 @@ export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
         >
             <Box sx={{ height: "100%" }}>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
+                    <RenderTreeContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </Box>
         </MessageComponent>

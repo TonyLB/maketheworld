@@ -20,6 +20,9 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { SchemaLinkTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { RenderTreeNode } from '@tonylb/mtw-wml/dist/standardize/render/baseClasses'
 
 interface DescriptionLinkChipProps {
     text?: string;
@@ -89,7 +92,7 @@ export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipPr
 }
 
 interface DescriptionLinkProps {
-    link: TaggedLink;
+    link: RenderTreeNode & { data: SchemaLinkTag };
     onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
 }
 
@@ -101,15 +104,15 @@ export const DescriptionLink = ({ link, onClickLink }: DescriptionLinkProps) => 
     // now, or (b) link.RoomId gets populated correctly upon render
     //
     return <DescriptionLinkActionChip
-        text={link.text}
+        text={link.data.text}
         onClick={() => {
-            if (isEphemeraFeatureId(link.to)) {
+            if (isEphemeraFeatureId(link.data.to)) {
                 dispatch(addOnboardingComplete(['featureLink']))
             }
-            if (isEphemeraActionId(link.to)) {
+            if (isEphemeraActionId(link.data.to)) {
                 dispatch(addOnboardingComplete(['actionLink']))
             }
-            onClickLink(link.to)
+            onClickLink(link.data.to as EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId)
             // dispatch(socketDispatchPromise({
             //     message: 'link',
             //     to: link.to,

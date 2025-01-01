@@ -22,7 +22,7 @@ import {
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
-import TaggedMessageContent from './TaggedMessageContent'
+import RenderTreeContent from './RenderTreeContent'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -104,7 +104,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                     <Box sx={{ overflow: 'hidden' }}>
                         {
                             Description.length
-                                ? <TaggedMessageContent list={Description} onClickLink={onClickLink} />
+                                ? <RenderTreeContent list={Description} onClickLink={onClickLink} />
                                 : <em>No description</em>
                         }
                     </Box>
