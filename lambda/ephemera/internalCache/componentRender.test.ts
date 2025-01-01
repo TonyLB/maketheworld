@@ -99,27 +99,8 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: { data: { tag: 'Name' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testOne' },
-                        children: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }]
-                    }]
-                }] },
-                description: { data: { tag: 'Description' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testOne' },
-                        children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
-                    }]
-                },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testTwo' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                }] },
+                name: { data: { tag: 'Name' }, children: [] },
+                description: { data: { tag: 'Description' }, children: [] },
                 key: 'testFeature',
                 tag: 'Feature',
                 stateMapping: {
@@ -131,27 +112,7 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: { data: { tag: 'Name' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testThree' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                }] },
-                description: { data: { tag: 'Description' }, children: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testThree' },
-                        children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
-                    }]
-                },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'testFour' },
-                        children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
-                    }]
-                }] },
+                name: { data: { tag: 'Name' }, children: [] },
                 key: 'testFeature',
                 tag: 'Feature',
                 stateMapping: {
@@ -160,6 +121,21 @@ describe('ComponentRender cache handler', () => {
                 },
                 keyMapping: {}
             }
+        })
+        jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
+            'FEATURE#TestOne': [{
+                assetId: 'Personal',
+                examples: [
+                    new StandardExample({
+                        tag: 'Example',
+                        key: 'example1',
+                        universalKey: 'Base',
+                        name: ['Example Name'],
+                        description: ['Description'],
+                        summary: ['Summary']
+                    })
+                ]
+            }]
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
             return Boolean(['testOne', 'testFour'].includes(source))
@@ -171,8 +147,8 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             FeatureId: 'FEATURE#TestOne',
-            Name: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }],
-            Description: [{ data: { tag: 'String', value: 'FirstSecond' }, children: [] }],
+            Name: ['Example Name'],
+            Description: ['Description'],
             assets: {
                 ['ASSET#Base']: 'testFeature',
                 ['ASSET#Personal']: 'testFeature'

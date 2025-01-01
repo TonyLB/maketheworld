@@ -453,13 +453,15 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardFeature>[]
-            const rest = await mapEvaluatedSchemaOutputPromise<StandardFeature, FeatureDescribeData>({ name: 'Name', description: 'Description' })
+            const exampleMap = await this._examples([EphemeraId])
+            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
                     FeatureId: EphemeraId,
                     assets,
-                    ...rest
+                    Name: naiveFirstExample.toNDJSON().name ?? [],
+                    Description: naiveFirstExample.toNDJSON().description ?? []
                 }
             }
         }
