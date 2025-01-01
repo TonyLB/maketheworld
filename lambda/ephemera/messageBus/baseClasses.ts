@@ -12,6 +12,7 @@ import {
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 import { KnowledgeDescription } from "@tonylb/mtw-interfaces/ts/messages"
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
+import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
 
 export type PublishTargetRoom = `ROOM#${string}`
 
@@ -40,7 +41,7 @@ export type PublishMessageBase = {
 
 export type PublishWorldMessage = PublishMessageBase & {
     displayProtocol: 'WorldMessage';
-    message: TaggedMessageContentFlat[];
+    message: RenderTree;
 }
 
 type MessageCharacterInfo = {
@@ -51,17 +52,17 @@ type MessageCharacterInfo = {
 
 export type PublishSpeechMessage = PublishMessageBase & MessageCharacterInfo & {
     displayProtocol: 'SayMessage';
-    message: TaggedMessageContentFlat[];
+    message: RenderTree;
 }
 
 export type PublishNarrateMessage = PublishMessageBase & MessageCharacterInfo & {
     displayProtocol: 'NarrateMessage';
-    message: TaggedMessageContentFlat[];
+    message: RenderTree;
 }
 
 export type PublishOutOfCharacterMessage = {
     displayProtocol: 'OOCMessage';
-    message: TaggedMessageContentFlat[];
+    message: RenderTree;
 } & PublishMessageBase & MessageCharacterInfo
 
 export type PublishRoomUpdateMessage = {

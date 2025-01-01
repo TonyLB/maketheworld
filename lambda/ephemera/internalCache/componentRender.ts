@@ -43,7 +43,7 @@ import { CacheRoomCharacterListsData } from './roomCharacterLists';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
-    Description: TaggedMessageContentFlat[];
+    Description: RenderTree;
     rooms: EphemeraRoomId[];
 }
 
@@ -168,54 +168,54 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
     }) as any
 }
 
-const renderTreeToTaggedMessage = (tree: RenderTree): TaggedMessageContentFlat[] => {
-    return tree.map((node) => {
-        if (typeof node === 'string') {
-            return { tag: 'String' as const, value: node }
-        }
-        const { data } = node
-        if (isSchemaString(data)) {
-            return data
-        }
-        if (isSchemaLink(data)) {
-            const lookupTarget = data.to
-            if (!(isEphemeraFeatureId(lookupTarget) || isEphemeraActionId(lookupTarget) || isEphemeraCharacterId(lookupTarget) || isEphemeraKnowledgeId(lookupTarget))) {
-                return { tag: 'String' as const, value: '' }
-            }
-            return {
-                ...data,
-                to: lookupTarget
-            } as TaggedLink
-        }
-        if (isSchemaLineBreak(data)) {
-            return { tag: 'LineBreak' as const }
-        }
-        if (isSchemaSpacer(data)) {
-            return { tag: 'String' as const, value: ' ' }
-        }
-        if (isSchemaSelected(data)) {
-            return { tag: 'String' as const, value: ' ' }
-        }
-        return undefined
-    }).filter(excludeUndefined)
-}
+// const renderTreeToTaggedMessage = (tree: RenderTree): TaggedMessageContentFlat[] => {
+//     return tree.map((node) => {
+//         if (typeof node === 'string') {
+//             return { tag: 'String' as const, value: node }
+//         }
+//         const { data } = node
+//         if (isSchemaString(data)) {
+//             return data
+//         }
+//         if (isSchemaLink(data)) {
+//             const lookupTarget = data.to
+//             if (!(isEphemeraFeatureId(lookupTarget) || isEphemeraActionId(lookupTarget) || isEphemeraCharacterId(lookupTarget) || isEphemeraKnowledgeId(lookupTarget))) {
+//                 return { tag: 'String' as const, value: '' }
+//             }
+//             return {
+//                 ...data,
+//                 to: lookupTarget
+//             } as TaggedLink
+//         }
+//         if (isSchemaLineBreak(data)) {
+//             return { tag: 'LineBreak' as const }
+//         }
+//         if (isSchemaSpacer(data)) {
+//             return { tag: 'String' as const, value: ' ' }
+//         }
+//         if (isSchemaSelected(data)) {
+//             return { tag: 'String' as const, value: ' ' }
+//         }
+//         return undefined
+//     }).filter(excludeUndefined)
+// }
 
-//
-// deflattenSchemaOutputTags is a temporary conversion between legacy TaggedMessageContentFlat format and
-// unconditional SchemaOutputTag trees
-//
-const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTree<SchemaOutputTag> => {
-    return tags.map((tag) => {
-        switch(tag.tag) {
-            case 'Link':
-                return { data: { tag: 'Link', to: tag.to, text: tag.text }, children: [] }
-            case 'LineBreak':
-                return { data: { tag: 'br' }, children: [] }
-            case 'String':
-                return { data: { tag: 'String', value: tag.value }, children: [] }
-        }
-    })
-}
+// //
+// // deflattenSchemaOutputTags is a temporary conversion between legacy TaggedMessageContentFlat format and
+// // unconditional SchemaOutputTag trees
+// //
+// const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTree<SchemaOutputTag> => {
+//     return tags.map((tag) => {
+//         switch(tag.tag) {
+//             case 'Link':
+//                 return { data: { tag: 'Link', to: tag.to, text: tag.text }, children: [] }
+//             case 'LineBreak':
+//                 return { data: { tag: 'br' }, children: [] }
+//             case 'String':
+//                 return { data: { tag: 'String', value: tag.value }, children: [] }
+//         }
+//     })
+// }
 
 export class ComponentRenderData {
     _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
@@ -403,27 +403,23 @@ export class ComponentRenderData {
             O extends RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | MessageDescribeData | MapDescribeData
         >(
             nameMapping: {
-                [P in { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]]: { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
+                [P in { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]]: { [P in keyof O]: O[P] extends RenderTree ? P : never }[keyof O]
             },
             excluded: ({ [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T])[] = []
-        ): Promise<Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>> => {
+        ): Promise<Pick<O, { [P in keyof O]: O[P] extends RenderTree ? P : never }[keyof O]>> => {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as unknown as ComponentMetaItem<T>[]
             //
             // Extract selectors from storage, and evaluate with local mappings
             //
             const remapped = Object.entries(nameMapping).map(([from, to]) => ({
                 from: from as { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T],
-                to: to as { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
+                to: to as { [P in keyof O]: O[P] extends RenderTree ? P : never }[keyof O]
             }))
             const evaluatePromise = await Promise.all(remapped.map(({ from }) => (excluded.includes(from) ? Promise.resolve([]) : evaluateSchemaOutputPromise(assetData as any, from as any))))
-            return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
-                Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>
+            return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: output }))) as unknown as
+                Pick<O, { [P in keyof O]: O[P] extends RenderTree ? P : never }[keyof O]>
         }
         
-        //
-        // TODO: ISS-4879: Refactor to use internalCache examples rather than construct output from componentMeta
-        //
-
         if (isEphemeraRoomId(EphemeraId)) {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
@@ -444,10 +440,10 @@ export class ComponentRenderData {
                     assets,
                     Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
                     ...rest,
-                    Name: renderTreeToTaggedMessage(naiveFirstExample.name ?? []),
+                    Name: naiveFirstExample.toNDJSON().name ?? [],
                     ...((getOptions && ('header' in getOptions) && getOptions.header)
-                        ? { Summary: renderTreeToTaggedMessage(naiveFirstExample.summary ?? []), Description: [] }
-                        : { Description: renderTreeToTaggedMessage(naiveFirstExample.description ?? []), Summary: [] }
+                        ? { Summary: naiveFirstExample.toNDJSON().summary ?? [], Description: [] }
+                        : { Description: naiveFirstExample.toNDJSON().description ?? [], Summary: [] }
                     )
                 }
             }
@@ -487,14 +483,14 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardMessage>[]
-            const rest = await mapEvaluatedSchemaOutputPromise<StandardMessage, MessageDescribeData>({ render: 'Description' })
+            const { Description } = await mapEvaluatedSchemaOutputPromise<StandardMessage, MessageDescribeData>({ render: 'Description' })
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
                     MessageId: EphemeraId,
                     assets,
                     rooms: unique(...assetData.map(({ rooms }) => (rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data }) => (data.key)).filter(isEphemeraRoomId)))),
-                    ...rest
+                    Description
                 }
             }
         }

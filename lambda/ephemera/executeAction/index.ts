@@ -84,7 +84,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                                     type: 'PublishMessage',
                                     targets: [EphemeraId],
                                     displayProtocol: 'WorldMessage',
-                                    message: [{ tag: 'String', value: message }]
+                                    message: [message]
                                 })
                             }
                         }    
@@ -123,7 +123,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                                 type: 'PublishMessage',
                                 targets: [characterMeta.RoomId],
                                 displayProtocol: 'WorldMessage',
-                                message: [{ tag: 'String', value: message }]
+                                message: [message]
                             })
                         }
                     }
@@ -136,7 +136,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                                 type: 'PublishMessage',
                                 targets: [characterMeta.RoomId],
                                 displayProtocol: 'NarrateMessage',
-                                message: [{ tag: 'String', value: message }],
+                                message: [message],
                                 characterId: payload.characterId,
                                 name: characterMeta.Name,
                                 color: (characterMeta.Color as LegalCharacterColor) || defaultColorFromCharacterId(payload.characterId)

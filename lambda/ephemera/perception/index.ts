@@ -1,17 +1,16 @@
 import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import { EphemeraCharacter, EphemeraMessage, EphemeraMoment } from "../cacheAsset/baseClasses"
+import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/ts/messages"
 import { ComponentMetaItem } from "../internalCache/componentMeta"
 import { isStandardMessage, StandardComponentData, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
-import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { isSchemaLink, isSchemaMessage, isSchemaRoom, isSchemaString } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -55,7 +54,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    if (messageRender.find((item) => (isTaggedLink(item) || (isTaggedText(item) && item.value))) && roomsRendered.includes(characterMeta.RoomId)) {
+                    if (messageRender.find((item) => ((typeof item === 'string' && item) || (typeof item === 'object' && ((isSchemaString(item.data) && item.data.value) || isSchemaLink(item.data)))) && roomsRendered.includes(characterMeta.RoomId))) {
                         messageBus.send({
                             type: 'PublishMessage',
                             targets: [characterId],

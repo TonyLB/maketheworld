@@ -59,11 +59,11 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(descriptionOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: [{ tag: 'String', value: 'TestRoom' }],
-            Name: [{ tag: 'String', value: 'Example Name'}],
+            ShortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+            Name: ['Example Name'],
             Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-            Description: [{ tag: 'String', value: 'Description' }],
+            Description: ['Description'],
             Exits: [],
             assets: {
                 ['ASSET#Base']: 'testRoom',
@@ -72,9 +72,9 @@ describe('ComponentRender cache handler', () => {
         const summaryOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne', { header: true })
         expect(summaryOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: [{ tag: 'String', value: 'TestRoom' }],
-            Name: [{ tag: 'String', value: 'Example Name'}],
-            Summary: [{ tag: 'String', value: 'Summary' }],
+            ShortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+            Name: ['Example Name'],
+            Summary: ['Summary'],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [],
             Exits: [],
@@ -171,8 +171,8 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             FeatureId: 'FEATURE#TestOne',
-            Name: [{ tag: 'String', value: 'TestFeature' }],
-            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Name: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }],
+            Description: [{ data: { tag: 'String', value: 'FirstSecond' }, children: [] }],
             assets: {
                 ['ASSET#Base']: 'testFeature',
                 ['ASSET#Personal']: 'testFeature'
@@ -267,8 +267,8 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             KnowledgeId: 'KNOWLEDGE#TestOne',
-            Name: [{ tag: 'String', value: 'TestKnowledge' }],
-            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Name: [{ data: { tag: 'String', value: 'TestKnowledge' }, children: [] }],
+            Description: [{ data: { tag: 'String', value: 'FirstSecond' }, children: [] }],
             assets: {
                 ['ASSET#Base']: 'testKnowledge',
                 ['ASSET#Personal']: 'testKnowledge'
@@ -358,7 +358,7 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(output).toEqual({
             MapId: 'MAP#TestOne',
-            name: [{ tag: 'String', value: 'Test Map' }],
+            name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
             fileURL: 'https://test.com/test.png',
             rooms: [
                 {
