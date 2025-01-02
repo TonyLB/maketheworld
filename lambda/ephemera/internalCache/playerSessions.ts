@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export class CachePlayerSessionsData {
     SessionsByPlayer: Promise<Record<string, string[]>> | undefined;

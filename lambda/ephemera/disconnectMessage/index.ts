@@ -1,6 +1,6 @@
 import { DisconnectCharacterMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"

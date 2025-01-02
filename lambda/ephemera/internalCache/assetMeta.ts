@@ -1,5 +1,5 @@
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export type AssetMetaItem = {
     EphemeraId: EphemeraAssetId;

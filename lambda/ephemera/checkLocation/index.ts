@@ -1,7 +1,7 @@
 import { MessageBus, CheckLocationMessage, isCheckLocationPlayer, isCheckLocationRoom, CheckLocationPlayerMessage, isCheckLocationAsset, CheckLocationRoomMessage } from "../messageBus/baseClasses"
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import internalCache from "../internalCache"
-import { RoomKey } from "@tonylb/mtw-utilities/dist/types"
+import { RoomKey } from "@tonylb/mtw-utilities/ts/types"
 import { RoomStackItem } from "../moveCharacter"
 import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 

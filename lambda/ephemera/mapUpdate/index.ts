@@ -1,5 +1,5 @@
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import internalCache from "../internalCache"
 import { MessageBus, MapUpdateMessage } from "../messageBus/baseClasses"
 

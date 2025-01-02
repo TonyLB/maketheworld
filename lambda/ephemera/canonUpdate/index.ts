@@ -1,10 +1,10 @@
 import { EphemeraAssetId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB";
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { CanonSetMessage, CanonUpdateMessage, MessageBus } from "../messageBus/baseClasses";
-import { unique } from "@tonylb/mtw-utilities/dist/lists";
+import { unique } from "@tonylb/mtw-utilities/ts/lists";
 import internalCache from "../internalCache";
-import { AssetKey } from '@tonylb/mtw-utilities/dist/types';
-import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort';
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types';
+import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort';
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const [previousAssets = []] = await Promise.all([

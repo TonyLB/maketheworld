@@ -1,8 +1,8 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { ExamplesData } from './examples'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 

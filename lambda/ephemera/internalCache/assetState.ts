@@ -2,12 +2,12 @@ import {
     isEphemeraAssetId,
     isEphemeraId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
+import evaluateCode from '@tonylb/mtw-utilities/ts/computation/sandbox';
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { deepEqual } from '@tonylb/mtw-utilities/ts/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
-import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
-import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
+import { isLegalDependencyTag } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/ts/types"
 import { GraphEdgeType, GraphNodeType } from './graph';
 import { objectMap } from '../lib/objects';
 import { StateItemId, isStateItemId } from './baseClasses';

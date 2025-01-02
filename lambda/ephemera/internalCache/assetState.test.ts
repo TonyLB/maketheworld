@@ -1,9 +1,9 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
 import { AssetStateMapping } from './assetState'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 

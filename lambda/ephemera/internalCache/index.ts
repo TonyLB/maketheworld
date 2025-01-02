@@ -1,10 +1,10 @@
 import { isStateItemId } from './baseClasses'
 
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
 import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 import { AssetMap, AssetStateData, EvaluateCodeData, StateData } from './assetState';
 import ComponentMetaData from './componentMeta';
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';

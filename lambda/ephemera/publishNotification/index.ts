@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isInformationNotification, MessageBus, PublishNotification, PublishUpdateMarksNotification } from "../messageBus/baseClasses"
 import internalCache from '../internalCache'
-import { messageDeltaDB, messageDeltaUpdate } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { messageDeltaDB, messageDeltaUpdate } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { apiClient } from '../apiClient'
 import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { InformationNotification, isUpdateMarksNotification, Notification } from '@tonylb/mtw-interfaces/ts/messages'

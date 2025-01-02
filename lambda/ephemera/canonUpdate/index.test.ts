@@ -1,17 +1,17 @@
 import { jest, expect } from '@jest/globals'
 import { produce } from 'immer'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import {
     ephemeraDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import { canonUpdateMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)

@@ -4,7 +4,7 @@ import internalCache from '../internalCache'
 
 import { apiClient } from '../apiClient'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import { objectMap } from "../lib/objects"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 

@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'

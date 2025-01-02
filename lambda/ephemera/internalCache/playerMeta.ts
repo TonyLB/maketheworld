@@ -1,4 +1,4 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import CacheGlobalData from './global'
 
 export type PlayerMetaItem = {

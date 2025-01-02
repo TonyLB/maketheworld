@@ -1,10 +1,10 @@
 import { jest, expect } from '@jest/globals'
 import { produce } from 'immer'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import {
     ephemeraDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
@@ -12,7 +12,7 @@ import internalCache from '../internalCache'
 import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
+import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)

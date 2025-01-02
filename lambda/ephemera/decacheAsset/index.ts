@@ -1,9 +1,9 @@
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { MessageBus } from "../messageBus/baseClasses"
 import { mergeIntoEphemera } from "../cacheAsset/mergeIntoEphemera";
 import internalCache from "../internalCache";
 import { graphStorageDB } from "../dependentMessages/graphCache";
-import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update";
+import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update";
 import { EphemeraAssetId, EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 
 type DecacheAssetArguments = {
