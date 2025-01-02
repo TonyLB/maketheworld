@@ -143,7 +143,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
                 return {
                     Put: {
                         EphemeraId: componentId,
-                        DataCategory: `EXAMPLE#${itemB.universalKey}::${assetId}`,
+                        DataCategory: `${itemB.universalKey}::${assetId}`,
                         scopedId: itemB.key,
                         ...(name ? { name } : {}),
                         ...(description ? { description } : {}),
@@ -153,7 +153,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
             }
             if (itemA) {
                 return {
-                    Delete: { EphemeraId: componentId, DataCategory: `EXAMPLE#${itemA.universalKey}::${assetId}` }
+                    Delete: { EphemeraId: componentId, DataCategory: `${itemA.universalKey}::${assetId}` }
                 }
             }
             if (itemB) {
@@ -163,7 +163,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
                 return {
                     Put: {
                         EphemeraId: componentId,
-                        DataCategory: `EXAMPLE#${itemB.universalKey}::${assetId}`,
+                        DataCategory: `${itemB.universalKey}::${assetId}`,
                         scopedId: itemB.key,
                         ...(name ? { name } : {}),
                         ...(description ? { description } : {}),
