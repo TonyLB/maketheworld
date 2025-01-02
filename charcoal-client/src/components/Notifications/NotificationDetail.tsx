@@ -33,7 +33,7 @@ export const NotificationDetail: FunctionComponent<NotificationDetailProps> = ({
                         Message
                     </Grid>
                     <Grid item xs={10}>
-                        <RenderTreeContent list={notification.Message} onClickLink={() => {}} />
+                        {/* <RenderTreeContent list={notification.Message} onClickLink={() => {}} /> */}
                     </Grid>
                 </Grid>
                 : null

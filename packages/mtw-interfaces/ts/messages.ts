@@ -22,6 +22,7 @@ import {
 } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
+import { isRenderTreeNode } from '@tonylb/mtw-wml/ts/standardize/render/utils'
 
 export type MessageAddressing = {
     MessageId: string;
@@ -118,34 +119,17 @@ export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBo
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
-export const isTaggedMessageContent = (message: any): message is TaggedMessageContent => {
-    if (typeof message !== 'object') {
-        return false
-    }
-    switch(message.tag) {
-        case 'String':
-            return checkTypes(message, { value: 'string' })
-        case 'LineBreak':
-        case 'Space':
-            return true
-        case 'Link':
-            return checkTypes(message, { text: 'string', to: 'string' })
-                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
-        case 'Bookmark':
-            return checkTypes(message, { to: 'string' })
-                && isEphemeraBookmarkId(message.to)
-        case 'Condition':
-            const { dependencies, contents } = message || {}
-            return checkTypes(message, { if: 'string' })
-                && Array.isArray(dependencies)
-                && checkAll(...(dependencies || []).map((value) => (checkTypes(value, { key: 'string', EphemeraId: 'string' }) && (isEphemeraComputedId(value.EphemeraId) || isEphemeraVariableId(value.EphemeraId)))))
-                && Array.isArray(contents)
-                && checkAll(...contents.map(isTaggedMessageContent))
-        default: return false
-    }
-}
 
-export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
+
+const isRenderTree = (message: any): message is RenderTree | undefined => {
+    if (typeof message === 'undefined') {
+        return true
+    }
+    if (Array.isArray(message) && message.every(isRenderTreeNode)) {
+        return true
+    }
+    return false
+}
 
 export type TaggedNotificationContent = TaggedText | TaggedLineBreak;
 
@@ -169,15 +153,6 @@ export const isTaggedLineBreak = (item: TaggedMessageContent | TaggedNotificatio
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Condition')
 export const isTaggedReplace = (item: TaggedMessageContent): item is TaggedReplace => (item.tag === 'Replace')
-
-export const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
-    if (!Array.isArray(items)) {
-        return false
-    }
-    return items.reduce<boolean>((previous, item) => (
-        previous && isTaggedMessageContentFlat(item)
-    ), true)
-}
 
 export const validateTaggedNotificationList = (items: any): items is TaggedNotificationContent[] => {
     if (!Array.isArray(items)) {
@@ -503,7 +478,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
         validateMapRoomList(message.rooms),
-        validateTaggedMessageList(message.name)
+        isRenderTree(message.name)
     )
 }
 
@@ -571,14 +546,14 @@ export const isMessage = (message: any): message is Message => {
     }
     switch(message.DisplayProtocol) {
         case 'WorldMessage':
-            return validateTaggedMessageList(message.Message)
+            return isRenderTree(message.Message)
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
             return checkAll(
                 checkTypes(message, { CharacterId: 'string', Name: 'string' }),
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
-                validateTaggedMessageList(message.Message)
+                isRenderTree(message.Message)
             ) && isEphemeraCharacterId(message.CharacterId)
         case 'RoomDescription':
         case 'RoomHeader':
@@ -586,8 +561,8 @@ export const isMessage = (message: any): message is Message => {
                 checkTypes(message, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits),
                 validateRoomCharacterList(message.Characters),
-                validateTaggedMessageList(message.Name),
-                validateTaggedMessageList(message.Description),
+                isRenderTree(message.Name),
+                isRenderTree(message.Description),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
         case 'RoomUpdate':
@@ -595,22 +570,22 @@ export const isMessage = (message: any): message is Message => {
                 checkTypes(message, {}, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
-                validateTaggedMessageList(message.Name ?? []),
-                validateTaggedMessageList(message.Description ?? []),
+                isRenderTree(message.Name ?? []),
+                isRenderTree(message.Description ?? []),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
         case 'FeatureDescription':
             return checkAll(
                 checkTypes(message, { FeatureId: 'string' }),
-                validateTaggedMessageList(message.Name),
-                validateTaggedMessageList(message.Description),
+                isRenderTree(message.Name),
+                isRenderTree(message.Description),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraFeatureId(message.FeatureId)
         case 'KnowledgeDescription':
             return checkAll(
                 checkTypes(message, { KnowledgeId: 'string' }),
-                validateTaggedMessageList(message.Name),
-                validateTaggedMessageList(message.Description),
+                isRenderTree(message.Name),
+                isRenderTree(message.Description),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraKnowledgeId(message.KnowledgeId)
         case 'CharacterDescription':

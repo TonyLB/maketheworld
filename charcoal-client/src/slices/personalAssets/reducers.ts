@@ -7,7 +7,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/dist/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/dist/schema/treeManipulation/listDiff'
@@ -152,145 +152,141 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadReplaceItem(payload)) {
         const produce = payload.produce
         const item = payload.item
-        switch(component?.tag) {
-            case 'Room':
-                switch(payload.itemKey) {
-                    case 'shortName':
-                        const oldShortName = component.shortName ? JSON.parse(JSON.stringify(unwrapSubject(component.shortName))) as GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag> : undefined
-                        const newShortName = produce
-                            ? immerProduce(component.shortName, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaShortName)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardRoom, "shortName">({
-                            componentKey: component.key,
-                            tag: 'Room',
-                            key: 'shortName',
-                            oldValue: oldShortName,
-                            newValue: newShortName
-                        })
-                        break
-                    case 'name':
-                        const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                        const newName = produce
-                            ? immerProduce(component.name, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaName)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardRoom, "name">({
-                            componentKey: component.key,
-                            tag: 'Room',
-                            key: 'name',
-                            oldValue: oldName,
-                            newValue: newName
-                        })
-                        break
-                    case 'summary':
-                        const oldSummary = component.summary ? JSON.parse(JSON.stringify(unwrapSubject(component.summary))) as GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag> : undefined
-                        const newSummary = produce
-                            ? immerProduce(component.summary, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaSummary)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardRoom, "summary">({
-                            componentKey: component.key,
-                            tag: 'Room',
-                            key: 'summary',
-                            oldValue: oldSummary,
-                            newValue: newSummary
-                        })
-                        break
-                    case 'description':
-                        const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
-                        const newDescription = produce
-                            ? immerProduce(component.description, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaDescription)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardRoom, "description">({
-                            componentKey: component.key,
-                            tag: 'Room',
-                            key: 'description',
-                            oldValue: oldDescription,
-                            newValue: newDescription
-                        })
-                        break
-                }
-                break
-            case 'Feature':
-            case 'Knowledge':
-                switch(payload.itemKey) {
-                    case 'name':
-                        const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                        const newName = produce
-                            ? immerProduce(component.name, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaName)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardFeature | StandardKnowledge, "name">({
-                            componentKey: component.key,
-                            tag: component?.tag,
-                            key: 'name',
-                            oldValue: oldName,
-                            newValue: newName
-                        })
-                        break
-                    case 'description':
-                        const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
-                        const newDescription = produce
-                            ? immerProduce(component.description, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaDescription)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardFeature | StandardKnowledge, "description">({
-                            componentKey: component.key,
-                            tag: component?.tag,
-                            key: 'description',
-                            oldValue: oldDescription,
-                            newValue: newDescription
-                        })
-                        break
-                }
-                break
-            case 'Map':
-            case 'Character':
-                switch(payload.itemKey) {
-                    case 'name':
-                        const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                        const newName = produce
-                            ? immerProduce(component.name, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaName)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardMap | StandardCharacter, "name">({
-                            componentKey: component.key,
-                            tag: component?.tag,
-                            key: 'name',
-                            oldValue: oldName,
-                            newValue: newName
-                        })
-                        break
-                }
-                break
-            case 'Theme':
-                switch(payload.itemKey) {
-                    case 'name':
-                        const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                        const newName = produce
-                            ? immerProduce(component.name, produce) : 
-                            item && wrappedNodeTypeGuard(isSchemaName)(item)
-                                ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                                : undefined
-                        mergeFieldToEdit<StandardTheme, "name">({
-                            componentKey: component.key,
-                            tag: component?.tag,
-                            key: 'name',
-                            oldValue: oldName,
-                            newValue: newName
-                        })
-                        break
-                }
-                break
+        if (isStandardRoom(component)) {
+            switch(payload.itemKey) {
+                case 'shortName':
+                    const oldShortName = component.shortName ? JSON.parse(JSON.stringify(unwrapSubject(component.shortName))) as GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag> : undefined
+                    const newShortName = produce
+                        ? immerProduce(component.shortName, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaShortName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardRoom, "shortName">({
+                        componentKey: component.key,
+                        tag: 'Room',
+                        key: 'shortName',
+                        oldValue: oldShortName,
+                        newValue: newShortName
+                    })
+                    break
+                case 'name':
+                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
+                    const newName = produce
+                        ? immerProduce(component.name, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardRoom, "name">({
+                        componentKey: component.key,
+                        tag: 'Room',
+                        key: 'name',
+                        oldValue: oldName,
+                        newValue: newName
+                    })
+                    break
+                case 'summary':
+                    const oldSummary = component.summary ? JSON.parse(JSON.stringify(unwrapSubject(component.summary))) as GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag> : undefined
+                    const newSummary = produce
+                        ? immerProduce(component.summary, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaSummary)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardRoom, "summary">({
+                        componentKey: component.key,
+                        tag: 'Room',
+                        key: 'summary',
+                        oldValue: oldSummary,
+                        newValue: newSummary
+                    })
+                    break
+                case 'description':
+                    const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
+                    const newDescription = produce
+                        ? immerProduce(component.description, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaDescription)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardRoom, "description">({
+                        componentKey: component.key,
+                        tag: 'Room',
+                        key: 'description',
+                        oldValue: oldDescription,
+                        newValue: newDescription
+                    })
+                    break
+            }
+        }
+        if (isStandardFeature(component) || isStandardKnowledge(component)) {
+            switch(payload.itemKey) {
+                case 'name':
+                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
+                    const newName = produce
+                        ? immerProduce(component.name, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardFeature | StandardKnowledge, "name">({
+                        componentKey: component.key,
+                        tag: component?.tag,
+                        key: 'name',
+                        oldValue: oldName,
+                        newValue: newName
+                    })
+                    break
+                case 'description':
+                    const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
+                    const newDescription = produce
+                        ? immerProduce(component.description, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaDescription)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardFeature | StandardKnowledge, "description">({
+                        componentKey: component.key,
+                        tag: component?.tag,
+                        key: 'description',
+                        oldValue: oldDescription,
+                        newValue: newDescription
+                    })
+                    break
+            }
+        }
+        if (isStandardMap(component) || isStandardCharacter(component)) {
+            switch(payload.itemKey) {
+                case 'name':
+                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
+                    const newName = produce
+                        ? immerProduce(component.name, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardMap | StandardCharacter, "name">({
+                        componentKey: component.key,
+                        tag: component?.tag,
+                        key: 'name',
+                        oldValue: oldName,
+                        newValue: newName
+                    })
+                    break
+            }
+        }
+        if (isStandardTheme(component)) {
+            switch(payload.itemKey) {
+                case 'name':
+                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
+                    const newName = produce
+                        ? immerProduce(component.name, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                    mergeFieldToEdit<StandardTheme, "name">({
+                        componentKey: component.key,
+                        tag: component?.tag,
+                        key: 'name',
+                        oldValue: oldName,
+                        newValue: newName
+                    })
+                    break
+            }
         }
     }
     if (isUpdateStandardPayloadUpdateField(payload)) {

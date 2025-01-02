@@ -24,7 +24,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             CreatedTime: value,
             Target: 'CHARACTER#Test'
         })) as WorldMessage[]
@@ -81,7 +81,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: [{ tag: 'String', value: 'Test' }],
+            Message: ['Test'],
             CreatedTime: value,
             Target: 'CHARACTER#Test'
         })) as WorldMessage[]
@@ -94,14 +94,14 @@ describe('messages reducer', () => {
             expect(reducer({}, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: [{ tag: 'String', value: 'Test message' }],
+                Message: ['Test message'],
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
-                    Message: [{ tag: 'String', value: 'Test message' }],
+                    Message: ['Test message'],
                     MessageId: 'Test',
                     Target: 'CHARACTER#TESS'
                 }]
@@ -112,14 +112,14 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: [{ tag: 'String', value: 'Test message' }],
+                Message: ['Test message'],
                 MessageId: 'Test',
                 Target: 'CHARACTER#MARCO'
             }]))).toEqual({
                 'CHARACTER#MARCO': [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
-                    Message: [{ tag: 'String', value: 'Test message' }],
+                    Message: ['Test message'],
                     MessageId: 'Test',
                     Target: 'CHARACTER#MARCO'
                 }],
@@ -131,14 +131,14 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: [{ tag: 'String', value: 'Test message' }],
+                Message: ['Test message'],
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
                 'CHARACTER#TESS': [{
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 1,
-                        Message: [{ tag: 'String', value: 'Test message' }],
+                        Message: ['Test message'],
                         MessageId: 'Test',
                         Target: 'CHARACTER#TESS'
                     },
@@ -151,7 +151,7 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 200000,
-                Message: [{ tag: 'String', value: 'Test message' }],
+                Message: ['Test message'],
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
@@ -160,7 +160,7 @@ describe('messages reducer', () => {
                     {
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 200000,
-                        Message: [{ tag: 'String', value: 'Test message' }],
+                        Message: ['Test message'],
                         MessageId: 'Test',
                         Target: 'CHARACTER#TESS'
                     }
@@ -178,7 +178,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: [{ tag: 'String', value: 'Test message' }],
+            Message: ['Test message'],
             CreatedTime: value,
             Target: 'CHARACTER#Test'
         })) as WorldMessage[]

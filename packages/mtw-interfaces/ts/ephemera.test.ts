@@ -286,10 +286,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     MessageId: 'TestID',
                     CreatedTime: 5,
                     Target: 'CHARACTER#TestABC',
-                    Message: [{
-                        tag: 'String',
-                        value: 'Test'
-                    }]
+                    Message: ['Test']
                 }]
             })).toBe(true)
         })

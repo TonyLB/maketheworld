@@ -31,6 +31,7 @@ import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import EditButton from './EditButton'
+import { StandardRender } from '@tonylb/mtw-wml/dist/standardize/render'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -56,6 +57,10 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets.map(({ AssetId }) => (AssetId)).includes(key))))), [currentHeader, Assets, currentAssets])
     const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
+    const standardName = useMemo(() => {
+        console.log(`standardName memo: ${JSON.stringify(Name)}`)
+        return Name ? new StandardRender(Name) : undefined
+    }, [Name])
 
     return <MessageComponent
             sx={{
@@ -98,7 +103,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                     }
                 `}>
                     <Typography variant='h5' align='left'>
-                        { Name.filter(isTaggedText).length ? Name.filter(isTaggedText).map(({ value }) => (value)).join('') : 'Untitled' }
+                        { standardName?.plainString ?? 'Untitled' }
                         { currentHeader && <MiniChip text="Live" /> }
                     </Typography>
                     <Box sx={{ overflow: 'hidden' }}>

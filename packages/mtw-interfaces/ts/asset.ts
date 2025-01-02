@@ -1,6 +1,5 @@
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
-import { FeatureDescribeData, RoomDescribeData, validateTaggedMessageList } from "./messages";
 import { checkAll, checkTypes } from "./utils";
 
 export type FetchLibraryAPIMessage = {
