@@ -115,9 +115,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
+                ...[this.shortName].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.features.map((reference) => (reference.schema)),
                 ...this.examples.map((reference) => (reference.schema)),
-                ...[this.shortName, this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
+                ...[this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits
             ]
         }
@@ -127,6 +128,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
+                ...[this.shortName].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema
@@ -137,7 +139,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                         ? reference.schema
                         : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
                 )).filter(excludeUndefined),
-                ...[this.shortName, this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
+                ...[this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits
             ]
         }

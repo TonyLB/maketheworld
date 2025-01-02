@@ -29,9 +29,9 @@ export const isStandardExample = (arg: any): arg is StandardExampleData => {
             key: 'string',
         },
         {
-            name: 'tree',
-            summary: 'tree',
-            description: 'tree'
+            name: 'renderTree',
+            summary: 'renderTree',
+            description: 'renderTree'
         })
     )
 }

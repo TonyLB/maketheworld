@@ -11,8 +11,8 @@ describe('StandardRoom class', () => {
     it('should construct StandardRoom from WML', () => {
         const testSource = deIndentWML(`
             <Room key=(test)>
-                <Feature key=(testFeature) />
                 <ShortName>ShortName Test</ShortName>
+                <Feature key=(testFeature) />
                 <Name>Name Test</Name>
                 <Summary>Summary Test</Summary>
                 <Description>Description Test</Description>
@@ -34,8 +34,8 @@ describe('StandardRoom class', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
             <Room key=(test)>
-                <Feature key=(testFeature) />
                 <ShortName>ShortName Test</ShortName>
+                <Feature key=(testFeature) />
                 <Name>Name Test</Name>
                 <Summary>Summary Test</Summary>
                 <Description>Description Test</Description>

@@ -7,6 +7,7 @@ import { StandardActionData, isStandardAction } from "./action";
 import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { isStandardCharacter, StandardCharacterData } from "./character";
 import { StandardComputedData, isStandardComputed } from "./computed";
+import { isStandardExample, StandardExampleData } from "./example";
 import { StandardFeatureData, isStandardFeature } from "./feature";
 import { StandardImageData, isStandardImage } from "./image";
 import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge";
@@ -28,6 +29,7 @@ export type StandardReferenceData = {
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
+    StandardExampleData |
     StandardRoomData |
     StandardFeatureData |
     StandardKnowledgeData |
@@ -59,6 +61,7 @@ export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]
 
 export const isStandardNonEdit = (value: any): value is StandardComponentNonEditData => (
     isStandardCharacter(value) ||
+    isStandardExample(value) ||
     isStandardRoom(value) ||
     isStandardFeature(value) ||
     isStandardKnowledge(value) ||
