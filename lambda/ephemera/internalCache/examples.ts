@@ -3,7 +3,7 @@ import {
     EphemeraKnowledgeId,
     EphemeraRoomId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DeferredCache } from './deferredCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'

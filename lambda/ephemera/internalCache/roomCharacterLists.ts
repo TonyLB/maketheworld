@@ -1,5 +1,5 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {

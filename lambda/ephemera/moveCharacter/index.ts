@@ -1,7 +1,7 @@
 import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
-import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import internalCache from "../internalCache"
-import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
+import { RoomKey, splitType } from "@tonylb/mtw-utilities/ts/types"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
 
 export type RoomStackItem = {

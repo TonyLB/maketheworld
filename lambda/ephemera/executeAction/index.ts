@@ -1,12 +1,12 @@
-import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
+import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import internalCache from "../internalCache"
 import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShowMoment, PublishMessage } from "../messageBus/baseClasses"
 import { EphemeraMessageId, EphemeraMomentId, EphemeraVariableId, LegalCharacterColor } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
-import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
-import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
+import { isLegalDependencyTag } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/ts/types"
 import { defaultColorFromCharacterId } from "../lib/characterColor"
 import { EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import dependencyCascade from "../dependentMessages/dependencyCascade"

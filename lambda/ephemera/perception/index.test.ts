@@ -2,8 +2,8 @@ jest.mock('../internalCache')
 import internalCache from "../internalCache"
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import perceptionMessage from '.'
 

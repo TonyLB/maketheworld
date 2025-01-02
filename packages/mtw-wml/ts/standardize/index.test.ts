@@ -1737,8 +1737,10 @@ describe('StandardForm', () => {
                 <Image key=(testBackground) />
                 <Room key=(testRoom)>
                     <ShortName>Vortex</ShortName>
-                    <Name>Vortex</Name>
-                    <Description>Vortex Desc</Description>
+                    <Example key=(base)>
+                        <Name>Vortex</Name>
+                        <Description>Vortex Desc</Description>
+                    </Example>
                 </Room>
                 <Feature key=(testFeature)>
                     <Name>Clocktower</Name>
@@ -1765,6 +1767,7 @@ describe('StandardForm', () => {
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
         testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#002')
+        testSource._byId["testRoom.base"] = testSource._byId["testRoom.base"].withUniversalKey('EXAMPLE#025')
         testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
         testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
         testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
@@ -1779,6 +1782,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testWML)
         expect(test.byId.testBackground.universalKey).toEqual('IMAGE#001')
         expect(test.byId.testRoom.universalKey).toEqual('ROOM#002')
+        expect(test.byId["testRoom.base"].universalKey).toEqual('EXAMPLE#025')
         expect(test.byId.testFeature.universalKey).toEqual('FEATURE#003')
         expect(test.byId.testKnowledge.universalKey).toEqual('KNOWLEDGE#004')
         expect(test.byId.testMap.universalKey).toEqual('MAP#005')

@@ -1,9 +1,9 @@
 import { RegisterCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import messageBus from "../messageBus"
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import internalCache from '../internalCache'
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {

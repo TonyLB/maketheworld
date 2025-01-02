@@ -1,5 +1,5 @@
-import { TransactWriteItem, TransactWriteItemsCommand, TransactWriteItemsCommandInput, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
+import { TransactWriteItem, TransactWriteItemsCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
+import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { UpdateExtendedProps } from "./update"
 import withGetOperations from "./get"
@@ -185,7 +185,9 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 }
                 return []
             }).flat()
-            await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
+            if (transactions.length > 0) {
+                await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
+            }
             await Promise.all([
                 ...successCallbacks.map(async (callback) => { await callback()  }),
                 ...deleteCallbacks.map(async (callback) => { await callback()  })

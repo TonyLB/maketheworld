@@ -23,7 +23,7 @@ import {
     isEphemeraRoomId,
     isEphemeraVariableId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { splitType } from "@tonylb/mtw-utilities/dist/types";
+import { splitType } from "@tonylb/mtw-utilities/ts/types";
 import { GenericTree } from "@tonylb/mtw-wml/ts/tree/baseClasses";
 import { SchemaOutputTag, SchemaPronouns, SchemaTag } from "@tonylb/mtw-wml/ts/schema/baseClasses";
 import { StateItemId } from "../internalCache/baseClasses"

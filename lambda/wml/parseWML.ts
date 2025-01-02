@@ -1,4 +1,4 @@
-import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
+import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { formatImage } from "./formatImage"
 import { s3Client, sfnClient, snsClient } from "./clients"
@@ -29,7 +29,10 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
 
     try {
         const assetWorkspace = new AssetWorkspace(address)
-        await assetWorkspace.loadJSON()
+        try {
+            await assetWorkspace.loadJSON()
+        }
+        catch {}
 
         assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
         const imageFiles = (await Promise.all([
@@ -128,16 +131,18 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         }
     }
     catch (error) {
-        await snsClient.send(new PublishCommand({
-            TopicArn: FEEDBACK_TOPIC,
-            Message: '{}',
-            MessageAttributes: {
-                RequestId: { DataType: 'String', StringValue: requestId },
-                ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
-                Type: { DataType: 'String', StringValue: 'Error' },
-                Error: { DataType: 'String', StringValue: 'Internal error in ParseWML' }
-            }
-        }))
+        if (requestId && connectionId) {
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: '{}',
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: requestId },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Error' },
+                    Error: { DataType: 'String', StringValue: 'Internal error in ParseWML' }
+                }
+            }))
+        }
         throw error
     }
 

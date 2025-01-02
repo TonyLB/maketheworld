@@ -1,5 +1,5 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { DeferredCache } from './deferredCache'
 
 import { EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'

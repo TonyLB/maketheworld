@@ -1,8 +1,8 @@
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
-import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
+jest.mock('@tonylb/mtw-utilities/ts/graphStorage/update/index')
+import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update/index'
 
 import { updateDependenciesFromMergeActions } from './dependencyUpdate'
 

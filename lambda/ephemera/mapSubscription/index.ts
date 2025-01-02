@@ -1,8 +1,8 @@
 import { MapSubscriptionMessage, MapUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import internalCache from '../internalCache'
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {

@@ -3,16 +3,16 @@
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
 import { EphemeraComputedId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types"
+import evaluateCode from "@tonylb/mtw-utilities/ts/computation/sandbox"
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
+import { AssetKey, splitType } from "@tonylb/mtw-utilities/ts/types"
 import internalCache from "../internalCache"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import messageBus from "../messageBus"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
 import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
-import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
+import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { StandardExampleNDJSONData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
@@ -143,7 +143,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
                 return {
                     Put: {
                         EphemeraId: componentId,
-                        DataCategory: `EXAMPLE#${itemB.universalKey}::${assetId}`,
+                        DataCategory: `${itemB.universalKey}::${assetId}`,
                         scopedId: itemB.key,
                         ...(name ? { name } : {}),
                         ...(description ? { description } : {}),
@@ -153,7 +153,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
             }
             if (itemA) {
                 return {
-                    Delete: { EphemeraId: componentId, DataCategory: `EXAMPLE#${itemA.universalKey}::${assetId}` }
+                    Delete: { EphemeraId: componentId, DataCategory: `${itemA.universalKey}::${assetId}` }
                 }
             }
             if (itemB) {
@@ -163,7 +163,7 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
                 return {
                     Put: {
                         EphemeraId: componentId,
-                        DataCategory: `EXAMPLE#${itemB.universalKey}::${assetId}`,
+                        DataCategory: `${itemB.universalKey}::${assetId}`,
                         scopedId: itemB.key,
                         ...(name ? { name } : {}),
                         ...(description ? { description } : {}),

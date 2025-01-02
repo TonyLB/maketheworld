@@ -29,9 +29,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
 
     fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
         const { name, summary, description } = props
-        this._name = new StandardRender(name)
-        this._summary = new StandardRender(summary)
-        this._description = new StandardRender(description)
+        this._name = name ? new StandardRender(name) : undefined
+        this._summary = summary ? new StandardRender(summary) : undefined
+        this._description = description ? new StandardRender(description) : undefined
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {

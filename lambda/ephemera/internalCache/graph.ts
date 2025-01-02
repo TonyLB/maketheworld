@@ -1,4 +1,4 @@
-import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
+import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
 
 export type GraphCacheType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
 export type GraphNodeType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Nodes"]

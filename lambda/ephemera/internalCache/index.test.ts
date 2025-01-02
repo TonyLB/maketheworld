@@ -1,5 +1,5 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
 

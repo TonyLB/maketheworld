@@ -1,18 +1,18 @@
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import dependencyCascade from './dependencyCascade'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
-import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
+import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
+import { objectFilterEntries } from '@tonylb/mtw-utilities/ts/objects'
 import { EphemeraComputedId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isLegalDependencyTag } from '../internalCache/baseClasses'
-import { extractConstrainedTag } from '@tonylb/mtw-utilities/dist/types'
+import { extractConstrainedTag } from '@tonylb/mtw-utilities/ts/types'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
