@@ -36,7 +36,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const tagTree = new SchemaTagTree(node.children)
             const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
-            this._description = extractStandardRender(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
+            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
             const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
             this._rooms = roomTagTree.tree
             return
