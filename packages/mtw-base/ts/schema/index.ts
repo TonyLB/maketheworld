@@ -1,6 +1,7 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { SchemaBase, SchemaImportableBase } from "./baseClasses"
 import { SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "./character"
+import { SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "./components"
 import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "./computation"
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "./condition"
 import { SchemaEditTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "./edit"
@@ -52,28 +53,6 @@ export type SchemaBookmarkTag = {
     display?: 'replace';
 } & SchemaImportableBase
 
-export type SchemaShortNameTag = {
-    tag: 'ShortName';
-} & SchemaBase
-
-export type SchemaRoomTag = {
-    tag: 'Room';
-    key: string;
-    x?: number;
-    y?: number;
-} & SchemaImportableBase
-
-export type SchemaFeatureTag = {
-    tag: 'Feature';
-    key: string;
-    global?: boolean;
-} & SchemaImportableBase
-
-export type SchemaKnowledgeTag = {
-    tag: 'Knowledge';
-    key: string;
-} & SchemaImportableBase
-
 export type SchemaThemeTag = {
     tag: 'Theme';
     key: string;
@@ -85,27 +64,6 @@ export type SchemaPromptTag = {
 } & SchemaBase
 
 export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTag | SchemaNameTag | SchemaThemeTag
-
-export type SchemaPositionTag = {
-    tag: 'Position';
-    x: number;
-    y: number;
-}
-
-export type SchemaMapTag = {
-    tag: 'Map';
-    key: string;
-} & SchemaImportableBase
-
-export type SchemaMessageTag = {
-    tag: 'Message';
-    key: string;
-} & SchemaImportableBase
-
-export type SchemaMomentTag = {
-    tag: 'Moment';
-    key: string;
-} & SchemaImportableBase
 
 export type SchemaTag = SchemaAssetTag |
     SchemaStoryTag |
