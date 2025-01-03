@@ -188,7 +188,7 @@ describe('personalAsset slice reducers', () => {
                             <Name>Test Room</Name>
                             <Description>Test Description</Description>
                         </Room>
-                        <Variable key=(Variable1) default={false} />
+                        <Variable key=(Variable1) />
                     </Asset>
                 `),
                 calculated: deIndentWML(`
@@ -197,11 +197,11 @@ describe('personalAsset slice reducers', () => {
                             <Name>Test Room</Name>
                             <Description>Test Description</Description>
                         </Room>
-                        <Variable key=(Variable1) default={false} />
+                        <Variable key=(Variable1) />
                     </Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset key=(testAsset)><Variable key=(Variable1) default={false} /></Asset>
+                    <Asset key=(testAsset)><Variable key=(Variable1) /></Asset>
                 `)
             })
         })

@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { isSchemaDescription, isSchemaName, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "../../tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/GenericTree"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"

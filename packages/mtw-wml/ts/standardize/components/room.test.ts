@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { isSchemaExit, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "../../tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/GenericTree"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"

@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { isSchemaName, isSchemaPosition } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "../../tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/GenericTree"
 import { StandardMapData } from "./dataTypes/map"
 import StandardMap from './map'
 import { mergeTest } from "./utils/testing"

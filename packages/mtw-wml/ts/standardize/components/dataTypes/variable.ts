@@ -14,9 +14,10 @@ export const isStandardVariable = (arg: any): arg is StandardVariableData => {
     return checkAll(
         ('tag' in arg && arg.tag === 'Variable'),
         checkTypes(arg, {
-            key: 'string',
-            default: 'string'
+            key: 'string'
         },
-        {})
+        {
+            default: 'string'
+        })
     )
 }

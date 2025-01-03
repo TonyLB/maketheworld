@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import StandardBookmark from './bookmark'
 import { mergeTest } from './utils/testing'
-import { treeNodeTypeguard } from "../../tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/GenericTree"
 import { isSchemaDescription } from "../../schema/baseClasses"
 
 describe('StandardBookmark class', () => {
