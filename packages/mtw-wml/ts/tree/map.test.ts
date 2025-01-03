@@ -1,4 +1,4 @@
-import { GenericTree } from '@tonylb/mtw-base/ts/GenericTree'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { map } from './map'
 
 describe('tree map', () => {
