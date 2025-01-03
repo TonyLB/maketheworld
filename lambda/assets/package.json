@@ -19,6 +19,7 @@
     "@aws-sdk/client-sns": "^3.529.1",
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
+    "@tonylb/mtw-base": "file:../mtw-base",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
