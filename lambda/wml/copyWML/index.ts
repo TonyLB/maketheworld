@@ -1,7 +1,7 @@
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
 import { isSchemaAsset, isSchemaCharacter } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema";
-import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { dbRegister } from "../serialize/dbRegister";
 
 export type CopyWMLArguments = {
