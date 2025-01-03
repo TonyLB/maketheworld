@@ -1,7 +1,7 @@
 import { Schema, schemaToWML } from '../schema'
 import { StandardForm, defaultSelected } from '.'
 import { deIndentWML } from '../schema/utils'
-import { GenericTree, GenericTreeNode } from '../tree/baseClasses'
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/GenericTree'
 import { SchemaTag } from '../schema/baseClasses'
 import StandardRoom from './components/room'
 

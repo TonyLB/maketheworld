@@ -1,4 +1,4 @@
-import { GenericTreeDiffAction } from './baseClasses';
+import { GenericTreeDiffAction } from '@tonylb/mtw-base/ts/GenericTree';
 import diffTrees from './diff'
 
 type TestType = {

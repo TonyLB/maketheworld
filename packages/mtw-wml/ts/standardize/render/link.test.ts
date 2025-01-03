@@ -1,5 +1,5 @@
 import { StandardRenderLink } from './link';
-import { GenericTreeNode, GenericTreeNodeFiltered } from '../../tree/baseClasses';
+import { GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/GenericTree';
 import { SchemaLinkTag, SchemaOutputTag } from '../../schema/baseClasses';
 
 describe('StandardRenderLink', () => {
