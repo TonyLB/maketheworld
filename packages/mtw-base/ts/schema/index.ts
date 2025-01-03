@@ -1,158 +1,24 @@
-import { GenericTree } from "../genericTree"
+import { SchemaAssetTag, SchemaStoryTag } from "./asset"
+import { SchemaBase, SchemaImportableBase } from "./baseClasses"
+import { SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "./character"
+import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "./computation"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "./condition"
+import { SchemaEditTag, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "./edit"
+import { SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "./example"
+import { SchemaImageTag } from "./image"
+import { SchemaExportTag, SchemaImportTag, SchemaMetaTag } from "./metaData"
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
 
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
-
-type SchemaBase = {
-}
-
-type SchemaWrapper = {
-    wrapperKey?: string;
-}
-
-export type SchemaImportableBase = SchemaBase & {
-    as?: string;
-}
-
-export type SchemaConditionMixin = {
-    conditions: {
-        if: string;
-        not?: boolean;
-        dependencies?: string[];
-    }[]
-}
-
-type SchemaAssetBase = {
-    key: string;
-    fileName?: string;
-    zone?: string;
-    subFolder?: string;
-    player?: string;
-} & SchemaBase
-
-export type SchemaAssetTag = {
-    tag: 'Asset';
-    Story: undefined;
-    update?: boolean;
-} & SchemaAssetBase
-
-export type SchemaStoryTag = {
-    tag: 'Story';
-    Story: true;
-    instance: boolean;
-} & SchemaAssetBase
-
-export type SchemaImageTag = {
-    tag: 'Image';
-    key: string;
-    fileURL?: string;
-} & SchemaImportableBase
-
-export type SchemaPronouns = {
-    subject: string;
-    object: string;
-    possessive: string;
-    adjective: string;
-    reflexive: string;
-}
-
-export type SchemaPronounsTag = {
-    tag: 'Pronouns';
-} & SchemaPronouns & SchemaBase
-
-export type SchemaFirstImpressionTag = {
-    tag: 'FirstImpression';
-    value: string;
-} & SchemaBase
-
-export type SchemaOneCoolThingTag = {
-    tag: 'OneCoolThing';
-    value: string;
-} & SchemaBase
-
-export type SchemaOutfitTag = {
-    tag: 'Outfit';
-    value: string;
-} & SchemaBase
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
 export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag => (
     isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item)
 )
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
     isSchemaName(item) || isSchemaPronouns(item) || isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaMeta(item)
 )
-
-export type SchemaCharacterTag = {
-    tag: 'Character';
-    key: string;
-    Pronouns: SchemaPronouns;
-    update?: boolean;
-} & SchemaBase
-
-export type SchemaVariableTag = {
-    tag: 'Variable';
-    key: string;
-    default?: string;
-} & SchemaImportableBase
-
-export type SchemaComputedTag = {
-    tag: 'Computed';
-    key: string;
-    src: string;
-    dependencies?: string[];
-} & SchemaImportableBase
-
-export type SchemaActionTag = {
-    tag: 'Action';
-    key: string;
-    src: string;
-} & SchemaImportableBase
-
-export type SchemaImportMapping = {
-    key: string;
-    type: 'Room' | 'Feature' | 'Knowledge' | 'Variable' | 'Computed' | 'Action' | 'Map' | 'Moment'
-}
-
-export const isSchemaImportMappingType = (value: string): value is SchemaImportMapping["type"] => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action','Map', 'Moment'].includes(value))
-
-export type SchemaImportTag = {
-    tag: 'Import';
-    key?: string;
-    from: string;
-    mapping: Record<string, SchemaImportMapping>;
-} & SchemaBase
-
-export type SchemaExportTag = {
-    tag: 'Export';
-    mapping: Record<string, SchemaImportMapping>
-} & SchemaBase
-
-export type SchemaMetaTag = {
-    tag: 'Meta';
-    key: string;
-    time: number;
-} & SchemaBase
-
-export type SchemaSelectedTag = {
-    tag: 'Selected';
-} & SchemaBase
-
-export type SchemaConditionTag = {
-    tag: 'If';
-} & SchemaWrapper & SchemaBase
-
-export type SchemaConditionStatementTag = {
-    tag: 'Statement';
-    if: string;
-    selected?: boolean;
-    dependencies?: string[]
-} & SchemaBase
-
-export type SchemaConditionFallthroughTag = {
-    tag: 'Fallthrough';
-    selected?: boolean;
-} & SchemaBase
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -161,15 +27,9 @@ export type SchemaExitTag = {
     from: string;
 } & SchemaBase
 
-export type SchemaLinkTag = {
-    tag: 'Link';
-    to: string;
-    text: string;
-} & SchemaBase
-
-export type SchemaTaggedMessageIncomingContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaSelectedTag
+export type SchemaTaggedMessageIncomingContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaEditTag | SchemaSelectedTag
 export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -186,53 +46,10 @@ export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaSelected(tag)
 )
 
-export type SchemaDescriptionTag = {
-    tag: 'Description';
-} & SchemaBase
-
-export type SchemaSummaryTag = {
-    tag: 'Summary';
-} & SchemaBase
-
-export type SchemaReplaceTag = {
-    tag: 'Replace';
-} & SchemaWrapper & SchemaBase
-
-export type SchemaReplaceMatchTag = {
-    tag: 'ReplaceMatch';
-} & SchemaBase
-
-export type SchemaReplacePayloadTag = {
-    tag: 'ReplacePayload';
-} & SchemaBase
-
-export type SchemaRemoveTag = {
-    tag: 'Remove';
-} & SchemaBase
-
-export type SchemaEditTag = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag
-
 export type SchemaBookmarkTag = {
     tag: 'Bookmark';
     key: string;
     display?: 'replace';
-} & SchemaImportableBase
-
-export type SchemaLineBreakTag = {
-    tag: 'br';
-} & SchemaBase
-
-export type SchemaSpacerTag = {
-    tag: 'Space';
-} & SchemaBase
-
-export type SchemaNameTag = {
-    tag: 'Name';
-} & SchemaBase
-
-export type SchemaExampleTag = {
-    tag: 'Example';
-    key: string;
 } & SchemaImportableBase
 
 export type SchemaShortNameTag = {
@@ -269,12 +86,6 @@ export type SchemaPromptTag = {
 
 export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTag | SchemaNameTag | SchemaThemeTag
 
-export type SchemaMapRoom = {
-    key: string;
-    x: number;
-    y: number;
-} & SchemaConditionMixin
-
 export type SchemaPositionTag = {
     tag: 'Position';
     x: number;
@@ -295,15 +106,6 @@ export type SchemaMomentTag = {
     tag: 'Moment';
     key: string;
 } & SchemaImportableBase
-
-export type SchemaStringTag = {
-    tag: 'String';
-    value: string;
-} & SchemaBase
-
-export type SchemaWhitespaceTag = {
-    tag: 'Whitespace';
-} & SchemaBase
 
 export type SchemaTag = SchemaAssetTag |
     SchemaStoryTag |
@@ -344,10 +146,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaWhitespaceTag |
     SchemaMessageTag |
     SchemaMomentTag |
-    SchemaReplaceTag |
-    SchemaReplaceMatchTag |
-    SchemaReplacePayloadTag |
-    SchemaRemoveTag
+    SchemaEditTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -373,10 +172,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaOutfitTag |
     SchemaMessageTag |
     SchemaMomentTag |
-    SchemaReplaceTag |
-    SchemaReplaceMatchTag |
-    SchemaReplacePayloadTag |
-    SchemaRemoveTag
+    SchemaEditTag
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaShortName = (value: SchemaTag): value is SchemaShortNameTag => (value.tag === 'ShortName')
@@ -408,37 +204,6 @@ export const isSchemaPronouns = (value: SchemaTag): value is SchemaPronounsTag =
 export const isSchemaOutfit = (value: SchemaTag): value is SchemaOutfitTag => (value.tag === 'Outfit')
 export const isSchemaImage = (value: SchemaTag): value is SchemaImageTag => (value.tag === 'Image')
 
-export const isSchemaString = (arg: any): arg is SchemaStringTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'String' &&
-    'value' in arg &&
-    typeof arg.value === 'string'
-)
-export const isSchemaLink = (arg: any): arg is SchemaLinkTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Link' &&
-    'to' in arg &&
-    typeof arg.to === 'string' &&
-    'text' in arg &&
-    typeof arg.text === 'string'
-)
-export const isSchemaWhitespace = (arg: any): arg is SchemaWhitespaceTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Whitespace'
-)
-export const isSchemaLineBreak = (arg: any): arg is SchemaLineBreakTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'br'
-)
-export const isSchemaSpacer = (arg: any): arg is SchemaSpacerTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Space'
-)
 export const isSchemaCondition = (arg: any): arg is SchemaConditionTag => (
     typeof arg === 'object' &&
     'tag' in arg &&
@@ -536,11 +301,6 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         }
     }
     return false
-}
-
-export type SchemaContextItem = {
-    tag: SchemaTag;
-    children: GenericTree<SchemaTag>;
 }
 
 export type SchemaToWMLTopLevelOptions = {
