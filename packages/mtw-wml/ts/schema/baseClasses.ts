@@ -1,4 +1,4 @@
-import { GenericTree } from "../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag

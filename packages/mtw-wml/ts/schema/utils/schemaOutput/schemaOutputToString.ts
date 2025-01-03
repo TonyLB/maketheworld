@@ -1,7 +1,7 @@
-import { GenericTree } from "../../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaOutputTag, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "../../baseClasses"
 
-export const schemaOutputToString = <Extra extends {}>(tree: GenericTree<SchemaOutputTag, Extra>): string => {
+export const schemaOutputToString = <Extra extends {}>(tree: GenericTree<SchemaOutputTag>): string => {
     return tree.map(({ data }) => {
         if (isSchemaString(data)) {
             return data.value

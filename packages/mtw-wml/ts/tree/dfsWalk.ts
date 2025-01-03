@@ -1,4 +1,4 @@
-import { GenericTreeNode } from "./baseClasses"
+import { GenericTreeNode, GenericTreeNodeExtended } from "@tonylb/mtw-base/ts/genericTree"
 
 //
 // TODO: Create type handler to extract callback function from incoming options, and use it to validate
@@ -14,7 +14,7 @@ type DFSWalkReduce<Callback extends DFSWalkCallback> =
 type DFSWalkState<Callback extends DFSWalkCallback> = DFSWalkReduce<Callback>["state"]
 type DFSWalkIncomingType<Callback extends DFSWalkCallback> =
     Parameters<Callback> extends [infer Previous, infer Data extends {}, infer Extra extends {}]
-        ? GenericTreeNode<Data, Extra>
+        ? GenericTreeNodeExtended<Data, Extra>
         : Parameters<Callback> extends [infer Previous, infer Data extends {}]
             ? GenericTreeNode<Data>
             : never

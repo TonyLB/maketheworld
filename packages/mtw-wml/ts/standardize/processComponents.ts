@@ -16,10 +16,8 @@ import {
     isSchemaReplaceMatch,
     isSchemaReplacePayload
 } from "../schema/baseClasses"
-import applyEdits from "../schema/treeManipulation/applyEdits"
-import { TagListItem, TagTreeMatchOperation } from "../tagTree"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove, StandardExportItem, StandardImportItem } from "./components/metaData"

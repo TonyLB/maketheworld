@@ -3,7 +3,7 @@ import { isSchemaMap, isSchemaName, isSchemaOutputTag, SchemaNameTag, SchemaOutp
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardMapData } from "./dataTypes/map"

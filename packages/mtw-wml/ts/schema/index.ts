@@ -3,7 +3,7 @@ import { ParseItem, ParseTagClose, ParseTagOpen, ParseTagSelfClosure, ParseTypes
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
-import { GenericTree, GenericTreeNode } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"

@@ -9,7 +9,7 @@ import {
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ComponentMetaItem } from "../internalCache/componentMeta"
 import { isStandardMessage, StandardComponentData, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaLink, isSchemaMessage, isSchemaRoom, isSchemaString } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 
 type EphemeraCharacterDescription = {

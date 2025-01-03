@@ -11,7 +11,7 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 import StandardFeature from "@tonylb/mtw-wml/dist/standardize/components/feature"

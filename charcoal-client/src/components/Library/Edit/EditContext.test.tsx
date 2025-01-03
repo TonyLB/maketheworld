@@ -5,7 +5,7 @@ import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, Edit
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { isSchemaLink, isSchemaOutputTag, isSchemaString, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { DataArray } from '@mui/icons-material'
 import produce from 'immer'
 

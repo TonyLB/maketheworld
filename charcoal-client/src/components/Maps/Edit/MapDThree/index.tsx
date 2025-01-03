@@ -5,7 +5,7 @@ import MapDThreeTree from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'

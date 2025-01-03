@@ -1,5 +1,5 @@
 import { SchemaOutputTag } from "../../../schema/baseClasses"
-import { GenericTree } from "../../../tree/baseClasses";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { RenderTree, RenderTreeNode } from "../../render/baseClasses";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";

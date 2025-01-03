@@ -1,5 +1,5 @@
 import { unique } from "../../list"
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import dfsWalk from "../../tree/dfsWalk"
 import { SchemaTag, isSchemaBookmark, isSchemaExit, isSchemaLink, isSchemaMap, isSchemaRoom } from "../baseClasses"
 

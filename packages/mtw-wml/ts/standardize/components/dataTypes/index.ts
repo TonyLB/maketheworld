@@ -1,5 +1,5 @@
 import { SchemaTag, SchemaWithKey } from "../../../schema/baseClasses";
-import { GenericTree } from "../../../tree/baseClasses";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin } from "../../baseClasses";
 import { isSchemaTreeNode } from "../utils";
 import { StandardBaseData } from "./abstract";

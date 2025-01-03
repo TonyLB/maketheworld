@@ -1,6 +1,6 @@
 import { deepEqual } from "../../lib/objects";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../../schema/baseClasses";
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
+import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { MergeConflictError, StandardRemove, StandardReplace } from "../baseClasses";
 import { isStandardRemoveWithOptions, isStandardReplaceWithOptions } from "./dataTypes";
 import { ComponentInterface } from "./abstract";

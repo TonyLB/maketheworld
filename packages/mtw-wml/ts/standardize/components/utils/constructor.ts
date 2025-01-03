@@ -1,5 +1,5 @@
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaTag } from "../../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { treeTypeGuard } from "../../../tree/filter"
 import { EditInternalStandardNode, EditWrappedStandardNode } from "../dataTypes/abstract"
 

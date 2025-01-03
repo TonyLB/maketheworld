@@ -1,17 +1,17 @@
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../../../schema/baseClasses"
-import { GenericTreeNodeFiltered } from "../../../tree/baseClasses"
+import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 
 export type StandardBaseData = {
     key: string;
     update?: boolean;
 }
 
-export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = GenericTreeNodeFiltered<T, ChildType, Extra>
+export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = GenericTreeNodeFiltered<T, ChildType>
 
-export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag, Extra extends {} = {}> = {
+export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = {
     data: SchemaRemoveTag;
-    children: EditInternalStandardNode<T, ChildType, Extra>[];
+    children: EditInternalStandardNode<T, ChildType>[];
 } | {
     data: SchemaReplaceTag;
-    children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType, Extra>[] }[];
-} | EditInternalStandardNode<T, ChildType, Extra>
+    children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType>[] }[];
+} | EditInternalStandardNode<T, ChildType>

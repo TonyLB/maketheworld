@@ -1,5 +1,5 @@
 import { isSchemaAction, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaExample, isSchemaFeature, isSchemaImage, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaTheme, isSchemaVariable, SchemaTag } from "../schema/baseClasses"
-import { GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import StandardAction from "./components/action"
 import StandardBookmark from "./components/bookmark"

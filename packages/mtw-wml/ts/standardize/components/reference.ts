@@ -1,5 +1,5 @@
 import { isSchemaFeature, isSchemaWithKey, SchemaFeatureTag, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { defaultComponentFromTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { isStandardFeature, StandardComponentData, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"

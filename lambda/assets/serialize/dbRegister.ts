@@ -5,7 +5,7 @@ import internalCache from '../internalCache'
 import { graphStorageDB } from './graphCache'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
-import { treeNodeTypeguard } from '@tonylb/mtw-wml/ts/tree/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace

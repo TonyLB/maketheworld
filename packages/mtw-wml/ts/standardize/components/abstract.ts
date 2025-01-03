@@ -1,5 +1,5 @@
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaTag } from "../../schema/baseClasses";
-import { GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses";
+import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardToJSONOptions } from "./baseClasses";

@@ -10,7 +10,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { wrapperCombine } from "./quantumRender/combine"
 
 const conditionalTemplates = {

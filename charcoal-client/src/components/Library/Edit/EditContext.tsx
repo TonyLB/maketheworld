@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/dist/genericTree"
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
 import { Draft, produce } from "immer"

@@ -4,7 +4,7 @@ import { isSchemaDescription, isSchemaExample, isSchemaFeature, isSchemaName, is
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
@@ -18,7 +18,6 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference from "./reference"
 import { StandardReferenceData } from "./dataTypes"
-import { unique } from "../../list"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;

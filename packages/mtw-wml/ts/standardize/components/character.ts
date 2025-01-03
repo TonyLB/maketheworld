@@ -1,6 +1,6 @@
 import { excludeUndefined } from "../../lib/lists"
 import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { treeTypeGuard } from "../../tree/filter"
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses"
 import StandardComponentAbstract, { ComponentInterface } from "./abstract"

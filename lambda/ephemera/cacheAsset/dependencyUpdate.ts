@@ -5,7 +5,7 @@ import { EphemeraComponentMixin, EphemeraItem, EphemeraKeyMappingMixin, isEpheme
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { SchemaDescriptionTag, SchemaEditTag, SchemaNameTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaDescription, isSchemaEdit, isSchemaLink, isSchemaName, isSchemaSummary } from "@tonylb/mtw-wml/ts/schema/baseClasses"
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-wml/ts/tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 

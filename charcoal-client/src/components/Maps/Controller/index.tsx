@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard  } from '@tonylb/mtw-base/dist/genericTree'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"

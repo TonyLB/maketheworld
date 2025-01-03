@@ -1,5 +1,5 @@
 import { diffTrees } from '../../tree/diff'
-import { GenericTree, GenericTreeDiffAction, GenericTreeDiffNode } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeDiffAction, GenericTreeDiffNode } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaWithKey, SchemaTag } from "../baseClasses"
 import { deepEqual } from '../../lib/objects'
 

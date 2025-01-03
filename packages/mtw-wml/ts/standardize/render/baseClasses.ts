@@ -1,5 +1,5 @@
 import { SchemaOutputTag } from "../../schema/baseClasses";
-import { GenericTreeNode } from "../../tree/baseClasses";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 
 export type RenderTreeNode = string | {
     data: SchemaOutputTag;

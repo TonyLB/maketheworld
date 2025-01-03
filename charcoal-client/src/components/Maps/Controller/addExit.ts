@@ -1,4 +1,4 @@
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses";
+import { GenericTree } from "@tonylb/mtw-base/dist/genericTree";
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
 import { isSchemaString, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils";

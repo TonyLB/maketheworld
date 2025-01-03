@@ -1,4 +1,4 @@
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaTag } from "../baseClasses"
 import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, PrintMode, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"

@@ -1,6 +1,6 @@
 import { StandardReferenceData } from ".";
 import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../../schema/baseClasses"
-import { GenericTree, GenericTreeFiltered } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 

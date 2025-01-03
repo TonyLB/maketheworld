@@ -9,7 +9,7 @@ import {
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
 import { SchemaOutputTag, SchemaTag, isSchemaCondition, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 

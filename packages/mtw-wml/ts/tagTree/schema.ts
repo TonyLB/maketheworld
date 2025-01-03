@@ -1,10 +1,10 @@
 import TagTree, { TagTreeFilterArguments, TagTreePruneArgs } from "."
 import { deepEqual } from "../lib/objects"
-import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaReplace, isSchemaWithKey } from "../schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
 
-const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
+const addWrapperKey = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node) || treeNodeTypeguard(isSchemaReplace)(node)) {
             return { ...node, data: { ...node.data, wrapperKey: node.data.wrapperKey ?? uuidv4() }, children: addWrapperKey(node.children) }
@@ -13,7 +13,7 @@ const addWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean
     })
 }
 
-const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>): GenericTree<SchemaTag, Partial<{ inherited: boolean }>> => {
+const removeWrapperKey = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node) || treeNodeTypeguard(isSchemaReplace)(node)) {
             const { wrapperKey, ...data } = node.data
@@ -23,8 +23,8 @@ const removeWrapperKey = (tree: GenericTree<SchemaTag, Partial<{ inherited: bool
     })
 }
 
-export class SchemaTagTree extends TagTree<SchemaTag, Partial<{ inherited: boolean }>> {
-    constructor(tree: GenericTree<SchemaTag, Partial<{ inherited: boolean }>>) {
+export class SchemaTagTree extends TagTree<SchemaTag> {
+    constructor(tree: GenericTree<SchemaTag>) {
         super({
             tree: addWrapperKey(tree),
             compare: ({ data: A }, { data: B }) => {

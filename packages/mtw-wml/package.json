@@ -9,7 +9,8 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "immer": "^9.0.12"
+    "immer": "^9.0.12",
+    "@tonylb/mtw-base": "file:../mtw-base"
   },
   "devDependencies": {
     "@types/jest": "^28.1.3",

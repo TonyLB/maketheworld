@@ -1,111 +1,111 @@
 import { v4 as uuidv4 } from 'uuid'
 import { deepEqual } from "../lib/objects"
 import { unique } from "../list"
-import { GenericTree, GenericTreeNode } from "../tree/baseClasses"
+import { GenericTree, GenericTreeExtended, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import dfsWalk from "../tree/dfsWalk"
 
-type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
+type TagTreeTreeOptions<NodeData extends {}> = {
     classify: (data: NodeData) => string;
     isWrapper?: (data: NodeData) => boolean;
-    compare?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
-    merge?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => ({ data: NodeData } & Extra);
+    compare?: (A: { data: NodeData }, B: { data: NodeData }) => boolean;
+    merge?: (A: { data: NodeData }, B: { data: NodeData }) => ({ data: NodeData });
     orderIndependence?: string[][];
     orderIndependenceIgnore?: string[];
     orderSort?: string[][];
 }
 
-type TagTreeMatchOperand<NodeData extends {}, Extra extends {} = {}> = 
+type TagTreeMatchOperand<NodeData extends {}> = 
     string |
-    ({ data: NodeData } & Extra) |
-    { (value: { data: NodeData } & Extra, stack: NodeData[]): boolean }
+    ({ data: NodeData }) |
+    { (value: { data: NodeData }, stack: NodeData[]): boolean }
 
-type TagTreeMatchSequence<NodeData extends {}, Extra extends {} = {}> = {
-    sequence: TagTreeMatchOperation<NodeData, Extra>[]
+type TagTreeMatchSequence<NodeData extends {}> = {
+    sequence: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchConnected<NodeData extends {}, Extra extends {} = {}> = {
-    connected: TagTreeMatchOperation<NodeData, Extra>[]
+type TagTreeMatchConnected<NodeData extends {}> = {
+    connected: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchAfter<NodeData extends {}, Extra extends {} = {}> = {
-    after: TagTreeMatchOperation<NodeData, Extra>
+type TagTreeMatchAfter<NodeData extends {}> = {
+    after: TagTreeMatchOperation<NodeData>
 }
 
-type TagTreeMatchBefore<NodeData extends {}, Extra extends {} = {}> = {
-    before: TagTreeMatchOperation<NodeData, Extra>
+type TagTreeMatchBefore<NodeData extends {}> = {
+    before: TagTreeMatchOperation<NodeData>
 }
 
-type TagTreeMatchExact<NodeData extends {}, Extra extends {} = {}> = {
-    match: TagTreeMatchOperand<NodeData, Extra>
+type TagTreeMatchExact<NodeData extends {}> = {
+    match: TagTreeMatchOperand<NodeData>
 }
 
-type TagTreeMatchNot<NodeData extends {}, Extra extends {} = {}> = {
-    not: TagTreeMatchOperation<NodeData, Extra>
+type TagTreeMatchNot<NodeData extends {}> = {
+    not: TagTreeMatchOperation<NodeData>
 }
 
-type TagTreeMatchAnd<NodeData extends {}, Extra extends {} = {}> = {
-    and: TagTreeMatchOperation<NodeData, Extra>[]
+type TagTreeMatchAnd<NodeData extends {}> = {
+    and: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchOr<NodeData extends {}, Extra extends {} = {}> = {
-    or: TagTreeMatchOperation<NodeData, Extra>[]
+type TagTreeMatchOr<NodeData extends {}> = {
+    or: TagTreeMatchOperation<NodeData>[]
 }
 
-export type TagTreeMatchOperation<NodeData extends {}, Extra extends {} = {}> =
-    TagTreeMatchSequence<NodeData, Extra> |
-    TagTreeMatchConnected<NodeData, Extra> |
-    TagTreeMatchAfter<NodeData, Extra> |
-    TagTreeMatchBefore<NodeData, Extra> |
-    TagTreeMatchExact<NodeData, Extra> |
-    TagTreeMatchNot<NodeData, Extra> |
-    TagTreeMatchAnd<NodeData, Extra> |
-    TagTreeMatchOr<NodeData, Extra>
+export type TagTreeMatchOperation<NodeData extends {}> =
+    TagTreeMatchSequence<NodeData> |
+    TagTreeMatchConnected<NodeData> |
+    TagTreeMatchAfter<NodeData> |
+    TagTreeMatchBefore<NodeData> |
+    TagTreeMatchExact<NodeData> |
+    TagTreeMatchNot<NodeData> |
+    TagTreeMatchAnd<NodeData> |
+    TagTreeMatchOr<NodeData>
 
-export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
+export type TagListItem<NodeData extends {}> = {
     data: NodeData;
     wrapperTag?: string;
-} & Extra
+}
 
-type TagTreeActionReorder<NodeData extends {}, Extra extends {} = {}> = { reorder: TagTreePruneArgs<NodeData, Extra>[] }
-type TagTreeActionReorderFunctional<NodeData extends {}, Extra extends {} = {}> = { matches: TagTreeMatchOperation<NodeData, Extra>[], reorder: (tags: TagListItem<NodeData, Extra>[]) => TagListItem<NodeData, Extra>[] }
+type TagTreeActionReorder<NodeData extends {}> = { reorder: TagTreePruneArgs<NodeData>[] }
+type TagTreeActionReorderFunctional<NodeData extends {}> = { matches: TagTreeMatchOperation<NodeData>[], reorder: (tags: TagListItem<NodeData>[]) => TagListItem<NodeData>[] }
 type TagTreeActionReorderSiblings = { reorderSiblings: string[][] }
-type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
-type TagTreeActionPrune<NodeData extends {}, Extra extends {} = {}> = { prune: TagTreePruneArgs<NodeData, Extra> }
+type TagTreeActionFilter<NodeData extends {}> = { filter: TagTreeFilterArguments<NodeData> }
+type TagTreeActionPrune<NodeData extends {}> = { prune: TagTreePruneArgs<NodeData> }
 
-export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
-    TagTreeActionReorder<NodeData, Extra> |
-    TagTreeActionReorderFunctional<NodeData, Extra> |
+export type TagTreeAction<NodeData extends {}> =
+    TagTreeActionReorder<NodeData> |
+    TagTreeActionReorderFunctional<NodeData> |
     TagTreeActionReorderSiblings |
-    TagTreeActionFilter<NodeData, Extra> |
-    TagTreeActionPrune<NodeData, Extra>
+    TagTreeActionFilter<NodeData> |
+    TagTreeActionPrune<NodeData>
 
-const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder<NodeData, Extra> => ('reorder' in action && Array.isArray(action.reorder))
-const isTagTreeActionReorderFunctional = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderFunctional<NodeData, Extra> => ('reorder' in action && typeof action.reorder === 'function')
-const isTagTreeActionReorderSiblings = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorderSiblings => ('reorderSiblings' in action)
-const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
-const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
+const isTagTreeActionReorder = <NodeData extends {}>(action: TagTreeAction<NodeData>): action is TagTreeActionReorder<NodeData> => ('reorder' in action && Array.isArray(action.reorder))
+const isTagTreeActionReorderFunctional = <NodeData extends {}>(action: TagTreeAction<NodeData>): action is TagTreeActionReorderFunctional<NodeData> => ('reorder' in action && typeof action.reorder === 'function')
+const isTagTreeActionReorderSiblings = <NodeData extends {}>(action: TagTreeAction<NodeData>): action is TagTreeActionReorderSiblings => ('reorderSiblings' in action)
+const isTagTreeActionFilter = <NodeData extends {}>(action: TagTreeAction<NodeData>): action is TagTreeActionFilter<NodeData> => ('filter' in action)
+const isTagTreeActionPrune = <NodeData extends {}>(action: TagTreeAction<NodeData>): action is TagTreeActionPrune<NodeData> => ('prune' in action)
 
-export type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra> | TagTreeMatchSequence<NodeData, Extra>)
-const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
+export type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData> | TagTreeMatchSequence<NodeData>)
+const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
     return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg || 'sequence' in arg)
 }
-// const isTagTreeNodeDataOperandNested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is { data: NodeData } & Extra => (typeof arg === 'object' && 'data' in arg)
-// const isTagTreeNodeDataOperandUnnested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is NodeData => (typeof arg === 'object' && !('data' in arg))
+// const isTagTreeNodeDataOperandNested = <NodeData extends {}>(arg: TagTreeMatchOperand<NodeData>): arg is { data: NodeData } & Extra => (typeof arg === 'object' && 'data' in arg)
+// const isTagTreeNodeDataOperandUnnested = <NodeData extends {}>(arg: TagTreeMatchOperand<NodeData>): arg is NodeData => (typeof arg === 'object' && !('data' in arg))
 
-export type TagTreePruneArgs<NodeData extends {}, Extra extends {} = {}> = TagTreeMatchOperation<NodeData, Extra>
+export type TagTreePruneArgs<NodeData extends {}> = TagTreeMatchOperation<NodeData>
 
-export const tagListFromTree = <NodeData extends {}, Extra extends {} = {}>(tree: GenericTree<NodeData, Extra>, options: { isWrapper?: (data: NodeData) => boolean } = {}): TagListItem<NodeData, Extra>[][] => {
+export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>, options: { isWrapper?: (data: NodeData) => boolean } = {}): TagListItem<NodeData>[][] => {
     return dfsWalk({
         default: { output: [], state: {} },
-        callback: (previous: { output: TagListItem<NodeData, Extra>[][], state: {} }, data: NodeData, extra: Extra) => {
-            return { output: [...previous.output, [{ data, ...extra }]], state: {} }
+        callback: (previous: { output: TagListItem<NodeData>[][], state: {} }, data: NodeData) => {
+            return { output: [...previous.output, [{ data }]], state: {} }
         },
-        aggregate: ({ direct, children, data, extra }) => {
+        aggregate: ({ direct, children, data }) => {
             const wrapperTag: string | undefined = (data && options.isWrapper?.(data as NodeData)) ? uuidv4() : undefined
             return {
                 output: [
                     ...(children.output.length ? direct.output.slice(0, -1) : direct.output),
-                    ...children.output.map((nodes) => ([...(data ? [{ data, ...(extra as unknown as Extra), wrapperTag }] : []), ...nodes]))
+                    ...children.output.map((nodes) => ([...(data ? [{ data, wrapperTag }] : []), ...nodes]))
                 ],
                 state: {}
             }
@@ -113,11 +113,11 @@ export const tagListFromTree = <NodeData extends {}, Extra extends {} = {}>(tree
     })(tree)
 }
 
-export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(options: TagTreeTreeOptions<NodeData, Extra>) => (previous: GenericTree<NodeData, Extra>, tagItem: TagListItem<NodeData, Extra>[]): GenericTree<NodeData, Extra> => {
-    const orderIndependenceTagFromTagItem = (checkItem: TagListItem<NodeData, Extra>[]): string | undefined => (
+export const iterativeMerge = <NodeData extends {}>(options: TagTreeTreeOptions<NodeData>) => (previous: GenericTreeExtended<NodeData, { wrapperTag?: string }>, tagItem: TagListItem<NodeData>[]): GenericTree<NodeData> => {
+    const orderIndependenceTagFromTagItem = (checkItem: TagListItem<NodeData>[]): string | undefined => (
         checkItem.map(({ data }) => (options.classify(data))).find((classification) => (!options.orderIndependenceIgnore?.includes(classification)))
     )
-    const orderIndependenceTagFromTreeNode = (checkNode: GenericTreeNode<NodeData, Extra>): string | undefined => {
+    const orderIndependenceTagFromTreeNode = (checkNode: GenericTreeNode<NodeData>): string | undefined => {
         const { data, children } = checkNode
         if (options.orderIndependenceIgnore?.includes(options.classify(data))) {
             return children.reduce<string | undefined>((previous, node) => {
@@ -133,7 +133,7 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
         return previous
     }
     const compare = options.compare ?? deepEqual
-    const merge: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra> = options.merge ?? ((A, B) => ({ ...A, data: { ...A.data, ...B.data } }))
+    const merge: (A: TagListItem<NodeData>, B: TagListItem<NodeData>) => TagListItem<NodeData> = options.merge ?? ((A, B) => ({ ...A, data: { ...A.data, ...B.data } }))
     if (previous.length) {
         //
         // Find the class of the tagItem that is not ignored for orderIndependence
@@ -151,7 +151,7 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
             ]
 
             const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, node, index) => {
-                const { data, children, ...rest } = node
+                const { data, wrapperTag } = node
                 //
                 // If a result has already been found then continue to the exit of the loop
                 //
@@ -161,7 +161,7 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
                 //
                 // If this current data point *is* the match, return that index
                 //
-                if (compare({ data, ...(rest as unknown as Extra) }, tagItem[0])) {
+                if (compare({ data }, { data: tagItem[0].data }) && (!((wrapperTag || tagItem[0].wrapperTag) && (wrapperTag !== tagItem[0].wrapperTag)))) {
                     return { matchIndex: index }
                 }
                 //
@@ -183,10 +183,10 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
                 }
             }, {})
             if (typeof matchIndex !== 'undefined') {
-                const { data, children, ...rest } = previous[matchIndex]
+                const { data, wrapperTag } = previous[matchIndex]
                 return [
                     ...previous.slice(0, matchIndex),
-                    { ...(merge({ data, ...rest } as unknown as TagListItem<NodeData, Extra>, tagItem[0])), children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
+                    { ...(merge({ data, wrapperTag } as unknown as TagListItem<NodeData>, tagItem[0])), children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
                     ...previous.slice(matchIndex + 1)
                 ]
             }
@@ -214,21 +214,21 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
     return [...previous, { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
-type FilterTagPendingWrapperEntry<NodeData extends {}, Extra extends {} = {}> = {
+type FilterTagPendingWrapperEntry<NodeData extends {}> = {
     // UUID identifying the wrapperTag
     wrapperTag: string;
     // TagTree up to the point of the wrapperTag (inclusive)
-    treeToWrapper: TagListItem<NodeData, Extra>[];
+    treeToWrapper: TagListItem<NodeData>[];
     // List of direct child tags of the wrapperTag that have not (yet) been included in
     // the tagTree
-    pending: TagListItem<NodeData, Extra>[];
+    pending: TagListItem<NodeData>[];
     // False if *any* child of the pending Wrapper has passed filter (and therefore all
     // pending entries must be persisted eventually)
     uncertain: boolean;
 }
-type FilterTagsState<NodeData extends {}, Extra extends {} = {}> = {
-    filteredTags: TagListItem<NodeData, Extra>[][];
-    pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
+type FilterTagsState<NodeData extends {}> = {
+    filteredTags: TagListItem<NodeData>[][];
+    pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData>[];
 }
 
 //
@@ -236,7 +236,7 @@ type FilterTagsState<NodeData extends {}, Extra extends {} = {}> = {
 // children of wrapper tags that have (so far) not appeared in the filtered output ... then,
 // if one of their siblings passes the filter, adds those tags to maintain structure.
 //
-const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {}>(options: { filter: (tagList: TagListItem<NodeData, Extra>[]) => Boolean; compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean; }) => (tagLists: TagListItem<NodeData, Extra>[][]): TagListItem<NodeData, Extra>[][] => {
+const filterTagsWithWrapperHandling = <NodeData extends {}>(options: { filter: (tagList: TagListItem<NodeData>[]) => Boolean; compare: (A: { data: NodeData }, B: { data: NodeData }) => boolean; }) => (tagLists: TagListItem<NodeData>[][]): TagListItem<NodeData>[][] => {
     const { compare } = options
     //
     // neededWrapperTagList is a helper function to take pending wrapper entries, and generate the
@@ -244,18 +244,18 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
     // for relevant wrapper items.
     //
     const neededWrapperTagLists = (args: {
-            incomingTagList: TagListItem<NodeData, Extra>[];
-            pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
+            incomingTagList: TagListItem<NodeData>[];
+            pendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData>[];
             filterPass: Boolean;
         }): {
-            neededTagLists: TagListItem<NodeData, Extra>[][];
-            newPendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[];
+            neededTagLists: TagListItem<NodeData>[][];
+            newPendingWrapperEntries: FilterTagPendingWrapperEntry<NodeData>[];
         } => {
         const { incomingTagList, pendingWrapperEntries, filterPass } = args
         //
         // Make a list of all wrapper entries in the current tagList
         //
-        const currentWrapperEntries: FilterTagPendingWrapperEntry<NodeData, Extra>[] = incomingTagList.map((item, index) => (
+        const currentWrapperEntries: FilterTagPendingWrapperEntry<NodeData>[] = incomingTagList.map((item, index) => (
             (item.wrapperTag && index < incomingTagList.length - 1)
                 ? [{
                     wrapperTag: item.wrapperTag,
@@ -265,7 +265,7 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
                 }]
                 : []
         )).flat(1)
-        const neededTagLists = pendingWrapperEntries.reduce<TagListItem<NodeData, Extra>[][]>((previous, pendingEntry) => {
+        const neededTagLists = pendingWrapperEntries.reduce<TagListItem<NodeData>[][]>((previous, pendingEntry) => {
             const matchingCurrentWrapperEntry = currentWrapperEntries.find(({ wrapperTag }) => (wrapperTag === pendingEntry.wrapperTag))
             if (!matchingCurrentWrapperEntry) {
                 if (pendingEntry.uncertain) {
@@ -289,7 +289,7 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
             }
         }, [])
         const newPendingWrapperEntries = [
-            ...pendingWrapperEntries.reduce<FilterTagPendingWrapperEntry<NodeData, Extra>[]>((previous, pendingEntry) => {
+            ...pendingWrapperEntries.reduce<FilterTagPendingWrapperEntry<NodeData>[]>((previous, pendingEntry) => {
                 const matchingCurrentWrapperEntry = currentWrapperEntries.find(({ wrapperTag }) => (wrapperTag === pendingEntry.wrapperTag))
                 if (!matchingCurrentWrapperEntry) {
                     return previous
@@ -331,7 +331,7 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
         ].sort(({ treeToWrapper: baseListA }, { treeToWrapper: baseListB }) => (baseListB.length - baseListA.length))
         return { neededTagLists, newPendingWrapperEntries }
     }
-    const { filteredTags, pendingWrapperEntries } = tagLists.reduce<FilterTagsState<NodeData, Extra>>((accumulator, tagList) => {
+    const { filteredTags, pendingWrapperEntries } = tagLists.reduce<FilterTagsState<NodeData>>((accumulator, tagList) => {
         const filterPass = options.filter(tagList)
         const {neededTagLists, newPendingWrapperEntries } = neededWrapperTagLists({ incomingTagList: tagList, pendingWrapperEntries: accumulator.pendingWrapperEntries, filterPass })
         return {
@@ -347,18 +347,18 @@ const filterTagsWithWrapperHandling = <NodeData extends {}, Extra extends {} = {
     return [...filteredTags, ...neededTagLists]
 }
 
-export class TagTree<NodeData extends {}, Extra extends {} = {}> {
-    _tagList: TagListItem<NodeData, Extra>[][];
-    _compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
+export class TagTree<NodeData extends {}> {
+    _tagList: TagListItem<NodeData>[][];
+    _compare: (A: { data: NodeData }, B: { data: NodeData }) => boolean;
     _isWrapper?: (data: NodeData) => boolean;
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
     _orderIndependenceIgnore: string[];
     _orderSort: string[][] = [];
-    _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
-    _actions: TagTreeAction<NodeData, Extra>[] = [];
+    _merge?: (A: TagListItem<NodeData>, B: TagListItem<NodeData>) => TagListItem<NodeData>
+    _actions: TagTreeAction<NodeData>[] = [];
 
-    constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
+    constructor(args: { tree: GenericTree<NodeData> } & TagTreeTreeOptions<NodeData>) {
         this._classifier = args.classify
         this._orderIndependence = args.orderIndependence ?? []
         this._orderIndependenceIgnore = args.orderIndependenceIgnore ?? []
@@ -373,7 +373,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         // TODO: Create applyEdits recursive aggregator in schema, and apply it here as an outer wrapper on
         // the tree getter function.
         //
-        return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({
+        return this._transformedTags.reduce<GenericTree<NodeData>>(iterativeMerge<NodeData>({
             classify: this._classifier,
             compare: this._compare,
             orderIndependence: this._orderIndependence,
@@ -386,7 +386,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     //
     // Identify the indices of tags in a list that match pruning arguments
     //
-    _tagMatch(arg: TagTreePruneArgs<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): number[] {
+    _tagMatch(arg: TagTreePruneArgs<NodeData>, tagList: TagListItem<NodeData>[]): number[] {
         const allIndices = tagList.map((_, index) => (index))
         if ('not' in arg) {
             const recurse = this._tagMatch(arg.not, tagList)
@@ -410,8 +410,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     // Create a new TagTree with tags ordered (and therefore grouped) in a new way. The orderGroups will specify
     // how to internally reorder tags.
     //
-    _reorderTags(arg: TagTreeActionReorder<NodeData, Extra> | TagTreeActionReorderFunctional<NodeData, Extra>) {
-        return (tags: TagListItem<NodeData, Extra>[]): TagListItem<NodeData, Extra>[] => {
+    _reorderTags(arg: TagTreeActionReorder<NodeData> | TagTreeActionReorderFunctional<NodeData>) {
+        return (tags: TagListItem<NodeData>[]): TagListItem<NodeData>[] => {
             //
             // Percolate groups of tags to the top of the list, in right-to-left order, so that the highest
             // priority are moved to the top LAST (and therefore end up at the top, as they should)
@@ -441,11 +441,11 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             const untouchedPriorTags = tags.slice(0, minIndex)
             const tagsToConsider = tags.slice(minIndex, maxIndex)
             const untouchedAfterTags = tags.slice(maxIndex)
-            let returnValue: TagListItem<NodeData, Extra>[] = []
+            let returnValue: TagListItem<NodeData>[] = []
             if (isTagTreeActionReorder(arg)) {
-                returnValue = matches.reduceRight<TagListItem<NodeData, Extra>[]>((previous, reorderArg) => {
+                returnValue = matches.reduceRight<TagListItem<NodeData>[]>((previous, reorderArg) => {
                     const matchingIndices = this._tagMatch(reorderArg, previous)
-                    const { percolatedTags, remainingTags } = previous.reduce<{ percolatedTags: TagListItem<NodeData, Extra>[], remainingTags: TagListItem<NodeData, Extra>[] }>(({ percolatedTags, remainingTags }, tag, index) => {
+                    const { percolatedTags, remainingTags } = previous.reduce<{ percolatedTags: TagListItem<NodeData>[], remainingTags: TagListItem<NodeData>[] }>(({ percolatedTags, remainingTags }, tag, index) => {
                         if (matchingIndices.includes(index)) {
                             return { percolatedTags: [...percolatedTags, tag ], remainingTags }
                         }
@@ -466,12 +466,12 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
-    _filterTags(args: TagTreeFilterArguments<NodeData, Extra>) {
-        return (tags: TagListItem<NodeData, Extra>[]): Boolean => {
+    _filterTags(args: TagTreeFilterArguments<NodeData>) {
+        return (tags: TagListItem<NodeData>[]): Boolean => {
             //
             // Recursive match between tagList and a (possibly recursive) MatchOperator
             //
-            const filterMatch = (arg: TagTreeFilterArguments<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): Boolean => {
+            const filterMatch = (arg: TagTreeFilterArguments<NodeData>, tagList: TagListItem<NodeData>[]): Boolean => {
                 if ('not' in arg) {
                     if (isTagTreeFilterArgument(arg.not)) {
                         return !filterMatch(arg.not, tagList)
@@ -504,14 +504,14 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
     }
 
-    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
-        return this._actions.reduce<TagListItem<NodeData, Extra>[][]>((previous, action) => {
+    get _transformedTags(): TagListItem<NodeData>[][] {
+        return this._actions.reduce<TagListItem<NodeData>[][]>((previous, action) => {
             if (isTagTreeActionReorder(action) || isTagTreeActionReorderFunctional(action)) {
                 const reorderedTags = previous.map((tagList) => (this._reorderTags(action)(tagList)))
                 return reorderedTags
             }
             if (isTagTreeActionReorderSiblings(action)) {
-                const reorderedSiblingTree = previous.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({
+                const reorderedSiblingTree = previous.reduce<GenericTree<NodeData>>(iterativeMerge<NodeData>({
                     classify: this._classifier,
                     compare: this._compare,
                     orderIndependence: this._orderIndependence,
@@ -536,8 +536,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }, this._tagList)
     }
 
-    clone(): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({
+    clone(): TagTree<NodeData> {
+        const returnValue = new TagTree<NodeData>({
             tree: [],
             classify: this._classifier,
             compare: this._compare,
@@ -550,24 +550,24 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         return returnValue
     }
 
-    reordered(orderGroups: TagTreePruneArgs<NodeData, Extra>[]): TagTree<NodeData, Extra> {
+    reordered(orderGroups: TagTreePruneArgs<NodeData>[]): TagTree<NodeData> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { reorder: orderGroups }]
         return returnValue
     }
 
-    reorderFunctional(matches: TagTreePruneArgs<NodeData, Extra>[], reorder: (tags: TagListItem<NodeData, Extra>[]) => TagListItem<NodeData, Extra>[]): TagTree<NodeData, Extra> {
+    reorderFunctional(matches: TagTreePruneArgs<NodeData>[], reorder: (tags: TagListItem<NodeData>[]) => TagListItem<NodeData>[]): TagTree<NodeData> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { matches, reorder }]
         return returnValue
     }
 
-    _tagMatchOperationIndices(tags: TagListItem<NodeData, Extra>[], operation: TagTreeMatchOperation<NodeData, Extra>, recurse?: (operation: TagTreeMatchOperation<NodeData, Extra>) => number[]): number[] {
-        const indicesMatching = (operand: TagTreeMatchOperand<NodeData, Extra>): number[] => {
+    _tagMatchOperationIndices(tags: TagListItem<NodeData>[], operation: TagTreeMatchOperation<NodeData>, recurse?: (operation: TagTreeMatchOperation<NodeData>) => number[]): number[] {
+        const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
             if (typeof operand === 'function') {
                 const { output } = tags.reduce<{ output: number[], stack: NodeData[] }>((previous, node, index) => {
                     return {
-                        output: (operand as (value: { data: NodeData } & Extra, stack: NodeData[]) => boolean)(node, previous.stack) ? [...previous.output, index] : previous.output,
+                        output: (operand as (value: { data: NodeData }, stack: NodeData[]) => boolean)(node, previous.stack) ? [...previous.output, index] : previous.output,
                         stack: [...previous.stack, node.data]
                     }
                 }, { output: [], stack: [] })
@@ -629,7 +629,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
-    filter(args: TagTreeFilterArguments<NodeData, Extra>): TagTree<NodeData, Extra> {
+    filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { filter: args }]
         return returnValue
@@ -638,13 +638,13 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     //
     // Create a tag tree with less levels by pruning specified tags out of the lists
     //
-    prune(args: TagTreePruneArgs<NodeData, Extra>): TagTree<NodeData, Extra> {
+    prune(args: TagTreePruneArgs<NodeData>): TagTree<NodeData> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { prune: args }]
         return returnValue
     }
 
-    reorderedSiblings(orderSort: string[][]): TagTree<NodeData, Extra> {
+    reorderedSiblings(orderSort: string[][]): TagTree<NodeData> {
         const returnValue = this.clone()
         returnValue._actions = [...this._actions, { reorderSiblings: orderSort }]
         return returnValue

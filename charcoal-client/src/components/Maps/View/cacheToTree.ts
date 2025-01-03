@@ -1,6 +1,6 @@
 import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses'
 import { MapTreeItem } from '../Controller/baseClasses'
-import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
 
 export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<MapTreeItem> => {
     const tree = rooms

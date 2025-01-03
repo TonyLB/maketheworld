@@ -1,5 +1,5 @@
 import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardFormData } from "./components/dataTypes"
@@ -38,7 +38,7 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
     throw new Error('Type mismatch')
 }
 
-export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag, Extra>): GenericTree<SchemaTag, Extra> => (
+export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
     tree.map((node) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
             const indexOfFirstSelected = node.children.findIndex(({ data }) => ((isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) && (data.selected ?? false) ))

@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaOutputTag, isSchemaSpacer, isSchemaString } from "../../baseClasses"
 
 export function compressStrings (tags: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> {
