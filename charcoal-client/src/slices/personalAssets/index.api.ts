@@ -11,7 +11,7 @@ import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getStandardForm, setImport } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
-import { treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
 

@@ -14,6 +14,7 @@
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^12.1.2",
     "@testing-library/user-event": "^7.2.1",
+    "@tonylb/mtw-base": "file:./mtw-base/",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces/",
     "@tonylb/mtw-wml": "file:./mtw-wml/",
     "@types/d3-collection": "^1.0.10",

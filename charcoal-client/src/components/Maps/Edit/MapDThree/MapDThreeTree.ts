@@ -1,6 +1,6 @@
 import { SimCallback, MapLinks, SimNode, SimulationReturn, MapNodes } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { excludeUndefined, unique } from '../../../../lib/lists'

@@ -1,5 +1,5 @@
 import { SchemaConditionTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
-import { GenericTreeNodeFiltered } from '@tonylb/mtw-wml/dist/tree/baseClasses';
+import { GenericTreeNodeFiltered } from '@tonylb/mtw-base/dist/genericTree';
 import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 

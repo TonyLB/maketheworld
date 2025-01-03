@@ -20,7 +20,7 @@ import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs
 import { EditSchema } from './EditContext'
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaAssetTag, SchemaCharacterTag, SchemaOutputTag, SchemaStoryTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { unwrapSubject } from '@tonylb/mtw-wml/dist/schema/utils'

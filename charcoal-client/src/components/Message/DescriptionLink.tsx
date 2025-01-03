@@ -21,7 +21,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { SchemaLinkTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTreeNode } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-base/dist/genericTree'
 import { RenderTreeNode } from '@tonylb/mtw-wml/dist/standardize/render/baseClasses'
 
 interface DescriptionLinkChipProps {

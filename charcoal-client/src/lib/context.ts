@@ -3,7 +3,7 @@
 //
 
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeWithUndefined, GenericTreeWithUndefined } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeWithUndefined, GenericTreeWithUndefined } from "@tonylb/mtw-base/dist/genericTree"
 import { excludeUndefined } from "./lists"
 
 export const nestOnChangeSubItem = <T extends SchemaTag>({ tree, index }: { tree: GenericTree<T>, index: number }) => (onChange: (newValue: GenericTree<T>) => void) => (newValue: GenericTreeNode<T>): void => {

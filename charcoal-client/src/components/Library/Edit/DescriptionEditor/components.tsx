@@ -20,7 +20,7 @@ import {
 import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { EditSchema } from '../EditContext'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {

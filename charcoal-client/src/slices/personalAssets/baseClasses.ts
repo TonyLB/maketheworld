@@ -1,5 +1,5 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
-import { GenericTree } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaMetaTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';

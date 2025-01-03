@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeWithUndefined, treeNodeTypeguard } from "@tonylb/mtw-wml/dist/tree/baseClasses"
+import { GenericTree, GenericTreeWithUndefined, treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
 import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
 import { isSchemaDescription, isSchemaRoom, SchemaTag, SchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 

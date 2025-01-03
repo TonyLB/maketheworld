@@ -1,4 +1,4 @@
-import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses";
+import { GenericTree } from "@tonylb/mtw-base/dist/genericTree";
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers"
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes";
