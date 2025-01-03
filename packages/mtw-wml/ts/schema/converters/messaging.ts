@@ -4,7 +4,7 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 
 const messagingTemplates = {
     Message: {

@@ -1,7 +1,7 @@
 import { SchemaTag } from "../../../schema/baseClasses"
 import applyEdits from "../../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../../tagTree/schema"
-import { GenericTreeNode } from "../../../tree/baseClasses"
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 
 export const combineTaggedChildren = (base: GenericTreeNode<SchemaTag> | undefined, incoming: GenericTreeNode<SchemaTag> | undefined): GenericTreeNode<SchemaTag> | undefined => {
     if (!base) {

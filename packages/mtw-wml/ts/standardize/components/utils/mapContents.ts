@@ -1,5 +1,5 @@
 import { SchemaTag } from "../../../schema/baseClasses";
-import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 
 export const applyTreeCallbackToNode = (callback: (tree: GenericTree<SchemaTag>) => GenericTree<SchemaTag>) => (node: GenericTreeNode<SchemaTag> | undefined): GenericTreeNode<SchemaTag> | undefined => {
     if (!node) {

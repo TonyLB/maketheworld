@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 

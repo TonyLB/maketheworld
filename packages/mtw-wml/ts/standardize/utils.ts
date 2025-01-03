@@ -3,7 +3,7 @@ import { Schema } from "../schema"
 import { SchemaTag } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../tagTree/schema"
-import { GenericTreeNode } from "../tree/baseClasses"
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SerializeNDJSONMixin, StandardComponentData, StandardNodeKeys } from "./baseClasses"
 
 export const combineTagChildren = <T extends StandardComponentData, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {

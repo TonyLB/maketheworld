@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNode } from "./baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 
 type ConvertToTreeOptions<I extends {}, O extends {}> = {
     extractNode: (incoming: I) => O;

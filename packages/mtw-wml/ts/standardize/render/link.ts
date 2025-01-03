@@ -1,5 +1,5 @@
 import { isSchemaLink, SchemaLinkTag, SchemaOutputTag } from "../../schema/baseClasses"
-import { GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 

@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeFiltered } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaLineBreakTag, SchemaSpacerTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaLineBreak, isSchemaRoom, isSchemaSpacer, isSchemaString } from "../../baseClasses"
 
 export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>

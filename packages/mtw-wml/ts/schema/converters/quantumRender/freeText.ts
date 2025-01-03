@@ -1,5 +1,5 @@
 import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
-import { GenericTree } from "../../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, PrintMapResult, SchemaTagPrintItem, SchemaToWMLOptions } from "../baseClasses"
 import { optionsFactory } from "../utils"

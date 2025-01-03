@@ -1,5 +1,5 @@
 import shortestCommonSupersequence from "../sequence/shortestCommonSupersequence";
-import { GenericTree } from "./baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { TreeUtility } from "./utilityClass";
 
 export const mergeTrees = <N extends {}, InternalNode extends {}>(options: {

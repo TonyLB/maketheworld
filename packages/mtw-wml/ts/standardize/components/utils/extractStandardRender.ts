@@ -1,5 +1,5 @@
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaOutputTag, SchemaTag } from "../../../schema/baseClasses"
-import { treeNodeTypeguard } from "../../../tree/baseClasses"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRender, StandardRenderRemove, StandardRenderReplace, StandardRenderSimple } from "../../render"
 import { EditWrappedStandardNode } from "../dataTypes/abstract"
 

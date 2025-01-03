@@ -2,7 +2,7 @@ import { excludeUndefined } from "../lib/lists"
 import { objectFilterEntries } from "../lib/objects"
 import { isImportable, isSchemaExport, isSchemaImport, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaTag } from "../schema/baseClasses"
 import { unwrapSubject, wrappedNodeTypeGuard } from "../schema/utils"
-import { GenericTree, treeNodeTypeguard } from "../tree/baseClasses"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./components/metaData"
 
 //

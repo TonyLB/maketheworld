@@ -1,5 +1,4 @@
 import { isSchemaString, SchemaStringTag } from "../../schema/baseClasses";
-import { GenericTreeNode } from "../../tree/baseClasses";
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 
 export class StandardRenderString extends StandardRenderAbstract implements StandardRenderElement {

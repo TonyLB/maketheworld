@@ -1,5 +1,5 @@
 import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComputedData } from "./dataTypes/computed"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";

@@ -1,5 +1,5 @@
 import { unique } from "../../list"
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 

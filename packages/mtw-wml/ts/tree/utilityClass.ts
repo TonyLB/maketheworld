@@ -1,6 +1,6 @@
 import IndexSubstitution from "../sequence/indexSubstitution"
 import { deepEqual } from "../sequence/lib/objects";
-import { GenericTree, GenericTreeNode } from "./baseClasses";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 
 type SequenceToTreeStackItem<N extends {}, InternalNode extends {}> = {
     key: number;

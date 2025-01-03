@@ -1,5 +1,5 @@
 import shortestCommonSupersequence, { ShortestCommonSupersetDirection } from "../sequence/shortestCommonSupersequence";
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from "./baseClasses"
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from "@tonylb/mtw-base/ts/genericTree";
 import { TreeUtility } from "./utilityClass";
 
 type SequenceToTreeStackItem<N extends {}, InternalNode extends {}> = {

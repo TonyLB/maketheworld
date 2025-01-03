@@ -5,7 +5,7 @@ import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, Prin
 import { areAdjacent, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
 import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
-import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { separateLinesCombine, wordWrapCombine } from "./quantumRender/combine"
 import collapse from "./quantumRender/collapse"
 

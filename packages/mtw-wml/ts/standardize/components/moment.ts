@@ -1,7 +1,7 @@
 import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"

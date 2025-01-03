@@ -1,7 +1,7 @@
 import { unique } from "../../../list"
 import { isImportable, isSchemaConditionStatement, isSchemaExit, isSchemaLink, isSchemaRoom, SchemaTag } from "../../../schema/baseClasses"
 import SchemaTagTree from "../../../tagTree/schema"
-import { GenericTree } from "../../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference from "../reference"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {

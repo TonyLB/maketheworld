@@ -1,5 +1,5 @@
 import { isSchemaSpacer, SchemaSpacerTag } from "../../schema/baseClasses"
-import { GenericTreeNode } from "../../tree/baseClasses"
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 

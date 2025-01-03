@@ -1,5 +1,5 @@
 import { isSchemaAction, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData";

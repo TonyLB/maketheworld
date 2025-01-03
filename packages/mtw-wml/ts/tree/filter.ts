@@ -1,4 +1,4 @@
-import { TreeCallbackNode, GenericTree, TreeCallback, GenericTreeFiltered } from './baseClasses'
+import { TreeCallbackNode, GenericTree, TreeCallback, GenericTreeFiltered } from '@tonylb/mtw-base/ts/genericTree'
 
 export const filter = <Callback extends TreeCallback<boolean>>({ tree, callback }: { tree: TreeCallbackNode<Callback>[], callback: Callback }): TreeCallbackNode<Callback>[] => (
     tree
@@ -23,18 +23,18 @@ export const asyncFilter = async <Callback extends TreeCallback<Promise<boolean>
     )).flat(1)
 }
 
-export const treeTypeGuard = <NodeData extends {}, NewNodeData extends NodeData, Extra extends {} = {}>({ tree, typeGuard }: { tree: GenericTree<NodeData, Extra>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTree<NewNodeData, Extra> => (
+export const treeTypeGuard = <NodeData extends {}, NewNodeData extends NodeData>({ tree, typeGuard }: { tree: GenericTree<NodeData>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTree<NewNodeData> => (
     tree.map(({ data, children, ...rest }) => (
         typeGuard(data)
-            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard }), ...rest }] as GenericTree<NewNodeData, Extra>
+            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard }), ...rest }] as GenericTree<NewNodeData>
             : []
     )).flat(1)
 )
 
-export const treeTypeGuardOnce = <NodeData extends {}, NewNodeData extends NodeData, Extra extends {} = {}>({ tree, typeGuard }: { tree: GenericTree<NodeData, Extra>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTreeFiltered<NewNodeData, NodeData, Extra> => (
+export const treeTypeGuardOnce = <NodeData extends {}, NewNodeData extends NodeData>({ tree, typeGuard }: { tree: GenericTree<NodeData>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTreeFiltered<NewNodeData, NodeData> => (
     tree.map(({ data, children, ...rest }) => (
         typeGuard(data)
-            ?  [{ data, children, ...rest }] as GenericTreeFiltered<NewNodeData, NodeData, Extra>
+            ?  [{ data, children, ...rest }] as GenericTreeFiltered<NewNodeData, NodeData>
             : []
     )).flat(1)
 )

@@ -24,7 +24,7 @@ import {
     SchemaRemoveTag,
     SchemaTag
 } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "../baseClasses"
 import { deepEqual } from "../../lib/objects"
 

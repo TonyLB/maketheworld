@@ -1,7 +1,7 @@
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 
-import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaLineBreak, isSchemaLink, isSchemaReplace, isSchemaSpacer, isSchemaString, isSchemaTaggedMessageLegalContents, isSchemaWhitespace } from "../../baseClasses"
 
 //

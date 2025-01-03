@@ -1,5 +1,5 @@
 import { SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../../schema/baseClasses"
-import { GenericTree } from "../../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 

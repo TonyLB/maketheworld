@@ -1,5 +1,5 @@
 import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"

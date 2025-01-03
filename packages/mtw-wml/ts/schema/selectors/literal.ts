@@ -1,6 +1,6 @@
 import { SchemaTag, isSchemaLiteralTag } from "../baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 
 export const selectLiteral = (tag: string) => (tree: GenericTree<SchemaTag>): string => {
     const tagTree = new SchemaTagTree(tree)

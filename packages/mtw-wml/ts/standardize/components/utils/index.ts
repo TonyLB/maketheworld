@@ -1,5 +1,5 @@
 import { SchemaTag } from "../../../schema/baseClasses"
-import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 
 export const isSchemaTreeNode = (value: any): value is GenericTreeNode<SchemaTag> => {
     return Boolean(value && typeof value === 'object' && 'data' in value && 'children' in value)
