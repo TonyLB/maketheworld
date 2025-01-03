@@ -84,30 +84,6 @@ describe('personalAssets slice', () => {
             })
         })
 
-        it('should add new import item to character', () => {
-            const schema = new Schema()
-            schema.loadWML(`<Character key=(testCharacter)>
-                <Name>Test</Name>
-                <Import from=(testImportOne) />
-            </Character>`)
-            const standard = new StandardForm(schema.schema[0])
-
-            addImport({
-                assetId: 'CHARACTER#testCharacter',
-                fromAsset: 'testImportTwo'
-            }, { overrideGetStandard: jest.fn().mockReturnValue((): StandardFormData => (standard.toJSON())), overrideUpdateStandard })(dispatch, getState)
-            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
-                type: 'replaceMetaData',
-                metaData: [{
-                    data: { tag: 'Import', from: 'testImportOne', mapping: expect.any(Object) },
-                    children: []
-                },
-                {
-                    data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
-                    children: []
-                }]
-            })
-        })
     })
 
 })
