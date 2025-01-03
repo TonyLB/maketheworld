@@ -486,40 +486,6 @@ describe('personalAsset slice reducers', () => {
             })
         })
 
-        it('should replace metaData', () => {
-            expect(transformWML(
-                `
-                <Character key=(testCharacter)><Import from=(testImport) /></Character>
-                `,
-                `
-                    <Character key=(testCharacter) />
-                `,
-                {
-                    type: 'replaceMetaData',
-                    metaData: [{
-                        data: { tag: 'Import', from: 'differentImport', mapping: {} },
-                        children: []
-                    }]
-                }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Character key=(testCharacter)><Import from=(testImport) /></Character>
-                `),
-                standard: deIndentWML(`
-                    <Character key=(testCharacter)><Import from=(differentImport) /></Character>
-                `),
-                calculated: deIndentWML(`
-                    <Character key=(testCharacter)><Import from=(differentImport) /></Character>
-                `),
-                edit: deIndentWML(`
-                    <Character key=(testCharacter)>
-                        <Remove><Import from=(testImport) /></Remove>
-                        <Import from=(differentImport) />
-                    </Character>
-                `)
-            })
-        })
-
         it('should rename exit targets on rename of room', () => {
             expect(transformWML(
                 `

@@ -140,7 +140,8 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
         case 'Variable':
             return {
                 tag: 'Variable' as const,
-                key
+                key,
+                default: 'false'
             }
         case 'Computed':
             return {
