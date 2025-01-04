@@ -1,9 +1,10 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { wrapperCombine } from "./quantumRender/combine"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
+import { isSchemaReplace, isSchemaReplaceMatch, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag } from "@tonylb/mtw-base/ts/schema/edit"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const editTemplates = {
     Remove: {},

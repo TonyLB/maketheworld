@@ -1,27 +1,15 @@
 import { objectMerge } from "../lib/objects"
 import { unique } from "../list"
-import {
-    isImportable,
-    isSchemaCondition,
-    isSchemaConditionStatement,
-    isSchemaConditionFallthrough,
-    isSchemaImport,
-    SchemaTag,
-    SchemaWithKey,
-    isSchemaWithKey,
-    isSchemaAsset,
-    isSchemaExport,
-    isSchemaRemove,
-    isSchemaReplace,
-    isSchemaReplaceMatch,
-    isSchemaReplacePayload
-} from "../schema/baseClasses"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/component"
 import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove, StandardExportItem, StandardImportItem } from "./components/metaData"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
+import { isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExport, isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 
 export type ComponentProcessingTemplate = {
     key: SchemaWithKey["tag"];

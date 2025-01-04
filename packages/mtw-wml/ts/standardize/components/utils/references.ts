@@ -1,8 +1,11 @@
 import { unique } from "../../../list"
-import { isImportable, isSchemaConditionStatement, isSchemaExit, isSchemaLink, isSchemaRoom, SchemaTag } from "../../../schema/baseClasses"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference from "../reference"
+import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree

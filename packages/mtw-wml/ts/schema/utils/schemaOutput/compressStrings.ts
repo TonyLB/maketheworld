@@ -1,5 +1,6 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaOutputTag, isSchemaSpacer, isSchemaString } from "../../baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export function compressStrings (tags: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> {
     const translateToString = (tag: GenericTreeNode<SchemaOutputTag>): GenericTreeNode<SchemaOutputTag> => {

@@ -1,5 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaOutputTag, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "../../baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export const schemaOutputToString = <Extra extends {}>(tree: GenericTree<SchemaOutputTag>): string => {
     return tree.map(({ data }) => {

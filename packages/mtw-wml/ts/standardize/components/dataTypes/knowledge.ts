@@ -1,7 +1,8 @@
+import { SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { StandardReferenceData } from ".";
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag } from "../../../schema/baseClasses"
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardKnowledgeData = {
     tag: 'Knowledge';

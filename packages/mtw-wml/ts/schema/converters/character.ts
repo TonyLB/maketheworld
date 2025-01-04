@@ -1,9 +1,11 @@
-import { SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag, isSchemaCharacter, isSchemaCharacterContents, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaString } from "../baseClasses"
+import { isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const characterTemplates = {
     Pronouns: {

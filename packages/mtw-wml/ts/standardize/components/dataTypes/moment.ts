@@ -1,7 +1,7 @@
-import { SchemaTag } from "../../../schema/baseClasses"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardMomentData = {
     tag: 'Moment';

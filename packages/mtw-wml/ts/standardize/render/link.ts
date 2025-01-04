@@ -1,7 +1,8 @@
-import { isSchemaLink, SchemaLinkTag, SchemaOutputTag } from "../../schema/baseClasses"
-import { GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
+import { isSchemaLink, SchemaLinkTag } from "@tonylb/mtw-base/ts/schema/renderTree";
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 
 export class StandardRenderLink extends StandardRenderAbstract implements StandardRenderElement {
     _to: string;

@@ -1,7 +1,9 @@
 import { diffTrees } from '../../tree/diff'
 import { GenericTree, GenericTreeDiffAction, GenericTreeDiffNode } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaWithKey, SchemaTag } from "../baseClasses"
 import { deepEqual } from '../../lib/objects'
+import { isSchemaWithKey, SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaCondition, isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 
 const diffTreeIncludesChange = (node: GenericTreeDiffNode<SchemaTag>): boolean => {
     return [GenericTreeDiffAction.Add, GenericTreeDiffAction.Delete, GenericTreeDiffAction.Set].includes(node.action) || Boolean(node.children.find((child) => (diffTreeIncludesChange(child))))

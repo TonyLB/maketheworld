@@ -1,9 +1,13 @@
-import { SchemaExportTag, SchemaImageTag, SchemaImportTag, SchemaMetaTag, SchemaSelectedTag, SchemaTag, isImportable, isSchemaExport, isSchemaImage, isSchemaImport, isSchemaMeta, isSchemaRemove, isSchemaReplace, isSchemaSelected } from "../baseClasses"
+import { isSchemaExport, isSchemaImport, isSchemaMeta, SchemaExportTag, SchemaImportTag, SchemaMetaTag } from "@tonylb/mtw-base/ts/schema/metaData"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
+import { isSchemaSelected, SchemaSelectedTag } from "@tonylb/mtw-base/ts/schema/condition"
 
 const importExportTemplates = {
     Import: {

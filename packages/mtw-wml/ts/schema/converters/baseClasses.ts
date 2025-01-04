@@ -1,6 +1,6 @@
-import { SchemaTag, SchemaToWMLTopLevelOptions } from "../baseClasses"
+import { SchemaTag, SchemaToWMLTopLevelOptions } from "@tonylb/mtw-base/ts/schema"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 
 export type SchemaConverterArguments = {
     parseOpen: ParseTagOpen | ParseTagSelfClosure;

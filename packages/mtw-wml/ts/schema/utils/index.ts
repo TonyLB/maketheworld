@@ -1,17 +1,9 @@
+import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-base/ts/schema"
 import { EditWrappedStandardNode } from "../../standardize/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import {
-    isSchemaCondition,
-    isSchemaDescription,
-    isSchemaName,
-    SchemaTag,
-    SchemaTaggedMessageLegalContents,
-    isSchemaTaggedMessageLegalContents,
-    isSchemaRemove,
-    isSchemaReplace,
-    isSchemaReplaceMatch,
-    isSchemaReplacePayload
-} from "../baseClasses"
+import { isSchemaDescription, isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaCondition } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaEdit, isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return contents.map((item) => {
@@ -79,12 +71,7 @@ export const deIndentWML = (wml: string): string => {
 // that is *not* an edit tag (i.e., the subject content being edited)
 //
 export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag> | undefined => {
-    if (
-        treeNodeTypeguard(isSchemaRemove)(node) ||
-        treeNodeTypeguard(isSchemaReplace)(node) ||
-        treeNodeTypeguard(isSchemaReplaceMatch)(node) ||
-        treeNodeTypeguard(isSchemaReplacePayload)(node)
-    ) {
+    if (treeNodeTypeguard(isSchemaEdit)(node)) {
         return unwrapSubject<Extra>(node.children[0])
     }
     return node
@@ -95,12 +82,7 @@ export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag>
 // that is *not* an edit tag (i.e., the subject content being edited)
 //
 export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (value: SchemaTag) => value is SubType) => (node: GenericTreeNode<SchemaTag>): node is EditWrappedStandardNode<SubType, SchemaTag> => {
-    if (
-        treeNodeTypeguard(isSchemaRemove)(node) ||
-        treeNodeTypeguard(isSchemaReplace)(node) ||
-        treeNodeTypeguard(isSchemaReplaceMatch)(node) ||
-        treeNodeTypeguard(isSchemaReplacePayload)(node)
-    ) {
+    if (treeNodeTypeguard(isSchemaEdit)(node)) {
         return node.children.reduce((previous, child) => (previous && wrappedNodeTypeGuard<SubType>(typeGuard)(child)), true)
     }
     else {

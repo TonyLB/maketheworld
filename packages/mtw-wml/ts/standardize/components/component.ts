@@ -12,7 +12,6 @@
 // functions to pull data out of the private payload.
 //
 
-import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "../../schema/baseClasses";
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
 import { isLegalKey, nodeFromWML } from "../utils";
@@ -23,6 +22,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
+import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 
 type StandardComponentReferenceKey = {
     key: string;

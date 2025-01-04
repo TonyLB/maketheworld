@@ -1,7 +1,8 @@
-import { SchemaNameTag, SchemaOutputTag, SchemaTag, SchemaThemeTag } from "../../../schema/baseClasses"
 import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
+import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardMapData = {
     tag: 'Map';

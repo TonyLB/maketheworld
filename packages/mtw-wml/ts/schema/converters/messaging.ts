@@ -1,10 +1,11 @@
-import { SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMoment } from "../baseClasses"
+import { isSchemaMessage, isSchemaMoment, SchemaMessageTag, SchemaMomentTag } from "@tonylb/mtw-base/ts/schema/components"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const messagingTemplates = {
     Message: {

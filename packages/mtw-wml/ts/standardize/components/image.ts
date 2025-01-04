@@ -1,9 +1,10 @@
-import { isSchemaImage, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardImageData } from "./dataTypes/image"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
     tag = 'Image' as const;

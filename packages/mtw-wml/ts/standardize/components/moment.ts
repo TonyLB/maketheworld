@@ -1,4 +1,3 @@
-import { isSchemaMoment, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -7,6 +6,8 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { dependencyReferenceKeys, directReferenceKeys } from "./utils/references"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: GenericTree<SchemaTag> = [];

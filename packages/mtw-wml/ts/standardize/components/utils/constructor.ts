@@ -1,7 +1,9 @@
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaTag } from "../../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { treeTypeGuard } from "../../../tree/filter"
 import { EditInternalStandardNode, EditWrappedStandardNode } from "../dataTypes/abstract"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag } from "@tonylb/mtw-base/ts/schema/edit"
 
 export const defaultSelected = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
     tree.map((node) => {

@@ -1,9 +1,10 @@
-import { isSchemaComputed, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComputedData } from "./dataTypes/computed"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
 
 export class StandardComputedPayload implements ComponentConstructorMethods<StandardComputedData> {
     _src?: string;

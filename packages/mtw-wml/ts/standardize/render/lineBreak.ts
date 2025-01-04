@@ -1,7 +1,7 @@
-import { isSchemaLineBreak, SchemaLineBreakTag } from "../../schema/baseClasses"
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
+import { isSchemaLineBreak, SchemaLineBreakTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export class StandardRenderLineBreak extends StandardRenderAbstract implements StandardRenderElement {
     constructor(arg: any) {

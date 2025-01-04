@@ -1,10 +1,9 @@
-import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, PrintMapResult, SchemaTagPrintItem, SchemaToWMLOptions } from "../baseClasses"
 import { optionsFactory } from "../utils"
 import collapse from "./collapse"
 import { wordWrapCombine } from "./combine"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export const maxLineLength = (padding: number, lines: string) => (lines.split('\n').reduce<number>((previous, line, index) => (Math.max(previous, line.length + ((index === 0) ? padding : 0))), 0))
 

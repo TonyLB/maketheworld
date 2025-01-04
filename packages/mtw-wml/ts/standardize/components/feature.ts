@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaDescription, isSchemaExample, isSchemaFeature, isSchemaName, SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -15,6 +14,9 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference from "./reference"
 import { StandardReferenceData } from "./dataTypes"
+import { isSchemaDescription, isSchemaExample, isSchemaName, SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: StandardRender;

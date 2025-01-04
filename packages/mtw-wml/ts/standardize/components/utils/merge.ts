@@ -1,4 +1,4 @@
-import { SchemaTag } from "../../../schema/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import applyEdits from "../../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"

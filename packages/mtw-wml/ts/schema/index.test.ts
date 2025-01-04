@@ -721,58 +721,6 @@ describe('schemaFromParse', () => {
 
     })
 
-    it('should correctly schematize bookmarks', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Story key=(Test) instance>
-                <Bookmark key=(postFix)>
-                    <Space />(awesome!)
-                </Bookmark>
-                <Room key=(ABC)>
-                    <Name>Vortex</Name>
-                    <Description>Vortex<Bookmark key=(postFix) /></Description>
-                </Room>
-            </Story>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Story",
-                key: "Test",
-                Story: true,
-                instance: true
-            },
-            children: [
-                {
-                    data: {
-                        tag: "Bookmark",
-                        key: "postFix"
-                    },
-                    children: [
-                        { data: { tag: 'Space' }, children: [] },
-                        { data: { tag: 'String', value: '(awesome!)' }, children: [] }
-                    ]
-                },
-                {
-                    data: {
-                        tag: "Room",    
-                        key: "ABC"
-                    },
-                    children: [{
-                        data: { tag: 'Name' },
-                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
-                    },
-                    {
-                        data: { tag: 'Description' },
-                        children: [
-                            { data: { tag: 'String', value: 'Vortex' }, children: [] },
-                            { data: { tag: 'Bookmark', key: 'postFix' }, children: [] }
-                        ]
-                    }]
-                }
-            ],
-        }])
-
-    })
-
 })
 
 //

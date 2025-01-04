@@ -1,8 +1,11 @@
+import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import TagTree, { TagTreeFilterArguments, TagTreePruneArgs } from "."
 import { deepEqual } from "../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag, isSchemaCondition, isSchemaConditionStatement, isSchemaImport, isSchemaReplace, isSchemaWithKey } from "../schema/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
+import { isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 
 const addWrapperKey = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return tree.map((node) => {

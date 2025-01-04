@@ -1,5 +1,7 @@
 import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaLineBreakTag, SchemaSpacerTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaLineBreak, isSchemaRoom, isSchemaSpacer, isSchemaString } from "../../baseClasses"
+import { SchemaTag, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
 export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTree<SchemaTag> {

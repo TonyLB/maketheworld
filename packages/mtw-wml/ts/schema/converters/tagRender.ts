@@ -1,4 +1,3 @@
-import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../simpleParser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
@@ -8,6 +7,7 @@ import { optionsFactory } from "./utils"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { separateLinesCombine, wordWrapCombine } from "./quantumRender/combine"
 import collapse from "./quantumRender/collapse"
+import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 type TagRenderProperty = {
     key?: string;
