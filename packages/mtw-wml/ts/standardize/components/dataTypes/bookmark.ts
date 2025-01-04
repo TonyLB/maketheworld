@@ -1,6 +1,7 @@
-import { SchemaDescriptionTag, SchemaOutputTag } from "../../../schema/baseClasses"
+import { SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardBookmarkData = {
     tag: 'Bookmark';

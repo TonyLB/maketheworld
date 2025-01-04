@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaMap, isSchemaName, isSchemaOutputTag, SchemaNameTag, SchemaOutputTag, SchemaTag, SchemaThemeTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
@@ -14,6 +13,9 @@ import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { positionReferenceKeys } from "./utils/references"
+import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;

@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaOutputTag, isSchemaPronouns, SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { treeTypeGuard } from "../../tree/filter"
 import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses"
@@ -8,6 +7,10 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponentData } from "./dataTypes"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaTreeNode } from "./utils"
+import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;

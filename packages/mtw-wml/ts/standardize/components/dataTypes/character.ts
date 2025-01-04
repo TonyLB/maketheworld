@@ -1,6 +1,9 @@
-import { SchemaFirstImpressionTag, SchemaImageTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaOutputTag, SchemaPronounsTag, SchemaTag } from "../../../schema/baseClasses"
+import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character";
+import { SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardCharacterData = {
     tag: 'Character';

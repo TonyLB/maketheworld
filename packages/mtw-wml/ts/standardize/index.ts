@@ -1,4 +1,3 @@
-import { SchemaTag, isSchemaConditionStatement, isSchemaCondition, isSchemaConditionFallthrough, isImportable, SchemaWithKey, isSchemaImport, isSchemaAsset, isSchemaMeta, SchemaAssetTag, isSchemaExport, isSchemaRemove, isSchemaWithKey, isSchemaExit, isSchemaLink } from "../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
@@ -23,6 +22,12 @@ import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
 import { standardComponentFactory } from "./componentFactory"
 import importExportFromTree from "./importExportFromTree"
 import { StandardToJSONOptions } from "./components/baseClasses"
+import { isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaExport, isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
     if (typeguard(value)) {

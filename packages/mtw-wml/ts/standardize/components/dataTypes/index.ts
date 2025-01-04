@@ -1,4 +1,3 @@
-import { SchemaTag, SchemaWithKey } from "../../../schema/baseClasses";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin } from "../../baseClasses";
 import { isSchemaTreeNode } from "../utils";
@@ -18,6 +17,7 @@ import { StandardRoomData, isStandardRoom } from "./room";
 import { StandardThemeData, isStandardTheme } from "./theme";
 import { checkAll } from "./typeguards";
 import { StandardVariableData, isStandardVariable } from "./variable";
+import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookmark, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 

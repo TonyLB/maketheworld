@@ -1,8 +1,10 @@
 import { deepEqual } from "../../lib/objects"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaOutputTag, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaString, isSchemaWithKey, SchemaSpacerTag, SchemaStringTag, SchemaTag } from "../baseClasses"
 import { unwrapSubject } from "../utils";
+import { isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaString, SchemaSpacerTag, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 
 type SchemaTree = GenericTree<SchemaTag>
 

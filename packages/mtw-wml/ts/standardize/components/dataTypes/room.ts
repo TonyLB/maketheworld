@@ -1,8 +1,10 @@
 import { StandardReferenceData } from ".";
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaThemeTag } from "../../../schema/baseClasses"
 import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
+import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example";
 
 export type StandardRoomData = {
     tag: 'Room';

@@ -1,4 +1,3 @@
-import { SchemaTag, SchemaToWMLTopLevelOptions, isSchemaString } from "./baseClasses"
 import { ParseItem, ParseTagClose, ParseTagOpen, ParseTagSelfClosure, ParseTypes } from "../simpleParser/baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
@@ -9,6 +8,8 @@ import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
 import { lineLengthAfterIndent } from "./converters/printUtils"
 import { maxLineLength } from "./converters/quantumRender/freeText"
+import { SchemaTag, SchemaToWMLTopLevelOptions } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 class SchemaAggregator {
     contextStack: GenericTree<SchemaTag> = [];

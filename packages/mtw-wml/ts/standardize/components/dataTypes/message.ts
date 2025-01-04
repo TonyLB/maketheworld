@@ -1,7 +1,8 @@
-import { SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../../schema/baseClasses"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardMessageData = {
     tag: 'Message';

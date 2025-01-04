@@ -1,5 +1,6 @@
-import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../../../schema/baseClasses"
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 export type StandardBaseData = {
     key: string;

@@ -1,41 +1,13 @@
-import {
-    SchemaThemeTag,
-    SchemaBookmarkTag,
-    SchemaDescriptionTag,
-    SchemaExitTag,
-    SchemaFeatureTag,
-    SchemaKnowledgeTag,
-    SchemaMapTag,
-    SchemaNameTag,
-    SchemaPositionTag,
-    SchemaPromptTag,
-    SchemaRoomTag,
-    SchemaShortNameTag,
-    SchemaSummaryTag,
-    SchemaTag,
-    isSchemaTheme,
-    isSchemaBookmark,
-    isSchemaDescription,
-    isSchemaExit,
-    isSchemaFeature,
-    isSchemaKnowledge,
-    isSchemaMap,
-    isSchemaMapContents,
-    isSchemaName,
-    isSchemaPosition,
-    isSchemaPrompt,
-    isSchemaRoom,
-    isSchemaShortName,
-    isSchemaString,
-    isSchemaSummary,
-    isSchemaTaggedMessageLegalContents
-} from "../baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaBookmark, isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, isSchemaTheme, SchemaBookmarkTag, SchemaPromptTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 const componentTemplates = {
     Exit: {
@@ -112,38 +84,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    // Description: {
-    //     initialize: ({ parseOpen }): SchemaDescriptionTag => ({
-    //         tag: 'Description',
-    //         ...validateProperties(componentTemplates.Description)(parseOpen)
-    //     }),
-    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
-    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
-    //         if (!isSchemaDescription(initialTag)) {
-    //             throw new Error('Type mismatch on schema finalize')
-    //         }
-    //         return {
-    //             data: initialTag,
-    //             children: compressWhitespace(children)
-    //         }
-    //     }
-    // },
-    // Summary: {
-    //     initialize: ({ parseOpen }): SchemaSummaryTag => ({
-    //         tag: 'Summary',
-    //         ...validateProperties(componentTemplates.Summary)(parseOpen)
-    //     }),
-    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
-    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
-    //         if (!isSchemaSummary(initialTag)) {
-    //             throw new Error('Type mismatch on schema finalize')
-    //         }
-    //         return {
-    //             data: initialTag,
-    //             children: compressWhitespace(children)
-    //         }
-    //     }
-    // },
     Bookmark: {
         initialize: ({ parseOpen }): SchemaBookmarkTag => {
             const { display, ...rest } = validateProperties(componentTemplates.Bookmark)(parseOpen)
@@ -167,22 +107,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    // Name: {
-    //     initialize: ({ parseOpen }): SchemaNameTag => ({
-    //         tag: 'Name',
-    //         ...validateProperties(componentTemplates.Name)(parseOpen)
-    //     }),
-    //     typeCheckContents: isSchemaTaggedMessageLegalContents,
-    //     finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => {
-    //         if (!isSchemaName(initialTag)) {
-    //             throw new Error('Type mismatch on schema finalize')
-    //         }
-    //         return {
-    //             data: initialTag,
-    //             children: compressWhitespace(children)
-    //         }
-    //     }
-    // },
     ShortName: {
         initialize: ({ parseOpen }): SchemaShortNameTag => ({
             tag: 'ShortName',

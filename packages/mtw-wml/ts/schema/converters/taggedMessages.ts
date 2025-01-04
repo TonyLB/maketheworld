@@ -1,11 +1,12 @@
+import { isSchemaLink, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const taggedMessageTemplates = {
     br: {},

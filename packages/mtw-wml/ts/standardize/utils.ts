@@ -1,10 +1,10 @@
 import { excludeUndefined } from "../lib/lists"
 import { Schema } from "../schema"
-import { SchemaTag } from "../schema/baseClasses"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../tagTree/schema"
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SerializeNDJSONMixin, StandardComponentData, StandardNodeKeys } from "./baseClasses"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export const combineTagChildren = <T extends StandardComponentData, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
     if (!excludeUndefined(base[key])) {

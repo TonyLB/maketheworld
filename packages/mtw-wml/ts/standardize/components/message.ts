@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaDescription, isSchemaMessage, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -13,6 +12,9 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaMessage } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;

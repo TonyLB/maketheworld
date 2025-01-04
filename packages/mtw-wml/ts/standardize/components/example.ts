@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaExample, isSchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -12,6 +11,8 @@ import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
+import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;

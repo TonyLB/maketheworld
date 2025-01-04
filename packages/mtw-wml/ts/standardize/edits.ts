@@ -1,8 +1,6 @@
 import { deepEqual } from "../lib/objects";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaWithKey, SchemaTag, SchemaWithKey } from "../schema/baseClasses";
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { MergeConflictError, SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
-import StandardComponentAbstract from "./components/abstract";
 import { StandardComponent } from "./components/component";
 import { isStandardRemove, StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
@@ -11,6 +9,8 @@ import { StandardExportItem, StandardImportItem } from "./components/metaData";
 import { isSchemaTreeNode } from "./components/utils";
 import standardNonEditComponentFactory from "./nonEditFactory";
 import { nodeFromWML, removeNDJSONOnlyProperties } from "./utils";
+import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge

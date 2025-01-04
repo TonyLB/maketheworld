@@ -1,7 +1,8 @@
 import { unique } from "../../list"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
+import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-base/ts/schema/metaData"
 
 export const selectKeysByTag = (tag: SchemaWithKey["tag"] | 'Import') => (tree: GenericTree<SchemaTag>): string[] => {
     const tagTree = new SchemaTagTree(tree)

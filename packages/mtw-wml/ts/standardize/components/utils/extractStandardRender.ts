@@ -1,7 +1,8 @@
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaOutputTag, SchemaTag } from "../../../schema/baseClasses"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRender, StandardRenderRemove, StandardRenderReplace, StandardRenderSimple } from "../../render"
 import { EditWrappedStandardNode } from "../dataTypes/abstract"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 
 export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStandardNode<D, SchemaOutputTag> | undefined, typeguard: (data: SchemaTag) => data is D, errorMessage: string): StandardRender | undefined => {
     if (!node) {

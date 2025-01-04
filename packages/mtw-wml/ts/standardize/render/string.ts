@@ -1,4 +1,4 @@
-import { isSchemaString, SchemaStringTag } from "../../schema/baseClasses";
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 
 export class StandardRenderString extends StandardRenderAbstract implements StandardRenderElement {

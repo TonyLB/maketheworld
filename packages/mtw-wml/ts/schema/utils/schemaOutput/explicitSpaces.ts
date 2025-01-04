@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaOutputTag } from "../../baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 
 //
 // TODO: Figure out how to not need to explicitly override types

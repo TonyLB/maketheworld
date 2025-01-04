@@ -1,4 +1,3 @@
-import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaTag } from "../schema/baseClasses";
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponent, StandardComponentNonEditData, StandardReferenceData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
@@ -18,6 +17,8 @@ import { StandardRoomData } from "./components/dataTypes/room";
 import { StandardThemeData } from "./components/dataTypes/theme";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 export class StandardizerError extends Error {}
 export class MergeConflictError extends StandardizerError {

@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaLiteralTag } from "../baseClasses"
+import { isSchemaLiteralTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 

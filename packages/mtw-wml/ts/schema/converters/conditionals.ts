@@ -1,17 +1,11 @@
-import {
-    SchemaConditionFallthroughTag,
-    SchemaConditionStatementTag,
-    SchemaTag,
-    isSchemaCondition,
-    isSchemaConditionFallthrough,
-    isSchemaConditionStatement
-} from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
-import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { wrapperCombine } from "./quantumRender/combine"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, SchemaConditionFallthroughTag, SchemaConditionStatementTag } from "@tonylb/mtw-base/ts/schema/condition"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const conditionalTemplates = {
     If: {

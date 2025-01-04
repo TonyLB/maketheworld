@@ -1,9 +1,9 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { treeTypeGuard } from "../../tree/filter"
-import { SchemaOutputTag, SchemaTag, isSchemaOutputTag } from "../baseClasses"
 import { schemaOutputToString } from "../utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "../../tagTree/schema"
 import { optionsMatch } from "./utils"
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {
     if (!options.tag) {

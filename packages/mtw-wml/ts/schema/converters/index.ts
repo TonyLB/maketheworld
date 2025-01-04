@@ -1,9 +1,3 @@
-import {
-    SchemaAssetTag,
-    SchemaStoryTag,
-    isSchemaAsset,
-    isSchemaAssetContents,
-} from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { validateProperties } from "./utils"
@@ -17,16 +11,14 @@ import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
 import { exampleConverters, examplePrintMap } from "./example"
+import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
+import { isSchemaAsset, isSchemaAssetContents } from "@tonylb/mtw-base/ts/schema"
 
 const validationTemplates = {
     Asset: {
         key: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
-    },
-    Story: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        instance: { required: true, type: ParsePropertyTypes.Boolean }
-    },
+    }
 } as const
 
 export const converterMap: Record<string, ConverterMapEntry> = {
@@ -37,14 +29,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             ...validateProperties(validationTemplates.Asset)(parseOpen)
         }),
         typeCheckContents: isSchemaAssetContents
-    },
-    Story: {
-        initialize: ({ parseOpen }): SchemaStoryTag => ({
-            tag: 'Story',
-            Story: true,
-            ...validateProperties(validationTemplates.Story)(parseOpen)
-        }),
-        typeCheckContents: isSchemaAssetContents,
     },
     ...exampleConverters,
     ...characterConverters,

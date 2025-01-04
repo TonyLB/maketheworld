@@ -1,4 +1,3 @@
-import { isSchemaBookmark, isSchemaDescription, isSchemaOutputTag, SchemaDescriptionTag, SchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { StandardBookmarkData } from "./dataTypes/bookmark"
@@ -10,6 +9,8 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
+import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;

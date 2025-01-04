@@ -1,9 +1,10 @@
-import { isSchemaVariable, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardVariableData } from "./dataTypes/variable"
 import { StandardExportItem, StandardImportItem } from "./metaData";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation";
 
 export class StandardVariablePayload implements ComponentConstructorMethods<StandardVariableData> {
     _default?: string;

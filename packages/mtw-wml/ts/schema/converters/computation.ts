@@ -1,4 +1,4 @@
-import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag, isSchemaAction, isSchemaComputed, isSchemaVariable } from "../baseClasses"
+import { isSchemaAction, isSchemaComputed, isSchemaVariable, SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "@tonylb/mtw-base/ts/schema/computation"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"

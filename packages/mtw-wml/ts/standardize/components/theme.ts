@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { isSchemaName, isSchemaOutputTag, isSchemaPrompt, isSchemaTheme, SchemaNameTag, SchemaOutputTag, SchemaPromptTag, SchemaTag } from "../../schema/baseClasses"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -12,6 +11,8 @@ import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
 import { directReferenceKeys } from "./utils/references"
+import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaOutputTag, isSchemaPrompt, isSchemaTheme, SchemaOutputTag, SchemaPromptTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export class StandardThemePayload implements ComponentConstructorMethods<StandardThemeData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;

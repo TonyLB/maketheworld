@@ -5,28 +5,13 @@ import StandardRenderSpace from "./space"
 import { RenderTree, StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
-import {
-    isSchemaString,
-    isSchemaLineBreak,
-    isSchemaLink,
-    isSchemaSpacer,
-    isSchemaCondition,
-    isSchemaConditionStatement,
-    isSchemaConditionFallthrough,
-    isSchemaRemove,
-    isSchemaReplace,
-    isSchemaReplaceMatch,
-    isSchemaReplacePayload,
-    SchemaReplaceMatchTag,
-    SchemaReplacePayloadTag,
-    SchemaReplaceTag,
-    SchemaOutputTag,
-    SchemaRemoveTag,
-    SchemaTag
-} from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "../baseClasses"
 import { deepEqual } from "../../lib/objects"
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 

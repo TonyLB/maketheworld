@@ -1,4 +1,3 @@
-import { isSchemaAction, isSchemaBookmark, isSchemaCharacter, isSchemaComputed, isSchemaExample, isSchemaFeature, isSchemaImage, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaTheme, isSchemaVariable, SchemaTag } from "../schema/baseClasses"
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import StandardAction from "./components/action"
@@ -18,6 +17,11 @@ import StandardTheme from "./components/theme"
 import { isSchemaTreeNode } from "./components/utils"
 import StandardVariable from "./components/variable"
 import { isStandardExample } from "./components/dataTypes/example"
+import { isSchemaBookmark, isSchemaCharacter, isSchemaTheme, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
+import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 
 //
 // standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,

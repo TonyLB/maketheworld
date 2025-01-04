@@ -1,6 +1,7 @@
+import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { RenderTreeNode } from "./baseClasses"
-import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaOutputTag, SchemaTag } from "../../schema/baseClasses"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 
 export const isRenderTreeNode = (node: any): node is RenderTreeNode => {
     if (typeof node === "string") {

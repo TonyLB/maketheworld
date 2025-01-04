@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaWithKey } from "../baseClasses";
+import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 export const optionsMatch = (options: { tag: string; key: string }) => ({ data }: { data: SchemaTag }): boolean => {
     if (!(options.tag && options.key)) {

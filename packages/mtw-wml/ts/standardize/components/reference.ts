@@ -1,11 +1,12 @@
-import { isSchemaFeature, isSchemaWithKey, SchemaFeatureTag, SchemaTag, SchemaWithKey } from "../../schema/baseClasses"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { defaultComponentFromTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
-import { isStandardFeature, StandardComponentData, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
+import { isStandardFeature, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
+import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: SchemaWithKey["tag"] = 'Room';
