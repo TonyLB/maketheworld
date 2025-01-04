@@ -4,8 +4,8 @@ import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import internalCache from '../internalCache'
 import { graphStorageDB } from './graphCache'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
