@@ -1,4 +1,5 @@
 import { SchemaBase } from "./baseClasses";
+import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaLinkTag = {
     tag: 'Link';
@@ -24,33 +25,17 @@ export type SchemaWhitespaceTag = {
 } & SchemaBase
 
 export const isSchemaString = (arg: any): arg is SchemaStringTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'String' &&
-    'value' in arg &&
-    typeof arg.value === 'string'
+    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'String' } })(arg)
 )
 export const isSchemaLink = (arg: any): arg is SchemaLinkTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Link' &&
-    'to' in arg &&
-    typeof arg.to === 'string' &&
-    'text' in arg &&
-    typeof arg.text === 'string'
+    checkTypes({ required: { tag: CheckTypes.STRING, to: CheckTypes.STRING, text: CheckTypes.STRING }, values: { tag: 'Link' } })(arg)
 )
 export const isSchemaWhitespace = (arg: any): arg is SchemaWhitespaceTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Whitespace'
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Whitespace' } })(arg)
 )
 export const isSchemaLineBreak = (arg: any): arg is SchemaLineBreakTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'br'
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'br' } })(arg)
 )
 export const isSchemaSpacer = (arg: any): arg is SchemaSpacerTag => (
-    typeof arg === 'object' &&
-    'tag' in arg &&
-    arg.tag === 'Space'
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Space' } })(arg)
 )
