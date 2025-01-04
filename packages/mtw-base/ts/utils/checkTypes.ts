@@ -17,10 +17,10 @@ export const checkTypes = (props: CheckTypesProps) => (args: any): boolean => {
     const optional = !props.optional || Object.entries(props.optional).every(([key, type]) => !args[key] || typeof args[key] === type)
     const values = !props.values || Object.entries(props.values).every(([key, value]) => {
         if (typeof value === 'function') {
-            return value(args[key]);
+            return !args[key] || value(args[key])
         }
-        return !args[key] || args[key] === value;
-    });
+        return !args[key] || args[key] === value
+    })
     return required && optional && values
 }
 
