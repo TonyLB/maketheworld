@@ -2,6 +2,7 @@ import { SchemaBase } from "./baseClasses";
 import { SchemaNameTag } from "./example";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
+import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
@@ -38,3 +39,45 @@ export type SchemaCharacterTag = {
     Pronouns: SchemaPronouns;
     update?: boolean;
 } & SchemaBase
+
+export const isSchemaPronounsTag = (schema: any): schema is SchemaPronounsTag => (
+    checkTypes({
+        required: {
+            tag: CheckTypes.STRING,
+            subject: CheckTypes.STRING,
+            object: CheckTypes.STRING,
+            possessive: CheckTypes.STRING,
+            adjective: CheckTypes.STRING,
+            reflexive: CheckTypes.STRING
+        },
+        values: { tag: 'Pronouns' }
+    })(schema)
+)
+
+export const isSchemaFirstImpressionTag = (schema: any): schema is SchemaFirstImpressionTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'FirstImpression' } })(schema)
+)
+
+export const isSchemaOneCoolThingTag = (schema: any): schema is SchemaOneCoolThingTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'OneCoolThing' } })(schema)
+)
+
+export const isSchemaOutfitTag = (schema: any): schema is SchemaOutfitTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'Outfit' } })(schema)
+)
+
+export const isSchemaCharacterTag = (schema: any): schema is SchemaCharacterTag => (
+    checkTypes({
+        required: {
+            tag: CheckTypes.STRING,
+            key: CheckTypes.STRING,
+            Pronouns: CheckTypes.OBJECT
+        },
+        values: {
+            tag: 'Character',
+            Pronouns: (value: any): boolean => (
+                checkTypes({ required: { subject: CheckTypes.STRING, object: CheckTypes.STRING, possessive: CheckTypes.STRING, adjective: CheckTypes.STRING, reflexive: CheckTypes.STRING } })(value)
+            )
+        }
+    })(schema)
+)
