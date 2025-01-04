@@ -1,4 +1,9 @@
 import { SchemaBase } from "./baseClasses";
+import { SchemaNameTag } from "./example";
+import { SchemaImageTag } from "./image";
+import { SchemaImportTag, SchemaMetaTag } from "./metaData";
+
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
 export type SchemaPronouns = {
     subject: string;
