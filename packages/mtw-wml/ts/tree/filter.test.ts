@@ -1,4 +1,4 @@
-import { GenericTree } from '@tonylb/mtw-base/ts/GenericTree'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { filter } from './filter'
 
 describe('tree filter', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 
-import { GenericTree } from '@tonylb/mtw-base/ts/GenericTree'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import dfsWalk from './dfsWalk'
 
 describe('dfsWalk', () => {
