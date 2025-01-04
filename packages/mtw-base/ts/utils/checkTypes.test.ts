@@ -173,4 +173,73 @@ describe('checkTypes', () => {
         }
         expect(checkTypes(props)(args)).toBe(false)
     })
+
+    it('should return true for valid function callback in values', () => {
+        const props = {
+            required: {
+                name: CheckTypes.STRING,
+            },
+            values: {
+                name: (value: string) => value.startsWith('J'),
+            },
+        }
+        const args = {
+            name: 'John',
+        }
+        expect(checkTypes(props)(args)).toBe(true)
+    })
+
+    it('should return false for invalid function callback in values', () => {
+        const props = {
+            required: {
+                name: CheckTypes.STRING,
+            },
+            values: {
+                name: (value: string) => value.startsWith('J'),
+            },
+        }
+        const args = {
+            name: 'Doe',
+        }
+        expect(checkTypes(props)(args)).toBe(false)
+    })
+
+    it('should return true for valid function callback in optional values', () => {
+        const props = {
+            required: {
+                name: CheckTypes.STRING,
+            },
+            optional: {
+                age: CheckTypes.NUMBER,
+            },
+            values: {
+                age: (value: number) => value > 18,
+            },
+        }
+        const args = {
+            name: 'John',
+            age: 30,
+        }
+        expect(checkTypes(props)(args)).toBe(true)
+    })
+
+    it('should return false for invalid function callback in optional values', () => {
+        const props = {
+            required: {
+                name: CheckTypes.STRING,
+            },
+            optional: {
+                age: CheckTypes.NUMBER,
+            },
+            values: {
+                age: (value: number) => value > 18,
+            },
+        }
+        const args = {
+            name: 'John',
+            age: 16,
+        }
+        expect(checkTypes(props)(args)).toBe(false)
+    })
+    
 })
