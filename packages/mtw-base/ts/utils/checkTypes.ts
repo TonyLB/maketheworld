@@ -2,6 +2,7 @@ export enum CheckTypes {
     STRING = 'string',
     NUMBER = 'number',
     BOOLEAN = 'boolean',
+    OBJECT = 'object',
 }
 
 type CheckTypesProps = {

@@ -1,9 +1,17 @@
 import { SchemaBase } from "./baseClasses";
+import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaImportMapping = {
     key: string;
     type: 'Room' | 'Feature' | 'Knowledge' | 'Variable' | 'Computed' | 'Action' | 'Map' | 'Moment'
 }
+
+export const isSchemaImportMapping = (schema: any): schema is SchemaImportMapping => (
+    checkTypes({
+        required: { key: CheckTypes.STRING, type: CheckTypes.STRING },
+        values: { type: (type) => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action', 'Map', 'Moment'].includes(type)) }
+    })(schema)
+)
 
 export const isSchemaImportMappingType = (value: string): value is SchemaImportMapping["type"] => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action','Map', 'Moment'].includes(value))
 
@@ -24,3 +32,31 @@ export type SchemaMetaTag = {
     key: string;
     time: number;
 } & SchemaBase
+
+export const isSchemaImportTag = (schema: any): schema is SchemaImportTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING, from: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
+        optional: { key: CheckTypes.STRING },
+        values: {
+            tag: 'Import',
+            mapping: (mapping) => Object.values(mapping).every(isSchemaImportMapping)
+        }
+    })(schema)
+)
+
+export const isSchemaExportTag = (schema: any): schema is SchemaExportTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
+        values: {
+            tag: 'Export',
+            mapping: (mapping) => Object.values(mapping).every(isSchemaImportMapping)
+         }
+    })(schema)
+)
+
+export const isSchemaMetaTag = (schema: any): schema is SchemaMetaTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, time: CheckTypes.NUMBER },
+        values: { tag: 'Meta' }
+    })(schema)
+)
