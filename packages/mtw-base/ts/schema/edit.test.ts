@@ -1,70 +1,70 @@
-import { isSchemaReplaceTag, isSchemaReplaceMatchTag, isSchemaReplacePayloadTag, isSchemaRemoveTag, isSchemaEditTag } from './edit'
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, isSchemaRemove, isSchemaEdit } from './edit'
 
 describe('edit tags', () => {
-    describe('SchemaReplaceTag', () => {
+    describe('isSchemaReplace', () => {
         it('should identify SchemaReplaceTag correctly', () => {
             const schema = { tag: 'Replace', someOtherProp: 'value' }
-            expect(isSchemaReplaceTag(schema)).toBe(true)
+            expect(isSchemaReplace(schema)).toBe(true)
         })
 
         it('should not identify SchemaReplaceTag incorrectly', () => {
             const schema = { tag: 'NotReplace', someOtherProp: 'value' }
-            expect(isSchemaReplaceTag(schema)).toBe(false)
+            expect(isSchemaReplace(schema)).toBe(false)
         })
     })
 
-    describe('SchemaReplaceMatchTag', () => {
+    describe('isSchemaReplaceMatch', () => {
         it('should identify SchemaReplaceMatchTag correctly', () => {
             const schema = { tag: 'ReplaceMatch', someOtherProp: 'value' }
-            expect(isSchemaReplaceMatchTag(schema)).toBe(true)
+            expect(isSchemaReplaceMatch(schema)).toBe(true)
         })
 
         it('should not identify SchemaReplaceMatchTag incorrectly', () => {
             const schema = { tag: 'NotReplaceMatch', someOtherProp: 'value' }
-            expect(isSchemaReplaceMatchTag(schema)).toBe(false)
+            expect(isSchemaReplaceMatch(schema)).toBe(false)
         })
     })
 
-    describe('SchemaReplacePayloadTag', () => {
+    describe('isSchemaReplacePayload', () => {
         it('should identify SchemaReplacePayloadTag correctly', () => {
             const schema = { tag: 'ReplacePayload', someOtherProp: 'value' }
-            expect(isSchemaReplacePayloadTag(schema)).toBe(true)
+            expect(isSchemaReplacePayload(schema)).toBe(true)
         })
 
         it('should not identify SchemaReplacePayloadTag incorrectly', () => {
             const schema = { tag: 'NotReplacePayload', someOtherProp: 'value' }
-            expect(isSchemaReplacePayloadTag(schema)).toBe(false)
+            expect(isSchemaReplacePayload(schema)).toBe(false)
         })
     })
 
-    describe('SchemaRemoveTag', () => {
+    describe('isSchemaRemove', () => {
         it('should identify SchemaRemoveTag correctly', () => {
             const schema = { tag: 'Remove', someOtherProp: 'value' }
-            expect(isSchemaRemoveTag(schema)).toBe(true)
+            expect(isSchemaRemove(schema)).toBe(true)
         })
 
         it('should not identify SchemaRemoveTag incorrectly', () => {
             const schema = { tag: 'NotRemove', someOtherProp: 'value' }
-            expect(isSchemaRemoveTag(schema)).toBe(false)
+            expect(isSchemaRemove(schema)).toBe(false)
         })
     })
 
-    describe('SchemaEditTag', () => {
+    describe('isSchemaEdit', () => {
         it('should identify SchemaEditTag correctly', () => {
             const schemaReplace = { tag: 'Replace', someOtherProp: 'value' }
             const schemaReplaceMatch = { tag: 'ReplaceMatch', someOtherProp: 'value' }
             const schemaReplacePayload = { tag: 'ReplacePayload', someOtherProp: 'value' }
             const schemaRemove = { tag: 'Remove', someOtherProp: 'value' }
 
-            expect(isSchemaEditTag(schemaReplace)).toBe(true)
-            expect(isSchemaEditTag(schemaReplaceMatch)).toBe(true)
-            expect(isSchemaEditTag(schemaReplacePayload)).toBe(true)
-            expect(isSchemaEditTag(schemaRemove)).toBe(true)
+            expect(isSchemaEdit(schemaReplace)).toBe(true)
+            expect(isSchemaEdit(schemaReplaceMatch)).toBe(true)
+            expect(isSchemaEdit(schemaReplacePayload)).toBe(true)
+            expect(isSchemaEdit(schemaRemove)).toBe(true)
         })
 
         it('should not identify SchemaEditTag incorrectly', () => {
             const schema = { tag: 'NotEdit', someOtherProp: 'value' }
-            expect(isSchemaEditTag(schema)).toBe(false)
+            expect(isSchemaEdit(schema)).toBe(false)
         })
     })
 })

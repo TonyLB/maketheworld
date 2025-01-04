@@ -1,56 +1,56 @@
-import { isSchemaNameTag, isSchemaDescriptionTag, isSchemaSummaryTag, isSchemaExampleTag } from './example'
+import { isSchemaName, isSchemaDescription, isSchemaSummary, isSchemaExample } from './example'
 
 describe('example tags', () => {
-    describe('isSchemaNameTag', () => {
+    describe('isSchemaName', () => {
         it('should return true for valid SchemaNameTag', () => {
             const schema = { tag: 'Name' }
-            expect(isSchemaNameTag(schema)).toBe(true)
+            expect(isSchemaName(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaNameTag', () => {
             const schema = { tag: 'Invalid' }
-            expect(isSchemaNameTag(schema)).toBe(false)
+            expect(isSchemaName(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaDescriptionTag', () => {
+    describe('isSchemaDescription', () => {
         it('should return true for valid SchemaDescriptionTag', () => {
             const schema = { tag: 'Description' }
-            expect(isSchemaDescriptionTag(schema)).toBe(true)
+            expect(isSchemaDescription(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaDescriptionTag', () => {
             const schema = { tag: 'Invalid' }
-            expect(isSchemaDescriptionTag(schema)).toBe(false)
+            expect(isSchemaDescription(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaSummaryTag', () => {
+    describe('isSchemaSummary', () => {
         it('should return true for valid SchemaSummaryTag', () => {
             const schema = { tag: 'Summary' }
-            expect(isSchemaSummaryTag(schema)).toBe(true)
+            expect(isSchemaSummary(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaSummaryTag', () => {
             const schema = { tag: 'Invalid' }
-            expect(isSchemaSummaryTag(schema)).toBe(false)
+            expect(isSchemaSummary(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaExampleTag', () => {
+    describe('isSchemaExample', () => {
         it('should return true for valid SchemaExampleTag', () => {
             const schema = { tag: 'Example', key: 'exampleKey' }
-            expect(isSchemaExampleTag(schema)).toBe(true)
+            expect(isSchemaExample(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaExampleTag', () => {
             const schema = { tag: 'Invalid', key: 'exampleKey' }
-            expect(isSchemaExampleTag(schema)).toBe(false)
+            expect(isSchemaExample(schema)).toBe(false)
         })
 
         it('should return false for SchemaExampleTag missing key', () => {
             const schema = { tag: 'Example' }
-            expect(isSchemaExampleTag(schema)).toBe(false)
+            expect(isSchemaExample(schema)).toBe(false)
         })
     })
 })

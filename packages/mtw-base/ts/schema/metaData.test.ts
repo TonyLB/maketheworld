@@ -1,4 +1,4 @@
-import { isSchemaImportMapping, isSchemaImportTag, isSchemaExportTag, isSchemaMetaTag } from './metaData'
+import { isSchemaImportMapping, isSchemaImport, isSchemaExport, isSchemaMeta } from './metaData'
 
 describe('metaData tags', () => {
     describe('isSchemaImportMapping', () => {
@@ -13,59 +13,59 @@ describe('metaData tags', () => {
         })
     })
 
-    describe('isSchemaImportTag', () => {
+    describe('isSchemaImport', () => {
         it('should return true for valid SchemaImportTag', () => {
             const schema = { tag: 'Import', from: 'source', mapping: { key1: { key: 'exampleKey', type: 'Room' } } }
-            expect(isSchemaImportTag(schema)).toBe(true)
+            expect(isSchemaImport(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaImportTag', () => {
             const schema = { tag: 'Invalid', from: 'source', mapping: { key1: { key: 'exampleKey', type: 'Room' } } }
-            expect(isSchemaImportTag(schema)).toBe(false)
+            expect(isSchemaImport(schema)).toBe(false)
         })
 
         it('should return false for SchemaImportTag with invalid mapping', () => {
             const schema = { tag: 'Import', from: 'source', mapping: { key1: { key: 'exampleKey', type: 'Invalid' } } }
-            expect(isSchemaImportTag(schema)).toBe(false)
+            expect(isSchemaImport(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaExportTag', () => {
+    describe('isSchemaExport', () => {
         it('should return true for valid SchemaExportTag', () => {
             const schema = { tag: 'Export', mapping: { key1: { key: 'exampleKey', type: 'Room' } } }
-            expect(isSchemaExportTag(schema)).toBe(true)
+            expect(isSchemaExport(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaExportTag', () => {
             const schema = { tag: 'Invalid', mapping: { key1: { key: 'exampleKey', type: 'Room' } } }
-            expect(isSchemaExportTag(schema)).toBe(false)
+            expect(isSchemaExport(schema)).toBe(false)
         })
 
         it('should return false for SchemaExportTag with invalid mapping', () => {
             const schema = { tag: 'Export', mapping: { key1: { key: 'exampleKey', type: 'Invalid' } } }
-            expect(isSchemaExportTag(schema)).toBe(false)
+            expect(isSchemaExport(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaMetaTag', () => {
+    describe('isSchemaMeta', () => {
         it('should return true for valid SchemaMetaTag', () => {
             const schema = { tag: 'Meta', key: 'exampleKey', time: 123456789 }
-            expect(isSchemaMetaTag(schema)).toBe(true)
+            expect(isSchemaMeta(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaMetaTag', () => {
             const schema = { tag: 'Invalid', key: 'exampleKey', time: 123456789 }
-            expect(isSchemaMetaTag(schema)).toBe(false)
+            expect(isSchemaMeta(schema)).toBe(false)
         })
 
         it('should return false for SchemaMetaTag missing key', () => {
             const schema = { tag: 'Meta', time: 123456789 }
-            expect(isSchemaMetaTag(schema)).toBe(false)
+            expect(isSchemaMeta(schema)).toBe(false)
         })
 
         it('should return false for SchemaMetaTag missing time', () => {
             const schema = { tag: 'Meta', key: 'exampleKey' }
-            expect(isSchemaMetaTag(schema)).toBe(false)
+            expect(isSchemaMeta(schema)).toBe(false)
         })
     })
 })
