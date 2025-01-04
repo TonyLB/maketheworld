@@ -1,4 +1,5 @@
 import { SchemaImportableBase } from "./baseClasses"
+import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaVariableTag = {
     tag: 'Variable';
@@ -19,3 +20,20 @@ export type SchemaActionTag = {
     src: string;
 } & SchemaImportableBase
 
+export const isSchemaVariableTag = (schema: any): schema is SchemaVariableTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, optional: { default: CheckTypes.STRING }, values: { tag: 'Variable' } })(schema)
+)
+
+export const isSchemaComputedTag = (schema: any): schema is SchemaComputedTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, src: CheckTypes.STRING },
+        values: {
+            tag: 'Computed',
+            dependencies: (dependencies) => (Array.isArray(dependencies) && dependencies.every((dependency) => (typeof dependency === 'string')))
+        }
+    })(schema)
+)
+
+export const isSchemaActionTag = (schema: any): schema is SchemaActionTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, src: CheckTypes.STRING }, values: { tag: 'Action' } })(schema)
+)
