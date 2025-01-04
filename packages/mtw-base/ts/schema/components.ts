@@ -5,6 +5,13 @@ export type SchemaShortNameTag = {
     tag: 'ShortName';
 } & SchemaBase
 
+export type SchemaExitTag = {
+    tag: 'Exit';
+    key: string;
+    to: string;
+    from: string;
+} & SchemaBase
+
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -46,6 +53,10 @@ export type SchemaMomentTag = {
 
 export const isSchemaShortName = (schema: any): schema is SchemaShortNameTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'ShortName' } })(schema)
+)
+
+export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING }, values: { tag: 'Exit' } })(schema)
 )
 
 export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (

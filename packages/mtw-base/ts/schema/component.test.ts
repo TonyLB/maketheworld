@@ -1,5 +1,6 @@
 import { 
-    isSchemaShortName, 
+    isSchemaShortName,
+    isSchemaExit,
     isSchemaRoom, 
     isSchemaFeature, 
     isSchemaKnowledge, 
@@ -19,6 +20,33 @@ describe('components tags', () => {
         it('should return false for invalid SchemaShortNameTag', () => {
             const schema = { tag: 'Invalid' }
             expect(isSchemaShortName(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaExit', () => {
+        it('should return true for valid SchemaExitTag', () => {
+            const schema = { tag: 'Exit', key: 'exitKey', to: 'destination', from: 'origin' }
+            expect(isSchemaExit(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaExitTag', () => {
+            const schema = { tag: 'Invalid', key: 'exitKey', to: 'destination', from: 'origin' }
+            expect(isSchemaExit(schema)).toBe(false)
+        })
+
+        it('should return false for SchemaExitTag missing key', () => {
+            const schema = { tag: 'Exit', to: 'destination', from: 'origin' }
+            expect(isSchemaExit(schema)).toBe(false)
+        })
+
+        it('should return false for SchemaExitTag missing to', () => {
+            const schema = { tag: 'Exit', key: 'exitKey', from: 'origin' }
+            expect(isSchemaExit(schema)).toBe(false)
+        })
+
+        it('should return false for SchemaExitTag missing from', () => {
+            const schema = { tag: 'Exit', key: 'exitKey', to: 'destination' }
+            expect(isSchemaExit(schema)).toBe(false)
         })
     })
 
