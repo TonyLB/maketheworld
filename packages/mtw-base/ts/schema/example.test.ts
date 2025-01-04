@@ -1,6 +1,6 @@
 import { isSchemaNameTag, isSchemaDescriptionTag, isSchemaSummaryTag, isSchemaExampleTag } from './example'
 
-describe('example', () => {
+describe('example tags', () => {
     describe('isSchemaNameTag', () => {
         it('should return true for valid SchemaNameTag', () => {
             const schema = { tag: 'Name' }
