@@ -40,7 +40,7 @@ export type SchemaCharacterTag = {
     update?: boolean;
 } & SchemaBase
 
-export const isSchemaPronounsTag = (schema: any): schema is SchemaPronounsTag => (
+export const isSchemaPronouns = (schema: any): schema is SchemaPronounsTag => (
     checkTypes({
         required: {
             tag: CheckTypes.STRING,
@@ -54,19 +54,19 @@ export const isSchemaPronounsTag = (schema: any): schema is SchemaPronounsTag =>
     })(schema)
 )
 
-export const isSchemaFirstImpressionTag = (schema: any): schema is SchemaFirstImpressionTag => (
+export const isSchemaFirstImpression = (schema: any): schema is SchemaFirstImpressionTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'FirstImpression' } })(schema)
 )
 
-export const isSchemaOneCoolThingTag = (schema: any): schema is SchemaOneCoolThingTag => (
+export const isSchemaOneCoolThing = (schema: any): schema is SchemaOneCoolThingTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'OneCoolThing' } })(schema)
 )
 
-export const isSchemaOutfitTag = (schema: any): schema is SchemaOutfitTag => (
+export const isSchemaOutfit = (schema: any): schema is SchemaOutfitTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'Outfit' } })(schema)
 )
 
-export const isSchemaCharacterTag = (schema: any): schema is SchemaCharacterTag => (
+export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => (
     checkTypes({
         required: {
             tag: CheckTypes.STRING,

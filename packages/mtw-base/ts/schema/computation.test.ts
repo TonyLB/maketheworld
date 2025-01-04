@@ -1,74 +1,74 @@
-import { isSchemaVariableTag, isSchemaComputedTag, isSchemaActionTag } from './computation'
+import { isSchemaVariable, isSchemaComputed, isSchemaAction } from './computation'
 
 describe('computation tags', () => {
-    describe('isSchemaVariableTag', () => {
+    describe('isSchemaVariable', () => {
         it('should return true for valid SchemaVariableTag', () => {
             const schema = { tag: 'Variable', key: 'variableKey' }
-            expect(isSchemaVariableTag(schema)).toBe(true)
+            expect(isSchemaVariable(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaVariableTag', () => {
             const schema = { tag: 'Invalid', key: 'variableKey' }
-            expect(isSchemaVariableTag(schema)).toBe(false)
+            expect(isSchemaVariable(schema)).toBe(false)
         })
 
         it('should return false for SchemaVariableTag missing key', () => {
             const schema = { tag: 'Variable' }
-            expect(isSchemaVariableTag(schema)).toBe(false)
+            expect(isSchemaVariable(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaComputedTag', () => {
+    describe('isSchemaComputed', () => {
         it('should return true for valid SchemaComputedTag', () => {
             const schema = { tag: 'Computed', key: 'computedKey', src: 'source' }
-            expect(isSchemaComputedTag(schema)).toBe(true)
+            expect(isSchemaComputed(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaComputedTag', () => {
             const schema = { tag: 'Invalid', key: 'computedKey', src: 'source' }
-            expect(isSchemaComputedTag(schema)).toBe(false)
+            expect(isSchemaComputed(schema)).toBe(false)
         })
 
         it('should return false for SchemaComputedTag missing key', () => {
             const schema = { tag: 'Computed', src: 'source' }
-            expect(isSchemaComputedTag(schema)).toBe(false)
+            expect(isSchemaComputed(schema)).toBe(false)
         })
 
         it('should return false for SchemaComputedTag missing src', () => {
             const schema = { tag: 'Computed', key: 'computedKey' }
-            expect(isSchemaComputedTag(schema)).toBe(false)
+            expect(isSchemaComputed(schema)).toBe(false)
         })
 
         it('should return true for SchemaComputedTag with dependencies', () => {
             const schema = { tag: 'Computed', key: 'computedKey', src: 'source', dependencies: ['dep1', 'dep2'] }
-            expect(isSchemaComputedTag(schema)).toBe(true)
+            expect(isSchemaComputed(schema)).toBe(true)
         })
 
         it('should return false for SchemaComputedTag with invalid dependencies', () => {
             const schema = { tag: 'Computed', key: 'computedKey', src: 'source', dependencies: ['dep1', 2] }
-            expect(isSchemaComputedTag(schema)).toBe(false)
+            expect(isSchemaComputed(schema)).toBe(false)
         })
     })
 
-    describe('isSchemaActionTag', () => {
+    describe('isSchemaAction', () => {
         it('should return true for valid SchemaActionTag', () => {
             const schema = { tag: 'Action', key: 'actionKey', src: 'source' }
-            expect(isSchemaActionTag(schema)).toBe(true)
+            expect(isSchemaAction(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaActionTag', () => {
             const schema = { tag: 'Invalid', key: 'actionKey', src: 'source' }
-            expect(isSchemaActionTag(schema)).toBe(false)
+            expect(isSchemaAction(schema)).toBe(false)
         })
 
         it('should return false for SchemaActionTag missing key', () => {
             const schema = { tag: 'Action', src: 'source' }
-            expect(isSchemaActionTag(schema)).toBe(false)
+            expect(isSchemaAction(schema)).toBe(false)
         })
 
         it('should return false for SchemaActionTag missing src', () => {
             const schema = { tag: 'Action', key: 'actionKey' }
-            expect(isSchemaActionTag(schema)).toBe(false)
+            expect(isSchemaAction(schema)).toBe(false)
         })
     })
 })

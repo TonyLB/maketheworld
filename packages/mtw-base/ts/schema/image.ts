@@ -7,7 +7,7 @@ export type SchemaImageTag = {
     fileURL?: string;
 } & SchemaImportableBase
 
-export const isSchemaImageTag = (schema: any): schema is SchemaImageTag => (
+export const isSchemaImage = (schema: any): schema is SchemaImageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
         optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING },

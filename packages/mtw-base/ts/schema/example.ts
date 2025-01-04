@@ -18,19 +18,19 @@ export type SchemaExampleTag = {
     key: string;
 } & SchemaImportableBase
 
-export const isSchemaNameTag = (schema: any): schema is SchemaNameTag => (
+export const isSchemaName = (schema: any): schema is SchemaNameTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Name' } })(schema)
 )
 
-export const isSchemaDescriptionTag = (schema: any): schema is SchemaDescriptionTag => (
+export const isSchemaDescription = (schema: any): schema is SchemaDescriptionTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Description' } })(schema)
 )
 
-export const isSchemaSummaryTag = (schema: any): schema is SchemaSummaryTag => (
+export const isSchemaSummary = (schema: any): schema is SchemaSummaryTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Summary' } })(schema)
 )
 
-export const isSchemaExampleTag = (schema: any): schema is SchemaExampleTag => (
+export const isSchemaExample = (schema: any): schema is SchemaExampleTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
         optional: { as: CheckTypes.STRING },

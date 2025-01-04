@@ -33,7 +33,7 @@ export type SchemaMetaTag = {
     time: number;
 } & SchemaBase
 
-export const isSchemaImportTag = (schema: any): schema is SchemaImportTag => (
+export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, from: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
         optional: { key: CheckTypes.STRING },
@@ -44,7 +44,7 @@ export const isSchemaImportTag = (schema: any): schema is SchemaImportTag => (
     })(schema)
 )
 
-export const isSchemaExportTag = (schema: any): schema is SchemaExportTag => (
+export const isSchemaExport = (schema: any): schema is SchemaExportTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
         values: {
@@ -54,7 +54,7 @@ export const isSchemaExportTag = (schema: any): schema is SchemaExportTag => (
     })(schema)
 )
 
-export const isSchemaMetaTag = (schema: any): schema is SchemaMetaTag => (
+export const isSchemaMeta = (schema: any): schema is SchemaMetaTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, time: CheckTypes.NUMBER },
         values: { tag: 'Meta' }

@@ -5,6 +5,13 @@ export type SchemaShortNameTag = {
     tag: 'ShortName';
 } & SchemaBase
 
+export type SchemaExitTag = {
+    tag: 'Exit';
+    key: string;
+    to: string;
+    from: string;
+} & SchemaBase
+
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -44,34 +51,38 @@ export type SchemaMomentTag = {
     key: string;
 } & SchemaImportableBase
 
-export const isSchemaShortNameTag = (schema: any): schema is SchemaShortNameTag => (
+export const isSchemaShortName = (schema: any): schema is SchemaShortNameTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'ShortName' } })(schema)
 )
 
-export const isSchemaRoomTag = (schema: any): schema is SchemaRoomTag => (
+export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING }, values: { tag: 'Exit' } })(schema)
+)
+
+export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Room' } })(schema)
 )
 
-export const isSchemaFeatureTag = (schema: any): schema is SchemaFeatureTag => (
+export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Feature' } })(schema)
 )
 
-export const isSchemaKnowledgeTag = (schema: any): schema is SchemaKnowledgeTag => (
+export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
 )
 
-export const isSchemaPositionTag = (schema: any): schema is SchemaPositionTag => (
+export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, x: CheckTypes.NUMBER, y: CheckTypes.NUMBER }, values: { tag: 'Position' } })(schema)
 )
 
-export const isSchemaMapTag = (schema: any): schema is SchemaMapTag => (
+export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Map' } })(schema)
 )
 
-export const isSchemaMessageTag = (schema: any): schema is SchemaMessageTag => (
+export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Message' } })(schema)
 )
 
-export const isSchemaMomentTag = (schema: any): schema is SchemaMomentTag => (
+export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Moment' } })(schema)
 )
