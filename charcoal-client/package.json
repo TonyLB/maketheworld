@@ -14,9 +14,9 @@
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^12.1.2",
     "@testing-library/user-event": "^7.2.1",
-    "@tonylb/mtw-base": "file:./mtw-base/",
-    "@tonylb/mtw-interfaces": "file:./mtw-interfaces/",
-    "@tonylb/mtw-wml": "file:./mtw-wml/",
+    "@tonylb/mtw-base": "file:../packages/mtw-base/",
+    "@tonylb/mtw-interfaces": "file:../packages/mtw-interfaces/",
+    "@tonylb/mtw-wml": "file:../packages/mtw-wml/",
     "@types/d3-collection": "^1.0.10",
     "@types/d3-force": "^3.0.3",
     "@types/react-redux": "^7.1.21",
@@ -49,16 +49,11 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "introspect": "node introspect.js",
-    "storybook": "start-storybook -p 6006 -s public",
-    "build-storybook": "build-storybook -s public"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
+    "introspect": "node introspect.js"
   },
   "browserslist": {
     "production": [
@@ -72,10 +67,6 @@
       "last 1 safari version"
     ]
   },
-  "files": [
-    "mtw-wml",
-    "mtw-interfaces"
-  ],
   "devDependencies": {
     "@ohm-js/cli": "^1.1.0",
     "@types/jest": "^26.0.24",
