@@ -13,7 +13,8 @@
 //
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { MergeConflictError, SerializeNDJSONMixin } from "../baseClasses";
+import { SerializeNDJSONMixin } from "../baseClasses";
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey, nodeFromWML } from "../utils";
 import { StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";

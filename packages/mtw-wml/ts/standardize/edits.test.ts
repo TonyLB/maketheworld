@@ -1,8 +1,8 @@
 import { schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
-import { MergeConflictError } from "./baseClasses"
 import StandardRoom from "./components/room"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 
 describe('mergeWithEdits', () => {
     it('should merge simple edits', () => {

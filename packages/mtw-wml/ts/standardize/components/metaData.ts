@@ -1,4 +1,4 @@
-import { MergeConflictError } from "../baseClasses";
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardComponentExport, StandardComponentExportContent, StandardComponentImport, StandardComponentImportContent, StandardComponentImportRemove, StandardComponentImportReplace } from "./dataTypes/metaData";
 
 export interface StandardImportItem {

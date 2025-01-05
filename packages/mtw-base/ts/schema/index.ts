@@ -197,3 +197,4 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
 export type SchemaToWMLTopLevelOptions = {
     persistentOnly?: boolean
 }
+

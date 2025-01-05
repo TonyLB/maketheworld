@@ -1,6 +1,7 @@
 import { deepEqual } from "../../lib/objects";
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { MergeConflictError, StandardRemove, StandardReplace } from "../baseClasses";
+import { StandardRemove, StandardReplace } from "../baseClasses";
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isStandardRemoveWithOptions, isStandardReplaceWithOptions } from "./dataTypes";
 import { ComponentInterface } from "./abstract";
 import { StandardComponentNonEditData } from "./dataTypes";
