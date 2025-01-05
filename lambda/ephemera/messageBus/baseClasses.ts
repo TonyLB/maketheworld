@@ -12,7 +12,7 @@ import {
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 import { KnowledgeDescription } from "@tonylb/mtw-interfaces/ts/messages"
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
-import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
+import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 export type PublishTargetRoom = `ROOM#${string}`
 
