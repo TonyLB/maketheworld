@@ -3,10 +3,7 @@ import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphCache, graphStorageDB } from './graphCache'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { snsClient } from '../clients'
-import { PublishCommand } from '@aws-sdk/client-sns'
-import { isSchemaImport } from '@tonylb/mtw-wml/ts/schema/baseClasses'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 
 const { FEEDBACK_TOPIC } = process.env
 

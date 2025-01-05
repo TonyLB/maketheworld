@@ -26,9 +26,6 @@ describe('copyWML', () => {
             tag: 'Room',
             key: 'TestRoom',
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Name'}, children: [] }] },
-            shortName: { data: { tag: 'ShortName' }, children: [] },
-            summary: { data: { tag: 'Summary' }, children: [] },
-            description: { data: { tag: 'Description' }, children: [] },
             exits: [],
             themes: [],
             universalKey: 'ROOM#ABCDEF'
@@ -66,7 +63,7 @@ describe('copyWML', () => {
         const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.ndjson'))
         expect(jsonIndex).not.toEqual(-1)
         expect(s3ClientMock.put.mock.calls[jsonIndex][0].Body.split('\n').map((line) => (JSON.parse(line)))).toEqual([
-            { tag: 'Asset', key: 'testCopy', universalId: 'ASSET#testCopy' },
+            { tag: 'Asset', key: 'testCopy', universalKey: 'ASSET#testCopy' },
             testRoom
         ])
 
