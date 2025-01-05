@@ -6,7 +6,7 @@ import {
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DeferredCache } from './deferredCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
+import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 export type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
 

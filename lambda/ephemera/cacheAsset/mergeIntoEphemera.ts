@@ -16,10 +16,10 @@ import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { StandardExampleNDJSONData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
-import { RenderTree } from "@tonylb/mtw-wml/ts/standardize/render/baseClasses"
 import { objectMerge } from "@tonylb/mtw-wml/ts/lib/objects"
 import { deepEqual } from "@tonylb/mtw-utilities/ts/objects"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 export const mergeIntoEphemera = async (assetId: string, items: StandardComponentData[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
     //

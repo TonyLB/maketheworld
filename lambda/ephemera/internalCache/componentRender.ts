@@ -36,7 +36,6 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutp
 import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
-import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected } from '@tonylb/mtw-base/ts/schema/condition';
@@ -44,6 +43,7 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from '@tonylb/mtw-bas
 import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
 import { isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-base/ts/schema/components';
 import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image';
+import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
