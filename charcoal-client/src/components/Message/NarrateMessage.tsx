@@ -9,7 +9,7 @@ import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
 import RenderTreeContent from './RenderTreeContent'
 
-import { CharacterNarration } from '@tonylb/mtw-interfaces/dist/messages'
+import { CharacterNarration } from '@tonylb/mtw-interfaces/ts/messages'
 import MessageComponent from './MessageComponent'
 import CharacterAvatar from '../CharacterAvatar'
 

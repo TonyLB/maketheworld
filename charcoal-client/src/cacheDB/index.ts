@@ -1,7 +1,7 @@
 import Dexie, { Transaction } from 'dexie'
 
-import { Message } from '@tonylb/mtw-interfaces/dist/messages'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { Message } from '@tonylb/mtw-interfaces/ts/messages'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 export type TextEntryLinesType = {
     key: 'TextEntryLines';

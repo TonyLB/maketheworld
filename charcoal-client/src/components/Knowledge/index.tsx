@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useEffect, useMemo } from 'react'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 import Box from '@mui/material/Box'
@@ -11,7 +11,7 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { getCachedPerception } from '../../slices/perceptionCache'
 import Spinner from '../Spinner'
 import ComponentDescription from '../Message/ComponentDescription'
-import { EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
 import EditButton from '../Message/EditButton'
@@ -36,7 +36,7 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
     }, [KnowledgeId, dispatch])
     const { fetched, ...rest } = useSelector(getCachedPerception({ EphemeraId: `KNOWLEDGE#${KnowledgeId}` }))
     const navigate = useNavigate()
-    const onClickLink = useCallback((to: EphemeraKnowledgeId) => {
+    const onClickLink = useCallback((to: EphemeraKnowledgeId | EphemeraCharacterId | EphemeraFeatureId | EphemeraActionId) => {
         const knowledgeId = to.split('#')?.[1]
         if (knowledgeId) {
             if (knowledgeId === 'knowledgeRoot') {

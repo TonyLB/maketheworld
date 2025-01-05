@@ -18,20 +18,20 @@ import {
     isTaggedText,
     RoomDescription as RoomDescriptionType,
     RoomHeader as RoomHeaderType,
-} from '@tonylb/mtw-interfaces/dist/messages'
+} from '@tonylb/mtw-interfaces/ts/messages'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import RenderTreeContent from './RenderTreeContent'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import EditButton from './EditButton'
-import { StandardRender } from '@tonylb/mtw-wml/dist/standardize/render'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;

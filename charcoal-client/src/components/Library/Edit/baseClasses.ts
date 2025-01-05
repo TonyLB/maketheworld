@@ -1,6 +1,6 @@
-import { GenericTreeNodeFiltered } from '@tonylb/mtw-base/dist/genericTree';
-import { SchemaTag } from '@tonylb/mtw-base/dist/schema';
-import { SchemaConditionTag } from '@tonylb/mtw-base/dist/schema/condition';
+import { GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree';
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { SchemaConditionTag } from '@tonylb/mtw-base/ts/schema/condition';
 import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 

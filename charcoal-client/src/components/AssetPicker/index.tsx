@@ -1,5 +1,5 @@
 import { Divider, List, ListItem, ListItemButton, Popover, Typography } from "@mui/material"
-import { EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import React, { FunctionComponent, useCallback, useMemo, useRef } from "react"
 
 type AssetPickerProps = {

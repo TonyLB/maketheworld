@@ -5,11 +5,11 @@ import MapDThreeTree from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
-import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
+import { isStandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
-import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
-import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this

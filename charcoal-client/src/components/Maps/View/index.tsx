@@ -19,7 +19,7 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
-import { EphemeraAssetId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraAssetId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { MapDisplayController } from '../Controller';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';

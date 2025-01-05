@@ -23,7 +23,7 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
-import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import AddAsset from './Edit/AddAsset'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 

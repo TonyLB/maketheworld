@@ -4,7 +4,7 @@ import { useSelector } from "react-redux"
 import { getNotifications } from "../../slices/notifications"
 import AnnouncementIcon from '@mui/icons-material/Announcement'
 import Badge from "@mui/material/Badge"
-import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 type NotificationListProps = {
     selected?: EphemeraNotificationId;

@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/dist/genericTree"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { v4 as uuidv4 } from 'uuid'
 import { Draft, produce } from "immer"
-import { SchemaTag } from "@tonylb/mtw-base/dist/schema"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 type EditHighlightContextType = {
     highlightId: string;

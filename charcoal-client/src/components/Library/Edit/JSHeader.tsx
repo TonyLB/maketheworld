@@ -5,9 +5,9 @@ import { Box, ListItem, ListItemIcon, SxProps, Typography } from '@mui/material'
 
 import { useLibraryAsset } from './LibraryAsset'
 import { JSEdit } from './JSEdit'
-import { StandardAction } from '@tonylb/mtw-wml/dist/standardize/components/action'
-import { StandardComputed } from '@tonylb/mtw-wml/dist/standardize/components/computed'
-import { StandardVariable } from '@tonylb/mtw-wml/dist/standardize/components/variable'
+import { StandardAction } from '@tonylb/mtw-wml/ts/standardize/components/action'
+import { StandardComputed } from '@tonylb/mtw-wml/ts/standardize/components/computed'
+import { StandardVariable } from '@tonylb/mtw-wml/ts/standardize/components/variable'
 
 type JSTags = StandardAction | StandardComputed | StandardVariable
 

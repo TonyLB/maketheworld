@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { FunctionComponent } from 'react'
 import { useDispatch } from 'react-redux'
-import { RenderTreeNode } from '@tonylb/mtw-base/dist/renderTree'
+import { RenderTreeNode } from '@tonylb/mtw-base/ts/renderTree'
 
 import {
     Box,
@@ -10,9 +10,9 @@ import {
 import { blue, grey } from '@mui/material/colors'
 
 import { useActiveCharacter } from '../ActiveCharacter'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
-import { SchemaLinkTag } from '@tonylb/mtw-base/dist/schema/renderTree'
+import { SchemaLinkTag } from '@tonylb/mtw-base/ts/schema/renderTree'
 
 interface DescriptionLinkChipProps {
     text?: string;

@@ -35,9 +35,9 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type LibraryAssetContextType = {
     assetKey: string;

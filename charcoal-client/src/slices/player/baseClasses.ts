@@ -1,4 +1,4 @@
-import { AssetClientPlayerMessage } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetClientPlayerMessage } from '@tonylb/mtw-interfaces/ts/asset';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMRedirectNode } from '../stateSeekingMachine/baseClasses'
 
 export interface PlayerInternal {

@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit'
-import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ActiveCharacterMap } from './baseClasses'
 
 export type ActiveCharacterMapChange = (ActiveCharacterMap & {

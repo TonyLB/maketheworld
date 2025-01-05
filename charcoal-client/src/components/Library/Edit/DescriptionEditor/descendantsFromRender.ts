@@ -11,11 +11,11 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
-import StandardFeature from "@tonylb/mtw-wml/dist/standardize/components/feature"
-import StandardAction from "@tonylb/mtw-wml/dist/standardize/components/action"
-import { SchemaOutputTag } from "@tonylb/mtw-base/dist/schema"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
+import StandardAction from "@tonylb/mtw-wml/ts/standardize/components/action"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 
 const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     let returnValue: CustomParagraphContents[] = []

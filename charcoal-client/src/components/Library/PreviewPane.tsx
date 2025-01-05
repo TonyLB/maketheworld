@@ -22,7 +22,7 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 
 import AssetIcon from '@mui/icons-material/Landscape'
-import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 
 export type PreviewPaneContents = ({
     type: 'Asset'

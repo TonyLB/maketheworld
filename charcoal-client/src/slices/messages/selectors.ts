@@ -1,10 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { v4 as uuidv4 } from 'uuid'
 
-import { Message, RoomHeader } from '@tonylb/mtw-interfaces/dist/messages'
+import { Message, RoomHeader } from '@tonylb/mtw-interfaces/ts/messages'
 import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 
 export const getMessages: Selector<MessageState> = (state) => {

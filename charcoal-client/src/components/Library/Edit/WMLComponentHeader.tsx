@@ -5,14 +5,14 @@ import { SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import MiniChip from '../../MiniChip'
-import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
-import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge'
-import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
-import { hasName, hasShortName } from '@tonylb/mtw-wml/dist/standardize'
+import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 
 interface WMLComponentHeaderProps {
     ItemId: string;

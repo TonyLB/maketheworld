@@ -1,5 +1,5 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { AssetClientLibraryMessage } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetClientLibraryMessage } from '@tonylb/mtw-interfaces/ts/asset';
 
 export interface LibraryInternal {
     subscription?: any;

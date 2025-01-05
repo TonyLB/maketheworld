@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createSelector, createAsyncThunk } from '@reduxjs/toolkit'
-import { EphemeraAssetId, EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { unique } from '../../../lib/lists';
 
 import { Selector } from '../../../store'

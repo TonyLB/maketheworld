@@ -17,7 +17,7 @@ import LockIcon from '@mui/icons-material/Lock'
 import GuestIcon from '@mui/icons-material/PersonSearch'
 import EditIcon from '@mui/icons-material/Edit'
 
-import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { Typography } from '@mui/material'

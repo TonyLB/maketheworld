@@ -9,11 +9,11 @@ import IconButton from "@mui/material/IconButton"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 
-import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
+import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
 import IfElseTree from "./IfElseTree"
-import { SchemaTag } from "@tonylb/mtw-base/dist/schema"
-import { isSchemaCondition, SchemaConditionTag } from "@tonylb/mtw-base/dist/schema/condition"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCondition, SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;

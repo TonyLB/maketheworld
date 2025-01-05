@@ -4,8 +4,8 @@ import configureStore from 'redux-mock-store'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
-import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 const mockStore = configureStore()
 const currentWML = `

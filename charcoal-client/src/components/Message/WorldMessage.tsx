@@ -8,7 +8,7 @@ import {
 } from '@mui/material'
 
 import MessageComponent from './MessageComponent'
-import { WorldMessage as WorldMessageType } from '@tonylb/mtw-interfaces/dist/messages'
+import { WorldMessage as WorldMessageType } from '@tonylb/mtw-interfaces/ts/messages'
 import RenderTreeContent from './RenderTreeContent'
 
 interface WorldMessageProps {

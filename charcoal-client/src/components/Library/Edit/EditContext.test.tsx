@@ -2,12 +2,12 @@ import renderer from 'react-test-renderer'
 import React, { FunctionComponent, useEffect } from 'react'
 
 import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, EditChildren } from './EditContext'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
+import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import produce from 'immer'
-import { isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/dist/schema'
-import { isSchemaLink, isSchemaString } from '@tonylb/mtw-base/dist/schema/renderTree'
+import { isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaLink, isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 
 const Render: FunctionComponent<{}> = () => {
     const { value } = useEditContext()

@@ -5,9 +5,9 @@ import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree } from '.'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { assertInstance, StandardForm } from '@tonylb/mtw-wml/dist/standardize'
-import { Schema } from '@tonylb/mtw-wml/dist/schema'
-import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
+import { assertInstance, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('MapDThree', () => {

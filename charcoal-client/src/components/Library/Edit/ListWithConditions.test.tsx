@@ -5,12 +5,12 @@ import renderer from 'react-test-renderer'
 import React, { FunctionComponent } from 'react'
 
 import ListWithConditions from './ListWithConditions'
-import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { EditSchema, useEditContext } from './EditContext'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { isSchemaExit } from '@tonylb/mtw-base/dist/schema/components'
-import { isSchemaOutputTag } from '@tonylb/mtw-base/dist/schema'
+import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter'
+import { isSchemaExit } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 describe('ListWithConditions component', () => {
     const render: FunctionComponent<{}> = () => {
