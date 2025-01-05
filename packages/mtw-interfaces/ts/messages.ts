@@ -1,3 +1,4 @@
+import { isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import {
     EphemeraActionId,
     EphemeraAssetId,
@@ -8,21 +9,15 @@ import {
     EphemeraMapId,
     EphemeraNotificationId,
     EphemeraRoomId,
-    isEphemeraActionId,
     isEphemeraAssetId,
-    isEphemeraBookmarkId,
     isEphemeraCharacterId,
-    isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraRoomId,
-    isEphemeraVariableId,
     LegalCharacterColor
 } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
-import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses'
-import { isRenderTreeNode } from '@tonylb/mtw-wml/ts/standardize/render/utils'
 
 export type MessageAddressing = {
     MessageId: string;
