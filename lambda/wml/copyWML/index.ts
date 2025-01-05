@@ -1,8 +1,8 @@
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
-import { isSchemaAsset, isSchemaCharacter } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { dbRegister } from "../serialize/dbRegister";
+import { isSchemaAsset } from "@tonylb/mtw-base/ts/schema";
 
 export type CopyWMLArguments = {
     key: string;
@@ -36,7 +36,7 @@ export const copyWML = async (args: CopyWMLArguments) => {
     // Update the key of the outermost element of the schema
     //
     const schemaRaw = schema.schema[0]
-    if (!(treeNodeTypeguard(isSchemaAsset)(schemaRaw) || treeNodeTypeguard(isSchemaCharacter)(schemaRaw))) {
+    if (!treeNodeTypeguard(isSchemaAsset)(schemaRaw)) {
         throw new Error('Invalid WML source in copyWML')
     }
     schema._schema = [{ ...schema.schema[0], data: { ...schemaRaw.data, key: args.key } }]
