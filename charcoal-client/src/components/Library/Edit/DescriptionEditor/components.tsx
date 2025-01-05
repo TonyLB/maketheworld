@@ -20,9 +20,9 @@ import {
 import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import IfElseTree from '../IfElseTree'
 import { EditSchema } from '../EditContext'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
-import { isSchemaCondition } from '@tonylb/mtw-base/dist/schema/condition'
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaCondition } from '@tonylb/mtw-base/ts/schema/condition'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const editor = useSlate()

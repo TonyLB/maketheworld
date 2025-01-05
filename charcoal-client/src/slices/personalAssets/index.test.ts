@@ -1,7 +1,7 @@
 import { addImport } from "."
-import { Schema } from "@tonylb/mtw-wml/dist/schema"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
-import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes"
+import { Schema } from "@tonylb/mtw-wml/ts/schema"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>

@@ -1,6 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit'
-import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { EphemeraClientMessageEphemeraUpdateCharacterInPlay } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlay } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterColor } from './baseClasses'
 
 export type CharacterInPlayChange = EphemeraClientMessageEphemeraUpdateCharacterInPlay

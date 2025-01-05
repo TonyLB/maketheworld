@@ -1,4 +1,4 @@
-import { EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ActiveCharacterPublic, ActiveCharacterMap } from './baseClasses'
 
 export type PublicSelectors = {

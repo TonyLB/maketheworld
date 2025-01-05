@@ -1,7 +1,7 @@
-import { AssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
-import { EphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { CoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
-import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
+import { AssetClientMessage } from '@tonylb/mtw-interfaces/ts/asset'
+import { EphemeraClientMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { CoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
+import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 
 export type LifeLinePubSubData = EphemeraClientMessage
     | AssetClientMessage

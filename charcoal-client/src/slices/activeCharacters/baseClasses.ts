@@ -1,5 +1,5 @@
-import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
-import { EphemeraClientMessageEphemeraUpdateMapItemActive } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { EphemeraClientMessageEphemeraUpdateMapItemActive } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface ActiveCharacterInternal {

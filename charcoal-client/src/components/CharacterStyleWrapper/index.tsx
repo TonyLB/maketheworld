@@ -1,4 +1,4 @@
-import { ReactChild, ReactChildren, FunctionComponent } from 'react'
+import React, { ReactChild, ReactChildren, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import {
@@ -12,7 +12,7 @@ import {
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getMySettings, getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 declare module '@mui/material/styles' {
     interface PaletteOptions {

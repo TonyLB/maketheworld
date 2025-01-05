@@ -1,7 +1,7 @@
 import { Selector } from '../../store'
 import { PerceptionCacheKey } from './baseClasses'
-import { EphemeraCharacterId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { KnowledgeDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraCharacterId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 
 export const getCachedPerception = ({ CharacterId, EphemeraId }: { CharacterId?: EphemeraCharacterId, EphemeraId: EphemeraKnowledgeId }): Selector<KnowledgeDescribeData & { fetched: boolean }> => (state) => {
     const cacheKey: PerceptionCacheKey = `${ CharacterId ?? 'ANONYMOUS' }::${EphemeraId}`

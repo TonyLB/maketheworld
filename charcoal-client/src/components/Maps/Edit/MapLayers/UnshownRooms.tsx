@@ -10,13 +10,13 @@ import {
 import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
-import { selectKeysByTag } from "@tonylb/mtw-wml/dist/schema/selectors/keysByTag"
-import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
+import { selectKeysByTag } from "@tonylb/mtw-wml/ts/schema/selectors/keysByTag"
+import { schemaOutputToString } from "@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import TutorialPopover from "../../../Onboarding/TutorialPopover"
-import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
-import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
+import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 
 type UnshownRoomsProps = {
 

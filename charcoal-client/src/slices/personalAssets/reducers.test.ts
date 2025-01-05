@@ -1,12 +1,12 @@
 import produce from "immer"
 import { updateStandard, UpdateStandardPayload } from "./reducers"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
-import { Schema, schemaToWML } from "@tonylb/mtw-wml/dist/schema"
-import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
-import { isSchemaString } from "@tonylb/mtw-base/dist/schema/renderTree"
-import { isSchemaExit } from "@tonylb/mtw-base/dist/schema/components"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
 describe('personalAsset slice reducers', () => {
 

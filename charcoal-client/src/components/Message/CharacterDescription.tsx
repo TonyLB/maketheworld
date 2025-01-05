@@ -16,7 +16,7 @@ import MessageComponent from './MessageComponent'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import {
     CharacterDescription as CharacterDescriptionType
-} from '@tonylb/mtw-interfaces/dist/messages'
+} from '@tonylb/mtw-interfaces/ts/messages'
 
 interface CharacterDescriptionProps {
     message: CharacterDescriptionType;

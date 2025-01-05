@@ -1,8 +1,8 @@
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
-import { SchemaTag } from "@tonylb/mtw-base/dist/schema"
-import { isSchemaDescription } from "@tonylb/mtw-base/dist/schema/example"
-import { isSchemaRoom } from "@tonylb/mtw-base/dist/schema/components"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 
 describe('context nesting helper library', () => {
     it('should nest onChange with nestOnChangeSubItem', () => {

@@ -5,16 +5,16 @@ import {
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
-import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
-import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
+import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getStandardForm, setImport } from '.'
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
-import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'
-import { isSchemaImport } from '@tonylb/mtw-base/dist/schema/metaData'
-import { isImportable } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
+import { isImportable } from '@tonylb/mtw-base/ts/schema'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()

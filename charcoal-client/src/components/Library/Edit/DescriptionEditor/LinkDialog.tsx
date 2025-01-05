@@ -20,10 +20,10 @@ import {
     Element as SlateElement
 } from 'slate';
 import { useLibraryAsset } from '../LibraryAsset';
-import { isStandardAction, isStandardFeature, isStandardKnowledge } from '@tonylb/mtw-wml/dist/standardize/baseClasses';
-import StandardAction from '@tonylb/mtw-wml/dist/standardize/components/action';
-import StandardFeature from '@tonylb/mtw-wml/dist/standardize/components/feature';
-import StandardKnowledge from '@tonylb/mtw-wml/dist/standardize/components/knowledge';
+import { isStandardAction, isStandardFeature, isStandardKnowledge } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action';
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature';
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge';
 
 interface LinkDialogProps {
     open: boolean;

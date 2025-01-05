@@ -7,7 +7,7 @@ import {
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getConfiguration } from '../../slices/configuration'
 
 interface CharacterAvatarDirectProps {

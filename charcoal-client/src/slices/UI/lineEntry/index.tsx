@@ -4,7 +4,7 @@
 //
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { WritableDraft } from 'immer/dist/internal'
 
 import { RootState, Selector } from '../../../store'

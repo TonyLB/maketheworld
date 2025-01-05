@@ -1,9 +1,9 @@
-import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
-import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
+import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset';
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';
-import { SchemaTag } from '@tonylb/mtw-base/dist/schema';
-import { SchemaMetaTag } from '@tonylb/mtw-base/dist/schema/metaData';
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { SchemaMetaTag } from '@tonylb/mtw-base/ts/schema/metaData';
 
 export interface PersonalAssetsInternal {
     id?: string;

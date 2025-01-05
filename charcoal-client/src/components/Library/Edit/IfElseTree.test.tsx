@@ -4,13 +4,13 @@ import CodeEditor from './CodeEditor'
 import renderer from 'react-test-renderer'
 import React, { FunctionComponent } from 'react'
 
-import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { EditSchema, useEditContext } from './EditContext'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
+import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter'
 import IfElseTree from './IfElseTree'
-import { isSchemaExit } from '@tonylb/mtw-base/dist/schema/components'
-import { isSchemaOutputTag } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaExit } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 describe('IfElseTree component', () => {
     const render: FunctionComponent<{}> = () => {

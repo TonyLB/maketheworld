@@ -1,5 +1,5 @@
 import descendantsFromRender from "./descendantsFromRender"
-import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 const stubStandard: StandardForm = new StandardForm({ key: '', byId: {}, metaData: [] })
 

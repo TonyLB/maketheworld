@@ -12,9 +12,9 @@ import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined
 
 import { useLibraryAsset } from "./LibraryAsset"
 import { EditChildren, EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
-import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, SchemaConditionFallthroughTag, SchemaConditionStatementTag } from "@tonylb/mtw-base/dist/schema/condition"
-import { SchemaTag } from "@tonylb/mtw-base/dist/schema"
+import { GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, SchemaConditionFallthroughTag, SchemaConditionStatementTag } from "@tonylb/mtw-base/ts/schema/condition"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()

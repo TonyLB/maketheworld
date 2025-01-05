@@ -9,10 +9,10 @@ import {
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
-import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/dist/schema"
-import { isSchemaCondition } from "@tonylb/mtw-base/dist/schema/condition"
-import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCondition } from "@tonylb/mtw-base/ts/schema/condition"
+import { treeTypeGuard } from "@tonylb/mtw-wml/ts/tree/filter"
 
 export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
     const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item) => {

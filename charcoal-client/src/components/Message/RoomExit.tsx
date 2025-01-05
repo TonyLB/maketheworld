@@ -6,8 +6,8 @@ import ExitIcon from '@mui/icons-material/ExitToApp'
 
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/dist/messages'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/ts/messages'
+import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
 interface RoomExitProps {

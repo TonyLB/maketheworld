@@ -1,7 +1,7 @@
 import { Box } from "@mui/material"
 import { FunctionComponent, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { getNotification } from "../../slices/notifications/selectors"
 import RenderTreeContent from "../Message/RenderTreeContent"
 import Grid from "@mui/material/Grid"

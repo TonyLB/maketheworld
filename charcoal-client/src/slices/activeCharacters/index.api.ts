@@ -9,8 +9,8 @@ import { getMyCharacterById } from '../player'
 import { receiveMessages } from '../messages'
 import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
-import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()

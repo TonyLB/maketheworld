@@ -5,8 +5,8 @@ import { withHistory } from "slate-history"
 import { Editable, Slate, withReact } from "slate-react"
 import { useDebouncedState } from "../../../hooks/useDebounce"
 import wmlToSlate from "./wmlToSlate"
-import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
-import { expressionValueTokenizer } from "@tonylb/mtw-wml/dist/parser/tokenizer/expression"
+import SourceStream from "@tonylb/mtw-wml/ts/parser/tokenizer/sourceStream"
+import { expressionValueTokenizer } from "@tonylb/mtw-wml/ts/parser/tokenizer/expression"
 import { sourceStringFromSlate } from "./wmlToSlate"
 
 interface JSEditProps {

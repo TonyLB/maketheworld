@@ -1,9 +1,9 @@
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
-import { GenericTree } from '@tonylb/mtw-base/dist/genericTree';
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { createSelector } from '@reduxjs/toolkit';
-import { StandardForm } from '@tonylb/mtw-wml/dist/standardize';
-import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes';
-import { SchemaTag } from '@tonylb/mtw-base/dist/schema';
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;

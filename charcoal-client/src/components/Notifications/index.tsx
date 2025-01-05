@@ -8,7 +8,7 @@ import {
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { NotificationList } from './NotificationList'
-import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { NotificationDetail } from './NotificationDetail'
 
 interface NotificationsProps {

@@ -13,8 +13,8 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import TutorialPopover from '../../Onboarding/TutorialPopover'
-import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
-import { isSchemaImage } from '@tonylb/mtw-base/dist/schema/image'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
 
 type MapEditProps = {
 }

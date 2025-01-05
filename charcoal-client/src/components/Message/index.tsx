@@ -12,11 +12,11 @@ import ComponentDescription from './ComponentDescription'
 import SpacerMessage from './SpacerMessage'
 import UnknownMessage from './UnknownMessage'
 
-import { Message as MessageType } from '@tonylb/mtw-interfaces/dist/messages'
+import { Message as MessageType } from '@tonylb/mtw-interfaces/ts/messages'
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 import { useDispatch } from 'react-redux'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 
 interface MessageProps {

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { KnowledgeDescription, Message } from '@tonylb/mtw-interfaces/dist/messages'
+import { KnowledgeDescription, Message } from '@tonylb/mtw-interfaces/ts/messages'
 import { PerceptionCacheKey, PerceptionCacheState } from './baseClasses'
 
 const perceptionCacheSlice = createSlice({

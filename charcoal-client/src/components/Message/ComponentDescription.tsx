@@ -15,11 +15,11 @@ import {
     FeatureDescription as FeatureDescriptionType,
     KnowledgeDescription as KnowledgeDescriptionType,
     isTaggedText
-} from '@tonylb/mtw-interfaces/dist/messages'
+} from '@tonylb/mtw-interfaces/ts/messages'
 
 import RenderTreeContent from './RenderTreeContent'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { StandardRender } from '@tonylb/mtw-wml/dist/standardize/render'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescriptionType> = {
     message: T;

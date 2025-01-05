@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
-import { InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
+import { InformationNotification } from '@tonylb/mtw-interfaces/ts/messages'
 
 const initialState = { notifications: [] as InformationNotification[] }
 

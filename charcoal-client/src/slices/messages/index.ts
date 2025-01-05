@@ -1,10 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
-import { Message } from '@tonylb/mtw-interfaces/dist/messages'
-import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { Message } from '@tonylb/mtw-interfaces/ts/messages'
+import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { unique } from '../../lib/lists'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 const initialState = {} as Record<string, Message[]>
 

@@ -1,4 +1,4 @@
-import { EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import React, { FunctionComponent, useCallback, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
