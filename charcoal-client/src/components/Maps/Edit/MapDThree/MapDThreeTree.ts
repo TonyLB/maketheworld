@@ -6,9 +6,11 @@ import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { excludeUndefined, unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
 import { isStandardRoom } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaPosition, isSchemaRoom, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { Draft } from 'immer'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-base/dist/schema/components'
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from '@tonylb/mtw-base/dist/schema/condition'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;

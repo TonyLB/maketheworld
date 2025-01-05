@@ -16,13 +16,15 @@ import { EditSchema, useEditNodeContext } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
-import { SchemaAssetTag, SchemaCharacterTag, SchemaStoryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import SidebarTitle from "../SidebarTitle"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils"
 import { StandardFormSchema } from "../StandardFormContext"
 import ListWithConditions from "../ListWithConditions"
 import StandardTheme from "@tonylb/mtw-wml/dist/standardize/components/theme"
+import { isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/dist/schema"
+import { SchemaAssetTag, SchemaStoryTag } from "@tonylb/mtw-base/dist/schema/asset"
+import { SchemaCharacterTag } from "@tonylb/mtw-base/dist/schema/character"
 
 const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()

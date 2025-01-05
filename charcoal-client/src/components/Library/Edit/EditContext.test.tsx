@@ -4,10 +4,10 @@ import React, { FunctionComponent, useEffect } from 'react'
 import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, EditChildren } from './EditContext'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { isSchemaLink, isSchemaOutputTag, isSchemaString, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { DataArray } from '@mui/icons-material'
 import produce from 'immer'
+import { isSchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaLink, isSchemaString } from '@tonylb/mtw-base/dist/schema/renderTree'
 
 const Render: FunctionComponent<{}> = () => {
     const { value } = useEditContext()

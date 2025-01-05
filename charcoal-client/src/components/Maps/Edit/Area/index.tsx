@@ -4,9 +4,13 @@ import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
 import { MapTreeExit } from '../../Controller/baseClasses'
 import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
-import { SchemaAssetTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
+import { SchemaAssetTag } from '@tonylb/mtw-base/dist/schema/asset'
+import { SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-base/dist/schema/components'
+import { SchemaConditionTag } from '@tonylb/mtw-base/dist/schema/condition'
+import { SchemaNameTag } from '@tonylb/mtw-base/dist/schema/example'
+import { SchemaOutputTag } from '@tonylb/mtw-base/dist/schema'
 
 type MapAreaProps = {
     fileURL?: string;

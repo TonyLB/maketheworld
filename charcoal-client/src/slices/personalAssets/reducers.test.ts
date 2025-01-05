@@ -2,10 +2,11 @@ import produce from "immer"
 import { updateStandard, UpdateStandardPayload } from "./reducers"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/dist/genericTree"
-import { isSchemaExit, isSchemaString } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/dist/schema/utils"
 import { publicSelectors } from "./selectors"
+import { isSchemaString } from "@tonylb/mtw-base/dist/schema/renderTree"
+import { isSchemaExit } from "@tonylb/mtw-base/dist/schema/components"
 
 describe('personalAsset slice reducers', () => {
 

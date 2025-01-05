@@ -10,7 +10,8 @@ import {
     isCustomText
 } from "../baseClasses"
 import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
-import { SchemaOutputTag, SchemaTag, isSchemaCondition, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/dist/schema"
+import { isSchemaCondition } from "@tonylb/mtw-base/dist/schema/condition"
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {

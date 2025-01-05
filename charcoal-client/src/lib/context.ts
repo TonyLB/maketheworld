@@ -2,9 +2,9 @@
 // context library holds utility functions for dealing with nested contexts and onChange functions.
 //
 
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { GenericTree, GenericTreeNode, GenericTreeNodeWithUndefined, GenericTreeWithUndefined } from "@tonylb/mtw-base/dist/genericTree"
+import { GenericTree, GenericTreeNode, GenericTreeWithUndefined } from "@tonylb/mtw-base/dist/genericTree"
 import { excludeUndefined } from "./lists"
+import { SchemaTag } from "@tonylb/mtw-base/dist/schema"
 
 export const nestOnChangeSubItem = <T extends SchemaTag>({ tree, index }: { tree: GenericTree<T>, index: number }) => (onChange: (newValue: GenericTree<T>) => void) => (newValue: GenericTreeNode<T>): void => {
     if (index < tree.length || index >= 0) {

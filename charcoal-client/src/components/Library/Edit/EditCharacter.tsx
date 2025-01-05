@@ -42,7 +42,6 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { SchemaFirstImpressionTag, SchemaImageTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag, SchemaTag, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
@@ -54,6 +53,10 @@ import { deepEqual } from '../../../lib/objects'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/dist/standardize/components/character'
+import { SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/dist/schema/character'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaImport } from '@tonylb/mtw-base/dist/schema/metaData'
+import { SchemaImageTag } from '@tonylb/mtw-base/dist/schema/image'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;

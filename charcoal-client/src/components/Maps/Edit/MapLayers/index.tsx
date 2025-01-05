@@ -17,7 +17,6 @@ import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import IfElseTree from '../../../Library/Edit/IfElseTree'
 import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
@@ -29,6 +28,7 @@ import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/dist/schema/utils'
 import StandardRoom from '@tonylb/mtw-wml/dist/standardize/components/room'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
 
 type MapLayersProps = {
     mapId: string;

@@ -8,7 +8,6 @@ import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { isSchemaExit, isSchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 import SidebarTitle from "../SidebarTitle"
@@ -18,6 +17,8 @@ import { EditSchema, useEditNodeContext } from "../EditContext"
 import ListWithConditions from "../ListWithConditions"
 import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
+import { isSchemaOutputTag } from "@tonylb/mtw-base/dist/schema"
+import { isSchemaExit } from "@tonylb/mtw-base/dist/schema/components"
 
 type RoomExitEditorProps = {
     RoomId: string;
