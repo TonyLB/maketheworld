@@ -1,4 +1,4 @@
-import { isRenderTreeNode } from "../../render/utils"
+import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaTreeNode } from "../utils"
 
 export const checkAll = (...items: boolean[]): boolean => (

@@ -1,7 +1,7 @@
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
-import { isRenderTreeNode } from "./utils"
 import { isSchemaSpacer, SchemaSpacerTag } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 
 export class StandardRenderSpace extends StandardRenderAbstract implements StandardRenderElement {
     constructor(arg: any) {
