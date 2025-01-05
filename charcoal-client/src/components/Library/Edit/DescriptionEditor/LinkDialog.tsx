@@ -20,7 +20,6 @@ import {
     Element as SlateElement
 } from 'slate';
 import { useLibraryAsset } from '../LibraryAsset';
-import { isStandardAction, isStandardFeature, isStandardKnowledge } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action';
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature';
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge';
@@ -168,7 +167,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
     const { standardForm } = useLibraryAsset()
     const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
-        Object.values(standardForm.byId).reduce((previous, component) => {
+        Object.values(standardForm.byId).reduce<{ actions: string[], features: string[], knowledges: string[] }>((previous, component) => {
             if (validTags.includes('Action') && component instanceof StandardAction) {
                 return { ...previous, actions: [...previous.actions, component.key]}
             }

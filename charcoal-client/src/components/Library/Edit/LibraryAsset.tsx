@@ -41,7 +41,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type LibraryAssetContextType = {
     assetKey: string;
-    AssetId: EphemeraCharacterId | EphemeraAssetId | null;
+    AssetId: EphemeraCharacterId | EphemeraAssetId;
     currentWML: string;
     draftWML: string;
     standardForm: StandardForm;
@@ -52,14 +52,14 @@ type LibraryAssetContextType = {
     properties: Record<string, { fileName: string }>;
     save: () => void;
     readonly: boolean;
-    serialized: boolean;
+    serialized?: boolean;
     status?: keyof PersonalAssetsNodes;
     saving: boolean;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     assetKey: '',
-    AssetId: null,
+    AssetId: 'ASSET#',
     currentWML: '',
     draftWML: '',
     standardForm: new StandardForm({ key: '', byId: {}, metaData: [] }),

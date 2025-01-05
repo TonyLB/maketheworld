@@ -57,6 +57,7 @@ import { SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, Schem
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
+import { excludeUndefined } from '../../../lib/lists'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -326,7 +327,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         .filter((value) => (value))
     ), [standardForm])
     const dispatch = useDispatch()
-    const onChange = useCallback((_, newAssets) => {
+    const onChange = useCallback((_, newAssets: (ZonedAssets | undefined)[]) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
         const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
         updateStandard({ type: 'replaceMetaData', metaData: saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key, mapping: {} }, children: [] })) })
@@ -340,7 +341,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         options={assetsAvailable}
         groupBy={({ zone }) => (zone)}
         disableCloseOnSelect
-        getOptionLabel={(option) => (((typeof option === 'object') && option.key) || ((typeof option === 'string') && option))}
+        getOptionLabel={(option) => ((((typeof option === 'object') && option.key) || ((typeof option === 'string') && option)) || '')}
         isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
         renderOption={(props, option, { selected }) => (
             <li {...props}>
@@ -357,7 +358,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         renderInput={(params) => (
             <TextField {...params} label="View Non-Canon Assets" />
         )}
-        value={assetsImported}
+        value={assetsImported.filter(excludeUndefined)}
         onChange={onChange}
     />
 }
@@ -414,7 +415,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [standardForm])
 
     const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
-        const { tag, ...rest } = ignoreWrapped<SchemaPronounsTag, SchemaTag>(character.pronouns).data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
+        const { tag, ...rest } = ignoreWrapped<SchemaPronounsTag, SchemaTag>(character?.pronouns)?.data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
         return rest
     }, [character])
     const selectValue = useMemo(() => {
@@ -429,7 +430,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         if ((value !== 'custom') && standardPronouns[value]) {
             updateStandard({
                 type: 'updateField',
-                componentKey: character.key,
+                componentKey: character?.key ?? '',
                 itemKey: 'pronouns',
                 value: {
                     tag: 'Pronouns',
@@ -447,8 +448,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             // If an Image exist, but not by the characterIcon default key, use it
             //
             let SCHEMADIRTY = false
-            if (ignoreWrapped<SchemaImageTag, SchemaTag>(character.image).data.key) {
-                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped<SchemaImageTag, SchemaTag>(character.image).data.key, file }))
+            if (ignoreWrapped<SchemaImageTag, SchemaTag>(character?.image)?.data?.key) {
+                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped<SchemaImageTag, SchemaTag>(character?.image)?.data?.key, file }))
             }
             //
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary

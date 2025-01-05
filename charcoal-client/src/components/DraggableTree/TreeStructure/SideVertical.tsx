@@ -1,3 +1,4 @@
+import React from 'react'
 import useTreeStyles from '../useTreeStyles'
 
 export const SideVerticalLine = ({ height }: { height: any }) => {

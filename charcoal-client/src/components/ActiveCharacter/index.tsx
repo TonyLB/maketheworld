@@ -101,7 +101,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
-            scopedId,
+            scopedId: scopedId ?? '',
             messageBreakdown,
             info,
             maps,

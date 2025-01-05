@@ -1,6 +1,7 @@
 import {
     CustomBlock,
     CustomReplaceBlock,
+    isCustomBlock,
     isCustomIfWrapper,
     isCustomLink,
     isCustomNewIfWrapper,
@@ -13,9 +14,10 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition } from "@tonylb/mtw-base/ts/schema/condition"
 import { treeTypeGuard } from "@tonylb/mtw-wml/ts/tree/filter"
+import { Descendant } from "slate"
 
-export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: (CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
-    const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item) => {
+export const descendantsToRender = (schema: GenericTree<SchemaTag>) => (items: Descendant[]): GenericTree<SchemaOutputTag> => {
+    const returnValue = items.filter((value): value is CustomReplaceBlock | CustomBlock => ((isCustomParagraphContents(value) && isCustomReplaceBlock(value)) || isCustomBlock(value))).reduce<GenericTree<SchemaOutputTag>>((tree, item) => {
         if (isCustomNewIfWrapper(item)) {
             return [
                 ...tree,

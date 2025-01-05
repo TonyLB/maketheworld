@@ -70,7 +70,8 @@ export const deIndentWML = (wml: string): string => {
 // unwrapSubject takes a schema node that might be a replace or remove, and returns the first tag in the tree hierarchy
 // that is *not* an edit tag (i.e., the subject content being edited)
 //
-export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag> | undefined => {
+export const unwrapSubject = <Extra extends {}>(node: GenericTreeNode<SchemaTag> | undefined): GenericTreeNode<SchemaTag> | undefined => {
+    if (!node) { return undefined }
     if (treeNodeTypeguard(isSchemaEdit)(node)) {
         return unwrapSubject<Extra>(node.children[0])
     }

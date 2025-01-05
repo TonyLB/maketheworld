@@ -1,3 +1,5 @@
+import React from "react"
+
 export const InDevelopment = () => (<div
         style={{
             fontSize: '80px',

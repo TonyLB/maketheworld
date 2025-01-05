@@ -123,14 +123,14 @@ export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboar
     const currentChapter = index === -1 ? undefined : onboardingChapters[index]
     const currentPage = currentChapter ? currentChapter.pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined
     const nextIndex = currentPage ? currentPage.subItems.findIndex(({ key }) => (!onboardCompleteTags.includes(key))) : -1
-    const next = (nextIndex === -1) ? undefined : currentPage.subItems[nextIndex].key as OnboardingKey
+    const next = (nextIndex === -1) ? undefined : currentPage?.subItems?.[nextIndex]?.key as OnboardingKey
 
     const updateTags = [
         ...tags,
-        ...((currentPage && currentPage.subItems.length && (nextIndex === currentPage.subItems.length - 1) && tags.includes(next)) ? [currentPage.pageKey] : [])
+        ...((currentPage && currentPage.subItems.length && (nextIndex === currentPage.subItems.length - 1) && tags.includes(next ?? '')) ? [currentPage.pageKey] : [])
     ].filter((tag) => (!onboardCompleteTags.includes(tag)))
     
-    if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
+    if (updateTags.length && condition && (!requireSequence || updateTags.includes(next ?? ''))) {
         await dispatch(updateOnboardingComplete({ addTags: updateTags }))
     }
 }

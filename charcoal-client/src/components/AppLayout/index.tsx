@@ -136,12 +136,12 @@ const NavigationTab: FunctionComponent<NavigationTabProps> = ({ index, key, labe
             icon={icon}
             component={Link}
             to={value === 'home' ? '/' : value}
-            ref={ref}
+            ref={ref as any}
         />
         {
             checkPoints.length
                 ? <TutorialPopover
-                    anchorEl={ref}
+                    anchorEl={ref as any}
                     placement='right'
                     checkPoints={checkPoints}
                 />

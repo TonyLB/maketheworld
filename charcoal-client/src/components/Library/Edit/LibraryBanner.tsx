@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactChild } from 'react'
+import React, { FunctionComponent, ReactChild } from 'react'
 import {
     useNavigate
 } from "react-router-dom"
@@ -64,7 +64,7 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
                         <Typography variant='body2' component="div" sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
                             { 
                                 onChangeSecondary
-                                    ? <ExplicitEdit value={secondary} onChange={onChangeSecondary} validate={validateSecondary} helperText='This key is already used' />
+                                    ? <ExplicitEdit value={secondary ?? ''} onChange={onChangeSecondary} validate={validateSecondary} helperText='This key is already used' />
                                     : secondary
                             }
                         </Typography>

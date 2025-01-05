@@ -53,7 +53,7 @@ type OnboardingTextArgument = {
     alwaysShowSetting: ReactElement;
 }
 
-const onboardingChaptersRaw = [
+const onboardingChaptersRaw: OnboardingChapter[] = [
     {
         chapterKey: 'MTWNavigation',
         title: 'Navigate in Make The World',

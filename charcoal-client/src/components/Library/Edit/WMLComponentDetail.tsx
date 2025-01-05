@@ -48,7 +48,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         }
         return [extractComponent(standardForm), extractComponent(new StandardForm(inheritedStandardForm))]
     }, [ComponentId, standardForm, inheritedStandardForm])
-    const { tag } = component
+    const { tag } = component ?? {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
@@ -151,7 +151,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
     const componentName = useMemo(() => {
-        const component = standardForm.byId[ComponentId]
+        const component = standardForm.byId[ComponentId ?? '']
         if (component) {
             if (hasShortName(component)) {
                 return schemaOutputToString((unwrapSubject(component.shortName)?.children ?? []) as GenericTree<SchemaOutputTag>)
@@ -173,7 +173,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const onKeyChange = useCallback((toKey: string) => {
         updateStandard({
             type: 'renameKey',
-            from: ComponentId,
+            from: ComponentId ?? '',
             to: toKey
         })
         dispatch(renameNavigationTab({

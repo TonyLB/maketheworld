@@ -1,3 +1,4 @@
+import React from 'react'
 import useTreeStyles from '../useTreeStyles'
 import Plus from '../Plus.svg'
 import Dash from '../Dash.svg'

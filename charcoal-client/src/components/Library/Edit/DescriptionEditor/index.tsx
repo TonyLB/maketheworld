@@ -228,7 +228,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
     return <Slate editor={editor} value={value} onChange={(value) => { setValue(value) }}>
         <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                { (validLinkTags.length &&
+                { (validLinkTags?.length &&
                     <React.Fragment>
                         <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                         <RemoveLinkButton />
@@ -250,7 +250,7 @@ const DescriptionEditorSlateComponent: FunctionComponent<DescriptionEditorSlateC
             />
         </Box>
         <TutorialPopover
-            anchorEl={ref}
+            anchorEl={ref as any}
             placement="top"
             checkPoints={checkPoints}
         />

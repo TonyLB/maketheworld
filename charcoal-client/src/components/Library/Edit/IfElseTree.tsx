@@ -154,7 +154,7 @@ type IfElseTreeStatementsProps = {
     onClick?: (id: string) => void;
 }
 
-export const IfElseTreeStatements: FunctionComponent<IfElseTreeStatementsProps> = ({ render: Render, showSelected = false, onClick = () => {} }): ReactElement => {
+export const IfElseTreeStatements: FunctionComponent<IfElseTreeStatementsProps> = ({ render: Render, showSelected = false, onClick = () => {} }): ReactElement | null => {
     const { value, onChange } = useEditContext()
     const onSelect = useCallback((index: number) => {
         const toSelectData = value[index]?.data

@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback } from 'react'
+import React, { FunctionComponent, useCallback } from 'react'
 
 import UploadIcon from '@mui/icons-material/Upload'
 import { Box, IconButton, SxProps } from '@mui/material'

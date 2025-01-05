@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Provider, useDispatch, useSelector } from 'react-redux'
 import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
@@ -13,7 +13,6 @@ import { getConfiguration, getConfigurationError, loadConfiguration, receiveRefr
 import Spinner from './components/Spinner'
 import { SignInOrUp } from './components/SignIn'
 import useStateSeekingMachines from './components/useSSM';
-import { useNavigate } from 'react-router-dom';
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}

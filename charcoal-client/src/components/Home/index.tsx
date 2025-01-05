@@ -121,13 +121,13 @@ export const Home: FunctionComponent<HomeProps> = ({
                         <Avatar
                             sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                             alt='Guest'
-                            ref={guest}
+                            ref={guest as any}
                         >
                             <GuestIcon fontSize="large" />
                         </Avatar>
                         <React.Fragment>Guest</React.Fragment>
                     </Stack>
-                    <TutorialPopover anchorEl={guest} placement="right" checkPoints={['navigateInPlayEdit']} />
+                    <TutorialPopover anchorEl={guest as any} placement="right" checkPoints={['navigateInPlayEdit']} />
                 </Grid>
             }
             { charactersUnlocked && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId }) => (

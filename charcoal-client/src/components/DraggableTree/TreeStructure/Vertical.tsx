@@ -1,3 +1,4 @@
+import React from 'react'
 import useTreeStyles from '../useTreeStyles'
 
 export const VerticalLine = ({ height, left }: { height: any, left: any }) => {
