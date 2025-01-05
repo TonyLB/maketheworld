@@ -1,5 +1,5 @@
 import { Box } from "@mui/material"
-import { FunctionComponent, useEffect } from "react"
+import React, { FunctionComponent, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { getNotification } from "../../slices/notifications/selectors"

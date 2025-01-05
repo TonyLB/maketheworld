@@ -1,4 +1,4 @@
-import { FunctionComponent } from 'react'
+import React, { FunctionComponent } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { blue } from '@mui/material/colors'

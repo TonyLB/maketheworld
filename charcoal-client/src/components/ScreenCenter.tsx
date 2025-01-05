@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { FunctionComponent } from "react";
+import React, { FunctionComponent } from "react";
 
 export const ScreenCenter: FunctionComponent<{}> = ({ children }) => (
     <Box sx={{

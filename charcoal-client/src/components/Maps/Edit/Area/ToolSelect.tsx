@@ -63,7 +63,7 @@ const ToolSelectIcon: FunctionComponent<ToolSelectIconProps> = ({ toolKey, icon,
             {icon}
         </IconButton>
         <TutorialPopover
-            anchorEl={ref}
+            anchorEl={ref as any}
             placement='right'
             checkPoints={checkPoints}
         />

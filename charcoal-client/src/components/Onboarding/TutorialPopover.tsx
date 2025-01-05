@@ -88,7 +88,7 @@ type TutorialPopoverProps = {
 }
 
 export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ anchorEl, placement, condition, checkPoints }) => {
-    const [arrowRef, setArrowRef] = useState<HTMLSpanElement>(null)
+    const [arrowRef, setArrowRef] = useState<HTMLSpanElement | null>(null)
     const nextOnboardingEntry = useSelector(getNextOnboardingEntry)
     return (((condition ?? true) === false) || !(checkPoints.includes(nextOnboardingEntry?.key ?? '')))
         ? null
@@ -119,7 +119,7 @@ export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ ancho
                         maxWidth: '20em',
                         animation: `${pulse} 2s infinite`
                     }}>
-                        { nextOnboardingEntry.popoverText ?? nextOnboardingEntry.text ?? null }
+                        { nextOnboardingEntry?.popoverText ?? nextOnboardingEntry?.text ?? null }
                     </Paper>
                 </Popper>
                 : null

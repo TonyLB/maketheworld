@@ -135,14 +135,14 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
                 }
             </Box>
             <TutorialPopover
-                anchorEl={renameRef}
+                anchorEl={renameRef as any}
                 placement='top'
                 checkPoints={['renameNewRoom']}
                 condition={Boolean(name.match(/^Room[\d]+$/))}
             />
             <IconButton ref={editRef} onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
             <TutorialPopover
-                anchorEl={editRef}
+                anchorEl={editRef as any}
                 placement='top'
                 checkPoints={['navigateRoom']}
                 condition={newestRoom}

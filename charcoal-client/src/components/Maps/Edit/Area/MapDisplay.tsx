@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import React, { FunctionComponent, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
