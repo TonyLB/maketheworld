@@ -1,8 +1,8 @@
 import React, { FunctionComponent } from "react";
 import DescriptionLink from './DescriptionLink'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from "@tonylb/mtw-interfaces/dist/baseClasses";
-import { RenderTree, RenderTreeNode } from "@tonylb/mtw-wml/dist/standardize/render/baseClasses"
 import { isSchemaLineBreak, isSchemaLink, isSchemaString, SchemaLinkTag } from "@tonylb/mtw-base/dist/schema/renderTree";
+import { RenderTree, RenderTreeNode } from "@tonylb/mtw-base/dist/renderTree";
 
 interface RenderTreeContentProps {
     list: RenderTree;
