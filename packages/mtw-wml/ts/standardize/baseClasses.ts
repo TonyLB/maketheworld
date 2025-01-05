@@ -20,13 +20,6 @@ import { StandardVariableData } from "./components/dataTypes/variable";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
-export class StandardizerError extends Error {}
-export class MergeConflictError extends StandardizerError {
-    constructor(message?: string) {
-        super(message ?? 'Merge conflict')
-    }
-}
-
 type StandardBase = {
     key: string;
     update?: boolean;

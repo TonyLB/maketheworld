@@ -6,7 +6,7 @@ import { RenderTree, StandardRenderAbstract, StandardRenderElement } from "./bas
 import { isRenderTreeNode } from "./utils"
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { MergeConflictError } from "../baseClasses"
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { deepEqual } from "../../lib/objects"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
