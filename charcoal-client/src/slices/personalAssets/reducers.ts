@@ -1,7 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { SchemaDescriptionTag, SchemaNameTag, SchemaOutputTag, SchemaShortNameTag, SchemaSummaryTag, SchemaTag, SchemaWithKey, isSchemaAsset, isSchemaDescription, isSchemaExit, isSchemaLink, isSchemaName, isSchemaRoom, isSchemaShortName, isSchemaSummary } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/dist/genericTree'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/schema/selectors/keysByTag'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
@@ -16,6 +15,10 @@ import immerProduce from 'immer'
 import { publicSelectors } from './selectors'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/dist/subscriptions'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
+import { isSchemaAsset, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaExit, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from '@tonylb/mtw-base/dist/schema/components'
+import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from '@tonylb/mtw-base/dist/schema/example'
+import { isSchemaLink } from '@tonylb/mtw-base/dist/schema/renderTree'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value

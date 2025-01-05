@@ -5,24 +5,15 @@ import { css } from '@emotion/react'
 
 import {
     Box,
-    Chip,
-    Typography,
-    Divider,
     Tooltip
 } from '@mui/material'
 import { blue, grey } from '@mui/material/colors'
 
-import {
-    TaggedLink
-} from '@tonylb/mtw-interfaces/dist/messages'
-
-import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
-import { SchemaLinkTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { GenericTreeNode } from '@tonylb/mtw-base/dist/genericTree'
 import { RenderTreeNode } from '@tonylb/mtw-wml/dist/standardize/render/baseClasses'
+import { SchemaLinkTag } from '@tonylb/mtw-base/dist/schema/renderTree'
 
 interface DescriptionLinkChipProps {
     text?: string;

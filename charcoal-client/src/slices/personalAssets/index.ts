@@ -30,7 +30,6 @@ import {
 } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset, getPlayer } from '../player'
-import { SchemaImportMapping, SchemaStringTag, isSchemaImport, isSchemaWithKey } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
@@ -44,6 +43,9 @@ import { excludeUndefined } from '../../lib/lists'
 import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import Debounce from '../../lib/keyedDebounce'
+import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/dist/schema/metaData'
+import { isSchemaWithKey } from '@tonylb/mtw-base/dist/schema'
+import { SchemaStringTag } from '@tonylb/mtw-base/dist/schema/renderTree'
 
 const autoSaveDebounce = new Debounce()
 

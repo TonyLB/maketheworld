@@ -12,8 +12,9 @@ import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces
 import { getStandardForm, setImport } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { isImportable, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { publicSelectors } from './selectors'
+import { isSchemaImport } from '@tonylb/mtw-base/dist/schema/metaData'
+import { isImportable } from '@tonylb/mtw-base/dist/schema'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()

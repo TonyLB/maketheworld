@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/dist/genericTree";
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes";
+import { SchemaTag } from "@tonylb/mtw-base/dist/schema";
 
 export const addRoomFactory = ({ standard, updateStandard, updateSelected, selectedPositions }: { standard: StandardFormData, updateStandard: (action: UpdateStandardPayload) => void, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag> }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
     //

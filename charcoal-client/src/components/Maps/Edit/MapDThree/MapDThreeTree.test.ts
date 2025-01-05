@@ -11,9 +11,9 @@ import { SimNode, SimulationReturn } from './baseClasses'
 import { SimulationLinkDatum } from 'd3-force'
 import { Schema } from '@tonylb/mtw-wml/dist/schema'
 import { assertInstance, StandardForm } from '@tonylb/mtw-wml/dist/standardize'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
 
 const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
 

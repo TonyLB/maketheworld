@@ -4,12 +4,13 @@ import CodeEditor from './CodeEditor'
 import renderer from 'react-test-renderer'
 import React, { FunctionComponent } from 'react'
 
-import { isSchemaExit, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { EditSchema, useEditContext } from './EditContext'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import IfElseTree from './IfElseTree'
+import { isSchemaExit } from '@tonylb/mtw-base/dist/schema/components'
+import { isSchemaOutputTag } from '@tonylb/mtw-base/dist/schema'
 
 describe('IfElseTree component', () => {
     const render: FunctionComponent<{}> = () => {

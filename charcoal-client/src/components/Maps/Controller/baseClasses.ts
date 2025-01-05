@@ -1,6 +1,10 @@
 import { GenericTree } from "@tonylb/mtw-base/dist/genericTree"
-import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
+import { SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/dist/schema/components"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/dist/schema"
+import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "@tonylb/mtw-base/dist/schema/condition"
+import { SchemaAssetTag } from "@tonylb/mtw-base/dist/schema/asset"
+import { SchemaNameTag } from "@tonylb/mtw-base/dist/schema/example"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 

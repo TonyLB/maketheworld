@@ -21,7 +21,8 @@ import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphC
 import IfElseTree from '../IfElseTree'
 import { EditSchema } from '../EditContext'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/dist/genericTree'
-import { isSchemaCondition, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
+import { isSchemaCondition } from '@tonylb/mtw-base/dist/schema/condition'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const editor = useSlate()

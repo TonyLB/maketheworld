@@ -1,8 +1,9 @@
 import { GenericTree } from "@tonylb/mtw-base/dist/genericTree";
 import { isStandardRoom } from "@tonylb/mtw-wml/dist/standardize/baseClasses";
-import { isSchemaString, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { ignoreWrapped } from "@tonylb/mtw-wml/dist/schema/utils";
 import { StandardFormData } from "@tonylb/mtw-wml/dist/standardize/components/dataTypes";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/dist/schema";
+import { isSchemaString } from "@tonylb/mtw-base/dist/schema/renderTree";
 
 const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> => (
     tree.map(({ data, children }) => ({

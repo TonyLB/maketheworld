@@ -36,16 +36,15 @@ import LinkDialog from './LinkDialog'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { isSchemaOutputTag, SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useEditContext } from '../EditContext'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { deepEqual } from '../../../../lib/objects'
 import { useStandardFormContext } from '../StandardFormContext'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
 import { StandardForm } from '@tonylb/mtw-wml/dist/standardize'
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/dist/schema'
 
 interface DescriptionEditorProps {
     // componentKey: string;

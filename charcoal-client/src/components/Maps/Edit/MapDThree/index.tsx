@@ -6,10 +6,10 @@ import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
 import { GenericTree } from '@tonylb/mtw-base/dist/genericTree'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isStandardMap } from '@tonylb/mtw-wml/dist/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
 import { StandardFormData } from '@tonylb/mtw-wml/dist/standardize/components/dataTypes'
+import { SchemaTag } from '@tonylb/mtw-base/dist/schema'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this

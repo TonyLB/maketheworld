@@ -2,7 +2,6 @@ import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, 
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard  } from '@tonylb/mtw-base/dist/genericTree'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import { SchemaAssetTag, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaPositionTag, SchemaRoomTag, SchemaSelectedTag, SchemaTag, isSchemaAsset, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaName, isSchemaOutputTag, isSchemaPosition, isSchemaRoom, isSchemaSelected, isSchemaShortName } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { addExitFactory } from "./addExit"
@@ -22,6 +21,11 @@ import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets
 import { StandardForm } from "@tonylb/mtw-wml/dist/standardize"
 import StandardMap from "@tonylb/mtw-wml/dist/standardize/components/map"
 import StandardRoom from "@tonylb/mtw-wml/dist/standardize/components/room"
+import { isSchemaAsset, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/dist/schema"
+import { SchemaAssetTag } from "@tonylb/mtw-base/dist/schema/asset"
+import { isSchemaExit, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/dist/schema/components"
+import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/dist/schema/example"
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag } from "@tonylb/mtw-base/dist/schema/condition"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',

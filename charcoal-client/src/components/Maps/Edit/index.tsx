@@ -11,10 +11,10 @@ import ToolSelect from './Area/ToolSelect'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
-import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import TutorialPopover from '../../Onboarding/TutorialPopover'
 import StandardMap from '@tonylb/mtw-wml/dist/standardize/components/map'
+import { isSchemaImage } from '@tonylb/mtw-base/dist/schema/image'
 
 type MapEditProps = {
 }
