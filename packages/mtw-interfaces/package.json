@@ -10,7 +10,7 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@tonylb/mtw-wml": "file:../mtw-wml"
+    "@tonylb/mtw-base": "file:../mtw-base"
   },
   "devDependencies": {
     "@types/jest": "^29.1.2",
