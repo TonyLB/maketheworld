@@ -30,16 +30,20 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
-import { SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaPosition, isSchemaReplace, isSchemaRoom, isSchemaSelected, isSchemaSpacer, isSchemaString } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/compressStrings';
-import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { RenderTree } from '@tonylb/mtw-wml/ts/standardize/render/baseClasses';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
+import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected } from '@tonylb/mtw-base/ts/schema/condition';
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from '@tonylb/mtw-base/ts/schema/renderTree';
+import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
+import { isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-base/ts/schema/components';
+import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -380,7 +384,7 @@ export class ComponentRenderData {
         const evaluateSchemaOutputPromise = async <T extends ComponentMetaItem>(assetData: T[], key: { [P in keyof T]: T[P] extends EditWrappedStandardNode<SchemaTag, SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
             compressStrings((await Promise.all(assetData.map(async (data) => {
                 const evaluatedConditionals = await evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] ? (unwrapSubject(data[key] as any)?.children ?? []) as GenericTree<SchemaOutputTag> : [], data.stateMapping)
-                const remappedValue = remapKeys(evaluatedConditionals, data.keyMapping)
+                const remappedValue = remapKeys<SchemaOutputTag>(evaluatedConditionals, data.keyMapping)
                 return remappedValue
             }))).flat(1))
         )

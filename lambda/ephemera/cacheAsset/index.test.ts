@@ -23,10 +23,12 @@ import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { isSchemaComputed, isSchemaConditionStatement, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaComputed } from '@tonylb/mtw-base/ts/schema/computation'
+import { isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain

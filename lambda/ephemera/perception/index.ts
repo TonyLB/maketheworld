@@ -10,7 +10,8 @@ import {
 import { ComponentMetaItem } from "../internalCache/componentMeta"
 import { isStandardMessage, StandardComponentData, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaLink, isSchemaMessage, isSchemaRoom, isSchemaString } from "@tonylb/mtw-wml/ts/schema/baseClasses"
+import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaLink, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit' | 'fileURL' | 'Color']: EphemeraCharacter[K];
