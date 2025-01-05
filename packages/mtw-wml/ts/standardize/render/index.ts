@@ -2,8 +2,7 @@ import StandardRenderString from "./string"
 import StandardRenderLineBreak from "./lineBreak"
 import StandardRenderLink from "./link"
 import StandardRenderSpace from "./space"
-import { RenderTree, StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
-import { isRenderTreeNode } from "./utils"
+import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
@@ -12,6 +11,7 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from 
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit"
+import { isRenderTree, isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -19,7 +19,7 @@ export class StandardRenderSimple {
     _elements: StandardRenderSimpleElement[];
 
     constructor(arg: any) {
-        if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
+        if (isRenderTree(arg)) {
             this._elements = arg
                 .map<StandardRenderSimpleElement | undefined>(node => {
                     if (typeof node === 'string' || isSchemaString(node.data)) {

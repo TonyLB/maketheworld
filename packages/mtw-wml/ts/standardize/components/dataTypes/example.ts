@@ -1,8 +1,8 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { RenderTree } from "../../render/baseClasses";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardBaseData } from "./abstract"
-import { checkAll, checkTypes } from "./typeguards";
-import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
+import { checkAll, checkTypes } from "./typeguards"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 
 export type StandardExampleData = {
     tag: 'Example';

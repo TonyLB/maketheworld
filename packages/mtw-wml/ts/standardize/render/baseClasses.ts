@@ -1,12 +1,6 @@
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
-
-export type RenderTreeNode = string | {
-    data: SchemaOutputTag;
-    children: RenderTree;
-}
-
-export type RenderTree = RenderTreeNode[]
 
 export interface StandardRenderElement {
     plainString: string;
