@@ -1,5 +1,4 @@
 import 'react-app-polyfill/stable';
-import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
@@ -44,10 +43,10 @@ import * as serviceWorker from './serviceWorker';
         if (doublingTimer) {
             clearTimeout(doublingTimer)
         }
-        doublingTimer = setTimeout(100, () => {
+        doublingTimer = setTimeout(() => {
             listenerFunction()
             doublingTimer = null
-        })
+        }, 100)
     }
     window.addEventListener('resize', doubledListenerFunction)
     window.addEventListener('orientationchange', doubledListenerFunction)
