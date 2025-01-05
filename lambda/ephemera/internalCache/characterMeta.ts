@@ -1,7 +1,7 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomStackItem } from '../moveCharacter';
-import { SchemaPronouns } from '@tonylb/mtw-wml/ts/schema/baseClasses';
+import { SchemaPronouns } from '@tonylb/mtw-base/ts/schema/character';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;

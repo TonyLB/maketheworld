@@ -27,7 +27,6 @@ import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaImage, isSchemaImport, SchemaTag } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
@@ -38,6 +37,8 @@ import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 
 export const pushEphemera = async({
     EphemeraId,

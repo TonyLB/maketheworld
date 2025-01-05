@@ -1,13 +1,17 @@
 import { EphemeraActionId, EphemeraBookmarkId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
 import internalCache from "../internalCache"
-import { EphemeraComponentMixin, EphemeraItem, EphemeraKeyMappingMixin, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraKnowledgeItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
+import { EphemeraComponentMixin } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import { SchemaDescriptionTag, SchemaEditTag, SchemaNameTag, SchemaOutputTag, SchemaRemoveTag, SchemaReplacePayloadTag, SchemaReplaceTag, SchemaSummaryTag, SchemaTag, isSchemaBookmark, isSchemaCondition, isSchemaConditionStatement, isSchemaDescription, isSchemaEdit, isSchemaLink, isSchemaName, isSchemaSummary } from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
+import { isSchemaBookmark, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaEdit } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||
