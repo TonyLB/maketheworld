@@ -1,3 +1,5 @@
+import React from "react"
+
 type HighlightCircleProps = {
     x: number;
     y: number;

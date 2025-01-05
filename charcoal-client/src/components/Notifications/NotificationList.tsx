@@ -1,5 +1,5 @@
 import { Avatar, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TablePagination } from "@mui/material"
-import { FunctionComponent, useCallback, useState } from "react"
+import React, { FunctionComponent, useCallback, useState } from "react"
 import { useSelector } from "react-redux"
 import { getNotifications } from "../../slices/notifications"
 import AnnouncementIcon from '@mui/icons-material/Announcement'

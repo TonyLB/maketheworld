@@ -1,3 +1,4 @@
+import React from 'react'
 import Box from '@mui/material/Box'
 
 // Put this at the start and end of an inline component to work around this Chromium bug:

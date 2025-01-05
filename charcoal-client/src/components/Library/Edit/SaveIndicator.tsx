@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react"
+import React, { FunctionComponent } from "react"
 import { useLibraryAsset } from "./LibraryAsset"
 import Chip from "@mui/material/Chip"
 import Box from "@mui/material/Box"

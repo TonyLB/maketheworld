@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate, useParams } from "react-router-dom"
 
@@ -51,7 +51,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
             }
         }
         return new StandardTheme({
-            key: ComponentId,
+            key: ComponentId ?? '',
             tag: 'Theme',
             prompts: [],
             rooms: [],
@@ -72,7 +72,7 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
     const onKeyChange = useCallback((toKey: string) => {
         updateStandard({
             type: 'renameKey',
-            from: ComponentId,
+            from: ComponentId ?? '',
             to: toKey
         })
         dispatch(renameNavigationTab({

@@ -313,8 +313,14 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
                 draft.filter(treeNodeTypeguard(isSchemaRoom)).forEach(({ data, children }) => {
                     const position = children.find(treeNodeTypeguard(isSchemaPosition))
                     if (position && data.key in newPositionsByRoomId) {
-                        position.data.x = newPositionsByRoomId[data.key].x
-                        position.data.y = newPositionsByRoomId[data.key].y
+                        const x = newPositionsByRoomId[data.key].x
+                        const y = newPositionsByRoomId[data.key].y
+                        if (typeof x === 'number') {
+                            position.data.x = x
+                        }
+                        if (typeof y === 'number') {
+                            position.data.y = y
+                        }
                     }
                 })
             })
@@ -482,6 +488,7 @@ export class MapDThreeTree extends Object {
                 updateLayer.update(mapAction.nodes, mapAction.links, true, mapAction.onChange, mapAction.getCascadeNodes)
                 return [...previous, updateLayer]
             }
+            return previous
         }, [])
         this.layers = newLayers
         this._visibleLayers = visibleLayers

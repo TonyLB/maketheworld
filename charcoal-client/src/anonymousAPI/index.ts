@@ -129,4 +129,5 @@ export async function anonymousAPIPromise (args: AnonymousAPIRequest, AnonymousA
             return { errorMessage }
         }
     }
+    throw new Error('Invalid request')
 }

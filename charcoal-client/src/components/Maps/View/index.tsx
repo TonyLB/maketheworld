@@ -58,7 +58,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             setMapId(Object.keys(maps || {})[0] as EphemeraMapId)
         }
     }, [MapId, setMapId, maps])
-    const selectedMap = useMemo(() => (maps[MapId]), [maps, MapId])
+    const selectedMap = useMemo(() => (maps[MapId ?? 'MAP#']), [maps, MapId])
     const assets = useMemo(() => (selectedMap?.assets ?? {}), [selectedMap])
     const ref = useRef()
     const [open, setOpen] = useState<boolean>(false)
@@ -129,12 +129,12 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                 sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                 alt={'Edit Map'}
                 onClick={onClick}
-                ref={ref}
+                ref={ref as any}
             >
                 <EditIcon sx={{ fontSize: iconSize * 0.6 }} />
             </Avatar>
             <TutorialPopover
-                anchorEl={ref}
+                anchorEl={ref as any}
                 placement='left'
                 checkPoints={['editMap']}
             />

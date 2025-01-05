@@ -1,5 +1,5 @@
 import SvgIcon from "@mui/material/SvgIcon"
-import { FunctionComponent } from "react"
+import React, { FunctionComponent } from "react"
 
 export const RenameIcon: FunctionComponent<{}> = () => {
     return <SvgIcon>

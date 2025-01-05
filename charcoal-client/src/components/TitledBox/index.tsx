@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box"
 import { blue } from "@mui/material/colors"
-import { FunctionComponent } from "react"
+import React, { FunctionComponent } from "react"
 
 type TitledBoxProperties = {
     title?: string;

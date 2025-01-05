@@ -51,6 +51,7 @@
   },
   "scripts": {
     "start": "vite",
+    "check": "tsc --noEmit",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "react-scripts test",

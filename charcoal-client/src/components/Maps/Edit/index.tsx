@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo, useRef } from 'react'
+import React, { FunctionComponent, useMemo, useRef } from 'react'
 
 import {
     useParams
@@ -33,7 +33,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     })
     useOnboardingCheckpoint('editMap', { requireSequence: true })
     const mapComponent = useMemo<StandardMap | undefined>(() => {
-        const mapComponent = standardForm.byId[mapId]
+        const mapComponent = standardForm.byId[mapId ?? '']
         if (mapComponent && mapComponent instanceof StandardMap) {
             return mapComponent
         }
@@ -46,7 +46,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const mapImages = useMemo<string[]>(() => (mapComponent ? mapComponent.images.map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1) : []), [mapComponent])
     const mapAreaRef = useRef<HTMLDivElement>(null)
 
-    return <MapController mapId={mapId}>
+    return <MapController mapId={mapId ?? ''} >
         <div className={localClasses.grid}>
             <div className={localClasses.content} ref={mapAreaRef} >
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
@@ -58,11 +58,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 />
             </div>
             <div className={localClasses.sidebar} >
-                <MapLayers mapId={mapId} />
+                <MapLayers mapId={mapId ?? ''} />
             </div>
         </div>
         <TutorialPopover
-            anchorEl={mapAreaRef}
+            anchorEl={mapAreaRef as any}
             placement='right'
             checkPoints={['positionNewRoom', 'connectNewRoom']}
         />

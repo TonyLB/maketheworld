@@ -26,6 +26,7 @@ import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { isSchemaExit, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
+import { excludeUndefined } from "../../../lib/lists"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
@@ -74,7 +75,7 @@ const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (ar
     const roomAndExits = roomKeys
         .map((key) => (assertTypeguard(standardForm.byId[key], (component): component is StandardRoom => (component instanceof StandardRoom))))
         .filter((roomComponent): roomComponent is StandardRoom => (Boolean(roomComponent)))
-        .map(({ key, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, children: [shortName, ...exits] }))
+        .map(({ key, shortName, exits }) => ({ data: { tag: 'Room' as const, key }, children: [shortName, ...exits].filter(excludeUndefined) }))
     const combinedTree = new SchemaTagTree([
         ...positions,
         ...roomAndExits
@@ -178,7 +179,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 extractRoomsHelper(),
                 []
             )
-        const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId] }: { roomId, ...rest }))
+        const overwrittenPositions = basePositions.map(({ roomId, ...rest }) => (roomId ?? '' in incomingPositions ? { roomId, ...rest, ...incomingPositions[roomId ?? ''] }: { roomId, ...rest }))
         const valuesPresentTypeguard = (item: Partial<MapContextPosition>): item is MapContextPosition => (
             (typeof item.id !== 'undefined') &&
             (typeof item.parentId !== 'undefined') &&
@@ -235,7 +236,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 mapD3.endDrag()
                 return
             case 'DragExit':
-                mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double })
+                mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double ?? false })
                 return
             case 'SelectItem':
                 setItemSelected(action.item)
@@ -253,7 +254,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 if (relevantMapDThreeIterator) {
                     const relevantNode = relevantMapDThreeIterator.nodes.find(({ id }) => (id === action.roomId))
                     if (relevantNode && relevantNode.cascadeNode) {
-                        addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: relevantNode.roomId, x: relevantNode.fx, y: relevantNode.fy })
+                        addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: relevantNode.roomId, x: relevantNode.fx === null ? undefined : relevantNode.fx, y: relevantNode.fy === null ? undefined : relevantNode.fy })
                     }
                 }
                 else {
@@ -282,7 +283,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     }, [inheritedByAssetId, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ standardForm: standardForm.toJSON(), selectedPositions, updateSelected, addImport: addExitImport })
-        const onAddExit = (fromRoomId, toRoomId, double) => {
+        const onAddExit = (fromRoomId: string, toRoomId: string, double: boolean) => {
             addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
             if (double) {
                 dispatch(addOnboardingComplete(['connectNewRoom']))

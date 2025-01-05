@@ -34,6 +34,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from "./checkpoints"
 import { addOnboardingComplete, removeOnboardingComplete, updateOnboardingComplete } from "../../slices/player/index.api"
 import { getClientSettings, putClientSettings } from "../../slices/settings"
+import { excludeUndefined } from "../../lib/lists"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
@@ -113,9 +114,9 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
             return undefined
         }
         return {
-            text: typeof page.text === 'function' ? page.text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : page.text,
+            text: typeof page.text === 'function' ? page.text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : page.text ?? '',
             listItems: page.subItems.reduce<Partial<Record<OnboardingKey, { text: ReactElement | string; icon?: ReactElement }>>>((previous, { key, text, icon }) => {
-                const adjustedText: ReactElement | string = typeof text === 'function' ? text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : text
+                const adjustedText: ReactElement | string = typeof text === 'function' ? text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : text ?? ''
                 return {
                     ...previous,
                     [key as OnboardingKey]: {
@@ -138,23 +139,23 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
     const { currentChapter } = useSelector(getActiveOnboardingChapter)
     const page = useSelector(getOnboardingPage)
     const backOnClick = useCallback(() => {
-        if (page.index > 0) {
-            const toRemove = [currentChapter.pages[page.index - 1].pageKey, ...page.subItems.map(({ key }) => (key))]
+        if (page?.index ?? 0 > 0) {
+            const toRemove = [currentChapter?.pages?.[page?.index ?? 0 - 1]?.pageKey, ...(page?.subItems ?? []).map(({ key }) => (key))].filter(excludeUndefined)
             dispatch(removeOnboardingComplete(toRemove))
         }
     }, [page, currentChapter])
     const { onboardCompleteTags } = useSelector(getMySettings)
     const pageTasksComplete = !Boolean((page?.subItems || []).find(({ key }) => (!(onboardCompleteTags.includes(key)))))
     const skipOnClick = useCallback(() => {
-        dispatch(addOnboardingComplete([...(page.last ? [] : [page.pageKey]), ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
+        dispatch(addOnboardingComplete([...(page?.last ? [] : [page?.pageKey]), ...(page?.subItems ?? []).map(({ key }) => (key))] as OnboardingKey[]))
     }, [page])
     const nextOnClick = useCallback(() => {
-        dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
+        dispatch(addOnboardingComplete([page?.pageKey] as OnboardingKey[]))
     }, [page])
     const finishOnClick = useCallback(() => {
         dispatch(updateOnboardingComplete({
-            addTags: [`end${currentChapter.chapterKey}`] as OnboardingKey[],
-            removeTags: [`active${currentChapter.chapterKey}`] as OnboardingKey[]
+            addTags: [`end${currentChapter?.chapterKey}`] as OnboardingKey[],
+            removeTags: [`active${currentChapter?.chapterKey}`] as OnboardingKey[]
         }))
     }, [page, currentChapter])
     return <Stack sx={{ height: "100%" }}>
@@ -242,11 +243,11 @@ export const Onboarding: FunctionComponent<{}> = () => {
     const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
     const dispatch = useDispatch()
     const homeOnClick = useCallback(() => {
-        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
+        dispatch(removeOnboardingComplete([`active${currentChapter?.chapterKey}`] as OnboardingKey[]))
     }, [currentChapter, dispatch])
     return currentChapter
         ? <Stack sx={{ height: "100%" }}>
-            { index > 0 &&
+            { (index ?? 0 > 0) &&
                 <Stack direction="row">
                     <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={homeOnClick}><ArrowBack />Onboarding Home</Button>
                     <Box sx={{ flexGrow: 1 }} />

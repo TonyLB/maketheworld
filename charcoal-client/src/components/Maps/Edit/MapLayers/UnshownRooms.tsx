@@ -77,7 +77,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
             </ListItemButton>
         </List>
         <TutorialPopover
-            anchorEl={addNewRoomRef}
+            anchorEl={addNewRoomRef as any}
             placement="bottom"
             checkPoints={['addNewRoom']}
         />

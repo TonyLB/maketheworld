@@ -195,7 +195,7 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
                     callback={callback}
                 />
                 <TutorialPopover
-                    anchorEl={ref}
+                    anchorEl={ref as any}
                     placement='top'
                     checkPoints={['openMap']}
                 />
