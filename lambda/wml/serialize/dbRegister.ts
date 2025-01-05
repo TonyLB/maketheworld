@@ -3,7 +3,7 @@ import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphCache, graphStorageDB } from './graphCache'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
+import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -13,12 +13,20 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
     if (standard) {
         const assetKey = address.zone === 'Draft' ? `${standard.key}[${address.player}]` : standard.key
         const graphUpdate = new GraphUpdate({ internalCache: graphCache, dbHandler: graphStorageDB })
+        const allImportAssetIds = unique(
+            Object.values(standard.byId)
+                .map((component) => {
+                    const from = component.import
+                    if (from) {
+                        return from.assetId
+                    }
+                    return undefined
+                })
+                .filter(excludeUndefined)
+        )
         graphUpdate.setEdges([{
             itemId: AssetKey(assetKey),
-            edges: standard.metaData
-                .map(({ data }) => (data))
-                .filter(isSchemaImport)
-                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            edges: allImportAssetIds.map((from) => ({ target: AssetKey(from), context: '' })),
             options: { direction: 'back' }
         }])
         await Promise.all([
