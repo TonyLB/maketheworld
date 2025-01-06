@@ -11,7 +11,8 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from 
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit"
-import { isRenderTree, isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { isRenderTree, isRenderTreeNode, RenderTree, RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
+import { SchemaConditionTag } from "../../schema/baseClasses"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -57,15 +58,15 @@ export class StandardRenderSimple {
         }
     }
 
-    get plainString() {
+    get plainString(): string {
         return this._elements.map(element => element.plainString).join('')
     }
 
-    toJSON() {
+    toJSON(): GenericTree<SchemaOutputTag> {
         return this._elements.map(element => element.toJSON())
     }
 
-    toNDJSON() {
+    toNDJSON(): RenderTree {
         return this._elements.map(element => element.toNDJSON())
     }
     
@@ -342,11 +343,11 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
         }
     }
 
-    override get plainString() {
+    override get plainString(): string {
         return this._fallthrough ? this._fallthrough.payload.plainString : ''
     }
 
-    override toJSON() {
+    override toJSON(): GenericTreeNodeFiltered<SchemaConditionTag, SchemaOutputTag> {
         return {
             data: { tag: 'If' as const },
             children: [
@@ -362,7 +363,7 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
         }        
     }
 
-    override toNDJSON() {
+    override toNDJSON(): RenderTreeNode {
         return {
             data: { tag: 'If' as const },
             children: [
@@ -394,7 +395,7 @@ export class StandardRenderRemove extends StandardRenderAbstract implements Stan
         this._payload = new StandardRenderSimple(arg.children)
     }
 
-    override get plainString() {
+    override get plainString(): string {
         return ''
     }
 
@@ -405,7 +406,7 @@ export class StandardRenderRemove extends StandardRenderAbstract implements Stan
         }
     }
 
-    override toNDJSON() {
+    override toNDJSON(): RenderTreeNode {
         return {
             data: { tag: 'Remove' as const },
             children: this._payload.toNDJSON()
@@ -462,7 +463,7 @@ export class StandardRenderReplace extends StandardRenderAbstract implements Sta
         }
     }
 
-    override toNDJSON() {
+    override toNDJSON(): RenderTreeNode {
         return {
             data: { tag: 'Replace' as const },
             children: [{
