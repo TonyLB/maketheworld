@@ -11,7 +11,7 @@ export class StandardRenderLineBreak extends StandardRenderAbstract implements S
         }
     }
 
-    override get plainString() {
+    override get plainString(): string {
         return '\n'
     }
 

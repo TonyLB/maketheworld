@@ -9,7 +9,7 @@ export interface StandardRenderElement {
 }
 
 export class StandardRenderAbstract implements StandardRenderElement {
-    get plainString() { return '' }
+    get plainString(): string { return '' }
     toJSON(): GenericTreeNode<SchemaOutputTag> { return { data: { tag: 'String' as const, value: '' }, children: [] } }
     toNDJSON(): RenderTreeNode { return '' }
 }
