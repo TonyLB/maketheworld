@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals'
 import { treeStateReducer, findInTree } from './index'
 import { NestedTree } from './interfaces'
 
