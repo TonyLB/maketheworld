@@ -1,9 +1,6 @@
-/** @jsxImportSource @emotion/react */
 import React, { ReactChild, ReactChildren } from 'react'
-import { css } from '@emotion/react'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-
 
 import {
     Box,
@@ -51,10 +48,12 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
             }
             leftGutter={portraitSize + 20}
         >
-            <Box css={css`
-                grid-area: content;
-                padding-bottom: 5px;
-            `}>
+            <Box
+                sx={{
+                    gridArea: 'content',
+                    paddingBottom: '5px'
+                }}
+            >
                 <Typography variant='h5' align='left'>
                     { Name }
                 </Typography>

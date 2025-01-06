@@ -1,12 +1,9 @@
-/** @jsxImportSource @emotion/react */
 import React, { ReactChildren, ReactChild, ReactElement, FunctionComponent } from 'react'
-import { css } from '@emotion/react'
 import { SxProps } from '@mui/system'
 import { Theme } from '@mui/material'
 
 import {
-    Box,
-    Grid
+    Box
 } from '@mui/material'
 
 interface MessageComponentProps {
@@ -35,41 +32,51 @@ export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
                 </Box>
                 : null}
             <Box
-                sx={sx}
-                css={css`
-                    display: grid;
-                    grid-template-areas:
-                        "leftIcon content rightIcon";
-                    grid-template-columns: ${`${leftGutter}`}px 1fr ${`${rightGutter}`}px;
-                `}
+                sx={{
+                    ...sx,
+                    display: "grid",
+                    gridTemplateColumns: `${leftGutter}px 1fr ${rightGutter}px`,
+                    gridTemplateAreas: "'leftIcon content rightIcon'",
+                    gap: 0
+                }}
             >
-                <Box css={css`
-                    grid-area: leftIcon;
-                    align-items: stretch;
-                `}>
-                    <Box css={css`
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        height: 100%;
-                    `}>
+                <Box
+                    sx={{
+                        gridArea: "leftIcon",
+                        alignItems: "stretch"
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: "100%"
+                        }}
+                    >
                         { leftIcon || <React.Fragment>&nbsp;</React.Fragment> }
                     </Box>
                 </Box>
-                <Box css={css`
-                    grid-area: content;
-                    height: 100%;
-                `}>{children}</Box>
-                <Box css={css`
-                    grid-area: rightIcon;
-                    align-items: stretch;
-                `}>
-                    <Box css={css`
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        height: 100%;
-                    `}>
+                <Box
+                    sx={{
+                        gridArea: "content",
+                        height: "100%"
+                    }}
+                >{children}</Box>
+                <Box
+                    sx={{
+                        gridArea: "rightIcon",
+                        alignItems: "stretch"
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: "100%"
+                        }}
+                    >
                         { rightIcon || <React.Fragment>&nbsp;</React.Fragment> }
                     </Box>
 

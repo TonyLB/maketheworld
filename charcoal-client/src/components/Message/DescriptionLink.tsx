@@ -1,5 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { FunctionComponent } from 'react'
+import React, { FunctionComponent } from 'react'
 import { useDispatch } from 'react-redux'
 import { RenderTreeNode } from '@tonylb/mtw-base/ts/renderTree'
 

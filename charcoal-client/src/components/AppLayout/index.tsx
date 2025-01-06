@@ -2,9 +2,7 @@
 // The AppLayout component handles high-level styling and positioning of data components within the app
 //
 
-/** @jsxImportSource @emotion/react */
 import React, { FunctionComponent, useCallback, useMemo, useRef } from 'react'
-import { css } from '@emotion/react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
