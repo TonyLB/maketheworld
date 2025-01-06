@@ -1,5 +1,3 @@
-import { jest, beforeEach, describe, it, expect } from '@jest/globals'
-
 jest.mock('./MapDThreeTree.ts')
 import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree } from '.'

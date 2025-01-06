@@ -1,8 +1,6 @@
-import { jest, describe, expect, it, beforeEach } from '@jest/globals'
 import { addImport } from "."
 import { Schema } from "@tonylb/mtw-wml/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
