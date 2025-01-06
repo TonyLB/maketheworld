@@ -1,3 +1,4 @@
+import { jest, describe, expect, it, beforeEach } from '@jest/globals'
 jest.mock('./CodeEditor')
 import CodeEditor from './CodeEditor'
 

@@ -1,3 +1,4 @@
+import { jest, describe, expect, it, beforeEach } from '@jest/globals'
 jest.mock('uuid')
 import { v4 as uuidMock } from 'uuid'
 import { PubSub } from './index'
