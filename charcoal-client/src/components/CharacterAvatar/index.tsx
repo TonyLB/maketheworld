@@ -20,7 +20,7 @@ interface CharacterAvatarDirectProps {
 
 export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps> = ({ CharacterId, Name, fileURL, width, height }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
     const dressedFileURL = useMemo(() => {
         if (fileURL?.match(/https?:\/\//)) {
             return fileURL
