@@ -1,11 +1,9 @@
 import Debounce from './keyedDebounce'
 
 describe('keyedDebounce', () => {
-    jest.useFakeTimers()
-    jest.spyOn(global, 'setTimeout')
-    jest.spyOn(global, 'clearTimeout')
     const debounce = new Debounce()
     beforeEach(() => {
+        jest.useFakeTimers()
         debounce.clear()
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -13,33 +11,37 @@ describe('keyedDebounce', () => {
 
     afterEach(() => {
         jest.clearAllTimers()
+        jest.useRealTimers()
     })
 
     it('should set a timeout when a debounce is created', () => {
-        debounce.set('test', () => {}, 5000)
-        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000)
-        expect(clearTimeout).toHaveBeenCalledTimes(0)
+        const callback = jest.fn()
+        debounce.set('test', callback, 1000)
+        expect(callback).not.toHaveBeenCalled()
+        jest.advanceTimersByTime(2000)
+        expect(callback).toHaveBeenCalled()
     })
 
     it('should reset a timeout', () => {
-        debounce.set('test', () => {}, 1000)
-        expect(setTimeout).toHaveBeenCalledTimes(1)
-        expect(clearTimeout).toHaveBeenCalledTimes(0)
-        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000)
-        debounce.set('testTwo', () => {}, 1500)
-        expect(setTimeout).toHaveBeenCalledTimes(2)
-        expect(clearTimeout).toHaveBeenCalledTimes(0)
-        expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 1500)
-        debounce.set('test', () => {}, 2000)
-        expect(setTimeout).toHaveBeenCalledTimes(3)
-        expect(clearTimeout).toHaveBeenCalledTimes(1)
-        expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 2000)
+        const callbackOne = jest.fn()
+        const callbackTwo = jest.fn()
+        debounce.set('test', callbackOne, 1000)
+        jest.advanceTimersByTime(500)
+        debounce.set('testTwo', callbackTwo, 1000)
+        debounce.set('test', callbackOne, 2000)
+        expect(callbackOne).not.toHaveBeenCalled()
+        expect(callbackTwo).not.toHaveBeenCalled()
+        jest.advanceTimersByTime(1500)
+        expect(callbackOne).not.toHaveBeenCalled()
+        expect(callbackTwo).toHaveBeenCalled()
+        jest.advanceTimersByTime(1000)
+        expect(callbackOne).toHaveBeenCalled()
     })
 
-    xit('should reset on execute', () => {
+    it('should reset on execute', () => {
         const testCallback = jest.fn()
         debounce.set('test', testCallback, 1000)
-        expect(debounce._timeouts).toEqual({ test: expect.any(Number) })
+        expect(Object.keys(debounce._timeouts)).toEqual(['test'])
         jest.advanceTimersByTime(2000)
         expect(debounce._timeouts).toEqual({})
     })

@@ -1,5 +1,5 @@
 class Debounce {
-    _timeouts: Record<string, NodeJS.Timeout | number> = {};
+    _timeouts: Record<string, number> = {};
 
     remove(key: string): void {
         if (key in this._timeouts) {
