@@ -253,10 +253,10 @@ const NavigationTabs = () => {
     return (
         <NavigationContextProvider>
             <Box
-                css={css`
-                    grid-area: tabs;
-                    overflow: hidden;
-                `}
+                sx={{
+                    gridArea: 'tabs',
+                    overflow: 'hidden'
+                }}
             >
                 <Tabs
                     classes={{ vertical: 'tabRootVertical' }}
@@ -313,49 +313,41 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
         </Routes>
     ), [onboardingPanel, routes])
     return <Router>
-        <Box css={css`
-                height: 100vh;
-                /*
-                    In order to override mobile-platform's delivery of vh as device size rather than viewport size,
-                    we need to override (where possible) 
-                */
-                height: calc(var(--vh, 1vh) * 100);
-                width: 100vw;
-
-                display: grid;
-                justify-content: stretch;
-                @media (orientation: landscape) {
-                    grid-template-areas:
-                        "tabs content";
-                    grid-template-columns: auto 1fr;
-                    grid-template-rows: 1fr;
-                }
-                @media (orientation: landscape) and (min-width: 1500px) {
-                    grid-template-areas:
-                        "tabs content sidebar";
-                    grid-template-columns: auto 1fr 400px;
-                    grid-template-rows: 1fr;
-                }
-                @media (orientation: portrait) {
-                    grid-template-areas:
-                        "tabs"
-                        "content";
-                    grid-template-rows: auto 1fr;
-                    grid-template-columns: 100%;
-                }
-            `}
-            sx={{ bgcolor: 'background.paper' }}
+        <Box
+            sx={{
+                height: "calc(var(--vh, 1vh) * 100)",
+                width: "100vw",
+                display: "grid",
+                justifyContent: "stretch",
+                "@media (orientation: landscape)": {
+                    gridTemplateAreas: `"tabs content"`,
+                    gridTemplateColumns: "auto 1fr",
+                    gridTemplateRows: "1fr"
+                },
+                "@media (orientation: landscape) and (min-width: 1500px)": {
+                    gridTemplateAreas: `"tabs content sidebar"`,
+                    gridTemplateColumns: "auto 1fr 400px",
+                    gridTemplateRows: "1fr"
+                },
+                "@media (orientation: portrait)": {
+                    gridTemplateAreas: `"tabs"
+                        "content"`,
+                    gridTemplateRows: "auto 1fr",
+                    gridTemplateColumns: "100%"
+                },
+                backgroundColor: "background.paper"
+            }}
         >
             <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />
             <Box
-                css={css`
-                    grid-area: content;
-                    width: 100%;
-                    height: 100%;
-                    overflow-y: auto;
-                `}
+                sx={{
+                    gridArea: "content",
+                    overflowY: "auto",
+                    width: "100%",
+                    height: "100%"
+                }}
             >
                 <Box sx={{ width: "100%", height: "100%" }}>
                     { routeWrapper }
@@ -363,11 +355,11 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             </Box>
             {large
                 ? <Box
-                    css={css`
-                        grid-area: sidebar;
-                        overflow-y: auto;
-                    `}
-                    sx={{ bgcolor: 'primary' }}
+                    sx={{
+                        gridArea: "sidebar",
+                        overflowY: "auto",
+                        bgcolor: 'primary'
+                    }}
                 >
                     {whoPanel}
                 </Box>
