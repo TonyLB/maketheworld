@@ -1,5 +1,3 @@
-/** @jsxImportSource @emotion/react */
-
 //
 // LibraryAsset is a context provider (with associated useLibraryAsset
 // context subscriber hook) to create component nests that all operate in the

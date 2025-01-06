@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { ReactChild, ReactChildren, ReactElement } from 'react'
-import { css } from '@emotion/react'
+import React, { ReactChild, ReactChildren, ReactElement } from 'react'
 
 import {
     Box,
@@ -58,10 +56,12 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
             leftIcon={icon}
             toolActions={toolActions}
         >
-            <Box css={css`
-                grid-area: content;
-                padding-bottom: 5px;
-            `}>
+            <Box
+                sx={{
+                    gridArea: 'content',
+                    paddingBottom: '5px'
+                }}
+            >
                 <Typography variant='h5' align='left'>
                     { standardName.plainString }
                 </Typography>

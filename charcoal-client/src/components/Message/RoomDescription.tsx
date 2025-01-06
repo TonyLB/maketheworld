@@ -1,21 +1,16 @@
-/** @jsxImportSource @emotion/react */
-import React, { FunctionComponent, ReactChild, ReactChildren, useMemo, useCallback, useRef, useState } from 'react'
+import React, { ReactChild, ReactChildren, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { css } from '@emotion/react'
 
 import {
     Box,
-    Chip,
     Typography,
-    Divider,
-    Popover
+    Divider
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
 import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
 import {
-    isTaggedText,
     RoomDescription as RoomDescriptionType,
     RoomHeader as RoomHeaderType,
 } from '@tonylb/mtw-interfaces/ts/messages'
@@ -58,7 +53,6 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
     const standardName = useMemo(() => {
-        console.log(`standardName memo: ${JSON.stringify(Name)}`)
         return Name ? new StandardRender(Name) : undefined
     }, [Name])
 
@@ -82,26 +76,27 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 : undefined
             }
         >
-            <Box css={css`
-                display: grid;
-                grid-template-areas:
-                    "content content"
-                    "exits characters"
-                ;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: auto auto;
-            `}>
-                <Box css={css`
-                    grid-area: content;
-                    padding-bottom: 5px;
-                    ${ header
-                        ? `
-                            max-height: 20vh;
-                            overflow: hidden;
-                        `
-                        : ''
-                    }
-                `}>
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateAreas: `
+                        "content content"
+                        "exits characters"
+                    `,
+                    gridTemplateColumns: '1fr 1fr',
+                    gridTemplateRows: 'auto auto'
+                }}
+            >
+                <Box
+                    sx={{
+                        gridArea: 'content',
+                        paddingBottom: '5px',
+                        ...(header && {
+                            maxHeight: '20vh',
+                            overflow: 'hidden'
+                        })
+                    }}
+                >
                     <Typography variant='h5' align='left'>
                         { standardName?.plainString ?? 'Untitled' }
                         { currentHeader && <MiniChip text="Live" /> }
@@ -115,14 +110,10 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                     </Box>
                     <Divider />
                 </Box>
-                <Box css={css`
-                    grid-area: exits;
-                `}>
+                <Box sx={{ gridArea: 'exits' }}>
                     { Exits.map((exit, index) => (<RoomExit exit={exit} key={ `${exit.RoomId}-${index}` } />))}
                 </Box>
-                <Box css={css`
-                    grid-area: characters;
-                `}>
+                <Box sx={{ gridArea: 'characters' }}>
                     { Characters.map((character) => (<RoomCharacter character={character} key={character.CharacterId} />)) }
                 </Box>
             </Box>

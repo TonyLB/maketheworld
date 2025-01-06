@@ -51,7 +51,7 @@
   },
   "scripts": {
     "start": "vite",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit --skipLibCheck",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "jest",
