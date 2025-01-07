@@ -13,7 +13,7 @@ import { isSchemaTreeNode } from "./components/utils"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey, nodeFromWML } from "./utils"
-import { StandardBaseData } from "./components/dataTypes/abstract"
+import { ComponentTag, StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/component"
 import { objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
@@ -123,13 +123,13 @@ export const standardComponentSortOrder = (byId: Record<string, StandardComponen
     const elementToCompareA = differingAncestorsA.length ? byId[[commonAncestorString, differingAncestorsA[0]].filter((value) => (value)).join('.')] : componentA
     const elementToCompareB = differingAncestorsB.length ? byId[[commonAncestorString, differingAncestorsB[0]].filter((value) => (value)).join('.')] : componentB
     
-    const componentKeys: SchemaWithKey["tag"][] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const tagA = ((elementToCompareA instanceof StandardRemove || elementToCompareA instanceof StandardReplace)
         ? elementToCompareA._match.tag
-        : elementToCompareA.tag) as SchemaWithKey["tag"]
+        : elementToCompareA.tag) as ComponentTag
     const tagB = ((elementToCompareB instanceof StandardRemove || elementToCompareB instanceof StandardReplace)
         ? elementToCompareB._match.tag
-        : elementToCompareB.tag) as SchemaWithKey["tag"]
+        : elementToCompareB.tag) as ComponentTag
     const indexA = componentKeys.indexOf(tagA)
     const indexB = componentKeys.indexOf(tagB)
     if (indexA !== indexB) {

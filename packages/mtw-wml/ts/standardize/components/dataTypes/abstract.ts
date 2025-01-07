@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 export type StandardBaseData = {
@@ -16,3 +16,5 @@ export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends Schem
     data: SchemaReplaceTag;
     children: { data: SchemaReplaceMatchTag | SchemaReplacePayloadTag, children: EditInternalStandardNode<T, ChildType>[] }[];
 } | EditInternalStandardNode<T, ChildType>
+
+export type ComponentTag = Exclude<SchemaWithKey["tag"], 'Asset' | 'Story'>

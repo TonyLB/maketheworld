@@ -24,6 +24,7 @@ import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { ComponentTag } from "./dataTypes/abstract";
 
 type StandardComponentReferenceKey = {
     key: string;
@@ -37,7 +38,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag>;
-    tag: SchemaWithKey["tag"];
+    tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
@@ -55,7 +56,7 @@ export interface StandardComponent {
     withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
     export?: StandardExportItem;
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
-    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace';
+    tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
@@ -102,7 +103,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         get key(): string { return this._key.key }
         get universalKey(): string | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return this._key.fileName }
-        get tag(): SchemaWithKey["tag"] { return this._payload.tag }
+        get tag(): ComponentTag { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
         get global(): boolean | undefined { return true }

@@ -12,6 +12,7 @@ import { nodeFromWML, removeNDJSONOnlyProperties } from "./utils";
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
+import { ComponentTag } from "./components/dataTypes/abstract";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -21,7 +22,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
-    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Remove' as const;
+    tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
@@ -168,7 +169,7 @@ export class StandardReplace implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
     _payload: StandardComponent
-    tag: SchemaWithKey["tag"] | 'Remove' | 'Replace' = 'Replace' as const;
+    tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
             const match = propsArray[0] as StandardComponent
