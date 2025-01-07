@@ -6,7 +6,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/ts/schema/selectors/keysByTag'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/ts/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardMap, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/ts/schema/treeManipulation/listDiff'
@@ -24,6 +24,9 @@ import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataType
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/component'
 import { editConverters } from '@tonylb/mtw-wml/ts/schema/converters/edit'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -71,14 +74,6 @@ export type UpdateStandardPayloadUpdateComponent = {
     update: (draft: StandardComponent) => StandardComponent | undefined;
 }
 
-export type UpdateStandardPayloadReplaceItem = {
-    type: 'replaceItem';
-    componentKey: string;
-    itemKey: string; // Needs to restrict to possible itemKeys
-    item?: GenericTreeNode<SchemaTag>
-    produce?: (draft: Draft<GenericTreeNode<SchemaTag>>) => void;
-}
-
 type UpdateStandardPayloadUpdateField = {
     type: 'updateField';
     componentKey: string;
@@ -113,10 +108,9 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
-const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
 const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
@@ -134,7 +128,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const standardFormData = publicSelectors.getStandardForm({ ...state, key: '' })
     const standardForm = new StandardForm(standardFormData)
-    const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? standardForm.byId[payload.componentKey] : undefined
+    const component = isUpdateStandardPayloadUpdateField(payload) ? standardForm.byId[payload.componentKey] : undefined
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         state.edit = editStandardized.merge(delta).toJSON()
@@ -143,37 +137,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const delta = new StandardForm(state.base.key)
         delta.byId[deltaComponent.key] = deltaComponent
         mergeToEdit(delta)
-    }
-    const mergeFieldToEdit = <T extends StandardComponentNonEditData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
-        componentKey: string; tag: T["tag"], key: K, oldValue: T[K]; newValue: T[K];
-    }) => {
-        const componentBase = standardComponentByTag(tag, componentKey)
-        if (componentBase) {
-
-        }
-        mergeToEdit({
-            ...state.edit,
-            byId: {
-                [componentKey]: {
-                    ...(defaultComponentFromTag(tag, componentKey) as T),
-                    key: componentKey,
-                    tag,
-                    [key]: newValue
-                        ? oldValue
-                            ? { data: { tag: 'Replace' }, children: [
-                                { data: { tag: 'ReplaceMatch' }, children: [oldValue].filter(excludeUndefined) },
-                                { data: { tag: 'ReplacePayload' }, children: [unwrapSubject(newValue as GenericTreeNode<SchemaTag>) as GenericTreeNodeFiltered<T, SchemaOutputTag>] }
-                            ]}
-                            : newValue
-                        : oldValue
-                            ? {
-                                data: { tag: 'Remove' },
-                                children: [oldValue]
-                            }
-                            : undefined
-                } as StandardComponentData
-            }
-        })
     }
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
         const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
@@ -185,158 +148,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             const newComponent = payload.update(component)
             if (newComponent) {
                 mergeComponentToEdit(newComponent)
-            }
-        }
-    }
-    if (isUpdateStandardPayloadReplaceItem(payload)) {
-        const { produce, item } = payload
-        if (payload.itemKey === 'shortName') {
-            if (component instanceof StandardRoom) {
-                const componentBase = standardComponentByTag('Room', component.key)
-                if (componentBase instanceof StandardRoom) {
-                    const oldShortName = component.shortName
-                    const newShortName = produce
-                        ? immerProduce(component.shortName, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaShortName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                }        
-            }
-        }
-        if (isStandardRoom(component)) {
-            switch(payload.itemKey) {
-                case 'shortName':
-                    const oldShortName = component.shortName ? JSON.parse(JSON.stringify(unwrapSubject(component.shortName))) as GenericTreeNodeFiltered<SchemaShortNameTag, SchemaOutputTag> : undefined
-                    const newShortName = produce
-                        ? immerProduce(component.shortName, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaShortName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardRoom, "shortName">({
-                        componentKey: component.key,
-                        tag: 'Room',
-                        key: 'shortName',
-                        oldValue: oldShortName,
-                        newValue: newShortName
-                    })
-                    break
-                case 'name':
-                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                    const newName = produce
-                        ? immerProduce(component.name, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardRoom, "name">({
-                        componentKey: component.key,
-                        tag: 'Room',
-                        key: 'name',
-                        oldValue: oldName,
-                        newValue: newName
-                    })
-                    break
-                case 'summary':
-                    const oldSummary = component.summary ? JSON.parse(JSON.stringify(unwrapSubject(component.summary))) as GenericTreeNodeFiltered<SchemaSummaryTag, SchemaOutputTag> : undefined
-                    const newSummary = produce
-                        ? immerProduce(component.summary, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaSummary)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaSummaryTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardRoom, "summary">({
-                        componentKey: component.key,
-                        tag: 'Room',
-                        key: 'summary',
-                        oldValue: oldSummary,
-                        newValue: newSummary
-                    })
-                    break
-                case 'description':
-                    const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
-                    const newDescription = produce
-                        ? immerProduce(component.description, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaDescription)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardRoom, "description">({
-                        componentKey: component.key,
-                        tag: 'Room',
-                        key: 'description',
-                        oldValue: oldDescription,
-                        newValue: newDescription
-                    })
-                    break
-            }
-        }
-        if (isStandardFeature(component) || isStandardKnowledge(component)) {
-            switch(payload.itemKey) {
-                case 'name':
-                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                    const newName = produce
-                        ? immerProduce(component.name, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardFeature | StandardKnowledge, "name">({
-                        componentKey: component.key,
-                        tag: component?.tag,
-                        key: 'name',
-                        oldValue: oldName,
-                        newValue: newName
-                    })
-                    break
-                case 'description':
-                    const oldDescription = component.description ? JSON.parse(JSON.stringify(unwrapSubject(component.description))) as GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaOutputTag> : undefined
-                    const newDescription = produce
-                        ? immerProduce(component.description, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaDescription)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardFeature | StandardKnowledge, "description">({
-                        componentKey: component.key,
-                        tag: component?.tag,
-                        key: 'description',
-                        oldValue: oldDescription,
-                        newValue: newDescription
-                    })
-                    break
-            }
-        }
-        if (isStandardMap(component) || isStandardCharacter(component)) {
-            switch(payload.itemKey) {
-                case 'name':
-                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                    const newName = produce
-                        ? immerProduce(component.name, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardMap | StandardCharacter, "name">({
-                        componentKey: component.key,
-                        tag: component?.tag,
-                        key: 'name',
-                        oldValue: oldName,
-                        newValue: newName
-                    })
-                    break
-            }
-        }
-        if (isStandardTheme(component)) {
-            switch(payload.itemKey) {
-                case 'name':
-                    const oldName = component.name ? JSON.parse(JSON.stringify(unwrapSubject(component.name))) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> : undefined
-                    const newName = produce
-                        ? immerProduce(component.name, produce) : 
-                        item && wrappedNodeTypeGuard(isSchemaName)(item)
-                            ? item as unknown as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag> | undefined
-                            : undefined
-                    mergeFieldToEdit<StandardTheme, "name">({
-                        componentKey: component.key,
-                        tag: component?.tag,
-                        key: 'name',
-                        oldValue: oldName,
-                        newValue: newName
-                    })
-                    break
             }
         }
     }
@@ -474,7 +285,23 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
+                        updateStandard(
+                            state,
+                            {
+                                type: 'updateStandard',
+                                payload: {
+                                    type: 'updateComponent',
+                                    componentKey: component.key,
+                                    update: (draft) => {
+                                        const base = draft.clone()
+                                        if (base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                            base._payload._description = new StandardRender(newDescription[0])
+                                        }
+                                        return base
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -508,7 +335,23 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'description', item: newDescription[0] } })
+                        updateStandard(
+                            state,
+                            {
+                                type: 'updateStandard',
+                                payload: {
+                                    type: 'updateComponent',
+                                    componentKey: component.key,
+                                    update: (draft) => {
+                                        const base = draft.clone()
+                                        if (base instanceof StandardRoom) {
+                                            base._payload._description = new StandardRender(newDescription[0])
+                                        }
+                                        return base
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
                 if (component.summary) {
@@ -522,7 +365,23 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
                         }
                     })
                     if (changed) {
-                        updateStandard(state, { type: 'updateStandard', payload: { type: 'replaceItem', componentKey: component.key, itemKey: 'summary', item: newSummary[0] } })
+                        updateStandard(
+                            state,
+                            {
+                                type: 'updateStandard',
+                                payload: {
+                                    type: 'updateComponent',
+                                    componentKey: component.key,
+                                    update: (draft) => {
+                                        const base = draft.clone()
+                                        if (base instanceof StandardRoom) {
+                                            base._payload._summary = new StandardRender(newSummary[0])
+                                        }
+                                        return base
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             }

@@ -7,6 +7,8 @@ import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 
 describe('personalAsset slice reducers', () => {
 
@@ -43,7 +45,7 @@ describe('personalAsset slice reducers', () => {
     }
 
     describe('updateStandard', () => {
-        it('should replace schema content', () => {
+        it('should update schema content', () => {
             expect(transformWML(
                 `
                     <Asset key=(testAsset)>
@@ -57,10 +59,15 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'replaceItem',
+                    type: 'updateComponent',
                     componentKey: 'testRoom',
-                    itemKey: 'name',
-                    item: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Update' }, children: [] }]}
+                    update: (draft) => {
+                        const base = draft.clone()
+                        if (base instanceof StandardRoom) {
+                            base._payload._name = new StandardRender('Test Update')
+                        }
+                        return base
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`
@@ -92,65 +99,6 @@ describe('personalAsset slice reducers', () => {
                         <Room key=(testRoom)>
                             <Replace><Name>Test Room</Name></Replace>
                             <With><Name>Test Update</Name></With>
-                        </Room>
-                    </Asset>
-                `)
-            })
-        })
-
-        it('should replace schema content using an immer produce', () => {
-            expect(transformWML(
-                `
-                <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                    </Room>
-                </Asset>
-                `,
-                `
-                    <Asset key=(testAsset) />
-                `,
-                {
-                    type: 'replaceItem',
-                    componentKey: 'testRoom',
-                    itemKey: 'description',
-                    produce: (draft) => {
-                        draft.children.filter(treeNodeTypeguard(isSchemaString)).forEach((node) => {
-                            node.data.value = 'Functional update'
-                        })
-                    }
-                }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                        </Room>
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Functional update</Description>
-                        </Room>
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Functional update</Description>
-                        </Room>
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Replace><Description>Test Description</Description></Replace>
-                            <With><Description>Functional update</Description></With>
                         </Room>
                     </Asset>
                 `)
@@ -422,10 +370,15 @@ describe('personalAsset slice reducers', () => {
                 <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'replaceItem',
+                    type: 'updateComponent',
                     componentKey: 'testRoom',
-                    itemKey: 'name',
-                    item: undefined
+                    update: (draft) => {
+                        const base = draft.clone()
+                        if (base instanceof StandardRoom) {
+                            base._payload._name = undefined
+                        }
+                        return base
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`
