@@ -3,8 +3,9 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import SchemaTagTree from "../../tagTree/schema"
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-base/ts/schema/metaData"
+import { ComponentTag } from "../../standardize/components/dataTypes/abstract"
 
-export const selectKeysByTag = (tag: SchemaWithKey["tag"] | 'Import') => (tree: GenericTree<SchemaTag>): string[] => {
+export const selectKeysByTag = (tag: ComponentTag | 'Import') => (tree: GenericTree<SchemaTag>): string[] => {
     const tagTree = new SchemaTagTree(tree)
     const keys = tagTree
         .filter({ match: tag })

@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin } from "../../baseClasses";
 import { isSchemaTreeNode } from "../utils";
-import { StandardBaseData } from "./abstract";
+import { ComponentTag, StandardBaseData } from "./abstract";
 import { StandardActionData, isStandardAction } from "./action";
 import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { isStandardCharacter, StandardCharacterData } from "./character";
@@ -22,7 +22,7 @@ import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookmark, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
 export type StandardReferenceData = {
-    tag: SchemaWithKey["tag"];
+    tag: ComponentTag;
     global?: boolean;
 } & StandardBaseData & SerializeNDJSONMixin
 

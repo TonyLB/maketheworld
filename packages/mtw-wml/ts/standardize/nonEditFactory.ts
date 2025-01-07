@@ -22,6 +22,8 @@ import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
+import { SchemaWithKey } from "../schema/baseClasses"
+import { ComponentTag } from "./components/dataTypes/abstract"
 
 //
 // standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,
@@ -72,6 +74,45 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
         return new StandardImage(arg)
     }
     return undefined
+}
+
+//
+// standardComponentByTag takes an incoming tag and key, and creates the appropriate StandardComponent
+//
+export const standardComponentByTag = (tag: ComponentTag, key: string): StandardComponent | undefined => {
+    switch (tag) {
+        case "Character":
+            return new StandardCharacter(key)
+        case "Example":
+            return new StandardExample(key)
+        case "Room":
+            return new StandardRoom(key)
+        case "Feature":
+            return new StandardFeature(key)
+        case "Knowledge":
+            return new StandardKnowledge(key)
+        case "Bookmark":
+            return new StandardBookmark(key)
+        case "Map":
+            return new StandardMap(key)
+        case "Message":
+            return new StandardMessage(key)
+        case "Moment":
+            return new StandardMoment(key)
+        case "Theme":
+            return new StandardTheme(key)
+        case "Variable":
+            return new StandardVariable(key)
+        case "Computed":
+            return new StandardComputed(key)
+        case "Action":
+            return new StandardAction(key)
+        case "Image":
+            return new StandardImage(key)
+        default:
+            return undefined
+    }
+
 }
 
 export default standardNonEditComponentFactory

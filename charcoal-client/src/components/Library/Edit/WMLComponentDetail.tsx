@@ -32,6 +32,8 @@ import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standard
 import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/ts/schema'
 import { SchemaAssetTag, SchemaStoryTag } from '@tonylb/mtw-base/ts/schema/asset'
 import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
@@ -65,7 +67,26 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             hasShortName(component) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
                     value={component?.shortName?.children ?? []}
-                    onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'shortName', item: value.length ? { data: { tag: 'ShortName' }, children: value } : undefined }) } }}
+                    onChange={(value) => {
+                        if (typeof value !== 'function') {
+                            updateStandard({
+                                type: 'updateComponent',
+                                componentKey: ComponentId,
+                                update: () => {
+                                    const base = standardComponentByTag('Room', component.key)
+                                    if (base instanceof StandardRoom) {
+                                        base._payload._shortName = value.length
+                                            ? new StandardRenderReplace(
+                                                    component.shortName,
+                                                    { data: { tag: 'ShortName' }, children: value }
+                                                ).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                                            : new StandardRenderRemove(component.shortName).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                                    }
+                                    return base
+                                }
+                            })
+                        }
+                    }}
                 >
                     <TitledBox title="Short Name">
                         <DescriptionEditor
@@ -79,7 +100,26 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         <StandardFormSchema componentKey={ComponentId} tag="Name">
             <EditSchema
                 value={component?.name?.children ?? []}
-                onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) } }}
+                onChange={(value) => {
+                    if (typeof value !== 'function') {
+                        updateStandard({
+                            type: 'updateComponent',
+                            componentKey: ComponentId,
+                            update: () => {
+                                const base = standardComponentByTag(component.tag, component.key)
+                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                    base._payload._name = value.length
+                                        ? new StandardRenderReplace(
+                                                component.name,
+                                                { data: { tag: 'Name' }, children: value }
+                                            ).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                        : new StandardRenderRemove(component.name).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                }
+                                return base
+                            }
+                        })
+                    }
+                }}
             >
                 <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
                     <DescriptionEditor
@@ -98,7 +138,22 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                             dispatch(addOnboardingComplete(['summarizeRoom']))
                         }
                         if (typeof value !== 'function') {
-                            updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'summary', item: value.length ? { data: { tag: 'Summary' }, children: value } : undefined })
+                            updateStandard({
+                                type: 'updateComponent',
+                                componentKey: ComponentId,
+                                update: () => {
+                                    const base = standardComponentByTag('Room', component.key)
+                                    if (base instanceof StandardRoom) {
+                                        base._payload._summary = value.length
+                                            ? new StandardRenderReplace(
+                                                    component.summary,
+                                                    { data: { tag: 'Summary' }, children: value }
+                                                ).toJSON() as unknown as StandardRoom['_payload']['_summary']
+                                            : new StandardRenderRemove(component.summary).toJSON() as unknown as StandardRoom['_payload']['_summary']
+                                    }
+                                    return base
+                                }
+                            })
                         }
                     }}
                 >
@@ -120,7 +175,22 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         dispatch(addOnboardingComplete(['describeRoom']))
                     }
                     if (typeof value !== 'function') {
-                        updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'description', item: value.length ? { data: { tag: 'Description' }, children: value } : undefined })
+                        updateStandard({
+                            type: 'updateComponent',
+                            componentKey: ComponentId,
+                            update: () => {
+                                const base = standardComponentByTag(component.tag, component.key)
+                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                    base._payload._description = value.length
+                                        ? new StandardRenderReplace(
+                                                component.description,
+                                                { data: { tag: 'Description' }, children: value }
+                                            ).toJSON() as unknown as StandardRoom['_payload']['_description']
+                                        : new StandardRenderRemove(component.description).toJSON() as unknown as StandardRoom['_payload']['_description']
+                                }
+                                return base
+                            }
+                        })
                     }
                 }}
             >

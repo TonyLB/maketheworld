@@ -58,6 +58,10 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { excludeUndefined } from '../../../lib/lists'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { StandardReplace } from '@tonylb/mtw-wml/ts/standardize/edits'
+import { StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import StandardRenderString from '@tonylb/mtw-wml/ts/standardize/render/string'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -280,10 +284,18 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     useEffect(() => {
         if ((schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || '') !== debouncedTagValue) {
             updateStandard({
-                type: 'replaceItem',
+                type: 'updateComponent',
                 componentKey: character.key,
-                itemKey: 'name',
-                item: { data: { tag: 'String' as const, value: debouncedTagValue }, children: [] }
+                update: () => {
+                    const base = standardComponentByTag('Character', character.key)
+                    if (base instanceof StandardCharacter) {
+                        base._payload._name = new StandardRenderReplace(
+                            character.name,
+                            new StandardRenderString(debouncedTagValue)
+                        ).toJSON() as unknown as StandardCharacter['_payload']['_name']
+                    }
+                    return base
+                }
             })
         }
     }, [character.key, character.name, updateStandard, debouncedTagValue])

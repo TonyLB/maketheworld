@@ -6,7 +6,7 @@ import { selectKeysByTag } from '@tonylb/mtw-wml/ts/schema/selectors/keysByTag'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/ts/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardRoom, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardFeature, StandardKnowledge, StandardMap, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/ts/schema/treeManipulation/listDiff'
@@ -14,11 +14,16 @@ import { deepEqual } from '../../lib/objects'
 import immerProduce from 'immer'
 import { publicSelectors } from './selectors'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { StandardComponentNonEditData, StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { isSchemaAsset, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaExit, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from '@tonylb/mtw-base/ts/schema/example'
 import { isSchemaLink } from '@tonylb/mtw-base/ts/schema/renderTree'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/component'
+import { editConverters } from '@tonylb/mtw-wml/ts/schema/converters/edit'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -39,8 +44,10 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
             const standardForm = new StandardForm(incoming[0])
             return previous ? previous.merge(standardForm) : standardForm
         }, undefined)
-    importsStandardized._metaData = standardized.metaData
-    state.inherited = importsStandardized.toJSON()
+    if (importsStandardized) {
+        importsStandardized._metaData = standardized.metaData
+        state.inherited = importsStandardized.toJSON()
+    }
 }
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -56,6 +63,12 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
         loadId: uuidv4(),
         file: action.payload.file
     }
+}
+
+export type UpdateStandardPayloadUpdateComponent = {
+    type: 'updateComponent';
+    componentKey: string;
+    update: (draft: StandardComponent) => StandardComponent | undefined;
 }
 
 export type UpdateStandardPayloadReplaceItem = {
@@ -75,7 +88,7 @@ type UpdateStandardPayloadUpdateField = {
 
 type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
-    tag: SchemaWithKey["tag"];
+    tag: ComponentTag;
     key?: string;
 }
 
@@ -100,8 +113,9 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadReplaceItem | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
 
+const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
 const isUpdateStandardPayloadReplaceItem = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceItem => (payload.type === 'replaceItem')
 const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
@@ -109,7 +123,7 @@ const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payl
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
-export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: SchemaWithKey["tag"] }): string => {
+export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: ComponentTag | "Import" }): string => {
     const keysByTag = selectKeysByTag(tag)(schema)
     let nextIndex = 1
     while (keysByTag.includes(`${tag}${nextIndex}`)) { nextIndex++ }
@@ -118,16 +132,25 @@ export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTa
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
-    const standardForm = publicSelectors.getStandardForm({ ...state, key: '' })
+    const standardFormData = publicSelectors.getStandardForm({ ...state, key: '' })
+    const standardForm = new StandardForm(standardFormData)
     const component = (isUpdateStandardPayloadReplaceItem(payload) || isUpdateStandardPayloadUpdateField(payload)) ? standardForm.byId[payload.componentKey] : undefined
-    const mergeToEdit = (delta: StandardFormData): void => {
+    const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
-        const deltaStandardized = new StandardForm(delta)
-        state.edit = editStandardized.merge(deltaStandardized).toJSON()
+        state.edit = editStandardized.merge(delta).toJSON()
     }
-    const mergeFieldToEdit = <T extends StandardComponentData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
+    const mergeComponentToEdit = (deltaComponent: StandardComponent): void => {
+        const delta = new StandardForm(state.base.key)
+        delta.byId[deltaComponent.key] = deltaComponent
+        mergeToEdit(delta)
+    }
+    const mergeFieldToEdit = <T extends StandardComponentNonEditData, K extends keyof T>({ componentKey, tag, key, oldValue, newValue }: {
         componentKey: string; tag: T["tag"], key: K, oldValue: T[K]; newValue: T[K];
     }) => {
+        const componentBase = standardComponentByTag(tag, componentKey)
+        if (componentBase) {
+
+        }
         mergeToEdit({
             ...state.edit,
             byId: {
@@ -152,9 +175,34 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             }
         })
     }
+    if (isUpdateStandardPayloadUpdateComponent(payload)) {
+        const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+            const editStandardized = new StandardForm(pendingEdit.edit)
+            return previous.merge(editStandardized)
+        }, new StandardForm(state.base)).merge(new StandardForm(state.edit))
+        const component = standardForm.byId[payload.componentKey]
+        if (component) {
+            const newComponent = payload.update(component)
+            if (newComponent) {
+                mergeComponentToEdit(newComponent)
+            }
+        }
+    }
     if (isUpdateStandardPayloadReplaceItem(payload)) {
-        const produce = payload.produce
-        const item = payload.item
+        const { produce, item } = payload
+        if (payload.itemKey === 'shortName') {
+            if (component instanceof StandardRoom) {
+                const componentBase = standardComponentByTag('Room', component.key)
+                if (componentBase instanceof StandardRoom) {
+                    const oldShortName = component.shortName
+                    const newShortName = produce
+                        ? immerProduce(component.shortName, produce) : 
+                        item && wrappedNodeTypeGuard(isSchemaShortName)(item)
+                            ? item as unknown as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag> | undefined
+                            : undefined
+                }        
+            }
+        }
         if (isStandardRoom(component)) {
             switch(payload.itemKey) {
                 case 'shortName':

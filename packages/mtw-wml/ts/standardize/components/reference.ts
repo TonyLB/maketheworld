@@ -5,11 +5,12 @@ import { isStandardFeature, StandardComponentNonEditData, StandardReferenceData 
 import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
-import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
+import { ComponentTag } from "./dataTypes/abstract";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
-    tag: SchemaWithKey["tag"] = 'Room';
+    tag: ComponentTag = 'Room';
     _global?: boolean;
 
     constructor(previous?: StandardReferencePayload) {
@@ -28,7 +29,7 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
             this._global = node.data.global
         }
-        if (treeNodeTypeguard(isSchemaWithKey)(node)) {
+        if (treeNodeTypeguard(isSchemaComponent)(node)) {
             this.tag = node.data.tag
             return
         }
@@ -47,7 +48,7 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
     }
 
     schema(key: string): GenericTreeNode<SchemaTag> {
-        if (this.tag === 'Asset' || this.tag === 'Story' || this.tag === 'Character') {
+        if (this.tag === 'Character') {
             throw new Error('Character, Asset and Story references are not allowed in StandardReference')
         }
         if (this.tag === 'Feature') {
