@@ -54,7 +54,7 @@ export const useMapContext = () => (useContext(MapContext))
 //    - A mapTree that lists all of the room, exit, and position information in a coherent way focussed on the map
 //    - An onChange function that accepts changes to that mapTree
 //
-const mapTreeMemo = (standardForm: StandardForm, mapId: string, replaceItem: (args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => void): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
+const mapTreeMemo = (standardForm: StandardForm, mapId: string): GenericTreeNode<SchemaAssetTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag> => {
     const mapComponent = assertTypeguard(standardForm.byId[mapId], (component): component is StandardMap => (component instanceof StandardMap))
     const isMapContents = (item: SchemaTag): item is Exclude<MapTreeSchemaTags, SchemaAssetTag> => (
         isSchemaSelected(item) || isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaConditionStatement(item) || isSchemaConditionFallthrough(item) || isSchemaExit(item) || isSchemaName(item) || isSchemaPosition(item)
@@ -108,13 +108,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Create a GenericTree representation of the items relevant to the map
     //
-    const mapComponent = useMemo(() => (assertTypeguard(standardForm.byId[mapId], (component): component is StandardMap => (component instanceof StandardMap))), [standardForm.byId, mapId])
-
-    const replaceItem = useCallback((args: Omit<UpdateStandardPayloadReplaceItem, 'type'>) => {
-        updateStandard({ ...args, type: 'replaceItem' })
-    }, [updateStandard])
     const tree = useMemo(() => {
-        return mapTreeMemo(standardForm, mapId, replaceItem).children
+        return mapTreeMemo(standardForm, mapId).children
     }, [standardForm, mapId])
     const selectedPositions: GenericTree<MapTreeSchemaTags> = useMemo(() => (firstSelectedSubTree(tree) ?? tree), [tree])
     const updateSelected = () => {}

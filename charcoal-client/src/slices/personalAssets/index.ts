@@ -46,6 +46,10 @@ import Debounce from '../../lib/keyedDebounce'
 import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isSchemaWithKey } from '@tonylb/mtw-base/ts/schema'
 import { SchemaStringTag } from '@tonylb/mtw-base/ts/schema/renderTree'
+import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 
 const autoSaveDebounce = new Debounce()
 
@@ -369,15 +373,45 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',
                 name
-            }, { service: 'asset' })).then((results) => {
+            }, { service: 'asset' })).then((results: { description: string; summary: string; }) => {
                 const { description, summary } = results
                 if (description) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
-                    dispatch(updateStandard(assetId)({ type: 'replaceItem', componentKey: roomId, itemKey: 'description', item: { data: { tag: 'Description' }, children: [stringTag] } }))
+                    dispatch(
+                        updateStandard(assetId)({
+                            type: 'updateComponent',
+                            componentKey: roomId,
+                                update: () => {
+                                    const base = standardComponentByTag('Room', roomComponent.key)
+                                    if (base instanceof StandardRoom) {
+                                        base._payload._description = new StandardRenderReplace(
+                                                roomComponent.description,
+                                                stringTag
+                                            ).toJSON() as unknown as StandardRoom['_payload']['_description']
+                                    }
+                                    return base
+                                }
+                        })
+                    )
                 }
                 if (summary) {
                     const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: summary.trim() }, children: [] }
-                    dispatch(updateStandard(assetId)({ type: 'replaceItem', componentKey: roomId, itemKey: 'summary', item: { data: { tag: 'Summary' }, children: [stringTag] } }))
+                    dispatch(
+                        updateStandard(assetId)({
+                            type: 'updateComponent',
+                            componentKey: roomId,
+                                update: () => {
+                                    const base = standardComponentByTag('Room', roomComponent.key)
+                                    if (base instanceof StandardRoom) {
+                                        base._payload._summary = new StandardRenderReplace(
+                                                roomComponent.summary,
+                                                stringTag
+                                            ).toJSON() as unknown as StandardRoom['_payload']['_summary']
+                                    }
+                                    return base
+                                }
+                        })
+                    )
                 }
                 if (description || summary) {
                     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY']}))

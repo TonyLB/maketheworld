@@ -29,6 +29,10 @@ import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/component'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 
 type MapLayersProps = {
     mapId: string;
@@ -60,10 +64,20 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
         dispatch(addOnboardingComplete(['renameNewRoom']))
         if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || roomId) {
             updateStandard({
-                type: 'replaceItem',
-                componentKey: roomId,
-                itemKey: 'shortName',
-                item: { data: { tag: 'String', value }, children: [] }
+                type: 'updateComponent',
+                componentKey: roomComponent.key,
+                update: () => {
+                    const base = standardComponentByTag('Room', roomComponent.key)
+                    if (base instanceof StandardRoom) {
+                        base._payload._shortName = value.length
+                            ? new StandardRenderReplace(
+                                    roomComponent.shortName,
+                                    { data: { tag: 'ShortName' }, children: value }
+                                ).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                            : new StandardRenderRemove(roomComponent.shortName).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                    }
+                    return base
+                }
             })
             if (isEphemeraAssetId(AssetId)) {
                 dispatch(requestLLMGeneration({ assetId: AssetId, roomId }))
@@ -248,6 +262,7 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
     const { standardForm, updateStandard } = useLibraryAsset()
     const { data } = item
     const { tree, mapDispatch, mapId } = useMapContext()
+    const component = useMemo<StandardComponent | undefined>(() => (standardForm.byId[mapId]), [standardForm, mapId])
     const onClick = useCallback((id: string) => {
         mapDispatch({ type: 'SelectItem', item: undefined })
         mapDispatch({ type: 'SelectParent', item: id })
@@ -287,7 +302,24 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
                 value={item.children ?? []}
                 onChange={(value) => { 
                     if (typeof value !== 'function') {
-                        updateStandard({ type: 'replaceItem', componentKey: mapId, itemKey: 'name', item: { data: { tag: 'Name' }, children: value }})
+                        if (component && component instanceof StandardMap) {
+                            updateStandard({
+                                type: 'updateComponent',
+                                componentKey: mapId,
+                                update: () => {
+                                    const base = standardComponentByTag(component.tag, component.key)
+                                    if (base instanceof StandardMap) {
+                                        base._payload._name = value.length
+                                            ? new StandardRenderReplace(
+                                                    component.name,
+                                                    { data: { tag: 'Name' }, children: value }
+                                                ).toJSON() as unknown as StandardMap['_payload']['_name']
+                                            : new StandardRenderRemove(component.name).toJSON() as unknown as StandardMap['_payload']['_name']
+                                    }
+                                    return base
+                                }
+                            })
+                        }
                     }
                 }}
             >

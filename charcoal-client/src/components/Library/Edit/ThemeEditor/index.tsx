@@ -25,6 +25,11 @@ import StandardTheme from "@tonylb/mtw-wml/ts/standardize/components/theme"
 import { isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
 import { SchemaAssetTag, SchemaStoryTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { SchemaCharacterTag } from "@tonylb/mtw-base/ts/schema/character"
+import { standardComponentByTag } from "@tonylb/mtw-wml/ts/standardize/nonEditFactory"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
+import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
+import { StandardRenderRemove, StandardRenderReplace } from "@tonylb/mtw-wml/ts/standardize/render"
 
 const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()
@@ -126,7 +131,26 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <StandardFormSchema componentKey={ComponentId} tag="Name">
                     <EditSchema
                         value={component?.name?.children ?? []}
-                        onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'replaceItem', componentKey: ComponentId, itemKey: 'name', item: value.length ? { data: { tag: 'Name' }, children: value } : undefined }) }}}
+                onChange={(value) => {
+                    if (typeof value !== 'function') {
+                        updateStandard({
+                            type: 'updateComponent',
+                            componentKey: ComponentId,
+                            update: () => {
+                                const base = standardComponentByTag(component.tag, component.key)
+                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                    base._payload._name = value.length
+                                        ? new StandardRenderReplace(
+                                                component.name,
+                                                { data: { tag: 'Name' }, children: value }
+                                            ).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                        : new StandardRenderRemove(component.name).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                }
+                                return base
+                            }
+                        })
+                    }
+                }}
                     >
                         <TitledBox title="Name">
                             <DescriptionEditor validLinkTags={[]} toolbar={false} />
