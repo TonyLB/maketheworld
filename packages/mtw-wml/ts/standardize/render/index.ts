@@ -381,6 +381,37 @@ export class StandardRenderSimple {
         }
     }
 
+    //
+    // Compare two StandardRenderSimple objects, returning a StandardRender object that represents the adds,
+    // removes, or replaces needed to transform the base object into the incoming object. If the two objects
+    // are identical, return undefined.
+    //
+    diff(target: StandardRenderSimple): StandardRender | undefined {
+        const firstDifferentIndex = this._elements.findIndex((element, index) => {
+            return !(
+                index < target._elements.length &&
+                deepEqual(element.toJSON(), target._elements[index].toJSON())
+            )
+        })
+        if (firstDifferentIndex === -1) {
+            const remainingTargetElements = target._elements.slice(this._elements.length)
+            if (remainingTargetElements.length === 0) {
+                return undefined
+            }
+            else {
+                return new StandardRender(new StandardRenderSimple(remainingTargetElements))
+            }
+        }
+        const remainingBaseElements = this._elements.slice(firstDifferentIndex)
+        const remainingTargetElements = target._elements.slice(firstDifferentIndex)
+        if (remainingTargetElements.length === 0) {
+            return new StandardRender(new StandardRenderRemove(new StandardRenderSimple(remainingBaseElements)))
+        }
+        else {
+            return new StandardRender(new StandardRenderReplace(new StandardRenderSimple(remainingBaseElements), new StandardRenderSimple(remainingTargetElements)))
+        }
+    }
+
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRenderSimple {
         return new StandardRenderSimple(callback(this.toJSON()))
     }
