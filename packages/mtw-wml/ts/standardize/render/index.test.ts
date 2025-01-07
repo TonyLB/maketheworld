@@ -214,6 +214,47 @@ describe('StandardRenderSimple', () => {
         })
     })
 
+    describe('diff', () => {
+        describe('diff', () => {
+            it('should return undefined for identical schemas', () => {
+                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                expect(base.diff(target)).toBeUndefined()
+            })
+
+            it('should return a StandardRender with remove elements when target is shorter', () => {
+                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = new StandardRenderSimple(['Test'])
+                const diff = base.diff(target)
+                expect(diff?.toJSON()).toEqual([{
+                    data: { tag: 'Remove' },
+                    children: [{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }]
+                }])
+            })
+
+            it('should return a StandardRender with additional elements when target is longer', () => {
+                const base = new StandardRenderSimple(['Test'])
+                const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const diff = base.diff(target)
+                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
+            })
+
+            it('should return a StandardRender with replace elements when base and target have different elements', () => {
+                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = new StandardRenderSimple(['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'])
+                const diff = base.diff(target)
+                expect(diff?.toJSON()).toEqual([{
+                    data: { tag: 'Replace' },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }] },
+                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'Example' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Example 2' }, children: [] }] }
+                    ]
+                }])
+            })
+
+        })
+    })
+
 })
 
 describe('StandardRender', () => {
