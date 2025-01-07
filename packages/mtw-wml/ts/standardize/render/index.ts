@@ -198,8 +198,8 @@ export class StandardRenderSimple {
     //    * The base and incoming objects are identical
     //    * The base and incoming objects are different and incoming cannot be removed from the base
     //
-    compare(incoming: StandardRenderSimple): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
-
+    compare(incoming: StandardRenderSimple, options: { compareDirection: 'back' | 'forward' } = { compareDirection: 'back' }): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
+        const { compareDirection } = options
         const compareElements = (base: StandardRenderElement, incoming: StandardRenderElement): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderElement } => {
             if (base instanceof StandardRenderString && incoming instanceof StandardRenderString) {
                 if (base.plainString.endsWith(incoming.plainString)) {
