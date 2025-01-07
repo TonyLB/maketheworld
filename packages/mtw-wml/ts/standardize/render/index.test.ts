@@ -1,4 +1,4 @@
-import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove, StandardRenderReplace, StandardRender } from './index'
+import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 
@@ -170,13 +170,13 @@ describe('StandardRenderSimple', () => {
             it('should return Equal for identical schemas', () => {
                 const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                expect(base.compare(incoming, { compareDirection: 'forward' })).toEqual({ outcome: 'Equal' })
+                expect(base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })).toEqual({ outcome: 'Equal' })
             })
 
             it('should return remainder for shorter incoming schema', () => {
                 const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const incoming = new StandardRenderSimple(['Test'])
-                const comparison = base.compare(incoming, { compareDirection: 'forward' })
+                const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
                 expect(comparison.outcome).toEqual('Base Longer')
                 expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
             })
@@ -184,7 +184,7 @@ describe('StandardRenderSimple', () => {
             it('should return remainder for shorter base schema', () => {
                 const base = new StandardRenderSimple(['Test'])
                 const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                const comparison = base.compare(incoming, { compareDirection: 'forward' })
+                const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
                 expect(comparison.outcome).toEqual('Incoming Longer')
                 expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
             })
@@ -192,14 +192,14 @@ describe('StandardRenderSimple', () => {
             it('should return conflict for different schemas', () => {
                 const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 3'])
-                const comparison = base.compare(incoming, { compareDirection: 'forward' })
+                const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
                 expect(comparison.outcome).toEqual('Conflict')
             })
 
             it('should split the base string in remainder when incoming matches only part of it', () => {
                 const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2/Another Test'])
                 const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                const comparison = base.compare(incoming, { compareDirection: 'forward' })
+                const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
                 expect(comparison.outcome).toEqual('Base Longer')
                 expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: '/Another Test' }, children: [] }])
             })
@@ -207,9 +207,9 @@ describe('StandardRenderSimple', () => {
             it('should split the incoming string in remainder when Base matches only part of it', () => {
                 const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2/Another Test'])
-                const comparison = base.compare(incoming, { compareDirection: 'forward' })
+                const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
                 expect(comparison.outcome).toEqual('Incoming Longer')
-                expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: 'Test/' }, children: [] }])
+                expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: '/Another Test' }, children: [] }])
             })
         })
     })

@@ -16,6 +16,11 @@ import { SchemaConditionTag } from "../../schema/baseClasses"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
+export enum StandardRenderSimpleCompareDirection {
+    Forward = 'forward',
+    Back = 'back'
+}
+
 export class StandardRenderSimple {
     _elements: StandardRenderSimpleElement[];
 
@@ -198,55 +203,123 @@ export class StandardRenderSimple {
     //    * The base and incoming objects are identical
     //    * The base and incoming objects are different and incoming cannot be removed from the base
     //
-    compare(incoming: StandardRenderSimple, options: { compareDirection: 'back' | 'forward' } = { compareDirection: 'back' }): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
+    compare(incoming: StandardRenderSimple, options: { compareDirection: StandardRenderSimpleCompareDirection } = { compareDirection: StandardRenderSimpleCompareDirection.Back }): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderSimple } {
         const { compareDirection } = options
+
+        //
+        // Function to compare individual elements of the render tree
+        //
         const compareElements = (base: StandardRenderElement, incoming: StandardRenderElement): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderElement } => {
+            //
+            // Compare two StandardRenderString elements
+            //
             if (base instanceof StandardRenderString && incoming instanceof StandardRenderString) {
-                if (base.plainString.endsWith(incoming.plainString)) {
-                    const baseFirstStringRemainder = base.plainString.slice(0, base.plainString.length - incoming.plainString.length)
-                    if (!baseFirstStringRemainder) {
-                        return { outcome: 'Equal' }
+                if (compareDirection === StandardRenderSimpleCompareDirection.Back) {
+                    //
+                    // If comparing from the back, check if the base string ends with the incoming string
+                    //
+                    if (base.plainString.endsWith(incoming.plainString)) {
+                        const baseFirstStringRemainder = base.plainString.slice(0, base.plainString.length - incoming.plainString.length)
+                        if (!baseFirstStringRemainder) {
+                            return { outcome: 'Equal' }
+                        }
+                        else {
+                            return { outcome: 'Base Longer', remainder: new StandardRenderString(baseFirstStringRemainder) }
+                        }
                     }
-                    else {
-                        return { outcome: 'Base Longer', remainder: new StandardRenderString(baseFirstStringRemainder) }
+                    //
+                    // If the incoming string ends with the base string
+                    //
+                    else if (incoming.plainString.endsWith(base.plainString)) {
+                        const incomingFirstStringRemainder = incoming.plainString.slice(0, incoming.plainString.length - base.plainString.length)
+                        if (!incomingFirstStringRemainder) {
+                            return { outcome: 'Equal' }
+                        }
+                        else {
+                            return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incomingFirstStringRemainder) }
+                        }
+                    }
+                } else {
+                    //
+                    // If comparing from the front, check if the base string starts with the incoming string
+                    //
+                    if (base.plainString.startsWith(incoming.plainString)) {
+                        const baseFirstStringRemainder = base.plainString.slice(incoming.plainString.length)
+                        if (!baseFirstStringRemainder) {
+                            return { outcome: 'Equal' }
+                        }
+                        else {
+                            return { outcome: 'Base Longer', remainder: new StandardRenderString(baseFirstStringRemainder) }
+                        }
+                    }
+                    //
+                    // If the incoming string starts with the base string
+                    //
+                    else if (incoming.plainString.startsWith(base.plainString)) {
+                        const incomingFirstStringRemainder = incoming.plainString.slice(base.plainString.length)
+                        if (!incomingFirstStringRemainder) {
+                            return { outcome: 'Equal' }
+                        }
+                        else {
+                            return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incomingFirstStringRemainder) }
+                        }
                     }
                 }
-                else if (incoming.plainString.endsWith(base.plainString)) {
-                    const incomingFirstStringRemainder = incoming.plainString.slice(0, incoming.plainString.length - base.plainString.length)
-                    if (!incomingFirstStringRemainder) {
-                        return { outcome: 'Equal' }
-                    }
-                    else {
-                        return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incomingFirstStringRemainder) }
-                    }
-                }
-                else if (base.plainString === incoming.plainString) {
+                if (base.plainString === incoming.plainString) {
                     return { outcome: 'Equal' }
                 }
                 else {
                     return { outcome: 'Conflict' }
                 }
             }
+            //
+            // Compare a StandardRenderString with a StandardRenderSpace
+            //
             else if (base instanceof StandardRenderString && incoming instanceof StandardRenderSpace) {
-                if (base.plainString.endsWith(' ')) {
-                    return { outcome: 'Base Longer', remainder: new StandardRenderString(base.plainString.slice(0, -1)) }
-                }
-                else {
-                    return { outcome: 'Conflict' }
+                if (compareDirection === StandardRenderSimpleCompareDirection.Back) {
+                    if (base.plainString.endsWith(' ')) {
+                        return { outcome: 'Base Longer', remainder: new StandardRenderString(base.plainString.slice(0, -1)) }
+                    }
+                    else {
+                        return { outcome: 'Conflict' }
+                    }
+                } else {
+                    if (incoming.plainString.startsWith(' ')) {
+                        return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incoming.plainString.slice(1)) }
+                    }
+                    else {
+                        return { outcome: 'Conflict' }
+                    }
                 }
             }
+            //
+            // Compare a StandardRenderSpace with a StandardRenderString
+            //
             else if (base instanceof StandardRenderSpace && incoming instanceof StandardRenderString) {
-                if (incoming.plainString.startsWith(' ')) {
-                    return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incoming.plainString.slice(1)) }
-                }
-                else {
-                    return { outcome: 'Conflict' }
+                if (compareDirection === StandardRenderSimpleCompareDirection.Back) {
+                    if (incoming.plainString.startsWith(' ')) {
+                        return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incoming.plainString.slice(1)) }
+                    }
+                    else {
+                        return { outcome: 'Conflict' }
+                    }
+                } else {
+                    if (base.plainString.startsWith(' ')) {
+                        return { outcome: 'Base Longer', remainder: new StandardRenderString(base.plainString.slice(1)) }
+                    }
+                    else {
+                        return { outcome: 'Conflict' }
+                    }
                 }
             }
+            //
+            // Compare other types of elements
+            //
             else {
                 return deepEqual(base.toJSON(), incoming.toJSON()) ? { outcome: 'Equal' } : { outcome: 'Conflict' }
             }
         }
+
         let base = this.clone()._elements
         let incomingElements = incoming.clone()._elements
 
@@ -254,25 +327,46 @@ export class StandardRenderSimple {
         // Compare the end of the base and incoming objects, to see if one is a subset of the other.
         //
         while(base.length > 0 && incomingElements.length > 0) {
-            const baseLastElement = base[base.length - 1]
-            const incomingLastElement = incomingElements[incomingElements.length - 1]
-            const { outcome, remainder } = compareElements(baseLastElement, incomingLastElement)
+            const baseElement = compareDirection === StandardRenderSimpleCompareDirection.Back ? base[base.length - 1] : base[0]
+            const incomingElement = compareDirection === StandardRenderSimpleCompareDirection.Back ? incomingElements[incomingElements.length - 1] : incomingElements[0]
+            const { outcome, remainder } = compareElements(baseElement, incomingElement)
+            //
+            // Handle the case where the base and incoming elements are equal
+            //
             if (outcome === 'Equal') {
-                base = base.slice(0, -1)
-                incomingElements = incomingElements.slice(0, -1)
+                base = compareDirection === StandardRenderSimpleCompareDirection.Back ? base.slice(0, -1) : base.slice(1)
+                incomingElements = compareDirection === StandardRenderSimpleCompareDirection.Back ? incomingElements.slice(0, -1) : incomingElements.slice(1)
             }
+            //
+            // Handle the case where the base element is longer than the incoming element
+            //
             else if (outcome === 'Base Longer') {
-                base = [...base.slice(0, -1), remainder as StandardRenderSimpleElement]
-                incomingElements = incomingElements.slice(0, -1)
+                base = compareDirection === StandardRenderSimpleCompareDirection.Back 
+                    ? [...base.slice(0, -1), remainder as StandardRenderSimpleElement] 
+                    : [remainder as StandardRenderSimpleElement, ...base.slice(1)]
+                incomingElements = compareDirection === StandardRenderSimpleCompareDirection.Back ? incomingElements.slice(0, -1) : incomingElements.slice(1)
             }
+            //
+            // Handle the case where the incoming element is longer than the base element
+            //
             else if (outcome === 'Incoming Longer') {
-                base = base.slice(0, -1)
-                incomingElements = [...incomingElements.slice(0, -1), remainder as StandardRenderSimpleElement]
+                base = compareDirection === StandardRenderSimpleCompareDirection.Back ? base.slice(0, -1) : base.slice(1)
+                incomingElements = compareDirection === StandardRenderSimpleCompareDirection.Back 
+                    ? [...incomingElements.slice(0, -1), remainder as StandardRenderSimpleElement] 
+                    : [remainder as StandardRenderSimpleElement, ...incomingElements.slice(1)]
             }
+            //
+            // Handle the case where there is a conflict between the base and incoming elements
+            //
             else if (outcome === 'Conflict') {
                 break
             }
+
         }
+
+        //
+        // Determine the final outcome based on the remaining elements
+        //
         if (base.length === 0 && incomingElements.length === 0) {
             return { outcome: 'Equal' }
         }
