@@ -46,4 +46,27 @@ describe('StandardAction class', () => {
             '<Action key=(test) src={testVar = false} />'
         )).toEqual(deIndentWML('<Action key=(test) src={testVar = false} />'))
     })
+
+    it('should diff idential components correctly', () => {
+        const testAction = new StandardAction({
+            key: 'test',
+            tag: 'Action',
+            src: 'testVar = false'
+        })
+        expect(testAction.diff(testAction)).toBeUndefined()
+    })
+
+    it('should diff different components correctly', () => {
+        const testAction = new StandardAction({
+            key: 'test',
+            tag: 'Action',
+            src: 'testVar = false'
+        })
+        const testAction2 = new StandardAction({
+            key: 'test',
+            tag: 'Action',
+            src: 'testVar = true'
+        })
+        expect(testAction.diff(testAction2)).toEqual({ action: 'Replace' })
+    })
 })
