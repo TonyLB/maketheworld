@@ -4,7 +4,7 @@ import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { componentClassFactory, ComponentConstructorMethods, ComponentConstructorMethodsDiff } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
@@ -56,6 +56,10 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
         const returnValue = new StandardBookmarkPayload()
         returnValue._description = combineTaggedChildren(this.description, incoming.description) as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>
         return returnValue as this
+    }
+
+    diff(incoming: StandardComponent): ComponentConstructorMethodsDiff<StandardBookmarkData> {
+        return { action: 'Replace' }
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
