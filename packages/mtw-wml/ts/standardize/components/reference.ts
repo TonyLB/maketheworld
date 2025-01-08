@@ -8,6 +8,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
+import { StandardRemove } from "../edits";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
@@ -114,6 +115,18 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
         return new StandardReference(super.withExport(exportData) as StandardReference)
     }
 
+}
+
+// 
+// Computes the difference between two lists of `StandardReference` objects.
+// 
+export const diffStandardReferenceList = (base: StandardReference[], incoming: StandardReference[]): (StandardReference | StandardRemove)[] => {
+    const baseRemoves = base
+        .filter(baseReference => !incoming.some(incomingReference => incomingReference.key === baseReference.key))
+        .map(baseReference => new StandardRemove(baseReference))
+    const incomingAdds = incoming
+        .filter(incomingReference => !base.some(baseReference => baseReference.key === incomingReference.key))
+    return [...baseRemoves, ...incomingAdds]
 }
 
 export default StandardReference
