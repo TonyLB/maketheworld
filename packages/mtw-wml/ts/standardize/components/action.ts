@@ -1,10 +1,11 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardActionData } from "./dataTypes/action"
-import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
+import { StandardComponent } from "./baseClasses";
 
 export class StandardActionPayload implements ComponentConstructorMethods<StandardActionData> {
     _src?: string;

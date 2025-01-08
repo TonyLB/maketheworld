@@ -21,7 +21,7 @@ import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTa
 import { isSchemaLink } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/component'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { editConverters } from '@tonylb/mtw-wml/ts/schema/converters/edit'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'

@@ -16,7 +16,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardToJSONOptions } from "./baseClasses";
+import { StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -25,46 +25,19 @@ import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemConte
 import { isSchemaTreeNode } from "./utils";
 import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
-
-type StandardComponentReferenceKey = {
-    key: string;
-    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
-}
+// import { StandardReplace } from "../edits";
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
+    diff?: (incoming: StandardComponent) => StandardComponent | undefined;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
-}
-
-export interface StandardComponent {
-    key: string;
-    clone(): StandardComponent;
-    universalKey?: string;
-    global?: boolean;
-    withKey(key: string): StandardComponent;
-    withUniversalKey(key: string | undefined): StandardComponent;
-    fileName?: string;
-    withFileName(key: string | undefined): StandardComponent;
-    import?: StandardImportItem;
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
-    export?: StandardExportItem;
-    withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
-    tag: ComponentTag | 'Remove' | 'Replace';
-    toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
-    toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
-    schema: GenericTreeNode<SchemaTag>;
-    nestedSchema(byId: Record<string, StandardComponent>, localKey?: string, globalKey?: string): GenericTreeNode<SchemaTag>;
-    merge(incoming: StandardComponent): StandardComponent | undefined;
-    diff(incoming: StandardComponent): StandardComponent | undefined;
-    referencedKeys(): StandardComponentReferenceKey[];
-    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }
 
 export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -174,6 +147,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         diff(incoming: StandardComponent): StandardComponent | undefined {
             return undefined
+            // if (this._payload.diff)  {
+
+            // }
+            // else {
+            //     return new StandardReplace(this, incoming)
+            // }
         }
 
         withKey(key: string): StandardComponent {

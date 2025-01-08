@@ -1,6 +1,7 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { defaultComponentFromTag } from "../baseClasses";
-import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { StandardComponent } from "./baseClasses"
 import { isStandardFeature, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";

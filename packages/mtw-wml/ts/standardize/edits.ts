@@ -1,7 +1,7 @@
 import { deepEqual } from "../lib/objects";
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
-import { StandardComponent } from "./components/component";
+import { StandardComponent } from "./components/baseClasses";
 import { isStandardRemove, StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { KeyPayload } from "./components/key";
