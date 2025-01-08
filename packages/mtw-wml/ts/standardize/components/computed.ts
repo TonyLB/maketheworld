@@ -1,5 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { StandardComponent } from "./baseClasses"
 import { StandardComputedData } from "./dataTypes/computed"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";

@@ -4,13 +4,14 @@ import { StandardBookmarkData } from "./dataTypes/bookmark"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { combineTaggedChildren } from "./utils/merge"
-import { componentClassFactory, ComponentConstructorMethods, StandardComponent } from "./component"
+import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { StandardComponent } from "./baseClasses"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;

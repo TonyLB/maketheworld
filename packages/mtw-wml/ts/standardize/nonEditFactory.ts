@@ -3,7 +3,7 @@ import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardCo
 import StandardAction from "./components/action"
 import StandardBookmark from "./components/bookmark"
 import StandardCharacter from "./components/character"
-import { StandardComponent } from "./components/component"
+import { StandardComponent } from "./components/baseClasses"
 import StandardComputed from "./components/computed"
 import StandardFeature from "./components/feature"
 import StandardExample from "./components/example"
