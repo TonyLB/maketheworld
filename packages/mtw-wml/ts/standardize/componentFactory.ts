@@ -5,7 +5,7 @@ import { isSchemaTreeNode } from "./components/utils"
 import { StandardRemove, StandardReplace } from "./edits"
 import standardNonEditComponentFactory from "./nonEditFactory"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 
 //
 // standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes (including Remove and Replace),
@@ -30,8 +30,30 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
         }
         return new StandardRemove(childComponent)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardReplace(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaReplace)(arg))) {
-        return new StandardReplace(arg)
+    if (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaReplace)(arg)) {
+        const { children } = arg
+        const match = children.find(isSchemaReplaceMatch)
+        const payload = children.find(isSchemaReplacePayload)
+        if (match?.children?.length !== 1) {
+            throw new Error("SchemaReplace must have exactly one match child")
+        }
+        if (payload?.children?.length !== 1) {
+            throw new Error("SchemaReplace must have exactly one payload child")
+        }
+        const matchComponent = standardComponentFactory(match.children[0])
+        const payloadComponent = standardComponentFactory(payload.children[0])
+        if (!matchComponent || !payloadComponent) {
+            throw new Error("SchemaReplace must have valid child components")
+        }
+        return new StandardReplace(matchComponent, payloadComponent)
+    }
+    if (!isSchemaTreeNode(arg) && isStandardReplace(arg)) {
+        const matchComponent = standardComponentFactory(arg.match)
+        const payloadComponent = standardComponentFactory(arg.payload)
+        if (!matchComponent || !payloadComponent) {
+            throw new Error("SchemaReplace must have valid child components")
+        }
+        return new StandardReplace(matchComponent, payloadComponent)
     }
     return standardNonEditComponentFactory(arg)
 }

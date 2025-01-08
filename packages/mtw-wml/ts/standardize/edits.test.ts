@@ -46,18 +46,18 @@ describe('mergeWithEdits', () => {
                 <Name>Test</Name>
             </Room>
         `)
-        const incoming = new StandardReplace(`
-            <Replace>
+        const incoming = new StandardReplace(
+            new StandardRoom(`
                 <Room key=(test)>
                     <Name>Test</Name>
                 </Room>
-            </Replace>
-            <With>
+            `),
+            new StandardRoom(`
                 <Room key=(test)>
                     <Name>Updated</Name>
                 </Room>
-            </With>
-        `)
+            `)
+        )
         const outputSchema = mergeWithEdits(base, incoming)?.schema
         expect(schemaToWML(outputSchema ? [outputSchema] : [])).toEqual(deIndentWML(`
             <Room key=(test)><Name>Updated</Name></Room>
@@ -87,18 +87,18 @@ describe('mergeWithEdits', () => {
     })
 
     it('should merge replace followed by remove into remove', () => {
-        const base = new StandardReplace(`
-            <Replace>
+        const base = new StandardReplace(
+            new StandardRoom(`
                 <Room key=(test)>
                     <Name>Test</Name>
                 </Room>
-            </Replace>
-            <With>
+            `),
+            new StandardRoom(`
                 <Room key=(test)>
                     <Name>Updated</Name>
                 </Room>
-            </With>
-        `)
+            `)
+        )
         const incoming = new StandardRemove(new StandardRoom(`
             <Room key=(test)>
                 <Name>Updated</Name>
@@ -111,30 +111,30 @@ describe('mergeWithEdits', () => {
     })
 
     it('should merge two replace operations into a single chained operation', () => {
-        const base = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Test</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </With>
-        `)
-        const incoming = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Final</Name>
-                </Room>
-            </With>
-        `)
+        const base = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+            `)
+        )
+        const incoming = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Final</Name>
+            </Room>
+            `)
+        )
         const outputSchema = mergeWithEdits(base, incoming)?.schema
         expect(schemaToWML(outputSchema ? [outputSchema] : [])).toEqual(deIndentWML(`
             <Replace><Room key=(test)><Name>Test</Name></Room></Replace>
@@ -143,18 +143,18 @@ describe('mergeWithEdits', () => {
     })
 
     it('should merge replace followed by more content into replace with combined payload', () => {
-        const base = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Test</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </With>
-        `)
+        const base = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+            `)
+        )
         const incoming = new StandardRoom(`
             <Room key=(test)>
                 <Description>Test description</Description>
@@ -175,30 +175,30 @@ describe('mergeWithEdits', () => {
     })
 
     it('should throw MergeConflictError when merging conflicting replace operations', () => {
-        const base = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Test</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </With>
-        `)
-        const incoming = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Conflicting</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Final</Name>
-                </Room>
-            </With>
-        `)
+        const base = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+            `)
+        )
+        const incoming = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Conflicting</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Final</Name>
+            </Room>
+            `)
+        )
         expect(() => mergeWithEdits(base, incoming)).toThrow(MergeConflictError)
     })
 
@@ -217,18 +217,18 @@ describe('mergeWithEdits', () => {
     })
 
     it('should throw MergeConflictError when merging replace with non-matching remove', () => {
-        const base = new StandardReplace(`
-            <Replace>
-                <Room key=(test)>
-                    <Name>Test</Name>
-                </Room>
-            </Replace>
-            <With>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </With>
-        `)
+        const base = new StandardReplace(
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>
+            </Room>
+            `),
+            new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+            `)
+        )
         const incoming = new StandardRemove(new StandardRoom(`
             <Room key=(test)>
                 <Name>Conflicting</Name>

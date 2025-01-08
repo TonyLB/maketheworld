@@ -1,16 +1,13 @@
 import { deepEqual } from "../lib/objects";
-import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
 import { StandardComponent, StandardComponentDiffReturn } from "./components/baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { KeyPayload } from "./components/key";
 import { StandardExportItem, StandardImportItem } from "./components/metaData";
-import { isSchemaTreeNode } from "./components/utils";
-import standardNonEditComponentFactory from "./nonEditFactory";
-import { nodeFromWML, removeNDJSONOnlyProperties } from "./utils";
+import { removeNDJSONOnlyProperties } from "./utils";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./components/dataTypes/abstract";
 
@@ -145,7 +142,7 @@ export class StandardReplace implements StandardComponent {
     _match: StandardComponent;
     _payload: StandardComponent
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
-    constructor(...propsArray: [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace] | [StandardComponent, StandardComponent]) {
+    constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
             const match = propsArray[0] as StandardComponent
             const payload = propsArray[1] as StandardComponent
@@ -166,45 +163,7 @@ export class StandardReplace implements StandardComponent {
             this._payload = props._payload.clone()
             return
         }
-        if (isSchemaTreeNode(props) || typeof props === 'string') {
-            const node = typeof props === 'string'
-                ? nodeFromWML(props)
-                : props
-            if (!treeNodeTypeguard(isSchemaReplace)(node)) {
-                throw new Error(`Schema mismatch in StandardReplace constructor call.`)
-            }
-            const matchNode = node.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0]
-            const match = matchNode ? standardNonEditComponentFactory(matchNode) : undefined
-            const payloadNode = node.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
-            const payload = payloadNode ? standardNonEditComponentFactory(payloadNode) : undefined
-            if (!match) {
-                throw new Error('No match found in StandardReplace constructor call.')
-            }
-            if (!payload) {
-                throw new Error('No payload found in StandardReplace constructor call.')
-            }
-            if (!(match.key === payload.key && match.tag === payload.tag)) {
-                throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
-            }
-            this._match = match
-            this._payload = payload
-            this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
-            return
-        }
-        const match = standardNonEditComponentFactory(props.match)
-        if (!match) {
-            throw new Error('No payload found in StandardReplace constructor call.')
-        }
-        const payload = standardNonEditComponentFactory(props.payload)
-        if (!payload) {
-            throw new Error('No payload found in StandardReplkace constructor call.')
-        }
-        if (!(match.key === payload.key && match.tag === payload.tag)) {
-            throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
-        }
-        this._match = match
-        this._payload = payload
-        this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
+        throw new Error('StandardReplace constructor called with invalid arguments')
     }
 
     get key() { return this._key.key }
@@ -265,12 +224,7 @@ export class StandardReplace implements StandardComponent {
         if (!(deepEqual(removeNDJSONOnlyProperties(this._payload.toJSON()), removeNDJSONOnlyProperties(incoming._match.toJSON())))) {
             throw new MergeConflictError()
         }
-        return new StandardReplace({
-            key: this.key,
-            tag: 'Replace',
-            match: this._match.toJSON() as StandardComponentNonEditData,
-            payload: incoming._payload.toJSON() as StandardComponentNonEditData
-        }).withUniversalKey(this.universalKey)
+        return new StandardReplace(this, incoming._payload).withUniversalKey(this.universalKey)
     }
 
     diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined {
@@ -285,7 +239,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withKey(key: string): StandardComponent {
-        const returnValue = new StandardReplace(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
         returnValue._payload = this._match.withKey(key)
         returnValue._key._universalKey = key
@@ -294,7 +248,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._payload = this._match.withUniversalKey(key)
         returnValue._key._universalKey = key
@@ -303,7 +257,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withFileName(key: string | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._payload = this._payload.withFileName(key)
         returnValue._key._fileName = key
@@ -312,7 +266,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withImport(importData)
         returnValue._payload = this._payload.withImport(importData)
         returnValue._key._key = returnValue._match.key
@@ -322,7 +276,7 @@ export class StandardReplace implements StandardComponent {
     }
 
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        const returnValue = new StandardReplace(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withExport(exportData)
         returnValue._payload = this._payload.withExport(exportData)
         returnValue._key._key = returnValue._match.key
@@ -349,12 +303,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 //
                 // A remove operation followed by an add should be merged into a Replace
                 //
-                return new StandardReplace({
-                    key: base.key,
-                    tag: 'Replace',
-                    match: base._match.toJSON() as StandardComponentNonEditData,
-                    payload: incomingComponent.toJSON() as StandardComponentNonEditData
-                })
+                return new StandardReplace(base._match, incomingComponent)
             }
             else if (base instanceof StandardReplace) {
                 //
@@ -373,12 +322,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                     if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
                         throw new MergeConflictError()
                     }
-                    return new StandardReplace({
-                        key: base.key,
-                        tag: 'Replace',
-                        match: base._match.toJSON() as StandardComponentNonEditData,
-                        payload: incomingComponent._payload.toJSON() as StandardComponentNonEditData
-                    })
+                    return new StandardReplace(base._match, incomingComponent._payload)
                 }
                 //
                 // A replace operation followed by more content should be merged to a replace with combined payload
@@ -387,12 +331,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 if (!mergedPayload) {
                     throw new MergeConflictError()
                 }
-                return new StandardReplace({
-                    key: base.key,
-                    tag: 'Replace',
-                    match: base._match.toJSON() as StandardComponentNonEditData,
-                    payload: mergedPayload.toJSON() as StandardComponentNonEditData
-                })
+                return new StandardReplace(base._match, mergedPayload)
             }
             else {
                 //
