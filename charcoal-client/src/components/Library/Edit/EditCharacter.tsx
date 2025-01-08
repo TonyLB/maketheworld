@@ -59,7 +59,6 @@ import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { excludeUndefined } from '../../../lib/lists'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { StandardReplace } from '@tonylb/mtw-wml/ts/standardize/edits'
 import { StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import StandardRenderString from '@tonylb/mtw-wml/ts/standardize/render/string'
 

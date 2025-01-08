@@ -62,6 +62,7 @@ export interface StandardComponent {
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(byId: Record<string, StandardComponent>, localKey?: string, globalKey?: string): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
+    diff(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }
@@ -169,6 +170,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             returnValue._export = (this.export && incoming.export) ? this.export.merge(incoming.export) : this.export ?? incoming.export
 
             return returnValue as StandardComponent
+        }
+
+        diff(incoming: StandardComponent): StandardComponent | undefined {
+            return undefined
         }
 
         withKey(key: string): StandardComponent {
