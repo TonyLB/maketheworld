@@ -2,15 +2,15 @@ import { deepEqual } from "../lib/objects";
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
 import { StandardComponent, StandardComponentDiffReturn } from "./components/baseClasses";
-import { isStandardRemove, StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
+import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { KeyPayload } from "./components/key";
 import { StandardExportItem, StandardImportItem } from "./components/metaData";
 import { isSchemaTreeNode } from "./components/utils";
 import standardNonEditComponentFactory from "./nonEditFactory";
 import { nodeFromWML, removeNDJSONOnlyProperties } from "./utils";
-import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./components/dataTypes/abstract";
 
@@ -23,39 +23,10 @@ export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
-    constructor(props: string | StandardRemoveData | GenericTreeNode<SchemaTag> | StandardRemove | StandardComponent) {
+    constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
-            return
-        }
-        if (isSchemaTreeNode(props) || typeof props === 'string') {
-            const node = typeof props === 'string'
-                ? nodeFromWML(props)
-                : props
-            if (!treeNodeTypeguard(isSchemaRemove)(node)) {
-                throw new Error(`Schema mismatch in StandardRemove constructor call.`)
-            }
-            const child = node.children[0]
-            if (!treeNodeTypeguard(isSchemaWithKey)(child)) {
-                throw new Error(`No key found in StandardRemove constructor call.`)
-            }
-            this._key = new KeyPayload(child.data.key)
-            const match = standardNonEditComponentFactory(child)
-            if (!match) {
-                throw new Error('No payload found in StandardRemove constructor call.')
-            }
-            this._match = match
-            this._key._universalKey = match.universalKey
-            return
-        }
-        if (isStandardRemove(props)) {
-            const match = standardNonEditComponentFactory(props.component)
-            if (!match) {
-                throw new Error('No payload found in StandardRemove constructor call.')
-            }
-            this._match = match
-            this._key = new KeyPayload({ key: match.key, universalKey: match.universalKey })
             return
         }
         this._key = new KeyPayload({ key: props.key, universalKey: props.universalKey })
@@ -79,7 +50,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     mapContents(callback): StandardRemove {
-        const returnValue = new StandardRemove(this)
+        const returnValue = this.clone()
         returnValue._match = returnValue._match.mapContents(callback)
         return returnValue
     }
@@ -119,7 +90,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     withKey(key: string): StandardComponent {
-        const returnValue = new StandardRemove(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
         returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = returnValue._match.fileName
@@ -128,7 +99,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = returnValue._match.fileName
@@ -137,7 +108,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     withFileName(key: string | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = key
@@ -146,7 +117,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withImport(importData)
         returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = returnValue._match.fileName
@@ -155,7 +126,7 @@ export class StandardRemove implements StandardComponent {
     }
 
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        const returnValue = new StandardRemove(this.schema)
+        const returnValue = this.clone()
         returnValue._match = this._match.withExport(exportData)
         returnValue._key._key = returnValue._match.key
         returnValue._key._fileName = returnValue._match.fileName
@@ -393,11 +364,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                     if (!deepEqual(removeNDJSONOnlyProperties(base._payload.toJSON()), removeNDJSONOnlyProperties(incomingComponent._match.toJSON()))) {
                         throw new MergeConflictError()
                     }
-                    return new StandardRemove({
-                        key: base.key,
-                        tag: 'Remove',
-                        component: base._match.toJSON() as StandardComponentNonEditData
-                    })
+                    return new StandardRemove(base._match)
                 }
                 //
                 // Two replace operations should be merged into a single chained operation
