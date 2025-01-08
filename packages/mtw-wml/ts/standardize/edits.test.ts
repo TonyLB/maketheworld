@@ -31,13 +31,11 @@ describe('mergeWithEdits', () => {
                 <Name>Test</Name>
             </Room>
         `)
-        const incoming = new StandardRemove(`
-            <Remove>
-                <Room key=(test)>
-                    <Name>Test</Name>                    
-                </Room>
-            </Remove>
-        `)
+        const incoming = new StandardRemove(new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>                    
+            </Room>
+        `))
         const outputSchema = mergeWithEdits(base, incoming)?.schema
         expect(outputSchema).toBeUndefined()
     })
@@ -67,13 +65,11 @@ describe('mergeWithEdits', () => {
     })
 
     it('should merge remove followed by add into replace', () => {
-        const base = new StandardRemove(`
-            <Remove>
-                <Room key=(test)>
-                    <Name>Test</Name>
-                </Room>
-            </Remove>
-        `)
+        const base = new StandardRemove(new StandardRoom(`
+            <Room key=(test)>
+                <Name>Test</Name>
+            </Room>
+        `))
         const incoming = new StandardRoom(`
             <Room key=(test)>
                 <Description>Test description</Description>
@@ -103,13 +99,11 @@ describe('mergeWithEdits', () => {
                 </Room>
             </With>
         `)
-        const incoming = new StandardRemove(`
-            <Remove>
-                <Room key=(test)>
-                    <Name>Updated</Name>
-                </Room>
-            </Remove>
-        `)
+        const incoming = new StandardRemove(new StandardRoom(`
+            <Room key=(test)>
+                <Name>Updated</Name>
+            </Room>
+        `))
         const outputSchema = mergeWithEdits(base, incoming)?.schema
         expect(schemaToWML(outputSchema ? [outputSchema] : [])).toEqual(deIndentWML(`
             <Remove><Room key=(test)><Name>Test</Name></Room></Remove>
@@ -214,13 +208,11 @@ describe('mergeWithEdits', () => {
                 <Name>Test</Name>
             </Room>
         `)
-        const incoming = new StandardRemove(`
-            <Remove>
-                <Room key=(test)>
-                    <Name>Conflicting</Name>
-                </Room>
-            </Remove>
-        `)
+        const incoming = new StandardRemove(new StandardRoom(`
+            <Room key=(test)>
+                <Name>Conflicting</Name>
+            </Room>
+        `))
         expect(() => mergeWithEdits(base, incoming)).toThrow(MergeConflictError)
     })
 
@@ -237,13 +229,11 @@ describe('mergeWithEdits', () => {
                 </Room>
             </With>
         `)
-        const incoming = new StandardRemove(`
-            <Remove>
-                <Room key=(test)>
-                    <Name>Conflicting</Name>
-                </Room>
-            </Remove>
-        `)
+        const incoming = new StandardRemove(new StandardRoom(`
+            <Room key=(test)>
+                <Name>Conflicting</Name>
+            </Room>
+        `))
         expect(() => mergeWithEdits(base, incoming)).toThrow(MergeConflictError)
     })
 })
