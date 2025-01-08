@@ -16,6 +16,22 @@ export type StandardComponentReferenceKey = {
     referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
 }
 
+//
+// Because StandardReplace cannot be defined until *after* all the nonEdit components
+// are defined (since it calls nonEditComponentFactory as part of its constructor),
+// we have to define the return type of the diff method for StandardComponent in a way
+// that avoids circular definition: This diff method can either say "Replace the components",
+// or can deliver a payload of the same sort of StandarComponent, with replace and updates
+// inside the individual data items. This is a bit of a hack, but it works, pending a future
+// iteration to some 
+//
+export type StandardComponentDiffReturn = {
+    action: 'Replace';
+} | {
+    action: 'Edit';
+    payload: StandardComponent;
+}
+
 export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
@@ -35,7 +51,7 @@ export interface StandardComponent {
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(byId: Record<string, StandardComponent>, localKey?: string, globalKey?: string): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
-    diff(incoming: StandardComponent): StandardComponent | undefined;
+    diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }

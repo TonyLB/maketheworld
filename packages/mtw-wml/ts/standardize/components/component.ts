@@ -16,22 +16,22 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
+import { StandardComponent, StandardComponentDiffReturn, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode } from "./utils";
-import { isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
-// import { StandardReplace } from "../edits";
+import { deepEqual } from "../../lib/objects";
 
 export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
-    diff?: (incoming: StandardComponent) => StandardComponent | undefined;
+    diff?: (incoming: StandardComponent) => StandardComponentDiffReturn | undefined;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag>;
@@ -145,14 +145,21 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue as StandardComponent
         }
 
-        diff(incoming: StandardComponent): StandardComponent | undefined {
-            return undefined
-            // if (this._payload.diff)  {
-
-            // }
-            // else {
-            //     return new StandardReplace(this, incoming)
-            // }
+        diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined {
+            if (this.key !== incoming.key) {
+                throw new Error('Mismatched keys in StandardComponent diff')
+            }
+            if (this._payload.diff)  {
+                return this._payload.diff(incoming)
+            }
+            else {
+                if (deepEqual(this.toJSON(), incoming.toJSON())) {
+                    return undefined
+                }
+                else {
+                    return { action: 'Replace' }
+                }
+            }
         }
 
         withKey(key: string): StandardComponent {
