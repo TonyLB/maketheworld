@@ -114,6 +114,10 @@ export class StandardRemove implements StandardComponent {
         throw new Error('StandardRemove types cannot be directly merged')
     }
 
+    diff(incoming: StandardComponent): StandardComponent | undefined {
+        return undefined
+    }
+
     withKey(key: string): StandardComponent {
         const returnValue = new StandardRemove(this.schema)
         returnValue._match = this._match.withKey(key)
@@ -296,6 +300,10 @@ export class StandardReplace implements StandardComponent {
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: incoming._payload.toJSON() as StandardComponentNonEditData
         }).withUniversalKey(this.universalKey)
+    }
+
+    diff(incoming: StandardComponent): StandardComponent | undefined {
+        return undefined
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
