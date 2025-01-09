@@ -3,6 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardCharacterData } from "./dataTypes/character"
 import { StandardCharacter } from './character'
 import { mergeTest } from "./utils/testing"
+import { StandardReplace } from "./edits"
 
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
@@ -95,5 +96,40 @@ describe('StandardCharacter class', () => {
                 <Outfit>Rags</Outfit>
             </Character>
         `))
+    })
+
+    it('should diff identical components correctly', () => {
+        const testCharacter = new StandardCharacter({
+            key: 'test',
+            tag: 'Character',
+            pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
+            oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
+            outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
+        })
+        expect(testCharacter.diff(testCharacter)).toBeUndefined()
+    })
+
+    it('should diff different components correctly', () => {
+        const testCharacter = new StandardCharacter({
+            key: 'test',
+            tag: 'Character',
+            pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
+            oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
+            outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
+        })
+        const testCharacter2 = new StandardCharacter({
+            key: 'test',
+            tag: 'Character',
+            pronouns: { data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }, children: [] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
+            oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
+            outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
+        })
+        expect(testCharacter.diff(testCharacter2)?.toJSON()).toEqual(new StandardReplace(testCharacter, testCharacter2).toJSON())
     })
 })
