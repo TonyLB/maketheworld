@@ -8,6 +8,7 @@ import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition
 import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardRemove } from "../edits"
 import { excludeUndefined } from "../../../lib/lists"
+import { deepEqual } from "../../../lib/objects"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree
@@ -88,9 +89,26 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference | St
     const referencesById = referenceLists.reduce<Record<string, (StandardReference | StandardRemove | undefined)>>((previous, references) => (
         references.reduce<Record<string, StandardReference | StandardRemove | undefined>>((accumulator, reference) => {
             const previousReference = accumulator[reference.key]
+            if (previousReference) {
+                if (reference instanceof StandardRemove) {
+                    if (!deepEqual(previousReference.toJSON(), reference._match.toJSON())) {
+                        throw new Error(`Mismatched references in mergeUniqueReferences`)
+                    }
+                    return {
+                        ...accumulator,
+                        [reference.key]: undefined
+                    }
+                }
+                else {
+                    return {
+                        ...accumulator,
+                        [reference.key]: previousReference.merge(reference) as StandardReference | StandardRemove | undefined
+                    }
+                }
+            }
             return {
                 ...accumulator,
-                [reference.key]: previousReference ? previousReference.merge(reference) as StandardReference | StandardRemove | undefined : reference
+                [reference.key]: reference
             }
         }, previous)
     ), {})

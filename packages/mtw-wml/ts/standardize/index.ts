@@ -215,7 +215,10 @@ export class StandardForm {
                     { key: 'Character' },
                     { key: 'Image' },
                     { key: 'Bookmark' },
-                    { key: 'Room' },
+                    {
+                        key: 'Room',
+                        legalParents: ['Map', 'Message']
+                    },
                     {
                         key: 'Feature',
                         legalParents: ['Room']

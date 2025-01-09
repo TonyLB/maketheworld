@@ -57,11 +57,9 @@ describe('StandardMoment class', () => {
         expect(mergeTest(
             '<Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>',
             StandardMoment,
-            '<Moment key=(test)><Remove><Message key=(testMessage2) /></Remove></Moment>'
+            '<Moment key=(test)><Remove><Message key=(testMessageTwo) /></Remove></Moment>'
         )).toEqual(deIndentWML(`
-            <Moment key=(test)>
-                <Message key=(testMessage) />
-            </Moment>
+            <Moment key=(test)><Message key=(testMessage) /></Moment>
         `))
     })
 
@@ -87,7 +85,7 @@ describe('StandardMoment class', () => {
         `))
     })
 
-    it('should correct diff removing a message', () => {
+    it('should correctly diff removing a message', () => {
         const testSource = deIndentWML(`
             <Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>
         `)

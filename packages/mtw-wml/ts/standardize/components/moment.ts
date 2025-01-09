@@ -11,9 +11,11 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { deepEqual } from "../../lib/objects"
-import { StandardReferenceData } from "./dataTypes"
+import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
 import { StandardRemove } from "./edits"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { isSchemaRemove } from "../../schema/baseClasses"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: (StandardReference | StandardRemove)[] = [];
@@ -31,7 +33,19 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
-            this._messages = node.children.filter(treeNodeTypeguard(isSchemaMessage)).map((reference) => (new StandardReference(reference)))
+            this._messages = node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
+                if (treeNodeTypeguard(isSchemaMessage)(reference)) {
+                    return new StandardReference(reference.data)
+                }
+                if (treeNodeTypeguard(isSchemaRemove)(reference)) {
+                    const { children } = reference
+                    if (children.length !== 1) {
+                        throw new Error('Remove node must have exactly one child')
+                    }
+                    return new StandardRemove(new StandardReference(children[0].data))
+                }
+                throw new Error('Schema mismatch in StandardMoment constructor')
+            })
             return
         }
         throw new Error('Schema mismatch in StandardMoment constructor')
