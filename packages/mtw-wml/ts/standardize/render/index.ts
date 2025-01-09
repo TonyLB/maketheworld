@@ -814,6 +814,29 @@ export class StandardRender {
         throw new MergeConflictError()
     }
 
+    diff(incoming?: StandardRender): StandardRender | undefined {
+        if (this._payload instanceof StandardRenderConditional) {
+            if (!incoming) {
+                return new StandardRender(new StandardRenderRemove(this._payload))
+            }
+            if (incoming._payload instanceof StandardRenderConditional || incoming._payload instanceof StandardRenderSimple) {
+                return new StandardRender(new StandardRenderReplace(this._payload, incoming._payload))
+            }
+        }
+        if (this._payload instanceof StandardRenderSimple) {
+            if (!incoming) {
+                return new StandardRender(new StandardRenderRemove(this._payload))
+            }
+            if (incoming._payload instanceof StandardRenderConditional) {
+                return new StandardRender(new StandardRenderReplace(this._payload, incoming._payload))
+            }
+            if (incoming._payload instanceof StandardRenderSimple) {
+                return this._payload.diff(incoming._payload)
+            }
+        }
+        return undefined
+    }
+
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRender {
         if (this._payload instanceof StandardRenderSimple) {
             return new StandardRender(this._payload.mapContents(callback))
