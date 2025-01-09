@@ -17,10 +17,11 @@ import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference from "./reference"
-import { StandardReferenceData } from "./dataTypes"
+import { StandardReferenceData } from "./dataTypes/reference"
 import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
+import { StandardRemove } from "./edits"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
@@ -29,8 +30,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _description?: StandardRender;
     _exits: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
-    _features: StandardReference[] = [];
-    _examples: StandardReference[] = [];
+    _features: (StandardReference | StandardRemove)[] = [];
+    _examples: (StandardReference | StandardRemove)[] = [];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {

@@ -4,9 +4,9 @@ import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
-import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove, StandardExportItem, StandardImportItem } from "./components/metaData"
+import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove } from "./components/metaData"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./components/edits"
-import { isImportable, isSchemaAsset, isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { isImportable, isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExport, isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
@@ -208,7 +208,7 @@ export const processComponents = (props: {
                 //
                 // Localize the key for the component if it is not global, and has a parent tag
                 //
-                const localizedComponent = (parentTag && !component.global) ? component.withKey(`${parentTag.key}.${component.key}`) : component
+                const localizedComponent = (parentTag && !(component.global ?? false)) ? component.withKey(`${parentTag.key}.${component.key}`) : component
 
                 //
                 // Wrap the component contents in conditional statements as necessary

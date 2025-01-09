@@ -1,5 +1,5 @@
 import { diffStandardReferenceList, StandardReference } from './reference';
-import { StandardReferenceData } from './dataTypes';
+import { StandardReferenceData } from './dataTypes/reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardRemove } from './edits';

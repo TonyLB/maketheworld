@@ -1,10 +1,11 @@
-import { StandardReferenceData } from ".";
+import { StandardReferenceData } from "./reference";
 import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
 import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example";
+import { StandardRemoveData } from ".";
 
 export type StandardRoomData = {
     tag: 'Room';
@@ -14,8 +15,8 @@ export type StandardRoomData = {
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
     themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
-    features?: StandardReferenceData[];
-    examples?: StandardReferenceData[];
+    features?: (StandardReferenceData | StandardRemoveData)[];
+    examples?: (StandardReferenceData | StandardRemoveData)[];
 } & StandardBaseData
 
 export const isStandardRoom = (arg: any): arg is StandardRoomData => {

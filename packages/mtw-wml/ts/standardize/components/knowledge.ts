@@ -14,15 +14,16 @@ import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference from "./reference"
-import { StandardReferenceData } from "./dataTypes"
+import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaDescription, isSchemaExample, isSchemaName, SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardRemove } from "./edits"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
     _name?: StandardRender;
     _description?: StandardRender;
-    _examples: StandardReference[] = [];
+    _examples: (StandardReference | StandardRemove)[] = [];
     tag = 'Knowledge' as const
 
     constructor(previous?: StandardKnowledgePayload) {

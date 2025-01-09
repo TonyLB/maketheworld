@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { defaultComponentFromTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
-import { isStandardFeature, StandardComponentNonEditData, StandardReferenceData } from "./dataTypes"
+import { isStandardFeature, StandardComponentNonEditData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
@@ -10,6 +10,7 @@ import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@t
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardRemove } from "./edits";
+import { StandardReferenceData } from "./dataTypes/reference";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
@@ -121,7 +122,7 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
 // 
 // Computes the difference between two lists of `StandardReference` objects.
 // 
-export const diffStandardReferenceList = (base: StandardReference[], incoming: StandardReference[]): (StandardReference | StandardRemove)[] => {
+export const diffStandardReferenceList = (base: (StandardReference | StandardRemove)[], incoming: (StandardReference | StandardRemove)[]): (StandardReference | StandardRemove)[] => {
     const baseRemoves = base
         .filter(baseReference => !incoming.some(incomingReference => incomingReference.key === baseReference.key))
         .map(baseReference => new StandardRemove(baseReference))

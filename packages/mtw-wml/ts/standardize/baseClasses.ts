@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
-import { isStandardComponent, StandardComponentNonEditData, StandardReferenceData } from "./components/dataTypes";
+import { isStandardComponent, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardBookmarkData } from "./components/dataTypes/bookmark";
@@ -19,6 +19,7 @@ import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
+import { StandardReferenceData } from "./components/dataTypes/reference";
 
 type StandardBase = {
     key: string;
@@ -122,6 +123,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
             }
         case 'Feature':
         case 'Knowledge':
+        case 'Message':
             return {
                 tag,
                 key,

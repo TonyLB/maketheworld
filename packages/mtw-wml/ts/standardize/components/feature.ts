@@ -14,15 +14,16 @@ import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference from "./reference"
-import { StandardReferenceData } from "./dataTypes"
+import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaDescription, isSchemaExample, isSchemaName, SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardRemove } from "./edits"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _name?: StandardRender;
     _description?: StandardRender;
-    _examples: StandardReference[] = [];
+    _examples: (StandardReference | StandardRemove)[] = [];
     _global?: boolean;
     tag = 'Feature' as const
 
