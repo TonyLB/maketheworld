@@ -9,7 +9,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardRemove } from "../edits";
+import { StandardRemove } from "./edits";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
