@@ -119,6 +119,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         const base = new StandardMoment(this.key).withImport(this.import).withExport(this.export) as StandardMoment
         const diff = diffStandardReferenceList(this._payload._messages, incoming._payload._messages)
         base._payload._messages = diff
+        return base
     }
 
     override withKey(key: string): StandardComponent {
