@@ -12,6 +12,7 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "./baseClasses"
+import { StandardReplace } from "./edits"
 
 export class StandardBookmarkPayload implements ComponentConstructorMethods<StandardBookmarkData> {
     _description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
@@ -58,10 +59,6 @@ export class StandardBookmarkPayload implements ComponentConstructorMethods<Stan
         return returnValue as this
     }
 
-    diff(incoming: StandardComponent): ComponentConstructorMethodsDiff<StandardBookmarkData> {
-        return { action: 'Replace' }
-    }
-
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...linkReferenceKeys(this.description ? [this.description] : [])
@@ -89,6 +86,19 @@ export class StandardBookmark extends componentClassFactory(StandardBookmarkPayl
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardBookmark(super.merge(incoming) as StandardBookmark)
+    }
+
+    override diff(incoming: StandardComponent): StandardComponent | undefined {
+        if (!(incoming instanceof StandardBookmark)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        if (this.key !== incoming.key) {
+            throw new Error('Mismatched keys in diff')
+        }
+        if (this.toJSON() === incoming.toJSON()) {
+            return undefined
+        }
+        return new StandardReplace(this, incoming)
     }
 
     override withKey(key: string): StandardComponent {
