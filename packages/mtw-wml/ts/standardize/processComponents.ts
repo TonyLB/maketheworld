@@ -208,7 +208,7 @@ export const processComponents = (props: {
                 //
                 // Localize the key for the component if it is not global, and has a parent tag
                 //
-                const localizedComponent = (parentTag && !component.global) ? component.withKey(`${parentTag.key}.${component.key}`) : component
+                const localizedComponent = (parentTag && !(component.global ?? false)) ? component.withKey(`${parentTag.key}.${component.key}`) : component
 
                 //
                 // Wrap the component contents in conditional statements as necessary

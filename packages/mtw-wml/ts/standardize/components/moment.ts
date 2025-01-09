@@ -16,6 +16,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { StandardRemove } from "./edits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { isSchemaRemove } from "../../schema/baseClasses"
+import { SerializeNDJSONMixin } from "../baseClasses"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: (StandardReference | StandardRemove)[] = [];
@@ -60,6 +61,13 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
+    toNDJSON(): Omit<StandardMomentData & SerializeNDJSONMixin, 'key' | 'universalKey'> {
+        return {
+            tag: 'Moment',
+            messages: this.messages.map((reference) => (reference.toNDJSON() as StandardReferenceData))
+        }
+    }
+
     schema(key: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key },
@@ -69,11 +77,15 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     nestedSchema(byId: Record<string, StandardComponent>, key: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Message', key },
+            data: { tag: 'Moment', key },
             children: this.messages.map((reference) => (
-                    reference.global
-                        ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                    //
+                    // TODO: Resurface this code in ISS-5072 when messages get a global flag
+                    //
+                    // reference.global
+                    //     ? reference.schema
+                    //     : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                    reference.schema
                 )).filter(excludeUndefined)
         }
     }

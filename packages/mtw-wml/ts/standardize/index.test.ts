@@ -841,6 +841,7 @@ describe('StandardForm', () => {
                 </Message>
             </Moment>
         </Asset>`)
+        // console.log(`byId: ${JSON.stringify(test._byId, null, 4)}`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
