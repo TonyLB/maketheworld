@@ -16,7 +16,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardComponent, StandardComponentDiffReturn, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
+import { StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -26,6 +26,7 @@ import { isSchemaTreeNode } from "./utils";
 import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
+import { StandardReplace } from "./edits";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -38,7 +39,6 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
-    diff?: (incoming: StandardComponent) => ComponentConstructorMethodsDiff<D> | undefined;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag>;
@@ -152,32 +152,15 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return returnValue as StandardComponent
         }
 
-        diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined {
+        diff(incoming: StandardComponent): StandardComponent | undefined {
             if (this.key !== incoming.key) {
                 throw new Error('Mismatched keys in StandardComponent diff')
             }
-            if (this._payload.diff)  {
-                const diffOutput = this._payload.diff(incoming)
-                if (!diffOutput) {
-                    return undefined
-                }
-                if (diffOutput.action === 'Replace') {
-                    return { action: 'Replace' }
-                }
-                else {
-                    return {
-                        action: 'Edit',
-                        payload: new GeneratedComponentClass(diffOutput.payload)
-                    }
-                }
+            if (deepEqual(this.toJSON(), incoming.toJSON())) {
+                return undefined
             }
             else {
-                if (deepEqual(this.toJSON(), incoming.toJSON())) {
-                    return undefined
-                }
-                else {
-                    return { action: 'Replace' }
-                }
+                return new StandardReplace(this, incoming)
             }
         }
 

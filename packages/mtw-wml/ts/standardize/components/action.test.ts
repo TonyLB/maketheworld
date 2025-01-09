@@ -3,6 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardActionData } from "./dataTypes/action"
 import StandardAction from './action'
 import { mergeTest } from './utils/testing'
+import { StandardReplace } from "./edits"
 
 describe('StandardAction class', () => {
 
@@ -67,6 +68,6 @@ describe('StandardAction class', () => {
             tag: 'Action',
             src: 'testVar = true'
         })
-        expect(testAction.diff(testAction2)).toEqual({ action: 'Replace' })
+        expect(testAction.diff(testAction2)?.toJSON()).toEqual(new StandardReplace(testAction, testAction2).toJSON())
     })
 })

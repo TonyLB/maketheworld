@@ -1,7 +1,7 @@
 import { deepEqual } from "../../lib/objects";
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
-import { StandardComponent, StandardComponentDiffReturn } from "./baseClasses";
+import { StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
@@ -82,7 +82,7 @@ export class StandardRemove implements StandardComponent {
         throw new Error('StandardRemove types cannot be directly merged')
     }
 
-    diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined {
+    diff(incoming: StandardComponent): StandardComponent | undefined {
         return undefined
     }
 
@@ -227,7 +227,7 @@ export class StandardReplace implements StandardComponent {
         return new StandardReplace(this, incoming._payload).withUniversalKey(this.universalKey)
     }
 
-    diff(incoming: StandardComponent): StandardComponentDiffReturn | undefined {
+    diff(incoming: StandardComponent): StandardComponent | undefined {
         return undefined
     }
 
