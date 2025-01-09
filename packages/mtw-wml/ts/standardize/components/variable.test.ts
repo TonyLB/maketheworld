@@ -3,6 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardVariableData } from "./dataTypes/variable"
 import StandardVariable from './variable'
 import { mergeTest } from './utils/testing'
+import { StandardReplace } from "./edits"
 
 describe('StandardVariable class', () => {
 
@@ -45,5 +46,28 @@ describe('StandardVariable class', () => {
             StandardVariable,
             '<Variable key=(test) default={false} />'
         )).toEqual(deIndentWML('<Variable key=(test) default={false} />'))
+    })
+
+    it('should diff identical components correctly', () => {
+        const testVariable = new StandardVariable({
+            key: 'test',
+            tag: 'Variable',
+            default: 'true'
+        })
+        expect(testVariable.diff(testVariable)).toBeUndefined()
+    })
+
+    it('should diff different components correctly', () => {
+        const testVariable = new StandardVariable({
+            key: 'test',
+            tag: 'Variable',
+            default: 'true'
+        })
+        const testVariable2 = new StandardVariable({
+            key: 'test',
+            tag: 'Variable',
+            default: 'false'
+        })
+        expect(testVariable.diff(testVariable2)?.toJSON()).toEqual(new StandardReplace(testVariable, testVariable2).toJSON())
     })
 })
