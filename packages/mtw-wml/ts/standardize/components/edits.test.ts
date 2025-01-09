@@ -1,6 +1,6 @@
-import { schemaToWML } from "../schema"
-import { deIndentWML } from "../schema/utils"
-import StandardRoom from "./components/room"
+import { schemaToWML } from "../../schema"
+import { deIndentWML } from "../../schema/utils"
+import StandardRoom from "./room"
 import { mergeWithEdits, StandardRemove, StandardReplace } from "./edits"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 

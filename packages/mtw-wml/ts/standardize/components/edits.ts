@@ -1,15 +1,15 @@
-import { deepEqual } from "../lib/objects";
+import { deepEqual } from "../../lib/objects";
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { SerializeNDJSONMixin, StandardComponentData } from "./baseClasses";
-import { StandardComponent, StandardComponentDiffReturn } from "./components/baseClasses";
-import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./components/dataTypes";
-import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
-import { KeyPayload } from "./components/key";
-import { StandardExportItem, StandardImportItem } from "./components/metaData";
-import { removeNDJSONOnlyProperties } from "./utils";
+import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
+import { StandardComponent, StandardComponentDiffReturn } from "./baseClasses";
+import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { KeyPayload } from "./key";
+import { StandardExportItem, StandardImportItem } from "./metaData";
+import { removeNDJSONOnlyProperties } from "../utils";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
-import { ComponentTag } from "./components/dataTypes/abstract";
+import { ComponentTag } from "./dataTypes/abstract";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
