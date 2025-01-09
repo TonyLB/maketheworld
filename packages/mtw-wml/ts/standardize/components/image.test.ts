@@ -1,6 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
-import { SerializeNDJSONMixin } from "../baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import StandardImage from './image'
 import { mergeTest } from './utils/testing'
@@ -98,4 +97,13 @@ describe('StandardImage class', () => {
             `))
         }
     })
+
+    it('should no-op on diff', () => {
+        const testImage = new StandardImage({
+            key: 'test',
+            tag: 'Image'
+        })
+        expect(testImage.diff(testImage)).toBeUndefined()
+    })
+    
 })
