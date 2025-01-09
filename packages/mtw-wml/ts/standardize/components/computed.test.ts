@@ -3,6 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardComputedData } from "./dataTypes/computed"
 import StandardComputed from './computed'
 import { mergeTest } from './utils/testing'
+import { StandardReplace } from "./edits"
 
 describe('StandardComputed class', () => {
 
@@ -47,5 +48,31 @@ describe('StandardComputed class', () => {
             StandardComputed,
             '<Computed key=(test) src={false} />'
         )).toEqual(deIndentWML('<Computed key=(test) src={false} />'))
+    })
+
+    it('should diff identical components correctly', () => {
+        const testComputed = new StandardComputed({
+            key: 'test',
+            tag: 'Computed',
+            src: 'true',
+            dependencies: []
+        })
+        expect(testComputed.diff(testComputed)).toBeUndefined()
+    })
+
+    it('should diff different components correctly', () => {
+        const testComputed1 = new StandardComputed({
+            key: 'test',
+            tag: 'Computed',
+            src: 'true',
+            dependencies: []
+        })
+        const testComputed2 = new StandardComputed({
+            key: 'test',
+            tag: 'Computed',
+            src: 'false',
+            dependencies: []
+        })
+        expect(testComputed1.diff(testComputed2)?.toJSON()).toEqual(new StandardReplace(testComputed1, testComputed2).toJSON())
     })
 })
