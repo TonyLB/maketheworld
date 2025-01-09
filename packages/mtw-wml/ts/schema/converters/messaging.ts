@@ -6,6 +6,7 @@ import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove } from "../baseClasses"
 
 const messagingTemplates = {
     Message: {
@@ -41,7 +42,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             tag: 'Moment',
             ...validateProperties(messagingTemplates.Moment)(parseOpen)
         }),
-        typeCheckContents: isSchemaMessage
+        typeCheckContents: (node) => (isSchemaMessage(node) || isSchemaRemove(node))
     },
 }
 

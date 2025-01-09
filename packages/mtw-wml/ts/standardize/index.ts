@@ -223,7 +223,10 @@ export class StandardForm {
                     { key: 'Knowledge' },
                     { key: 'Map' },
                     { key: 'Theme' },
-                    { key: 'Message' },
+                    {
+                        key: 'Message',
+                        legalParents: ['Moment']
+                    },
                     { key: 'Moment' },
                     { key: 'Variable' },
                     { key: 'Computed' },

@@ -6,6 +6,8 @@ import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardRemove } from "../edits"
+import { excludeUndefined } from "../../../lib/lists"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree
@@ -82,17 +84,17 @@ export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
         .map(({ to }) => (to)))
 }
 
-export const mergeUniqueReferences = (...referenceLists: StandardReference[][]): StandardReference[] => {
-    const referencesById = referenceLists.reduce<Record<string, StandardReference>>((previous, references) => (
-        references.reduce<Record<string, StandardReference>>((accumulator, reference) => {
+export const mergeUniqueReferences = (...referenceLists: (StandardReference | StandardRemove)[][]): (StandardReference | StandardRemove)[] => {
+    const referencesById = referenceLists.reduce<Record<string, (StandardReference | StandardRemove | undefined)>>((previous, references) => (
+        references.reduce<Record<string, StandardReference | StandardRemove | undefined>>((accumulator, reference) => {
             const previousReference = accumulator[reference.key]
             return {
                 ...accumulator,
-                [reference.key]: previousReference ? previousReference.merge(reference) as StandardReference : reference
+                [reference.key]: previousReference ? previousReference.merge(reference) as StandardReference | StandardRemove | undefined : reference
             }
         }, previous)
     ), {})
-    return Object.values(referencesById)
+    return Object.values(referencesById).filter(excludeUndefined)
 }
 
 export default linkReferenceKeys

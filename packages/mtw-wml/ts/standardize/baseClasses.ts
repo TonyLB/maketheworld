@@ -122,6 +122,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
             }
         case 'Feature':
         case 'Knowledge':
+        case 'Message':
             return {
                 tag,
                 key,

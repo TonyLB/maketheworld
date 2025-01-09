@@ -1,11 +1,10 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { StandardReferenceData } from ".";
 
 export type StandardMomentData = {
     tag: 'Moment';
-    messages: GenericTree<SchemaTag>;
+    messages: StandardReferenceData[];
 } & StandardBaseData
 
 export const isStandardMoment = (arg: any): arg is StandardMomentData => {

@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMomentData } from "./dataTypes/moment"
 import StandardMoment from './moment'
+import StandardReference from "./reference"
 import { mergeTest } from './utils/testing'
 
 describe('StandardMoment class', () => {
@@ -12,7 +13,7 @@ describe('StandardMoment class', () => {
         `)
         const testMoment = new StandardMoment(testSource)
         expect(testMoment.key).toEqual('test')
-        expect(testMoment.messages).toEqual([{ data: { tag: 'Message', key: 'testMessage' }, children: [] }])
+        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(schemaToWML([testMoment.schema])).toEqual(testSource)
     })
 
@@ -24,7 +25,7 @@ describe('StandardMoment class', () => {
         schema.loadWML(testSource)
         const testMoment = new StandardMoment(schema.schema[0])
         expect(testMoment.key).toEqual('test')
-        expect(testMoment.messages).toEqual([{ data: { tag: 'Message', key: 'testMessage' }, children: [] }])
+        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(schemaToWML([testMoment.schema])).toEqual(testSource)
     })
 
@@ -32,10 +33,10 @@ describe('StandardMoment class', () => {
         const testMomentData: StandardMomentData = {
             key: 'test',
             tag: 'Moment',
-            messages: [{ data: { tag: 'Message', key: 'testMessage' }, children: [] }]
+            messages: [{ tag: 'Message', key: 'testMessage' }]
         }
         const testMoment = new StandardMoment(testMomentData)
-        expect(testMoment.messages).toEqual([{ data: { tag: 'Message', key: 'testMessage' }, children: [] }])
+        expect(testMoment.messages).toEqual([new StandardReference({ tag: 'Message', key: 'testMessage' })])
         expect(testMoment.toJSON()).toEqual(testMomentData)
     })
 
@@ -49,6 +50,54 @@ describe('StandardMoment class', () => {
                 <Message key=(testMessage) />
                 <Message key=(testMessageTwo) />
             </Moment>
+        `))
+    })
+
+    it('should correctly merge removing a message', () => {
+        expect(mergeTest(
+            '<Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>',
+            StandardMoment,
+            '<Moment key=(test)><Remove><Message key=(testMessage2) /></Remove></Moment>'
+        )).toEqual(deIndentWML(`
+            <Moment key=(test)>
+                <Message key=(testMessage) />
+            </Moment>
+        `))
+    })
+
+    it('should correctly no-op on diff of identical objects', () => {
+        const testSource = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /></Moment>
+        `)
+        const testMoment = new StandardMoment(testSource)
+        expect(testMoment.diff(testMoment)).toBeUndefined()
+    })
+
+    it('should correctly diff adding a message', () => {
+        const testSource = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /></Moment>
+        `)
+        const testMoment = new StandardMoment(testSource)
+        const testSource2 = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>
+        `)
+        const testMoment2 = new StandardMoment(testSource2)
+        expect(testMoment.diff(testMoment2)).toEqual(new StandardMoment(`
+            <Moment key=(test)><Message key=(testMessageTwo) /></Moment>
+        `))
+    })
+
+    it('should correct diff removing a message', () => {
+        const testSource = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>
+        `)
+        const testMoment = new StandardMoment(testSource)
+        const testSource2 = deIndentWML(`
+            <Moment key=(test)><Message key=(testMessage) /></Moment>
+        `)
+        const testMoment2 = new StandardMoment(testSource2)
+        expect(testMoment.diff(testMoment2)).toEqual(new StandardMoment(`
+            <Moment key=(test)><Remove><Message key=(testMessageTwo) /></Remove></Moment>
         `))
     })
 })

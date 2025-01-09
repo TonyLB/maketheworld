@@ -121,7 +121,7 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
 // 
 // Computes the difference between two lists of `StandardReference` objects.
 // 
-export const diffStandardReferenceList = (base: StandardReference[], incoming: StandardReference[]): (StandardReference | StandardRemove)[] => {
+export const diffStandardReferenceList = (base: (StandardReference | StandardRemove)[], incoming: (StandardReference | StandardRemove)[]): (StandardReference | StandardRemove)[] => {
     const baseRemoves = base
         .filter(baseReference => !incoming.some(incomingReference => incomingReference.key === baseReference.key))
         .map(baseReference => new StandardRemove(baseReference))
