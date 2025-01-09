@@ -1,10 +1,11 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaName, isSchemaString } from "../../schema/baseClasses"
+import { isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
 import { mergeTest } from "./utils/testing"
+import { StandardReplace, StandardRemove } from "./edits"
 
 describe('StandardExample class', () => {
 
@@ -129,4 +130,84 @@ describe('StandardExample class', () => {
         })
     })
 
+    it('should diff identical components correctly', () => {
+        const testExample = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description Test'],
+        })
+        expect(testExample.diff(testExample)).toBeUndefined()
+    })
+
+    it('should correctly diff removing a field', () => {
+        const testExample = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description Test'],
+        })
+        const testExample2 = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+        })
+        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            description: [{ data: { tag: 'Remove' }, children: ['Description Test'] }],
+        }))
+    })
+
+    it('should correct diff adding a field', () => {
+        const testExample = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+        })
+        const testExample2 = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description Test'],
+        })
+        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            description: ['Description Test'],
+        }))
+    })
+
+    it('should correctly diff changing a field', () => {
+        const testExample = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description', { data: { tag: 'Space' }, children: [] }, 'Test'],
+        })
+        const testExample2 = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description', { data: { tag: 'Space' }, children: [] }, 'Changed'],
+        })
+        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            description: [{
+                data: { tag: 'Replace' },
+                children: [
+                    { data: { tag: 'ReplaceMatch' }, children: ['Test'] },
+                    { data: { tag: 'ReplacePayload' }, children: ['Changed'] }
+                ]
+            }],
+        }))
+    })
 })

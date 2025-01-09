@@ -7,13 +7,14 @@ import { StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
-import { StandardRender } from "../render"
+import { StandardRender, StandardRenderRemove, StandardRenderReplace } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { deepEqual } from "../../lib/objects"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -158,6 +159,26 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardExample(super.merge(incoming) as StandardExample)
+    }
+
+    override diff(incoming: StandardComponent): StandardComponent | undefined {
+        if (!(incoming instanceof StandardExample)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+            return undefined
+        }
+        const base = new StandardExample(this.key).withImport(this.import).withExport(this.export) as StandardExample
+        base._payload._name = this._payload._name
+            ? this._payload._name.diff(incoming._payload._name)
+            : incoming._payload._name
+        base._payload._summary = this._payload._summary
+            ? this._payload._summary.diff(incoming._payload._summary)
+            : incoming._payload._summary
+        base._payload._description = this._payload._description
+            ? this._payload._description.diff(incoming._payload._description)
+            : incoming._payload._description
+        return base
     }
 
     override withKey(key: string): StandardComponent {
