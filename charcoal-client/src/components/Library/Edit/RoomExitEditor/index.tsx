@@ -156,7 +156,22 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         <StandardFormSchema componentKey={RoomId} tag="Exits">
             <EditSchema
                 value={component?.exits ?? []}
-                onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'spliceList', componentKey: RoomId, itemKey: 'exits', at: 0, replace: (component?.exits ?? []).length, items: value }) }}}
+                onChange={(value) => {
+                    if (typeof value !== 'function') {
+                        updateStandard({
+                            type: 'updateComponent',
+                            componentKey: RoomId,
+                            update: (component) => {
+                                if (component instanceof StandardRoom) {
+                                    const base = component.clone()
+                                    base._payload._exits = value
+                                    return base
+                                }
+                                return component
+                            }
+                        })
+                    }
+                }}
             >
                 <ListWithConditions
                     render={render}

@@ -15,14 +15,14 @@ import LibraryBanner from "../LibraryBanner"
 import { EditSchema, useEditNodeContext } from "../EditContext"
 import TitledBox from "../../../TitledBox"
 import DescriptionEditor from "../DescriptionEditor"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTreeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import SidebarTitle from "../SidebarTitle"
 import SchemaTagTree from "@tonylb/mtw-wml/ts/tagTree/schema"
 import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
 import { StandardFormSchema } from "../StandardFormContext"
 import ListWithConditions from "../ListWithConditions"
 import StandardTheme from "@tonylb/mtw-wml/ts/standardize/components/theme"
-import { isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaAsset, isSchemaCharacter, isSchemaPrompt, isSchemaWithKey, SchemaPromptTag, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
 import { SchemaAssetTag, SchemaStoryTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { SchemaCharacterTag } from "@tonylb/mtw-base/ts/schema/character"
 import { standardComponentByTag } from "@tonylb/mtw-wml/ts/standardize/nonEditFactory"
@@ -156,7 +156,22 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 <SidebarTitle title="Prompts" minHeight="8em">
                     <EditSchema
                         value={component?.prompts ?? []}
-                        onChange={(value) => { if (typeof value !== 'function') { updateStandard({ type: 'spliceList', componentKey: ComponentId, itemKey: 'prompts', at: 0, replace: (component?.prompts ?? []).length, items: value }) } }}
+                        onChange={(value) => {
+                            if (typeof value !== 'function') {
+                                updateStandard({
+                                    type: 'updateComponent',
+                                    componentKey: ComponentId,
+                                    update: (component) => {
+                                        if (component instanceof StandardTheme) {
+                                            const base = component.clone()
+                                            base._payload._prompts = value as GenericTreeFiltered<SchemaPromptTag, SchemaTag>
+                                            return base
+                                        }
+                                        return component
+                                    }
+                                })
+                            }
+                        }}
                     >
                         <ListWithConditions
                             render={render}
