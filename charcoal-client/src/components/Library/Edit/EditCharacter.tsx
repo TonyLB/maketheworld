@@ -316,70 +316,70 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
 
 }
 
-type EditCharacterAssetListProps = {}
+// type EditCharacterAssetListProps = {}
 
-type ZonedAssets = {
-    key: string;
-    zone: string;
-}
+// type ZonedAssets = {
+//     key: string;
+//     zone: string;
+// }
 
-const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
-    const { Assets: libraryAssets } = useSelector(getLibrary)
-    const personalAssets = useSelector(getMyAssets)
-    const allPersonalAssets = useSelector(getAll)
-    const assetsAvailable: ZonedAssets[] = [
-        ...personalAssets
-            .filter(({ AssetId }) => ((`ASSET#${AssetId}` in allPersonalAssets && allPersonalAssets[`ASSET#${AssetId}`].serialized) || !(`ASSET#${AssetId}` in allPersonalAssets)))
-            .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
-        ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
-    ]
-    const { updateStandard, standardForm } = useLibraryAsset()
-    const assetsImported = useMemo(() => (standardForm.metaData
-        .filter(treeNodeTypeguard(isSchemaImport))
-        .map(({ data }) => (data))
-        .map(({ from }) => (from))
-        //
-        // Find each asset in the Library and determine its zone
-        //
-        .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
-        .filter((value) => (value))
-    ), [standardForm])
-    const dispatch = useDispatch()
-    const onChange = useCallback((_, newAssets: (ZonedAssets | undefined)[]) => {
-        const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
-        const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
-        updateStandard({ type: 'replaceMetaData', metaData: saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key, mapping: {} }, children: [] })) })
-        if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
-            dispatch(addOnboardingComplete(['editCharacterAssets']))
-        }
-    }, [standardForm, updateStandard, dispatch])
-    return <Autocomplete
-        multiple
-        id="asset-list"
-        options={assetsAvailable}
-        groupBy={({ zone }) => (zone)}
-        disableCloseOnSelect
-        getOptionLabel={(option) => ((((typeof option === 'object') && option.key) || ((typeof option === 'string') && option)) || '')}
-        isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
-        renderOption={(props, option, { selected }) => (
-            <li {...props}>
-            <Checkbox
-                icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                checkedIcon={<CheckBoxIcon fontSize="small" />}
-                style={{ marginRight: 8 }}
-                checked={selected}
-            />
-            {option.key}
-            </li>
-        )}
-        style={{ width: 500 }}
-        renderInput={(params) => (
-            <TextField {...params} label="View Non-Canon Assets" />
-        )}
-        value={assetsImported.filter(excludeUndefined)}
-        onChange={onChange}
-    />
-}
+// const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
+//     const { Assets: libraryAssets } = useSelector(getLibrary)
+//     const personalAssets = useSelector(getMyAssets)
+//     const allPersonalAssets = useSelector(getAll)
+//     const assetsAvailable: ZonedAssets[] = [
+//         ...personalAssets
+//             .filter(({ AssetId }) => ((`ASSET#${AssetId}` in allPersonalAssets && allPersonalAssets[`ASSET#${AssetId}`].serialized) || !(`ASSET#${AssetId}` in allPersonalAssets)))
+//             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
+//         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
+//     ]
+//     const { updateStandard, standardForm } = useLibraryAsset()
+//     const assetsImported = useMemo(() => (standardForm.metaData
+//         .filter(treeNodeTypeguard(isSchemaImport))
+//         .map(({ data }) => (data))
+//         .map(({ from }) => (from))
+//         //
+//         // Find each asset in the Library and determine its zone
+//         //
+//         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
+//         .filter((value) => (value))
+//     ), [standardForm])
+//     const dispatch = useDispatch()
+//     const onChange = useCallback((_, newAssets: (ZonedAssets | undefined)[]) => {
+//         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
+//         const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
+//         updateStandard({ type: 'replaceMetaData', metaData: saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key, mapping: {} }, children: [] })) })
+//         if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
+//             dispatch(addOnboardingComplete(['editCharacterAssets']))
+//         }
+//     }, [standardForm, updateStandard, dispatch])
+//     return <Autocomplete
+//         multiple
+//         id="asset-list"
+//         options={assetsAvailable}
+//         groupBy={({ zone }) => (zone)}
+//         disableCloseOnSelect
+//         getOptionLabel={(option) => ((((typeof option === 'object') && option.key) || ((typeof option === 'string') && option)) || '')}
+//         isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
+//         renderOption={(props, option, { selected }) => (
+//             <li {...props}>
+//             <Checkbox
+//                 icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+//                 checkedIcon={<CheckBoxIcon fontSize="small" />}
+//                 style={{ marginRight: 8 }}
+//                 checked={selected}
+//             />
+//             {option.key}
+//             </li>
+//         )}
+//         style={{ width: 500 }}
+//         renderInput={(params) => (
+//             <TextField {...params} label="View Non-Canon Assets" />
+//         )}
+//         value={assetsImported.filter(excludeUndefined)}
+//         onChange={onChange}
+//     />
+// }
 
 interface ImageHeaderProps {
     ItemId: `CHARACTER#${string}`;
@@ -557,7 +557,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 tag="outfit"
                 label="Outfit"
             />
-            <EditCharacterAssetList />
+            {/* <EditCharacterAssetList /> */}
         </Stack>
     </Box>
 }
