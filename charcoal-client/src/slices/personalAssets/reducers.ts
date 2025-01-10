@@ -77,16 +77,6 @@ type UpdateStandardPayloadAddComponent = {
     key?: string;
 }
 
-type UpdateStandardPayloadSpliceList = {
-    type: 'spliceList';
-    componentKey: string;
-    itemKey: string; // Needs to restrict to possible itemKeys
-    at: number;
-    replace?: number;
-    items: GenericTree<SchemaTag>;
-    produce?: (draft: Draft<GenericTree<SchemaTag>>) => void;
-}
-
 type UpdateStandardPayloadReplaceMetaData = {
     type: 'replaceMetaData';
     metaData: GenericTree<SchemaTag>;
@@ -98,11 +88,10 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
-const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
@@ -157,38 +146,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         // Add a default component
         //
         state.edit.byId[payload.key ?? syntheticKey] = defaultComponentFromTag(payload.tag, payload.key ?? syntheticKey)
-    }
-    if (isUpdateStandardPayloadSpliceList(payload)) {
-        const component = standardForm.byId[payload.componentKey]
-        if (component?.[payload.itemKey] && Array.isArray(component[payload.itemKey])) {
-            const oldList = JSON.parse(JSON.stringify(component[payload.itemKey])) as GenericTree<SchemaTag>
-            const newList = payload.produce
-                ? immerProduce(component[payload.itemKey], payload.produce) as unknown as GenericTree<SchemaTag>
-                : [
-                    ...component[payload.itemKey].slice(0, payload.at),
-                    ...payload.items,
-                    ...component[payload.itemKey].slice(payload.at + payload.replace)
-                ]
-
-            //
-            // Compare the sublists before and after, and deduce Removes, Adds, and Replaces in
-            // order.
-            //
-            const editChildren = listDiff(oldList, newList)
-            if (editChildren.length) {
-                mergeToEdit({
-                    ...state.edit,
-                    byId: {
-                        [payload.componentKey]: {
-                            ...(defaultComponentFromTag(component.tag, payload.componentKey)),
-                            key: payload.componentKey,
-                            tag: component.tag,
-                            [payload.itemKey]: editChildren
-                        } as StandardComponentData
-                    }
-                })
-            }
-        }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
         const editChildren = listDiff(standardForm.metaData, payload.metaData)

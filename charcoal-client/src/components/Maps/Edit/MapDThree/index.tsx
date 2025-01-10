@@ -10,6 +10,7 @@ import { isStandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -66,12 +67,24 @@ export class MapDThree extends Object {
             onChange: (newTree) => {
                 const mapComponent = standardForm.byId[mapId]
                 if (mapComponent && isStandardMap(mapComponent)) {
-                    if (typeof newTree === 'function') {
-                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, items: [], produce: newTree })
-                    }
-                    else {
-                        updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
-                    }
+                    updateStandard({
+                        type: 'updateComponent',
+                        componentKey: mapId,
+                        update: (component) => {
+                            if (component instanceof StandardMap) {
+                                const base = component.clone()
+                                if (typeof newTree === 'function') {
+                                    const positions = produce(base.positions, newTree)
+                                    base._payload._positions = positions
+                                }
+                                else {
+                                    base._payload._positions = newTree
+                                }
+                                return base
+                            }
+                            return component
+                        }
+                    })
                 }
             },
             onTick,
@@ -114,12 +127,24 @@ export class MapDThree extends Object {
         this.tree.update(tree, standardForm, (newTree) => {
             const mapComponent = standardForm.byId[mapId]
             if (mapComponent && isStandardMap(mapComponent)) {
-                if (typeof newTree === 'function') {
-                    updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, items: [], produce: newTree })
-                }
-                else {
-                    updateStandard({ type: 'spliceList', componentKey: mapId, itemKey: 'positions', at: 0, replace: mapComponent.positions.length, items: newTree })
-                }
+                updateStandard({
+                    type: 'updateComponent',
+                    componentKey: mapId,
+                    update: (component) => {
+                        if (component instanceof StandardMap) {
+                            const base = component.clone()
+                            if (typeof newTree === 'function') {
+                                const positions = produce(base.positions, newTree)
+                                base._payload._positions = positions
+                            }
+                            else {
+                                base._payload._positions = newTree
+                            }
+                            return base
+                        }
+                        return component
+                    }
+                })
             }
         },
 )

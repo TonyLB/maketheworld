@@ -23,11 +23,15 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId }) => 
     const addExitItem = useCallback(() => {
         if (roomComponent instanceof StandardRoom) {
             updateStandard({
-                type: 'spliceList',
+                type: 'updateComponent',
                 componentKey: roomComponent.key,
-                itemKey: 'exits',
-                at: roomComponent.exits.length,
-                items: [{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] }]
+                update: (room) => {
+                    const base = room.clone()
+                    if (base instanceof StandardRoom) {
+                        base._payload._exits.push({ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] })
+                    }
+                    return base
+                }
             })
         }
     }, [roomComponent, updateStandard])

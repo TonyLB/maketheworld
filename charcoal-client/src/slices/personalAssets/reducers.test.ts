@@ -175,12 +175,15 @@ describe('personalAsset slice reducers', () => {
                 <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'spliceList',
+                    type: 'updateComponent',
                     componentKey: 'testRoom',
-                    itemKey: 'exits',
-                    at: 0,
-                    replace: 1,
-                    items: []
+                    update: (draft) => {
+                        const base = draft.clone()
+                        if (base instanceof StandardRoom) {
+                            base._payload._exits = []
+                        }
+                        return base
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`
@@ -238,12 +241,15 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'spliceList',
+                    type: 'updateComponent',
                     componentKey: 'testRoom',
-                    itemKey: 'exits',
-                    at: 0,
-                    replace: 1,
-                    items: [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
+                    update: (draft) => {
+                        const base = draft.clone()
+                        if (base instanceof StandardRoom) {
+                            base._payload._exits = [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
+                        }
+                        return base
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`
@@ -286,75 +292,6 @@ describe('personalAsset slice reducers', () => {
                 `)
             })
 
-        })
-
-        it('should splice a component list with immer producer', () => {
-            expect(transformWML(
-                `
-                <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(testDestination)>out</Exit>
-                    </Room>
-                </Asset>
-                `,
-                `
-                    <Asset key=(testAsset) />
-                `,
-                {
-                    type: 'spliceList',
-                    componentKey: 'testRoom',
-                    itemKey: 'exits',
-                    at: 0,
-                    items: [],
-                    produce: (draft) => {
-                        draft.filter(treeNodeTypeguard(isSchemaExit)).forEach((node) => {
-                            node.children.filter(treeNodeTypeguard(isSchemaString)).forEach(({ data }) => { data.value = 'Test Update' })
-                        })
-                    }
-                }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>out</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>Test Update</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>Test Update</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Replace><Exit to=(testDestination)>out</Exit></Replace>
-                            <With><Exit to=(testDestination)>Test Update</Exit></With>
-                        </Room>
-                    </Asset>
-                `)
-            })
         })
 
         it('should delete schema content', () => {
