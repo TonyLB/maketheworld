@@ -250,16 +250,25 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
     useEffect(() => {
-        const schemaTag: SchemaTag["tag"] = tag === 'firstImpression' ? 'FirstImpression' : tag === 'oneCoolThing' ? 'OneCoolThing' : 'Outfit'
-        const item = { tag: schemaTag, value: debouncedTagValue }
-        if (!deepEqual(character[tag]?.data ?? {}, item)) {
-            updateStandard({
-                type: 'updateField',
-                componentKey: character.key,
-                itemKey: tag,
-                value: item
-            })
-        }
+        updateStandard({
+            type: 'updateComponent',
+            componentKey: character.key,
+            update: (incoming: StandardComponent) => {
+                const base = incoming.clone()
+                if (base instanceof StandardCharacter) {
+                    if (tag === 'firstImpression') {
+                        base._payload._firstImpression = { data: { tag: 'FirstImpression', value: debouncedTagValue }, children: [] }
+                    }
+                    else if (tag === 'oneCoolThing') {
+                        base._payload._oneCoolThing = { data: { tag: 'OneCoolThing', value: debouncedTagValue }, children: [] }
+                    }
+                    else if (tag === 'outfit') {
+                        base._payload._outfit = { data: { tag: 'Outfit', value: debouncedTagValue }, children: [] }
+                    }
+                }
+                return base
+            }
+        })
     }, [character.key, tag, updateStandard, debouncedTagValue])
 
     return <TextField
@@ -436,14 +445,16 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             ?.[0]) || 'custom'
     }, [currentPronouns])
     const onSelectChangeHandler = useCallback((value) => {
-        if ((value !== 'custom') && standardPronouns[value]) {
+        if (character && ((value !== 'custom') && standardPronouns[value])) {
             updateStandard({
-                type: 'updateField',
-                componentKey: character?.key ?? '',
-                itemKey: 'pronouns',
-                value: {
-                    tag: 'Pronouns',
-                    ...standardPronouns[value]
+                type: 'updateComponent',
+                componentKey: character.key,
+                update: (incoming: StandardComponent) => {
+                    const base = incoming.clone()
+                    if (base instanceof StandardCharacter) {
+                        base._payload._pronouns = { data: { tag: 'Pronouns', ...standardPronouns[value] }, children: [] }
+                    }
+                    return base
                 }
             })
         }
@@ -465,10 +476,15 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             //
             else {
                 updateStandard({
-                    type: 'updateField',
+                    type: 'updateComponent',
                     componentKey: character.key,
-                    itemKey: 'image',
-                    value: { data: { tag: 'Image', key: characterIconKey }, children: [] }
+                    update: (incoming: StandardComponent) => {
+                        const base = incoming.clone()
+                        if (base instanceof StandardCharacter) {
+                            base._payload._image = { data: { tag: 'Image', key: characterIconKey }, children: [] }
+                        }
+                        return base
+                    }
                 })
                 SCHEMADIRTY = true
                 dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))

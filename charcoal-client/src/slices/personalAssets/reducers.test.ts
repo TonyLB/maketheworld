@@ -9,6 +9,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
+import StandardComputed from "@tonylb/mtw-wml/ts/standardize/components/computed"
 
 describe('personalAsset slice reducers', () => {
 
@@ -416,10 +417,15 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'updateField',
+                    type: 'updateComponent',
                     componentKey: 'testComputed',
-                    itemKey: 'src',
-                    value: 'testVar'
+                    update: (draft) => {
+                        const base = draft.clone()
+                        if (base instanceof StandardComputed) {
+                            base._payload._src = 'testVar'
+                        }
+                        return base
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`

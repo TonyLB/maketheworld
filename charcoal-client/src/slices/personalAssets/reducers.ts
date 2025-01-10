@@ -71,13 +71,6 @@ export type UpdateStandardPayloadUpdateComponent = {
     update: (draft: StandardComponent) => StandardComponent | undefined;
 }
 
-type UpdateStandardPayloadUpdateField = {
-    type: 'updateField';
-    componentKey: string;
-    itemKey: string; // Needs to restrict to possible itemKeys
-    value?: any
-}
-
 type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
     tag: ComponentTag;
@@ -105,10 +98,9 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateField | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadSpliceList | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
-const isUpdateStandardPayloadUpdateField = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateField => (payload.type === 'updateField')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadSpliceList = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSpliceList => (payload.type === 'spliceList')
 const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
@@ -125,7 +117,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const standardFormData = publicSelectors.getStandardForm({ ...state, key: '' })
     const standardForm = new StandardForm(standardFormData)
-    const component = isUpdateStandardPayloadUpdateField(payload) ? standardForm.byId[payload.componentKey] : undefined
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         state.edit = editStandardized.merge(delta).toJSON()
@@ -152,28 +143,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             else {
                 mergeComponentToEdit(new StandardRemove(component))
             }
-        }
-    }
-    if (isUpdateStandardPayloadUpdateField(payload)) {
-        switch(component?.tag) {
-            case 'Action':
-            case 'Variable':
-            case 'Computed':
-                mergeToEdit({
-                    ...state.edit,
-                    byId: {
-                        [payload.componentKey]: {
-                            tag: 'Replace',
-                            key: component.key,
-                            match: JSON.parse(JSON.stringify(component)),
-                            payload: {
-                                ...component,
-                                [payload.itemKey]: payload.value
-                            }
-                        }
-                    }
-                })
-                break
         }
     }
     if (isUpdateStandardPayloadAddComponent(payload)) {

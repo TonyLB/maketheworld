@@ -8,6 +8,7 @@ import { JSEdit } from './JSEdit'
 import { StandardAction } from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { StandardComputed } from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import { StandardVariable } from '@tonylb/mtw-wml/ts/standardize/components/variable'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 type JSTags = StandardAction | StandardComputed | StandardVariable
 
@@ -37,18 +38,28 @@ const JSHeader = <T extends JSTags>({ item, getJS, maxHeight }: JSHeaderProps<T>
                     onChange={(value) => {
                         if (['Action', 'Computed'].includes(item.tag)) {
                             updateStandard({
-                                type: 'updateField',
+                                type: 'updateComponent',
                                 componentKey: item.key,
-                                itemKey: 'src',
-                                value
+                                update: (incoming: StandardComponent) => {
+                                    const base = incoming.clone()
+                                    if (base instanceof StandardAction || base instanceof StandardComputed) {
+                                        base._payload._src = value
+                                    }
+                                    return base
+                                }
                             })                            
                         }
                         if (item.tag === 'Variable') {
                             updateStandard({
-                                type: 'updateField',
+                                type: 'updateComponent',
                                 componentKey: item.key,
-                                itemKey: 'default',
-                                value
+                                update: (incoming: StandardComponent) => {
+                                    const base = incoming.clone()
+                                    if (base instanceof StandardVariable) {
+                                        base._payload._default = value
+                                    }
+                                    return base
+                                }
                             })
                         }
                     }}
