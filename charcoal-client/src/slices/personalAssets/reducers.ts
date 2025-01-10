@@ -1,12 +1,11 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { selectKeysByTag } from '@tonylb/mtw-wml/ts/schema/selectors/keysByTag'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
-import { unwrapSubject, wrappedNodeTypeGuard } from '@tonylb/mtw-wml/ts/schema/utils'
-import { defaultComponentFromTag, EditWrappedStandardNode, isStandardCharacter, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardTheme, StandardCharacter, StandardComponentData, StandardMap, StandardTheme, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { defaultComponentFromTag, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, StandardComponentData, unwrapStandardComponent } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Draft, WritableDraft } from 'immer/dist/internal'
 import { excludeUndefined } from '../../lib/lists'
 import { listDiff } from '@tonylb/mtw-wml/ts/schema/treeManipulation/listDiff'
@@ -14,19 +13,17 @@ import { deepEqual } from '../../lib/objects'
 import immerProduce from 'immer'
 import { publicSelectors } from './selectors'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { StandardComponentNonEditData, StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { isSchemaAsset, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/ts/schema'
-import { isSchemaExit, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from '@tonylb/mtw-base/ts/schema/components'
-import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from '@tonylb/mtw-base/ts/schema/example'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaExit, isSchemaRoom } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaLink } from '@tonylb/mtw-base/ts/schema/renderTree'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { editConverters } from '@tonylb/mtw-wml/ts/schema/converters/edit'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -145,9 +142,15 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }, new StandardForm(state.base)).merge(new StandardForm(state.edit))
         const component = standardForm.byId[payload.componentKey]
         if (component) {
-            const newComponent = payload.update(component)
-            if (newComponent) {
-                mergeComponentToEdit(newComponent)
+            const newOutput = payload.update(component)
+            if (newOutput) {
+                const editComponent = component.diff(newOutput)
+                if (editComponent) {
+                    mergeComponentToEdit(editComponent)
+                }
+            }
+            else {
+                mergeComponentToEdit(new StandardRemove(component))
             }
         }
     }

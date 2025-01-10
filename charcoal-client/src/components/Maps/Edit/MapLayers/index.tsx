@@ -12,7 +12,7 @@ import PositionIcon from '@mui/icons-material/ControlCamera'
 import EditIcon from '@mui/icons-material/Edit'
 import { grey } from '@mui/material/colors'
 import { useMapContext } from '../../Controller'
-import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
@@ -28,11 +28,11 @@ import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
-import { StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 
 type MapLayersProps = {
     mapId: string;
@@ -66,15 +66,10 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
             updateStandard({
                 type: 'updateComponent',
                 componentKey: roomComponent.key,
-                update: () => {
-                    const base = standardComponentByTag('Room', roomComponent.key)
+                update: (incoming: StandardComponent) => {
+                    const base = incoming.clone()
                     if (base instanceof StandardRoom) {
-                        base._payload._shortName = value.length
-                            ? new StandardRenderReplace(
-                                    roomComponent.shortName,
-                                    { data: { tag: 'ShortName' }, children: value }
-                                ).toJSON() as unknown as StandardRoom['_payload']['_shortName']
-                            : new StandardRenderRemove(roomComponent.shortName).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                        base._payload._shortName = new StandardRender([value])
                     }
                     return base
                 }
@@ -306,15 +301,12 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
                             updateStandard({
                                 type: 'updateComponent',
                                 componentKey: mapId,
-                                update: () => {
-                                    const base = standardComponentByTag(component.tag, component.key)
+                                update: (incoming: StandardComponent) => {
+                                    const base = incoming.clone()
                                     if (base instanceof StandardMap) {
-                                        base._payload._name = value.length
-                                            ? new StandardRenderReplace(
-                                                    component.name,
-                                                    { data: { tag: 'Name' }, children: value }
-                                                ).toJSON() as unknown as StandardMap['_payload']['_name']
-                                            : new StandardRenderRemove(component.name).toJSON() as unknown as StandardMap['_payload']['_name']
+                                        base._payload._name = value.length ?
+                                            { data: { tag: 'Name' }, children: value as GenericTree<SchemaOutputTag> }
+                                            : undefined
                                     }
                                     return base
                                 }

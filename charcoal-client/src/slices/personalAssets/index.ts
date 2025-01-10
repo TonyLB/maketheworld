@@ -49,7 +49,8 @@ import { SchemaStringTag } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 const autoSaveDebounce = new Debounce()
 
@@ -376,40 +377,32 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
             }, { service: 'asset' })).then((results: { description: string; summary: string; }) => {
                 const { description, summary } = results
                 if (description) {
-                    const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: description.trim() }, children: [] }
                     dispatch(
                         updateStandard(assetId)({
                             type: 'updateComponent',
                             componentKey: roomId,
-                                update: () => {
-                                    const base = standardComponentByTag('Room', roomComponent.key)
-                                    if (base instanceof StandardRoom) {
-                                        base._payload._description = new StandardRenderReplace(
-                                                roomComponent.description,
-                                                stringTag
-                                            ).toJSON() as unknown as StandardRoom['_payload']['_description']
-                                    }
-                                    return base
+                            update: (incoming: StandardComponent) => {
+                                const base = incoming.clone()
+                                if (base instanceof StandardRoom) {
+                                    base._payload._description = new StandardRender([description.trim()])
                                 }
+                                return base
+                            }
                         })
                     )
                 }
                 if (summary) {
-                    const stringTag: GenericTreeNode<SchemaStringTag> = { data: { tag: 'String', value: summary.trim() }, children: [] }
                     dispatch(
                         updateStandard(assetId)({
                             type: 'updateComponent',
                             componentKey: roomId,
-                                update: () => {
-                                    const base = standardComponentByTag('Room', roomComponent.key)
-                                    if (base instanceof StandardRoom) {
-                                        base._payload._summary = new StandardRenderReplace(
-                                                roomComponent.summary,
-                                                stringTag
-                                            ).toJSON() as unknown as StandardRoom['_payload']['_summary']
-                                    }
-                                    return base
+                            update: (incoming: StandardComponent) => {
+                                const base = incoming.clone()
+                                if (base instanceof StandardRoom) {
+                                    base._payload._summary = new StandardRender([summary])
                                 }
+                                return base
+                            }
                         })
                     )
                 }

@@ -59,8 +59,9 @@ import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { excludeUndefined } from '../../../lib/lists'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import StandardRenderString from '@tonylb/mtw-wml/ts/standardize/render/string'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -285,13 +286,10 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
             updateStandard({
                 type: 'updateComponent',
                 componentKey: character.key,
-                update: () => {
-                    const base = standardComponentByTag('Character', character.key)
+                update: (incoming: StandardComponent) => {
+                    const base = incoming.clone()
                     if (base instanceof StandardCharacter) {
-                        base._payload._name = new StandardRenderReplace(
-                            character.name,
-                            new StandardRenderString(debouncedTagValue)
-                        ).toJSON() as unknown as StandardCharacter['_payload']['_name']
+                        base._payload._name = { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: debouncedTagValue }, children: []}] }
                     }
                     return base
                 }
