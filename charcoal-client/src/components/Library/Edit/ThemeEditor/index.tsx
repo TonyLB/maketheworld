@@ -29,7 +29,8 @@ import { standardComponentByTag } from "@tonylb/mtw-wml/ts/standardize/nonEditFa
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
-import { StandardRenderRemove, StandardRenderReplace } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardRender, StandardRenderRemove, StandardRenderReplace } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 
 const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()
@@ -136,15 +137,10 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         updateStandard({
                             type: 'updateComponent',
                             componentKey: ComponentId,
-                            update: () => {
-                                const base = standardComponentByTag(component.tag, component.key)
+                            update: (incoming: StandardComponent) => {
+                                const base = incoming.clone()
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._name = value.length
-                                        ? new StandardRenderReplace(
-                                                component.name,
-                                                { data: { tag: 'Name' }, children: value }
-                                            ).toJSON() as unknown as StandardRoom['_payload']['_name']
-                                        : new StandardRenderRemove(component.name).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                    base._payload._name = new StandardRender([value])
                                 }
                                 return base
                             }

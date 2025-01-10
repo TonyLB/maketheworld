@@ -33,7 +33,8 @@ import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaOutputTag, Sch
 import { SchemaAssetTag, SchemaStoryTag } from '@tonylb/mtw-base/ts/schema/asset'
 import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
@@ -72,15 +73,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                             updateStandard({
                                 type: 'updateComponent',
                                 componentKey: ComponentId,
-                                update: () => {
-                                    const base = standardComponentByTag('Room', component.key)
+                                update: (incoming: StandardComponent) => {
+                                    const base = incoming.clone()
                                     if (base instanceof StandardRoom) {
-                                        base._payload._shortName = value.length
-                                            ? new StandardRenderReplace(
-                                                    component.shortName,
-                                                    { data: { tag: 'ShortName' }, children: value }
-                                                ).toJSON() as unknown as StandardRoom['_payload']['_shortName']
-                                            : new StandardRenderRemove(component.shortName).toJSON() as unknown as StandardRoom['_payload']['_shortName']
+                                        base._payload._shortName = new StandardRender([value])
                                     }
                                     return base
                                 }
@@ -105,15 +101,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         updateStandard({
                             type: 'updateComponent',
                             componentKey: ComponentId,
-                            update: () => {
-                                const base = standardComponentByTag(component.tag, component.key)
+                            update: (incoming: StandardComponent) => {
+                                const base = incoming.clone()
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._name = value.length
-                                        ? new StandardRenderReplace(
-                                                component.name,
-                                                { data: { tag: 'Name' }, children: value }
-                                            ).toJSON() as unknown as StandardRoom['_payload']['_name']
-                                        : new StandardRenderRemove(component.name).toJSON() as unknown as StandardRoom['_payload']['_name']
+                                    base._payload._name = new StandardRender([value])
                                 }
                                 return base
                             }
@@ -141,15 +132,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                             updateStandard({
                                 type: 'updateComponent',
                                 componentKey: ComponentId,
-                                update: () => {
-                                    const base = standardComponentByTag('Room', component.key)
+                                update: (incoming: StandardComponent) => {
+                                    const base = incoming.clone()
                                     if (base instanceof StandardRoom) {
-                                        base._payload._summary = value.length
-                                            ? new StandardRenderReplace(
-                                                    component.summary,
-                                                    { data: { tag: 'Summary' }, children: value }
-                                                ).toJSON() as unknown as StandardRoom['_payload']['_summary']
-                                            : new StandardRenderRemove(component.summary).toJSON() as unknown as StandardRoom['_payload']['_summary']
+                                        base._payload._summary = new StandardRender([value])
                                     }
                                     return base
                                 }
@@ -178,15 +164,10 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         updateStandard({
                             type: 'updateComponent',
                             componentKey: ComponentId,
-                            update: () => {
-                                const base = standardComponentByTag(component.tag, component.key)
+                            update: (incoming: StandardComponent) => {
+                                const base = incoming.clone()
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._description = value.length
-                                        ? new StandardRenderReplace(
-                                                component.description,
-                                                { data: { tag: 'Description' }, children: value }
-                                            ).toJSON() as unknown as StandardRoom['_payload']['_description']
-                                        : new StandardRenderRemove(component.description).toJSON() as unknown as StandardRoom['_payload']['_description']
+                                    base._payload._description = new StandardRender([value])
                                 }
                                 return base
                             }
