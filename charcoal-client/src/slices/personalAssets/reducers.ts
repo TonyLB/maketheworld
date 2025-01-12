@@ -24,6 +24,9 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
+import { StandardComponentImportPayload } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/metaData'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -75,6 +78,7 @@ type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
     tag: ComponentTag;
     key?: string;
+    import?: StandardComponentImportPayload;
 }
 
 type UpdateStandardPayloadReplaceMetaData = {
@@ -138,14 +142,30 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         //
         // Create a next synthetic key that doesn't conflict with the existing standardForm
         //
+        const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+            const editStandardized = new StandardForm(pendingEdit.edit)
+            return previous.merge(editStandardized)
+        }, new StandardForm(state.base)).merge(new StandardForm(state.edit))
+
         const keysByTag = Object.entries(standardForm.byId).filter(([_, node]) => (node.tag === payload.tag)).map(([key]) => (key))
         let nextIndex = 1
         while (keysByTag.includes(`${payload.tag}${nextIndex}`)) { nextIndex++ }
+
         const syntheticKey = `${payload.tag}${nextIndex}`
+
         //
         // Add a default component
         //
-        state.edit.byId[payload.key ?? syntheticKey] = defaultComponentFromTag(payload.tag, payload.key ?? syntheticKey)
+        const component = standardComponentByTag(payload.tag, payload.key ?? syntheticKey)
+        if (component) {
+            mergeComponentToEdit(payload.import
+                ? component.withImport(new ImportItemContent(payload.import.fromKey, payload.import.assetId).toJSON())
+                : component
+            )
+        }
+        else {
+            throw new Error(`Could not create component of tag ${payload.tag}`)
+        }
     }
     if (isUpdateStandardPayloadReplaceMetaData(payload)) {
         const editChildren = listDiff(standardForm.metaData, payload.metaData)
