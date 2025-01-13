@@ -310,59 +310,65 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
 //
 // TODO: ISS4354: Refactor addImport to use updateStandard
 //
-export const addImport = ({ assetId, fromAsset, as, key, type }: {
+export const addImport = ({ assetId, fromAsset, as, key, tag }: {
     assetId: EphemeraAssetId | EphemeraCharacterId,
     fromAsset: string,
-    key?: string;
+    tag: SchemaImportMapping["type"];
+    key: string;
     as?: string;
-    type?: SchemaImportMapping["type"];
 }, options?: { overrideGetStandard?: typeof getStandardForm, overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
-    const standardSelector = (options?.overrideGetStandard || getStandardForm)(assetId)
-    const standard = standardSelector(getState())
-    const importItem = standard.metaData.find((node) => {
-        if (!treeNodeTypeguard(isSchemaImport)(node)) {
-            return false
-        }
-        return node.data.from === fromAsset
-    })
-    if (!importItem) {
-        dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
-            type: 'replaceMetaData',
-            metaData: [
-                ...standard.metaData,
-                { data: { tag: 'Import', from: fromAsset, mapping: {} }, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
-            ]
-        }))
-    }
-    else {
-        if (importItem.children.find((child) => (!key || (treeNodeTypeguard(isSchemaWithKey)(child) && (child.data.key === key) && (child.data.tag === type) && ((child.data.as ?? '') === (as ?? '')))))) {
-            return
-        }
-        const newMetaData = standard.metaData.map((node) => {
-            if (treeNodeTypeguard(isSchemaImport)(node) && node.data.from === fromAsset) {
-                return {
-                    ...node,
-                    children: [
-                        ...node.children.filter((child) => (!(treeNodeTypeguard(isSchemaWithKey)(child) && child.data.key === key))),
-                        { data: { tag: type, key, as }, children: [] }
-                    ]
-                }
-            }
-            else {
-                return node
-            }
-        })
-        dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
-            type: 'replaceMetaData',
-            metaData: newMetaData
-        }))
-    }
+    // const standardSelector = (options?.overrideGetStandard || getStandardForm)(assetId)
+    // const standardData = standardSelector(getState())
+    // const importItem = standard.metaData.find((node) => {
+    //     if (!treeNodeTypeguard(isSchemaImport)(node)) {
+    //         return false
+    //     }
+    //     return node.data.from === fromAsset
+    // })
+    // if (!importItem) {
+    //     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
+    //         type: 'replaceMetaData',
+    //         metaData: [
+    //             ...standard.metaData,
+    //             { data: { tag: 'Import', from: fromAsset, mapping: {} }, children: key ? [{ data: { tag: type, key, as }, children: [] }] : [] }
+    //         ]
+    //     }))
+    // }
+    // else {
+    //     if (importItem.children.find((child) => (!key || (treeNodeTypeguard(isSchemaWithKey)(child) && (child.data.key === key) && (child.data.tag === type) && ((child.data.as ?? '') === (as ?? '')))))) {
+    //         return
+    //     }
+    //     const newMetaData = standard.metaData.map((node) => {
+    //         if (treeNodeTypeguard(isSchemaImport)(node) && node.data.from === fromAsset) {
+    //             return {
+    //                 ...node,
+    //                 children: [
+    //                     ...node.children.filter((child) => (!(treeNodeTypeguard(isSchemaWithKey)(child) && child.data.key === key))),
+    //                     { data: { tag: type, key, as }, children: [] }
+    //                 ]
+    //             }
+    //         }
+    //         else {
+    //             return node
+    //         }
+    //     })
+    //     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
+    //         type: 'replaceMetaData',
+    //         metaData: newMetaData
+    //     }))
+    // }
+    dispatch(publicActions.updateStandard(assetId)({
+        type: 'addComponent',
+        tag,
+        key: as ?? key,
+        importItem: { from: fromAsset, key }
+    }))
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
     dispatch(heartbeat)
 }
 
-export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: string }) => async (dispatch, getState) => {
+export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: string }) => async (dispatch: any, getState: any) => {
     const standardSelector = getStandardForm(assetId)
     const standard = standardSelector(getState())
 
