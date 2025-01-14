@@ -81,22 +81,16 @@ type UpdateStandardPayloadAddComponent = {
     import?: StandardComponentImportPayload;
 }
 
-type UpdateStandardPayloadReplaceMetaData = {
-    type: 'replaceMetaData';
-    metaData: GenericTree<SchemaTag>;
-}
-
 type UpdateStandardPayloadRenameKey = {
     type: 'renameKey',
     from: string;
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadReplaceMetaData | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
-const isUpdateStandardPayloadReplaceMetaData = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadReplaceMetaData => (payload.type === 'replaceMetaData')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
 export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: ComponentTag | "Import" }): string => {
@@ -165,16 +159,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
         else {
             throw new Error(`Could not create component of tag ${payload.tag}`)
-        }
-    }
-    if (isUpdateStandardPayloadReplaceMetaData(payload)) {
-        const editChildren = listDiff(standardForm.metaData, payload.metaData)
-        if (editChildren.length) {
-            mergeToEdit({
-                ...state.edit,
-                byId: {},
-                metaData: editChildren
-            })
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
