@@ -178,180 +178,190 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
-        //
-        // Add a true/false return value to recursiveRenameWalk to
-        // indicate whether it made a change, then use that to track at
-        // each step of renaming, whether a rename has occurred and
-        // add a mergeToEdit to represent the change
-        //
-        const recursiveRenameWalk = <T extends SchemaTag>(props: {
-            tree: GenericTree<SchemaTag>;
-            typeGuard: (value: SchemaTag) => value is T;
-            transform: (value: WritableDraft<T>) => void;
-        }): { changed: Boolean, tree: GenericTree<SchemaTag> } => {
-            const { tree, typeGuard, transform } = props
-            return tree.reduce<{ changed: Boolean; tree: GenericTree<SchemaTag> }>((previous, { data, children }) => {
-                const recurse = recursiveRenameWalk({ tree: children, typeGuard, transform })
-                const transformedData = typeGuard(data) ? immerProduce(data, transform) : data
-                return {
-                    changed: previous.changed || !deepEqual(data, transformedData) || recurse.changed,
-                    tree: [...previous.tree, { data: transformedData, children: recurse.tree }]
-                }
-            }, { changed: false, tree: [] })
+        const standardBase = new StandardForm(state.base)
+        const standardBeforeRename = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+            const editStandardized = new StandardForm(pendingEdit.edit)
+            return previous.merge(editStandardized)
+        }, standardBase).merge(new StandardForm(state.edit))
+        const renamedStandardForm = standardBeforeRename.renameKey([{ fromKey: payload.from, toKey: payload.to }])
+        const renameDiff = standardBeforeRename.diff(renamedStandardForm)
+        if (renameDiff) {
+            mergeToEdit(renameDiff)
         }
-        const previousComponent = JSON.parse(JSON.stringify(standardForm.byId[payload.from]))
-        const newComponent: StandardComponentData = {
-            ...JSON.parse(JSON.stringify(standardForm.byId[payload.from])),
-            key: payload.to
-        }
-        const renameEditStandard: StandardFormData = {
-            ...state.edit,
-            byId: {
-                [payload.from]: {
-                    tag: 'Remove' as const,
-                    key: previousComponent.key,
-                    component: unwrapStandardComponent(previousComponent)
-                },
-                [payload.to]: newComponent
-            },
-            metaData: []
-        }
-        mergeToEdit(renameEditStandard)
-        const renamedStandardForm = publicSelectors.getStandardForm({ ...state, key: '' })
-        Object.values(renamedStandardForm.byId).filter(excludeUndefined).forEach((component) => {
-            if (isStandardFeature(component) || isStandardKnowledge(component)) {
-                //
-                // Recursive transform links
-                //
-                if (component.description) {
-                    const { changed, tree: newDescription } = recursiveRenameWalk({
-                        tree: [component.description],
-                        typeGuard: isSchemaLink,
-                        transform: (link) => {
-                            if (link.to === payload.from) {
-                                link.to = payload.to
-                            }
-                        }
-                    })
-                    if (changed) {
-                        updateStandard(
-                            state,
-                            {
-                                type: 'updateStandard',
-                                payload: {
-                                    type: 'updateComponent',
-                                    componentKey: component.key,
-                                    update: (draft) => {
-                                        const base = draft.clone()
-                                        if (base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                            base._payload._description = new StandardRender(newDescription[0])
-                                        }
-                                        return base
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-            if (isStandardRoom(component)) {
-                //
-                // Recursive transform exits
-                //
-                const { changed, tree: newExits } = recursiveRenameWalk({
-                    tree: component.exits,
-                    typeGuard: isSchemaExit,
-                    transform: (exit) => {
-                        exit.to = exit.to === payload.from ? payload.to : exit.to
-                        exit.from = exit.from === payload.from ? payload.to : exit.from
-                        exit.key = `${exit.from}:${exit.to}`
-                    }
-                })
-                if (changed) {
-                    updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'exits', at: 0, replace: component.exits.length, items: newExits } })
-                }
-                //
-                // Recursive transform links
-                //
-                if (component.description) {
-                    const { changed, tree: newDescription } = recursiveRenameWalk({
-                        tree: [component.description],
-                        typeGuard: isSchemaLink,
-                        transform: (link) => {
-                            if (link.to === payload.from) {
-                                link.to = payload.to
-                            }
-                        }
-                    })
-                    if (changed) {
-                        updateStandard(
-                            state,
-                            {
-                                type: 'updateStandard',
-                                payload: {
-                                    type: 'updateComponent',
-                                    componentKey: component.key,
-                                    update: (draft) => {
-                                        const base = draft.clone()
-                                        if (base instanceof StandardRoom) {
-                                            base._payload._description = new StandardRender(newDescription[0])
-                                        }
-                                        return base
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-                if (component.summary) {
-                    const { changed, tree: newSummary } = recursiveRenameWalk({
-                        tree: [component.summary],
-                        typeGuard: isSchemaLink,
-                        transform: (link) => {
-                            if (link.to === payload.from) {
-                                link.to = payload.to
-                            }
-                        }
-                    })
-                    if (changed) {
-                        updateStandard(
-                            state,
-                            {
-                                type: 'updateStandard',
-                                payload: {
-                                    type: 'updateComponent',
-                                    componentKey: component.key,
-                                    update: (draft) => {
-                                        const base = draft.clone()
-                                        if (base instanceof StandardRoom) {
-                                            base._payload._summary = new StandardRender(newSummary[0])
-                                        }
-                                        return base
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-            if (isStandardMap(component)) {
-                //
-                // Recursive transform positions
-                //
-                const { changed, tree: newPositions } = recursiveRenameWalk({
-                    tree: component.positions,
-                    typeGuard: isSchemaRoom,
-                    transform: (room) => {
-                        if (room.key === payload.from) {
-                            room.key = payload.to
-                        }
-                    }
-                })
-                if (changed) {
-                    updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'positions', at: 0, replace: component.positions.length, items: newPositions } })
-                }
-            }
-        })
+        // //
+        // // Add a true/false return value to recursiveRenameWalk to
+        // // indicate whether it made a change, then use that to track at
+        // // each step of renaming, whether a rename has occurred and
+        // // add a mergeToEdit to represent the change
+        // //
+        // const recursiveRenameWalk = <T extends SchemaTag>(props: {
+        //     tree: GenericTree<SchemaTag>;
+        //     typeGuard: (value: SchemaTag) => value is T;
+        //     transform: (value: WritableDraft<T>) => void;
+        // }): { changed: Boolean, tree: GenericTree<SchemaTag> } => {
+        //     const { tree, typeGuard, transform } = props
+        //     return tree.reduce<{ changed: Boolean; tree: GenericTree<SchemaTag> }>((previous, { data, children }) => {
+        //         const recurse = recursiveRenameWalk({ tree: children, typeGuard, transform })
+        //         const transformedData = typeGuard(data) ? immerProduce(data, transform) : data
+        //         return {
+        //             changed: previous.changed || !deepEqual(data, transformedData) || recurse.changed,
+        //             tree: [...previous.tree, { data: transformedData, children: recurse.tree }]
+        //         }
+        //     }, { changed: false, tree: [] })
+        // }
+        // const previousComponent = JSON.parse(JSON.stringify(standardForm.byId[payload.from]))
+        // const newComponent: StandardComponentData = {
+        //     ...JSON.parse(JSON.stringify(standardForm.byId[payload.from])),
+        //     key: payload.to
+        // }
+        // const renameEditStandard: StandardFormData = {
+        //     ...state.edit,
+        //     byId: {
+        //         [payload.from]: {
+        //             tag: 'Remove' as const,
+        //             key: previousComponent.key,
+        //             component: unwrapStandardComponent(previousComponent)
+        //         },
+        //         [payload.to]: newComponent
+        //     },
+        //     metaData: []
+        // }
+        // mergeToEdit(renameEditStandard)
+        // const renamedStandardForm = publicSelectors.getStandardForm({ ...state, key: '' })
+        // Object.values(renamedStandardForm.byId).filter(excludeUndefined).forEach((component) => {
+        //     if (isStandardFeature(component) || isStandardKnowledge(component)) {
+        //         //
+        //         // Recursive transform links
+        //         //
+        //         if (component.description) {
+        //             const { changed, tree: newDescription } = recursiveRenameWalk({
+        //                 tree: [component.description],
+        //                 typeGuard: isSchemaLink,
+        //                 transform: (link) => {
+        //                     if (link.to === payload.from) {
+        //                         link.to = payload.to
+        //                     }
+        //                 }
+        //             })
+        //             if (changed) {
+        //                 updateStandard(
+        //                     state,
+        //                     {
+        //                         type: 'updateStandard',
+        //                         payload: {
+        //                             type: 'updateComponent',
+        //                             componentKey: component.key,
+        //                             update: (draft) => {
+        //                                 const base = draft.clone()
+        //                                 if (base instanceof StandardFeature || base instanceof StandardKnowledge) {
+        //                                     base._payload._description = new StandardRender(newDescription[0])
+        //                                 }
+        //                                 return base
+        //                             }
+        //                         }
+        //                     }
+        //                 )
+        //             }
+        //         }
+        //     }
+        //     if (isStandardRoom(component)) {
+        //         //
+        //         // Recursive transform exits
+        //         //
+        //         const { changed, tree: newExits } = recursiveRenameWalk({
+        //             tree: component.exits,
+        //             typeGuard: isSchemaExit,
+        //             transform: (exit) => {
+        //                 exit.to = exit.to === payload.from ? payload.to : exit.to
+        //                 exit.from = exit.from === payload.from ? payload.to : exit.from
+        //                 exit.key = `${exit.from}:${exit.to}`
+        //             }
+        //         })
+        //         if (changed) {
+        //             updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'exits', at: 0, replace: component.exits.length, items: newExits } })
+        //         }
+        //         //
+        //         // Recursive transform links
+        //         //
+        //         if (component.description) {
+        //             const { changed, tree: newDescription } = recursiveRenameWalk({
+        //                 tree: [component.description],
+        //                 typeGuard: isSchemaLink,
+        //                 transform: (link) => {
+        //                     if (link.to === payload.from) {
+        //                         link.to = payload.to
+        //                     }
+        //                 }
+        //             })
+        //             if (changed) {
+        //                 updateStandard(
+        //                     state,
+        //                     {
+        //                         type: 'updateStandard',
+        //                         payload: {
+        //                             type: 'updateComponent',
+        //                             componentKey: component.key,
+        //                             update: (draft) => {
+        //                                 const base = draft.clone()
+        //                                 if (base instanceof StandardRoom) {
+        //                                     base._payload._description = new StandardRender(newDescription[0])
+        //                                 }
+        //                                 return base
+        //                             }
+        //                         }
+        //                     }
+        //                 )
+        //             }
+        //         }
+        //         if (component.summary) {
+        //             const { changed, tree: newSummary } = recursiveRenameWalk({
+        //                 tree: [component.summary],
+        //                 typeGuard: isSchemaLink,
+        //                 transform: (link) => {
+        //                     if (link.to === payload.from) {
+        //                         link.to = payload.to
+        //                     }
+        //                 }
+        //             })
+        //             if (changed) {
+        //                 updateStandard(
+        //                     state,
+        //                     {
+        //                         type: 'updateStandard',
+        //                         payload: {
+        //                             type: 'updateComponent',
+        //                             componentKey: component.key,
+        //                             update: (draft) => {
+        //                                 const base = draft.clone()
+        //                                 if (base instanceof StandardRoom) {
+        //                                     base._payload._summary = new StandardRender(newSummary[0])
+        //                                 }
+        //                                 return base
+        //                             }
+        //                         }
+        //                     }
+        //                 )
+        //             }
+        //         }
+        //     }
+        //     if (isStandardMap(component)) {
+        //         //
+        //         // Recursive transform positions
+        //         //
+        //         const { changed, tree: newPositions } = recursiveRenameWalk({
+        //             tree: component.positions,
+        //             typeGuard: isSchemaRoom,
+        //             transform: (room) => {
+        //                 if (room.key === payload.from) {
+        //                     room.key = payload.to
+        //                 }
+        //             }
+        //         })
+        //         if (changed) {
+        //             updateStandard(state, { type: 'updateStandard', payload: { type: 'spliceList', componentKey: component.key, itemKey: 'positions', at: 0, replace: component.positions.length, items: newPositions } })
+        //         }
+        //     }
+        // })
     }
 }
 

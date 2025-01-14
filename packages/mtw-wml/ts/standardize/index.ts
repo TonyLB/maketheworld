@@ -477,6 +477,38 @@ export class StandardForm {
         return returnValue
     }
 
+    diff(incoming: StandardForm): StandardForm {
+        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
+        const returnValue = this._clone()
+        returnValue._byId = allKeys
+            .reduce<Record<string, StandardComponent>>((previous, key) => {
+                const baseComponent = this._byId[key]
+                const incomingComponent = incoming._byId[key]
+                if (baseComponent && incomingComponent) {
+                    const diffedComponent = baseComponent.diff(incomingComponent)
+                    if (diffedComponent) {
+                        return { ...previous, [key]: diffedComponent }
+                    } else {
+                        return previous
+                    }
+                }
+                else {
+                    if (baseComponent) {
+                        return { ...previous, [key]: new StandardRemove(baseComponent) }
+                    }
+                    if (incomingComponent) {
+                        return { ...previous, [key]: incomingComponent }
+                    }
+                    throw new Error('diff error')
+                }
+            }, {})
+
+        const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
+        returnValue._metaData = applyEdits(combinedMetaData.tree)
+
+        return returnValue
+    }
+
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = this._clone()
         returnValue._metaData = [...this._metaData]

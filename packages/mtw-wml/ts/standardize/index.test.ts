@@ -1526,6 +1526,78 @@ describe('StandardForm', () => {
         })
     })
 
+    describe('diff method', () => {
+        it('should return an empty diff for identical forms', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset key=(Test) />`)
+        })
+
+        it('should return the incoming form when base is empty', () => {
+            const base = new StandardForm(`<Asset key=(Test) />`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+        })
+
+        it('should remove the base form components when incoming is empty', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test) />`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset key=(Test)><Remove><Room key=(testRoom) /></Remove></Asset>`)
+        })
+
+        it('should return the diff for added components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /><Room key=(testRoomTwo) /></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset key=(Test)><Room key=(testRoomTwo) /></Asset>`)
+        })
+
+        it('should return the diff for removed components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /><Room key=(testRoomTwo) /></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset key=(Test)><Remove><Room key=(testRoomTwo) /></Remove></Asset>`)
+        })
+
+        it('should return the diff for modified components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Name>Old Name</Name></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Name>New Name</Name></Room></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Replace><Room key=(testRoom)><Name>Old Name</Name></Room></Replace>
+                <With><Room key=(testRoom)><Name>New Name</Name></Room></With>
+            </Asset>
+            `))
+        })
+
+        it('should return the diff for added and removed components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoomTwo) /></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Remove><Room key=(testRoom) /></Remove>
+                <Room key=(testRoomTwo) />
+            </Asset>
+            `))
+        })
+
+        it('should return the diff for nested components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /><Feature key=(testFeatureTwo) /></Room></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(testRoom)><Feature key=(testFeatureTwo) /></Room>
+            </Asset>
+            `))
+        })
+    })
+
     describe('subset method', () => {
         it('should properly subset an asset with full content without cascade', () => {
             const test = new StandardForm(`
