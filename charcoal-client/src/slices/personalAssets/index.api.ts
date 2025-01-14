@@ -9,7 +9,7 @@ import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/ba
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { getStandardForm, setImport } from '.'
+import { getStandardForm, setImport, updateStandard } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'
@@ -64,13 +64,12 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     }
 }
 
-type ImportsByAssets = Record<string, Record<string, string>>
-
 export const fetchImports = (id: string) => async (dispatch: any, getState: () => any) => {
     if (!id) {
         return {}
     }
-    const standardForm = getStandardForm(id)(getState())
+    const standardFormData = getStandardForm(id)(getState())
+    const standardForm = new StandardForm(standardFormData)
 
     const importsByAssetId = standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
@@ -93,22 +92,18 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         )
     ))
 
-    //
-    // TODO: Refactor to write directly into importData, and re-derive schema from baseSchema and new importData.
-    // Deprecate setImport action.
-    //
-    importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().forEach(({ assetId, wml }) => {
-        const schema = new Schema()
-        schema.loadWML(wml)
-        dispatch(setImport(id)({ assetKey: assetId.split('#')[1], schema: schema.schema }))
-    })
+    const inherited = importFetches
+        .map(({ importsByAsset }) => (importsByAsset))
+        .flat()
+        .reduce<StandardForm>((previous, { wml }) => (previous.merge(new StandardForm(wml))), new StandardForm(id))
+    dispatch(updateStandard(id)({ type: 'setInherited', inherited: inherited.toJSON() }))
 
 }
 
 export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch) => {
     const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
 
-    if (isEphemeraAssetId(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
+    if (id && isEphemeraAssetId(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
     }
     return {}

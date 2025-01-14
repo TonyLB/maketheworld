@@ -68,6 +68,11 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
+export type UpdateStandardPayloadSetInherited = {
+    type: 'setInherited';
+    inherited: StandardFormData;
+}
+
 export type UpdateStandardPayloadUpdateComponent = {
     type: 'updateComponent';
     componentKey: string;
@@ -87,8 +92,9 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
 
+const isUpdateStandardPayloadSetBase = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSetInherited => (payload.type === 'setInherited')
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
@@ -102,8 +108,6 @@ export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTa
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
-    const standardFormData = publicSelectors.getStandardForm({ ...state, key: '' })
-    const standardForm = new StandardForm(standardFormData)
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         state.edit = editStandardized.merge(delta).toJSON()
@@ -113,11 +117,15 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         delta.byId[deltaComponent.key] = deltaComponent
         mergeToEdit(delta)
     }
+    if (isUpdateStandardPayloadSetBase(payload)) {
+        state.inherited = payload.inherited
+        return
+    }
+    const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+        const editStandardized = new StandardForm(pendingEdit.edit)
+        return previous.merge(editStandardized)
+    }, state.inherited ? new StandardForm(state.inherited).merge(new StandardForm(state.base)) : new StandardForm(state.base)).merge(new StandardForm(state.edit))
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
-        const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
-            const editStandardized = new StandardForm(pendingEdit.edit)
-            return previous.merge(editStandardized)
-        }, new StandardForm(state.base)).merge(new StandardForm(state.edit))
         const component = standardForm.byId[payload.componentKey]
         if (component) {
             const newOutput = payload.update(component)
@@ -136,11 +144,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         //
         // Create a next synthetic key that doesn't conflict with the existing standardForm
         //
-        const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
-            const editStandardized = new StandardForm(pendingEdit.edit)
-            return previous.merge(editStandardized)
-        }, new StandardForm(state.base)).merge(new StandardForm(state.edit))
-
         const keysByTag = Object.entries(standardForm.byId).filter(([_, node]) => (node.tag === payload.tag)).map(([key]) => (key))
         let nextIndex = 1
         while (keysByTag.includes(`${payload.tag}${nextIndex}`)) { nextIndex++ }
@@ -162,13 +165,8 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
-        const standardBase = new StandardForm(state.base)
-        const standardBeforeRename = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
-            const editStandardized = new StandardForm(pendingEdit.edit)
-            return previous.merge(editStandardized)
-        }, standardBase).merge(new StandardForm(state.edit))
-        const renamedStandardForm = standardBeforeRename.renameKey([{ fromKey: payload.from, toKey: payload.to }])
-        const renameDiff = standardBeforeRename.diff(renamedStandardForm)
+        const renamedStandardForm = standardForm.renameKey([{ fromKey: payload.from, toKey: payload.to }])
+        const renameDiff = standardForm.diff(renamedStandardForm)
         if (renameDiff) {
             mergeToEdit(renameDiff)
         }
