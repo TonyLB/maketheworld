@@ -184,9 +184,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             return previous.merge(editStandardized)
         }, standardBase).merge(new StandardForm(state.edit))
         const renamedStandardForm = standardBeforeRename.renameKey([{ fromKey: payload.from, toKey: payload.to }])
-        //
-        // TODO: Create diff method for StandardForm
-        //
         const renameDiff = standardBeforeRename.diff(renamedStandardForm)
         if (renameDiff) {
             mergeToEdit(renameDiff)
