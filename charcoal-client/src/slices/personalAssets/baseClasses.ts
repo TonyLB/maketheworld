@@ -34,8 +34,13 @@ export interface PersonalAssetsPublic {
     // importData is the set of schemata that are inherited from imports
     //
     importData: Record<string, GenericTree<SchemaTag>>;
+
     //
-    // base is the standard form of the pre-existing data be edited (either or both of an asset being
+    // inherited is the standard form of data inherited from imports
+    //
+    inherited: StandardFormData;
+     //
+    // base is the standard form of the pre-existing data to be edited (either or both of an asset being
     // updated, or inherited data from imports)
     //
     base: StandardFormData;
@@ -55,11 +60,7 @@ export interface PersonalAssetsPublic {
     //
     edit: StandardFormData;
 
-    //
-    // inherited is the standard form of data inherited from imports
-    //
-    inherited: StandardFormData;
-    properties: AssetClientFetchURL["properties"];
+   properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;
 }
