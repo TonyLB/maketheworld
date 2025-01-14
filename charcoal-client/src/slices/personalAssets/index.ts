@@ -23,7 +23,6 @@ import {
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
-    setImport as setImportReducer,
     receiveWMLEvent as receiveWMLEventReducer,
     saveEdit as saveEditReducer,
     UpdateStandardPayload
@@ -87,7 +86,6 @@ export const {
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
-        setImport: setImportReducer,
         receiveWMLEvent: receiveWMLEventReducer,
         saveEdit: saveEditReducer
     },
@@ -244,7 +242,6 @@ export const {
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
-    setImport,
     onEnter
 } = publicActions
 export const {
