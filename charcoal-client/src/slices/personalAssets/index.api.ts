@@ -9,7 +9,7 @@ import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/ba
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { getStandardForm, setImport, updateStandard } from '.'
+import { getStandardForm, updateStandard } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'

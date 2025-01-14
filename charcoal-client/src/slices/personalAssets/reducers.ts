@@ -347,25 +347,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; schema: GenericTree<SchemaTag> }>) => {
-    state.importData[action.payload.assetKey] = action.payload.schema
-    const baseKey = state.base.key
-    const standardized = new StandardForm(state.base)
-    const importsStandardized = Object.values(state.importData)
-        .map((tree) => (
-            tree.length === 1 && isSchemaAsset(tree[0].data)
-                ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                : []
-        ))
-        .filter((tree) => (tree.length))
-        .reduce<StandardForm | undefined>((previous, incoming) => {
-            const standardForm = new StandardForm(incoming[0])
-            return previous ? previous.merge(standardForm) : standardForm
-        }, undefined)
-    importsStandardized._metaData = standardized.metaData
-    state.inherited = importsStandardized.toJSON()
-}
-
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
     const { event } = action.payload
     if (event.detailType === 'Asset Update') {
