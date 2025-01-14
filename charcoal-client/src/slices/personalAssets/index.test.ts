@@ -35,7 +35,7 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImport',
                 key: 'testRoom',
-                type: 'Room'
+                tag: 'Room'
             }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).not.toHaveBeenCalled()
         })
@@ -45,7 +45,7 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImport',
                 key: 'testRoomTwo',
-                type: 'Room'
+                tag: 'Room'
             }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'replaceMetaData',
@@ -64,7 +64,7 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImportTwo',
                 key: 'testRoomTwo',
-                type: 'Room'
+                tag: 'Room'
             }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'replaceMetaData',
