@@ -5,8 +5,8 @@ import { GenericTreeNode, GenericTreeNodeExtended } from "@tonylb/mtw-base/ts/ge
 // the entire option property against the callback
 //
 type DFSWalkCallback = 
-    ((previous: { output: any; state: any }, data) => typeof previous) |
-    ((previous: { output: any; state: any }, data, extra) => typeof previous)
+    ((previous: { output: any; state: any }, data: any) => typeof previous) |
+    ((previous: { output: any; state: any }, data: any, extra: any) => typeof previous)
 type DFSWalkReduce<Callback extends DFSWalkCallback> = 
     Parameters<Callback> extends [previous: { output: infer Output, state: infer State }, ...args: any]
         ? { output: Output, state: State }

@@ -18,7 +18,7 @@ export const isStandardMoment = (arg: any): arg is StandardMomentData => {
         checkTypes({
             required: { tag: CheckTypes.STRING },
             values: {
-                messages: (messages) => (Array.isArray(messages) && messages.every(isStandardReferenceData))
+                messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferenceData))
             }
         })(arg)
     )

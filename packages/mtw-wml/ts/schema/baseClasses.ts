@@ -452,7 +452,7 @@ export const isSchemaConditionStatement = (arg: any): arg is SchemaConditionStat
     'if' in arg &&
     typeof arg.if === 'string' &&
     (!arg.selected || typeof arg.selected === 'boolean') &&
-    (!arg.dependencies || (Array.isArray(arg.dependencies) && arg.dependencies.every((entry) => (typeof entry === 'string'))))
+    (!arg.dependencies || (Array.isArray(arg.dependencies) && arg.dependencies.every((entry: any) => (typeof entry === 'string'))))
 )
 export const isSchemaConditionFallthrough = (arg: any): arg is SchemaConditionFallthroughTag => (
     typeof arg === 'object' &&

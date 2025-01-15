@@ -58,7 +58,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get examples() { return this._examples }
 
-    toJSON(options): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
+    toJSON(options: StandardToJSONOptions): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Knowledge',

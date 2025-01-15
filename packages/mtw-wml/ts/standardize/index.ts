@@ -29,7 +29,7 @@ import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 
-export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value) => value is G): G => {
+export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
         return value
     }
@@ -294,7 +294,7 @@ export class StandardForm {
         const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
             .filter((component) => (Boolean(component.import)))
             .sort(standardComponentSortOrder(this._byId))
-            .reduce((previous, component): Record<string, GenericTree<SchemaTag>> => {
+            .reduce<Record<string, GenericTree<SchemaTag>>>((previous, component): Record<string, GenericTree<SchemaTag>> => {
                 const maybeAddAsKey = (data: SchemaTag, from: string): SchemaTag => {
                     const originalKey = (data as SchemaWithKey).key
                     if (from === originalKey) {
