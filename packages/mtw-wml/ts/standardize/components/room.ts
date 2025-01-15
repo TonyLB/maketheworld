@@ -16,12 +16,13 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference from "./reference"
+import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardRemove } from "./edits"
+import { deepEqual } from "../../lib/objects"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
@@ -216,6 +217,30 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardRoom(super.merge(incoming) as StandardRoom)
+    }
+
+    override diff(incoming: StandardComponent): StandardComponent | undefined {
+        if (!(incoming instanceof StandardRoom)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+            return undefined
+        }
+        const base = new StandardRoom(this.key).withImport(this.import).withExport(this.export) as StandardRoom
+        base._payload._shortName = this._payload._shortName
+            ? this._payload._shortName.diff(incoming._payload._shortName)
+            : incoming._payload._shortName
+        base._payload._name = this._payload._name
+            ? this._payload._name.diff(incoming._payload._name)
+            : incoming._payload._name
+        base._payload._summary = this._payload._summary
+            ? this._payload._summary.diff(incoming._payload._summary)
+            : incoming._payload._summary
+        base._payload._description = this._payload._description
+            ? this._payload._description.diff(incoming._payload._description)
+            : incoming._payload._description
+        base._payload._features = diffStandardReferenceList(this.features, incoming.features)
+        return base
     }
 
     override withKey(key: string): StandardComponent {

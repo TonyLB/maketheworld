@@ -1568,8 +1568,10 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Replace><Room key=(testRoom)><Name>Old Name</Name></Room></Replace>
-                <With><Room key=(testRoom)><Name>New Name</Name></Room></With>
+                <Room key=(testRoom)>
+                    <Replace><Name>Old Name</Name></Replace>
+                    <With><Name>New Name</Name></With>
+                </Room>
             </Asset>
             `))
         })
