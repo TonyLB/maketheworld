@@ -17,7 +17,6 @@ import { assertTypeguard } from "../../../lib/types"
 import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
-import { UpdateStandardPayloadReplaceItem } from "../../../slices/personalAssets/reducers"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
@@ -258,7 +257,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                         if (relevantContext.parentId.startsWith('INHERITED#')) {
                             const fromAsset = relevantContext.parentId.split('#')[1]
                             if (fromAsset) {
-                                dispatch(addImport({ assetId: AssetId, fromAsset, type: 'Room', key: relevantContext.roomId }))
+                                dispatch(addImport({ assetId: AssetId, fromAsset, tag: 'Room', key: relevantContext.roomId }))
                             }
                         }
                         addRoomFactory({ standard: standardForm.toJSON(), updateStandard, selectedPositions, updateSelected })({ roomId: relevantContext.roomId, x: relevantContext.x, y: relevantContext.y })
@@ -273,7 +272,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const addExitImport = useCallback((key: string) => {
         const relevantAssets = inheritedByAssetId.filter(({ standardForm }) => (key in standardForm.byId))
         if (relevantAssets.length) {
-            dispatch(addImport({ assetId: AssetId, fromAsset: relevantAssets[0].assetId, type: 'Room', key }))
+            dispatch(addImport({ assetId: AssetId, fromAsset: relevantAssets[0].assetId, tag: 'Room', key }))
         }
     }, [inheritedByAssetId, dispatch])
     useEffect(() => {
