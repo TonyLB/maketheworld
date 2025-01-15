@@ -22,6 +22,6 @@ export const isStandardComputed = (arg: any): arg is StandardComputedData => {
             },
             {}
         ),
-        (((!Boolean('dependencies' in arg)) || typeof arg.dependencies === 'undefined' || (Array.isArray(arg.dependencies) && arg.dependencies.every((dependency) => (typeof dependency === 'string')))))
+        (((!Boolean('dependencies' in arg)) || typeof arg.dependencies === 'undefined' || (Array.isArray(arg.dependencies) && arg.dependencies.every((dependency: any) => (typeof dependency === 'string')))))
     )
 }

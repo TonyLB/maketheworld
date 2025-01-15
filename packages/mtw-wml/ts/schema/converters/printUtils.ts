@@ -69,7 +69,7 @@ export const minIndicesByNestingLevel = (outputs: string[][]): Record<PrintMode,
 // So it will search up (for instance) the second Naive interpretation of each among many renders, and return them.
 //
 export const provisionalPrintFactory = ({ outputs, nestingLevel, indexInLevel }: { outputs: PrintMapResult[][]; nestingLevel: PrintMode; indexInLevel: number }): PrintMapResult[] => {
-    const lookup = ({ itemOutputs, nestingLevel, indexInLevel }: { itemOutputs: PrintMapResult[]; nestingLevel: PrintMode; indexInLevel: number }) => {
+    const lookup = ({ itemOutputs, nestingLevel, indexInLevel }: { itemOutputs: PrintMapResult[]; nestingLevel: PrintMode; indexInLevel: number }): PrintMapResult => {
         if (itemOutputs.length === 0) {
             throw new Error('Empty itemOutput list in provisionalPrintFactory')
         }

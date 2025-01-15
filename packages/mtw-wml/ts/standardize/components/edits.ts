@@ -1,5 +1,5 @@
 import { deepEqual } from "../../lib/objects";
-import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
@@ -46,7 +46,7 @@ export class StandardRemove implements StandardComponent {
         return new StandardRemove(this)
     }
 
-    mapContents(callback): StandardRemove {
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRemove {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.mapContents(callback)
         return returnValue
@@ -177,7 +177,7 @@ export class StandardReplace implements StandardComponent {
         return new StandardReplace(this)
     }
 
-    mapContents(callback): StandardReplace {
+    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardReplace {
         const returnValue = new StandardReplace(this)
         returnValue._match = returnValue._match.mapContents(callback)
         returnValue._payload = returnValue._payload.mapContents(callback)
