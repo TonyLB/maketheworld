@@ -249,7 +249,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                     AssetId: 'string',
                     zone: 'string'
                 }),
-                isEphemeraAssetId(message.AssetId) || isEphemeraCharacterId(message.AssetId),
+                typeof message.AssetId === 'string' && (isEphemeraAssetId(message.AssetId) || isEphemeraCharacterId(message.AssetId)),
                 ['Canon', 'Library', 'Personal', 'None'].includes(message.zone)
             )
         case 'Player':
@@ -261,7 +261,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                     RequestId: 'string'
                 }),
                 checkTypes(message.Settings, {}, { guestId: 'string', guestName: 'string' }),
-                ...message.Assets.map((assetItem) => (
+                ...message.Assets.map((assetItem: any) => (
                     checkTypes(
                         assetItem,
                         {
@@ -273,7 +273,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                         }
                     )
                 )),
-                ...message.Characters.map((characterItem) => (
+                ...message.Characters.map((characterItem: any) => (
                     checkAll(
                         checkTypes(
                             characterItem,
@@ -299,7 +299,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                         })
                     ) && isEphemeraCharacterId(characterItem.CharacterId)
                 )),
-                ...message.Settings.onboardCompleteTags.map((item) => (typeof item === 'string'))
+                ...message.Settings.onboardCompleteTags.map((item: any) => (typeof item === 'string'))
             )
         case 'Library':
             return checkAll(
@@ -310,7 +310,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                         RequestId: 'string'
                     }
                 ),
-                ...message.Assets.map((assetItem) => (
+                Array.isArray(message.Assets) && checkAll(...message.Assets.map((assetItem: any) => (
                     checkTypes(
                         assetItem,
                         {
@@ -321,8 +321,8 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             instance: 'boolean'
                         }
                     )
-                )),
-                ...message.Characters.map((characterItem) => (
+                ))),
+                ...message.Characters.map((characterItem: any) => (
                     checkAll(
                         checkTypes(
                             characterItem,
@@ -357,17 +357,22 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             return (typeof properties === 'object') && Object.values(properties).reduce<boolean>((previous, property) => (previous && checkTypes(property, { fileName: 'string' })), true)
         case 'UploadURL':
             return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' }) &&
-                ("images" in message && Array.isArray(message.images) && message.images.reduce((previous, item) => (previous && checkTypes(item, { key: 'string', presignedOutput: 'string', s3Object: 'string' })), true))
+                typeof message.images === 'undefined' || (Array.isArray(message.images) && checkAll(...message.images.map((image: any): boolean => (checkTypes(image, { key: 'string', presignedOutput: 'string', s3Object: 'string' })), true)))
         case 'FetchImports':
             return checkAll(
                 'importsByAsset' in message,
-                Array.isArray(message.importsByAsset),
-                ...message.importsByAsset.map((importMessage) => (checkTypes(importMessage, { assetId: 'string', wml: 'string' })) &&
-                importMessage.assetId.split('#')[0] === 'ASSET'))
+                Array.isArray(message.importsByAsset) && checkAll(
+                    ...message.importsByAsset
+                        .map((importMessage: any) => (
+                            checkTypes(importMessage, { assetId: 'string', wml: 'string' }) &&
+                            importMessage.assetId.split('#')[0] === 'ASSET')
+                        )
+                )
+            )
         case 'ParseWML':
             return checkAll(
                 checkTypes(message, {}, { RequestId: 'string' }),
-                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' }))),
+                Array.isArray(message.images) && checkAll(...message.images.map((image: any) => (checkTypes(image, { key: 'string', fileName: 'string' })))),
             )
         case 'LLMGenerate':
             return checkAll(
