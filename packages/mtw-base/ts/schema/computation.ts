@@ -29,7 +29,7 @@ export const isSchemaComputed = (schema: any): schema is SchemaComputedTag => (
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, src: CheckTypes.STRING },
         values: {
             tag: 'Computed',
-            dependencies: (dependencies) => (Array.isArray(dependencies) && dependencies.every((dependency) => (typeof dependency === 'string')))
+            dependencies: (dependencies: any) => (Array.isArray(dependencies) && dependencies.every((dependency) => (typeof dependency === 'string')))
         }
     })(schema)
 )
