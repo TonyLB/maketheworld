@@ -9,7 +9,7 @@ export type SchemaImportMapping = {
 export const isSchemaImportMapping = (schema: any): schema is SchemaImportMapping => (
     checkTypes({
         required: { key: CheckTypes.STRING, type: CheckTypes.STRING },
-        values: { type: (type) => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action', 'Map', 'Moment'].includes(type)) }
+        values: { type: (type: string) => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action', 'Map', 'Moment'].includes(type)) }
     })(schema)
 )
 
@@ -39,7 +39,7 @@ export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
         optional: { key: CheckTypes.STRING },
         values: {
             tag: 'Import',
-            mapping: (mapping) => Object.values(mapping).every(isSchemaImportMapping)
+            mapping: (mapping: Record<string, any>) => Object.values(mapping).every(isSchemaImportMapping)
         }
     })(schema)
 )
@@ -49,7 +49,7 @@ export const isSchemaExport = (schema: any): schema is SchemaExportTag => (
         required: { tag: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
         values: {
             tag: 'Export',
-            mapping: (mapping) => Object.values(mapping).every(isSchemaImportMapping)
+            mapping: (mapping: Record<string, any>) => Object.values(mapping).every(isSchemaImportMapping)
          }
     })(schema)
 )

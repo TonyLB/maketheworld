@@ -45,8 +45,8 @@ export type SourceWrap<N extends {}> = {
 }
 
 export type TreeCallback<T> =
-    ((data) => T) |
-    ((data, extra) => T)
+    ((data: any) => T) |
+    ((data: any, extra: any) => T)
 
 export type TreeCallbackNode<Callback extends TreeCallback<any>> = 
     Parameters<Callback> extends [infer A extends {}]
