@@ -351,7 +351,7 @@ export const isEphemeraClientMessageephemeraUpdateMapClear = (message: any): mes
         if (!Array.isArray(message.targets)) {
             return false
         }
-        return checkAll(...(message.targets.map((target) => (typeof target === 'string' && isEphemeraCharacterId(target)))))
+        return checkAll(...(message.targets.map((target: any) => (typeof target === 'string' && isEphemeraCharacterId(target)))))
     }
     return false
 }
