@@ -49,7 +49,7 @@ export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHigh
 
 type EditNodeContextType = {
     node: GenericTreeNode<SchemaTag>;
-    onChange: (value: GenericTree<SchemaTag>) => void;
+    onChange: (value: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void;
 }
 export const EditSchemaNode: FunctionComponent<EditNodeContextType> = ({ node, onChange }) => (
     <EditSchema value={[node]} onChange={onChange}/>
@@ -62,7 +62,8 @@ type EditChildrenArguments = {
 export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty = () => false, children }) => {
     const { value, onChange: contextOnChange } = useEditContext()
     const { children: nodeChildren } = value[0]
-    const onChange = useCallback((newValue: GenericTree<SchemaTag>) => {
+    const onChange = useCallback((incoming: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => {
+        const newValue = typeof incoming === 'function' ? produce(nodeChildren, incoming) : incoming
         if (isEmpty(newValue)) {
             contextOnChange([])
         }
