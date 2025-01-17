@@ -23,13 +23,14 @@ import { EditSchema } from '../EditContext'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaCondition } from '@tonylb/mtw-base/ts/schema/condition'
+import produce, { Draft } from 'immer'
 
 export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent<RenderElementProps> => (props) => {
     const editor = useSlate()
     const { attributes, children, element } = props
     const newIfWrapperStub = useCallback(() => {
     }, [])
-    const ifWrapperOnChange = useCallback((position: number) => (value: GenericTree<SchemaTag>) => {
+    const ifWrapperOnChange = useCallback((position: number) => (value: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => {
         //
         // TODO: Create onChange function that uses the element's placement in the Slate Editor Descendants list
         // to create a Transform to update the `subTree` property with the new values of the ifWrapper editable void
@@ -38,11 +39,14 @@ export const elementFactory = (render: FunctionComponent<{}>): FunctionComponent
         if (!(isCustomBlock(subTree) && isCustomIfWrapper(subTree))) {
             throw new Error('If Wrapper position error')
         }
-        if (value.length === 0) {
+        const newValue = typeof value === 'function'
+            ? produce([subTree.subTree], value)
+            : value
+        if (newValue.length === 0) {
             Transforms.removeNodes(editor, { at: [position] })
         }
         else {
-            const wrapper = value[0]
+            const wrapper = newValue[0]
             if (treeNodeTypeguard(isSchemaCondition)(wrapper)) {
                 Transforms.setNodes(editor, { subTree: wrapper }, { at: [position] })
             }    
