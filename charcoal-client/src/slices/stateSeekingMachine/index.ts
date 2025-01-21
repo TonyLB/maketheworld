@@ -71,7 +71,7 @@ export const iterateOneSSM = ({
                                 ...focusSSM.publicData,
                                 ...response.publicData
                             }
-                            const promiseKeys = focusSSM.onEnterPromises[currentStep.resolve] || []
+                            const promiseKeys: string[] = focusSSM.onEnterPromises[currentStep.resolve] || []
                             promiseKeys.forEach((promiseKey) => {
                                 promiseCache.resolve(promiseKey, { internalData, publicData })
                             })
