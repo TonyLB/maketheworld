@@ -674,12 +674,16 @@ describe('StandardForm', () => {
                 </Description>
             </Room>
             <Knowledge key=(testKnowledgeOne)>
-                <Name>TestOne</Name>
-                <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+                <Example key=(base)>
+                    <Name>TestOne</Name>
+                    <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+                </Example>
             </Knowledge>
             <Knowledge key=(testKnowledgeTwo)>
-                <Name>TestTwo</Name>
-                <Description>Test</Description>
+                <Example key=(base)>
+                    <Name>TestTwo</Name>
+                    <Description>Test</Description>
+                </Example>
             </Knowledge>
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
@@ -688,12 +692,16 @@ describe('StandardForm', () => {
                     <Description><Link to=(testKnowledgeOne)>test</Link></Description>
                 </Room>
                 <Knowledge key=(testKnowledgeOne)>
-                    <Name>TestOne</Name>
-                    <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+                    <Example key=(base)>
+                        <Name>TestOne</Name>
+                        <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
+                    </Example>
                 </Knowledge>
                 <Knowledge key=(testKnowledgeTwo)>
-                    <Name>TestTwo</Name>
-                    <Description>Test</Description>
+                    <Example key=(base)>
+                        <Name>TestTwo</Name>
+                        <Description>Test</Description>
+                    </Example>
                 </Knowledge>
             </Asset>
         `))
