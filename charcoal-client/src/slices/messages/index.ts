@@ -48,7 +48,7 @@ const messagesSlice = createSlice({
     reducers: {
         receiveMessages(state: any, action: PayloadAction<Message[]>) {
             action.payload.forEach((message) => {
-                if (state[message.Target]) {
+                if (message.Target && state[message.Target]) {
                     const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
                     if (exactMatch) {
                         state[message.Target][index] = message
@@ -62,7 +62,7 @@ const messagesSlice = createSlice({
                         }
                     }    
                 }
-                else {
+                else if (message.Target) {
                     state[message.Target] = [message]
                 }
             })

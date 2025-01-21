@@ -37,6 +37,9 @@ const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Chara
 export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
     if (key === 'Guest') {
         const { guestId, guestName } = getMySettings(state)
+        if (!(guestId && guestName)) {
+            throw new Error('Guest character requested but no guestId found in settings')
+        }
         return guestCharacter(guestId, guestName)
     }
     const Characters = getMyCharacters(state)
@@ -46,6 +49,9 @@ export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Char
 export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
     const { guestId, guestName } = getMySettings(state)
     if (key === `CHARACTER#${guestId}`) {
+        if (!(guestId && guestName)) {
+            throw new Error('Guest character requested but no guestId found in settings')
+        }
         return guestCharacter(guestId, guestName)
     }
     const Characters = getMyCharacters(state)
