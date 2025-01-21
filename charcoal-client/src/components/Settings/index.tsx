@@ -29,7 +29,7 @@ type SettingsProps = {
     onAlwaysShowOnboardingChange: (value: boolean) => void;
 }
 
-const signOut = (dispatch) => {
+const signOut = (dispatch: any) => {
     dispatch(receiveRefreshToken(undefined))
     dispatch(setLifeLineIntent(['SIGNOUT']))
     dispatch(setEphemeraIntent(['SIGNOUT']))

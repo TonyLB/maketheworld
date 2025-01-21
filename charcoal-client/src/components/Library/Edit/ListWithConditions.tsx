@@ -10,14 +10,14 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 
 import { GenericTreeFiltered, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
+import { EditChildren, EditSubListSchema, useEditContext, useEditNodeContext } from "./EditContext"
 import IfElseTree from "./IfElseTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition, SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
 
 type ListWithConditionsProperties<T extends SchemaTag> = {
     typeGuard: (value: SchemaTag) => value is T;
-    render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag>, index: number }>;
+    render: FunctionComponent<{}>;
     label: string;
     defaultNode: T;
 }
@@ -32,8 +32,8 @@ type ListWithConditionsGroup<T extends SchemaTag> = {
     node: GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag>;
 }
 
-const ListWithConditionItem = <T extends SchemaTag>(props: PropsWithChildren<{ index: number; render: FunctionComponent<{ item: GenericTreeNodeFiltered<T, SchemaTag>, index: number }>; typeGuard: (value: SchemaTag) => value is T; }>) => {
-    const { onDelete, data, children } = useEditNodeContext()
+const ListWithConditionItem = <T extends SchemaTag>(props: PropsWithChildren<{ index: number; render: FunctionComponent<{}>; typeGuard: (value: SchemaTag) => value is T; }>) => {
+    const { onDelete, data } = useEditNodeContext()
     const { render: Render } = props
     if (!props.typeGuard(data)) {
         return null
@@ -48,7 +48,11 @@ const ListWithConditionItem = <T extends SchemaTag>(props: PropsWithChildren<{ i
                 <DeleteIcon />
             </IconButton>
         }>
-            <Render item={{ data, children }} index={props.index} />
+            <EditChildren>
+                <EditSubListSchema index={props.index}>
+                    <Render />
+                </EditSubListSchema>
+            </EditChildren>
         </ListItem>
 }
 
