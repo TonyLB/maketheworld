@@ -162,7 +162,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                     }, previous)
                 ), [])
-            const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+            const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
             return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bindArgs}>
                 <div 
                     style={{

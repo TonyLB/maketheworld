@@ -21,7 +21,7 @@ type CharacterChipProps = {
 
 export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, fileURL, onClick }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
     const charactersInPlay = useSelector(getCharactersInPlay)
     const { Name: defaultName, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
     return (
