@@ -50,7 +50,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 80 : medium ? 60 : 40
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
     const [knowledgeUnlocked] = useOnboarding('navigateHome')
     const [charactersUnlocked] = useOnboarding('closeTab')
     const [libraryUnlocked] = useOnboarding('closeTab')

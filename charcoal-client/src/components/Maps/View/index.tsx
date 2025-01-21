@@ -79,7 +79,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
         // dispatch(addOnboardingComplete(['importRoom']))
         if (asset !== 'ASSET#draft') {
-            dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: 'Map', key }))
+            dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], tag: 'Map', key }))
         }
         navigate(`/Draft/Map/${key}`)
     }, [navigate])

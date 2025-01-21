@@ -160,7 +160,7 @@ export const useLibraryImageURL = (key: string): string => {
     }, [syntheticURL, loadedImage])
 
     const fileURL = useMemo(() => {
-        const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+        const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
         return syntheticURL ? syntheticURL.fileURL : properties[key] ? `${appBaseURL}/images/${properties[key].fileName}.png` : ''
     }, [syntheticURL, properties, key])
 

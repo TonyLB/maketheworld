@@ -349,8 +349,10 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
     const children = tree.reduce<GenericTree<SimulationTreeNode>>((previous, node, index) => {
         if (treeNodeTypeguard(isSchemaCondition)(node)) {
             const nestedOnChange = (innerIndex: number) => {
-                return (newValue: (draft: Draft<GenericTree<SchemaTag>>) => void) => {
-                    onChange((draft) => { newValue(draft[index].children[innerIndex].children) })
+                return (newValue: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => {
+                    if (typeof newValue === 'function') {
+                        onChange((draft) => { newValue(draft[index].children[innerIndex].children) })
+                    }
                 }
             }
             return [
@@ -446,7 +448,7 @@ export class MapDThreeTree extends Object {
     // in the incoming map tree.
     //
 
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, onChange: (newTree: GenericTree<SchemaTag>) => void): void {
+    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void): void {
 
         const translatedTree = mapTreeTranslate({ tree, onChange, standardForm })
         const incomingDiff = diffTrees({
