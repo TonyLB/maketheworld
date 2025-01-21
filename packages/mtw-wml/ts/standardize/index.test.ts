@@ -279,7 +279,9 @@ describe('StandardForm', () => {
                     <Description>Three</Description>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false}>Four</If></Description>
+                    <Example key=(base)>
+                        <Description><If {false}>Four</If></Description>
+                    </Example>
                 </Feature>
             </Asset>
         `)
@@ -305,9 +307,7 @@ describe('StandardForm', () => {
                     <Example key=(testExample)><Summary>Two</Summary></Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description>
-                        Four
-                    </Description>
+                    <Example key=(base)><Description>Four</Description></Example>
                 </Feature>
             </If>
             <Room key=(test)>
@@ -324,7 +324,7 @@ describe('StandardForm', () => {
                     </Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false}>Four</If></Description>
+                    <Example key=(base)><Description><If {false}>Four</If></Description></Example>
                 </Feature>
             </Asset>
         `))
@@ -364,10 +364,10 @@ describe('StandardForm', () => {
             <Room key=(test)>
                 <Description>One</Description>
                 <Feature key=(testLocal)>
-                    <Description>Local</Description>
+                    <Example key=(base)><Description>Local</Description></Example>
                 </Feature>
                 <Feature global key=(testGlobal)>
-                    <Description>Global</Description>
+                    <Example key=(base)><Description>Global</Description></Example>
                 </Feature>
             </Room>
             <Room key=(testTwo) />
@@ -390,13 +390,23 @@ describe('StandardForm', () => {
                 ['test.testLocal']: {
                     tag: 'Feature',
                     key: 'test.testLocal',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Local' }, children: [] }] }
+                    examples: [{ key: 'base', tag: 'Example' }]
+                },
+                ['test.testLocal.base']: {
+                    tag: 'Example',
+                    key: 'test.testLocal.base',
+                    description: [{ data: { tag: 'String', value: 'Local' }, children: [] }]
                 },
                 testGlobal: {
                     tag: 'Feature',
                     key: 'testGlobal',
                     global: true,
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Global' }, children: [] }] }
+                    examples: [{ key: 'base', tag: 'Example' }]
+                },
+                ['testGlobal.base']: {
+                    tag: 'Example',
+                    key: 'testGlobal.base',
+                    description: [{ data: { tag: 'String', value: 'Global' }, children: [] }]
                 },
                 testTwo: {
                     tag: 'Room',

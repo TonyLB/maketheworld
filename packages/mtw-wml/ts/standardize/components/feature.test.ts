@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaName, isSchemaString } from "../../schema/baseClasses"
+import { isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardFeatureData } from "./dataTypes/feature"
@@ -10,15 +10,10 @@ describe('StandardFeature class', () => {
 
     it('should construct StandardFeature from WML', () => {
         const testSource = deIndentWML(`
-            <Feature global key=(test)>
-                <Name>Name Test</Name>
-                <Description>Description Test</Description>
-            </Feature>
+            <Feature global key=(test)><Example key=(base) /></Feature>
         `)
         const testFeature = new StandardFeature(testSource)
         expect(testFeature.key).toEqual('test')
-        expect(testFeature.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testFeature.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testFeature.global).toBe(true)
         expect(schemaToWML([testFeature.schema])).toEqual(testSource)
     })
