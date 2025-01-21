@@ -1,8 +1,9 @@
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaRoom, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
+import { excludeUndefined } from "./lists"
 
 describe('context nesting helper library', () => {
     it('should nest onChange with nestOnChangeSubItem', () => {
@@ -88,10 +89,10 @@ describe('context nesting helper library', () => {
                         ...(newValue.slice(0, previousLength)),
                         ...((newValue.length > previousLength) ? [{ data: { tag: 'br' as const }, children: [] }] : []),
                         ...(newValue.slice(previousLength))
-                    ])
+                    ].filter(excludeUndefined) as GenericTree<SchemaTag>)
                 }
                 else {
-                    return baseReducer(previous, newValue)
+                    return baseReducer(previous, newValue.filter(excludeUndefined) as GenericTree<SchemaTag>)
                 }
             }
         )
@@ -123,10 +124,11 @@ describe('context nesting helper library', () => {
         const mappedReducer = nestTransformTreeReducer(
             (baseReducer, _, addSupplement) => (previous, newValue) => {
                 const previousLength = (previous ?? []).length
-                newValue.slice(previousLength).filter(treeNodeTypeguard(isSchemaRoom)).forEach((newRoom) => {
+                const newRooms = newValue.slice(previousLength).filter((node) => (node && treeNodeTypeguard(isSchemaRoom)({ ...node, children: [] }))).filter(excludeUndefined) as GenericTreeFiltered<SchemaRoomTag, SchemaTag>
+                newRooms.forEach((newRoom) => {
                     addSupplement({ type: 'addComponent', componentKey: newRoom.data.key, tag: 'Room' })
                 })
-                return baseReducer(previous, newValue)
+                return baseReducer(previous, newValue as GenericTree<SchemaTag>)
             },
             (_, newValue) => (newValue),
             addSupplement

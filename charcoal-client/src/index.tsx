@@ -1,8 +1,8 @@
+import React from 'react';
 import 'react-app-polyfill/stable';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
-import * as serviceWorker from './serviceWorker';
 
 //
 // We need to directly measure the viewport height, for compatibility with mobile browsers
@@ -37,7 +37,7 @@ import * as serviceWorker from './serviceWorker';
     // the moment of the event and guarantee at least one update later than 100
     // milliseconds (debouncing if numerous changes come in within the timeout window)
     //
-    let doublingTimer = null
+    let doublingTimer: any = null
     const doubledListenerFunction = () => {
         listenerFunction()
         if (doublingTimer) {
@@ -60,8 +60,3 @@ ReactDOM.render(
     <App />,
     document.getElementById('root')
 )
-
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
