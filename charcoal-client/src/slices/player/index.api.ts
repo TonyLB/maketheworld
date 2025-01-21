@@ -15,7 +15,7 @@ export const lifelineCondition: PlayerCondition = (_, getState) => {
     return (status === 'CONNECTED')
 }
 
-const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch, getState) => {
+const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
     const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings, SessionId } = payload
     const state = getState()
     const currentAssets = getMyAssets(state?.player?.publicData)
@@ -91,7 +91,7 @@ export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }
     }
 }
 
-export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { addTags?: OnboardingKey[], removeTags?: OnboardingKey[] }) => async (dispatch) => {
+export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { addTags?: OnboardingKey[], removeTags?: OnboardingKey[] }) => async (dispatch: any) => {
     await dispatch(socketDispatchPromise({
         message: 'updatePlayerSettings',
         actions: [
@@ -101,7 +101,7 @@ export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { ad
     }, { service: 'asset' }))
 }
 
-export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch) => {
+export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch: any) => {
     await dispatch(updateOnboardingComplete({ removeTags: tags }))
 }
 
@@ -110,7 +110,7 @@ type AddOnboardingCheckpointOptions = {
     condition?: boolean;
 }
 
-export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboardingCheckpointOptions) => async (dispatch, getState) => {
+export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboardingCheckpointOptions) => async (dispatch: any, getState: any) => {
     const { requireSequence = false, condition = true } = options || {}
     const publicData = getState()?.player?.publicData
     const { onboardCompleteTags } = getMySettings(publicData)

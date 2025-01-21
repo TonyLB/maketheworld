@@ -174,7 +174,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
             ) {
                 const keyRecord = state.byId[action.payload.key]
                 if (keyRecord) {
-                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = castDraft([])
+                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] = [] as any
                 }
             },
             addOnEnter(
@@ -188,12 +188,12 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                 const keyRecord = state.byId[action.payload.key]
                 if (keyRecord) {
                     if (!(action.payload.nodeKey in keyRecord.meta.onEnterPromises)) {
-                        keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = []
+                        keyRecord.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] = [] as any
                     }
-                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = [
-                        ...keyRecord.meta.onEnterPromises[action.payload.nodeKey as any],
+                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] = [
+                        ...(keyRecord.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] as string[]),
                         action.payload.value
-                    ]
+                    ] as any
                 }                
             },
             ...(Object.entries(publicReducers)
@@ -257,7 +257,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     internalIntentChange: ({ newIntent }: {
                             newIntent: (keyof Nodes)[]
                         }) => (setIntent({ key, intent: newIntent })),
-                    clearOnEnter: (nodeKey) => (clearOnEnter({ key, nodeKey })),
+                    clearOnEnter: (nodeKey: keyof Nodes) => (clearOnEnter({ key, nodeKey })),
                     actions: {
                         ...slice.actions,
                         ...(Object.entries(publicActions)

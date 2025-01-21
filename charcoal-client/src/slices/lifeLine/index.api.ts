@@ -143,7 +143,7 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
         const result = await anonymousAPIPromise({
             path: 'accessToken',
             RefreshToken
-        }, AnonymousAPIURI)
+        } as any, AnonymousAPIURI)
         if (isAnonymousAPIResultAccessTokenFailure(result)) {
             dispatch(receiveRefreshToken(undefined))
             return Promise.reject({})
@@ -231,7 +231,9 @@ export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMes
                     if (compareRequestId === RequestId) {
                         unsubscribe()
                         if (payload.messageType === 'Error') {
-                            dispatch(push(payload.error))
+                            if (payload.error) {
+                                dispatch(push(payload.error))
+                            }
                             reject(payload)
                         }
                         else {

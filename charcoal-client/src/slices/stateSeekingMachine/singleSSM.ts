@@ -93,7 +93,8 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
                 state.meta.desiredStates = castDraft(action.payload)
             },
             clearOnEnter(state, action: PayloadAction<keyof Nodes>) {
-                state.meta.onEnterPromises[action.payload as any] = []
+                const { payload } = action
+                state.meta.onEnterPromises[payload as keyof Draft<Record<keyof Nodes, string[]>>] = [] as any
             },
             addOnEnter(
                 state,
@@ -103,12 +104,12 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
                 }>
             ) {
                 if (!(action.payload.nodeKey in state.meta.onEnterPromises)) {
-                    state.meta.onEnterPromises[action.payload.nodeKey as any] = []
+                    state.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] = [] as any
                 }
-                state.meta.onEnterPromises[action.payload.nodeKey as any] = [
-                    ...state.meta.onEnterPromises[action.payload.nodeKey as any],
+                state.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] = [
+                    ...(state.meta.onEnterPromises[action.payload.nodeKey as keyof Draft<Record<keyof Nodes, string[]>>] as string[]),
                     action.payload.value
-                ]
+                ] as any
             },
             internalStateChange(
                 state,
@@ -155,7 +156,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
                     data: InferredDataTypeAggregateFromNodes<Nodes>
                 }) => (internalStateChange({ newState, inProgress, data })),
             internalIntentChange: ({ newIntent }: { newIntent: (keyof Nodes)[] }) => (setIntent(newIntent)),
-            clearOnEnter: (key) => (clearOnEnter(key)),
+            clearOnEnter: (key: keyof Nodes) => (clearOnEnter(key)),
             actions: slice.actions,
             promiseCache
         }))
