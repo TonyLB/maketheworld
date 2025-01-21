@@ -78,9 +78,9 @@ const SignIn = ({ value }: { value: number }) => {
     const { AnonymousAPIURI } = useSelector(getConfiguration)
     const dispatch = useDispatch()
     const signIn = useCallback(() => {
-        if (!isValidating) {
+        if (!isValidating && AnonymousAPIURI) {
             setIsValidating(true)
-            anonymousAPIPromise({ path: 'signIn', userName, password }, AnonymousAPIURI)
+            anonymousAPIPromise({ path: 'signIn' as const, userName, password }, AnonymousAPIURI)
                 .then((results) => {
                     if (isAnonymousAPIResultSignInSuccess(results)) {
                         window.localStorage.setItem('RefreshToken', results.RefreshToken)
@@ -346,7 +346,7 @@ const SignUp = ({ value }: { value: number }) => {
                 variant="contained"
                 onClick={() => {
                     validate('ALL', data).then(async (errors) => {
-                        if (!(Object.values(errors).filter((value) => (value)).length)) {
+                        if (!(Object.values(errors).filter((value) => (value)).length) && AnonymousAPIURI) {
                             setCreatingUser(true)
                             const results = await anonymousAPIPromise({
                                 path: 'signUp',

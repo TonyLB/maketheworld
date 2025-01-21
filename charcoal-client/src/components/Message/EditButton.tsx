@@ -36,7 +36,7 @@ export const EditButton: FunctionComponent<{ tag: 'Room' | 'Map' | 'Knowledge'; 
         if (tag === 'Room') {
             dispatch(addOnboardingComplete(['importRoom']))
         }
-        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], type: tag, key }))
+        dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], tag, key }))
         navigate(`/Draft/${tag}/${key}`)
     }, [navigate, tag])
     const onClick = useCallback(() => {

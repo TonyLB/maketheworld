@@ -53,7 +53,7 @@ type OnboardingTextArgument = {
     alwaysShowSetting: ReactElement;
 }
 
-const onboardingChaptersRaw: OnboardingChapter[] = [
+const onboardingChaptersRaw: DeepReadonly<OnboardingChapter[]> = [
     {
         chapterKey: 'MTWNavigation',
         title: 'Navigate in Make The World',
