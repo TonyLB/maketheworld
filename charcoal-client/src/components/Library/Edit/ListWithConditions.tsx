@@ -48,11 +48,7 @@ const ListWithConditionItem = <T extends SchemaTag>(props: PropsWithChildren<{ i
                 <DeleteIcon />
             </IconButton>
         }>
-            <EditChildren>
-                <EditSubListSchema index={props.index}>
-                    <Render />
-                </EditSubListSchema>
-            </EditChildren>
+            <Render />
         </ListItem>
 }
 
@@ -90,7 +86,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
     return <React.Fragment>
         { listGroups.map((group, index) => (
             group.type === 'tree'
-                ? <List key={`list-with-conditions-${group.startIndex + index}`}>
+                ? <List key={`list-with-conditions-${index}`}>
                     { group.tree.map((item, index) => (
                         <EditSubListSchema
                             key={`subList-${group.startIndex + index}`}
@@ -102,7 +98,7 @@ export const ListWithConditions = <T extends SchemaTag>(props: PropsWithChildren
                     { index === listGroups.length - 1 && addButton }
                 </List>
                 : <EditSubListSchema
-                    key={`list-with-conditions-${group.index}`}
+                    key={`list-with-conditions-${index}`}
                     index={group.index}
                 >
                     <IfElseTree render={props.render} />

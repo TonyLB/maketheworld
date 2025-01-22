@@ -153,34 +153,32 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const render = useCallback(() => (<EditExit />), [])
 
     return <SidebarTitle title="Exits" minHeight="5em">
-        <StandardFormSchema componentKey={RoomId} tag="Exits">
-            <EditSchema
-                value={component?.exits ?? []}
-                onChange={(value) => {
-                    if (typeof value !== 'function') {
-                        updateStandard({
-                            type: 'updateComponent',
-                            componentKey: RoomId,
-                            update: (component) => {
-                                if (component instanceof StandardRoom) {
-                                    const base = component.clone()
-                                    base._payload._exits = value
-                                    return base
-                                }
-                                return component
+        <EditSchema
+            value={component?.exits ?? []}
+            onChange={(value) => {
+                if (typeof value !== 'function') {
+                    updateStandard({
+                        type: 'updateComponent',
+                        componentKey: RoomId,
+                        update: (component) => {
+                            if (component instanceof StandardRoom) {
+                                const base = component.clone()
+                                base._payload._exits = value
+                                return base
                             }
-                        })
-                    }
-                }}
-            >
-                <ListWithConditions
-                    render={render}
-                    typeGuard={isSchemaExit}
-                    label="Exit"
-                    defaultNode={{ tag: 'Exit', from: RoomId, to: '', key: `${RoomId}#` }}
-                />
-            </EditSchema>
-        </StandardFormSchema>
+                            return component
+                        }
+                    })
+                }
+            }}
+        >
+            <ListWithConditions
+                render={render}
+                typeGuard={isSchemaExit}
+                label="Exit"
+                defaultNode={{ tag: 'Exit', from: RoomId, to: '', key: `${RoomId}#` }}
+            />
+        </EditSchema>
     </SidebarTitle>
 }
 
