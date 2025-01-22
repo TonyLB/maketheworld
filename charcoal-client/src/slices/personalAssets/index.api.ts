@@ -92,10 +92,15 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         )
     ))
 
+    const base = new StandardForm(id.split('#').slice(1).join('#'))
     const inherited = importFetches
         .map(({ importsByAsset }) => (importsByAsset))
         .flat()
-        .reduce<StandardForm>((previous, { wml }) => (previous.merge(new StandardForm(wml))), new StandardForm(id))
+        .reduce<StandardForm>((previous, { wml }) => {
+            const standardForm = new StandardForm(wml)
+            standardForm._key = id
+            return previous.merge(standardForm)
+        }, base)
     dispatch(updateStandard(id)({ type: 'setInherited', inherited: inherited.toJSON() }))
 
 }
