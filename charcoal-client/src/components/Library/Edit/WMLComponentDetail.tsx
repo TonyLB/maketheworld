@@ -35,6 +35,7 @@ import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import ExampleEditor from './ExampleEditor'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
@@ -184,6 +185,9 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 </TitledBox>
             </EditSchema>
         </StandardFormSchema>
+        {
+            (component.examples.map(({ key }) => (<ExampleEditor componentId={key} />)))
+        }
         {
             (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
         }
