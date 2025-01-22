@@ -28,6 +28,7 @@ import { isSchemaExport, isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/t
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
+import StandardExample from "./components/example"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -543,10 +544,10 @@ export class StandardForm {
             uncheckedRequests = Object.values(newRequestTypeByKey)
                 .filter((request): request is StandardFormSubsetRequestFull | StandardFormSubsetRequestExit => (request.requestType === 'Full' || request.requestType === 'Exit'))
                 .filter(({ cascadeConditions }) => ((cascadeConditions ?? []).length))
-                .map(({ keys, cascadeConditions }) => {
+                .map(({ keys, cascadeConditions, requestType }) => {
                     return (cascadeConditions ?? [])
-                        .map(({ conditionType, cascadeType, chainCascade }): StandardFormSubsetRequest | undefined => {
-                            return {
+                        .map(({ conditionType, cascadeType, chainCascade }): StandardFormSubsetRequest[] => {
+                            return [{
                                 requestType: cascadeType,
                                 keys: unique(
                                     keys
@@ -560,9 +561,45 @@ export class StandardForm {
                                         .flat(1)
                                 ),
                                 cascadeConditions: chainCascade ? cascadeConditions : undefined
-                            }
+                            },
+                            //
+                            // For a 'Full' request, also include the keys that are referenced by any local examples
+                            //
+                            ...(requestType === 'Full'
+                                ? [{
+                                    requestType: cascadeType,
+                                    keys: unique(
+                                        keys
+                                            .map((key) => (this.byId[key]))
+                                            .filter(excludeUndefined)
+                                            .map((component) => (
+                                                component.referencedKeys()
+                                                    .filter(({ referenceType }) => (referenceType === 'Direct'))
+                                                    .map(({ key, global }) => (global ? key : `${component.key}.${key}`))
+                                                    .map((key) => (this.byId[key]))
+                                                    .filter(excludeUndefined)
+                                                    .filter((component) => {
+                                                        if (component instanceof StandardExample) {
+                                                            console.log(`Standard Example: ${JSON.stringify(component.toJSON(), null, 4)}`)
+                                                            return true
+                                                        }
+                                                        return false
+                                                    })
+                                                    .map((component) => (
+                                                        component.referencedKeys()
+                                                            .filter(({ referenceType }) => (referenceType === conditionType))
+                                                            .map(({ key }) => (key))
+                                                    ))
+                                                    .flat(1)
+                                            ))
+                                            .flat(1)
+                                    ),
+                                    cascadeConditions: chainCascade ? cascadeConditions : undefined
+                                }]
+                                : []
+                            )]
                         })
-                        .filter(excludeUndefined)
+                        .flat(1)
                 })
                 .flat(1)
             requestTypeByKey = {
@@ -571,9 +608,16 @@ export class StandardForm {
             }
         }
 
-        const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent) => {
+        const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent): StandardComponent[] => {
             if (request.requestType === 'Full') {
-                return component
+                //
+                // If the request is for a component that can contain local examples, then also include the examples
+                // in the output.
+                //
+                if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
+                    return [component, ...component.examples.map(({ key }) => (this.byId[`${component.key}.${key}`]))]
+                }
+                return [component]
             }
             if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'Exit') {
                 const returnValue = component.clone()
@@ -592,15 +636,16 @@ export class StandardForm {
                 if (returnValue instanceof StandardKnowledge) {
                     returnValue._payload = new StandardKnowledgePayload()
                 }
-                return returnValue
+                return [returnValue]
             }
+            return []
         }
 
         returnValue._byId = Object.assign({},
             ...(Object.entries(requestTypeByKey)
                 .map(([key, request]) => (
                     this.byId[key]
-                        ? [{ [key]: requestOutput(request, this.byId[key]) }]
+                        ? requestOutput(request, this.byId[key]).map((component) => ({ [component.key]: component }))
                         : []
                 ))
                 .flat(1)

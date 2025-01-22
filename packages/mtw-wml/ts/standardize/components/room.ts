@@ -162,7 +162,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency", global?: boolean }[] {
         return [
             ...linkReferenceKeys([this.name, this.summary, this.description].filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Link' as const, key })),
@@ -170,9 +170,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
-            ...this.features.map(({ key }) => ({ referenceType: 'Direct' as const, key })),
-            ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key })),
-            ...this.examples.map((example) => (example.referencedKeys())).flat(1)
+            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global })),
+            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global }))
         ]
     }
 

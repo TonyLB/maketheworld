@@ -14,6 +14,7 @@ export type StandardToJSONOptions = {
 export type StandardComponentReferenceKey = {
     key: string;
     referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
+    global?: boolean;
 }
 
 export interface StandardComponent {
