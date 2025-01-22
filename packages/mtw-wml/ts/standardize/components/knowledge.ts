@@ -130,6 +130,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
     get name() { return this._payload.name }
     get description() { return this._payload.description }
+    get examples() { return this._payload.examples }
 
     override clone(): StandardKnowledge {
         const returnValue = new StandardKnowledge(this)

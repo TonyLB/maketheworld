@@ -5,7 +5,7 @@ type ExampleEditorProps = {
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
-    return null
+    return <span>Example Editor Stub</span>
 }
 
 export default ExampleEditor
