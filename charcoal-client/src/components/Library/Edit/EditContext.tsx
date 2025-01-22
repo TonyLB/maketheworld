@@ -87,9 +87,6 @@ type EditSubListArguments = {
 }
 export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ index, children }) => {
     const { value, onChange } = useEditContext()
-    if (value.length === 0) {
-        return null
-    }
     if (index >= value.length) {
         return null
     }
