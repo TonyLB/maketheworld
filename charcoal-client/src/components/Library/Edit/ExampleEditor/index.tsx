@@ -1,17 +1,19 @@
-import React, { FunctionComponent, useMemo } from "react"
+import React, { FunctionComponent, useMemo, useState } from "react"
 import TitledBox from "../../../TitledBox"
 import { useLibraryAsset } from "../LibraryAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
 import DescriptionEditor from "../DescriptionEditor";
 import { EditSchema } from "../EditContext";
-import { Box } from "@mui/material";
+import { Box, TextField } from "@mui/material";
+import useDebounce, { useDebouncedOnChange } from "../../../../hooks/useDebounce";
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 
 type ExampleEditorProps = {
     componentId: string;
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
-    const { standardForm } = useLibraryAsset()
+    const { standardForm, updateStandard } = useLibraryAsset()
     const component = useMemo<StandardExample>(() => {
         const component = standardForm.byId[componentId]
         if (component && component instanceof StandardExample) {
@@ -22,18 +24,30 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             tag: 'Example'
         })
     }, [standardForm, componentId])
-    console.log(`component: ${JSON.stringify(component.toJSON(), null, 4)}`)
+    const [name, setName] = useState((new StandardRender(component.name ?? [])).plainString)
+    useDebouncedOnChange({
+        value: name,
+        delay: 1000,
+        onChange: (value) => {
+            updateStandard({
+                type: 'updateComponent',
+                componentKey: component.key,
+                update: (example) => {
+                    const newValue = example.clone()
+                    if (newValue instanceof StandardExample) {
+                        newValue._payload._name = new StandardRender([value])
+                        return newValue
+                    }
+                    return example
+                }
+            })
+        }
+    })
     return <TitledBox title="Example">
-        <EditSchema
-            value={component.name ?? []}
-            onChange={(value) => {}}
-        >
-            <DescriptionEditor
-                validLinkTags={[]}
-                toolbar={false}
-                
-            />
-        </EditSchema>
+        <TextField
+            value={name}
+            onChange={(event) => { setName(event.target.value) }}
+        />
         <Box
             sx={{
                 backgroundColor: 'lightgray',
