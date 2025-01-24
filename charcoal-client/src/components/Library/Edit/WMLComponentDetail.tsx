@@ -186,7 +186,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             </EditSchema>
         </StandardFormSchema>
         {
-            (component.examples.map(({ key }) => (<ExampleEditor componentId={key} />)))
+            (component.examples.map(({ key }) => (<ExampleEditor key={key} componentId={`${component.key}.${key}`} />)))
         }
         {
             (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
