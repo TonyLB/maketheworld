@@ -1130,6 +1130,39 @@ describe('StandardForm', () => {
         `))
     })
 
+    it('should merge edit component clear of fields in imported example correctly', () => {
+        const inherited = new StandardForm(`
+            <Asset key=(Test)>
+                <Import from=(base)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Example key=(base)>
+                        <Name>Lobby</Name>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        const test = new StandardForm(`
+            <Asset key=(Test)>
+                <Import from=(base)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Example key=(base)>
+                        <Remove><Name>Lobby</Name></Remove>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(base)><Room key=(testRoomOne) /></Import>
+                <Room key=(testRoomOne)><Example key=(base) /></Room>
+            </Asset>
+        `))
+    })
+
     it('should merge edit component remove of replace base component correctly', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
