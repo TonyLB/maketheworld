@@ -1,6 +1,5 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace";
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge";
 import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge"
 
 export type ApplyEditArguments = {

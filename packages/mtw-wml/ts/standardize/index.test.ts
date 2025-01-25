@@ -2014,6 +2014,17 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
+    it('should round-trip unchanged imports through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        const test = new StandardForm(testSource.toNDJSON())
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
+
     it('should round-trip exports through NDJSON', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
