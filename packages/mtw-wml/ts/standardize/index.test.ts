@@ -1130,6 +1130,39 @@ describe('StandardForm', () => {
         `))
     })
 
+    it('should merge edit component clear of fields in imported example correctly', () => {
+        const inherited = new StandardForm(`
+            <Asset key=(Test)>
+                <Import from=(base)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Example key=(base)>
+                        <Name>Lobby</Name>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        const test = new StandardForm(`
+            <Asset key=(Test)>
+                <Import from=(base)>
+                    <Room key=(testRoomOne) />
+                </Import>
+                <Room key=(testRoomOne)>
+                    <Example key=(base)>
+                        <Remove><Name>Lobby</Name></Remove>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Import from=(base)><Room key=(testRoomOne) /></Import>
+                <Room key=(testRoomOne)><Example key=(base) /></Room>
+            </Asset>
+        `))
+    })
+
     it('should merge edit component remove of replace base component correctly', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
@@ -1974,6 +2007,17 @@ describe('StandardForm', () => {
             <Asset key=(test)>
                 <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
                 <Room key=(testRoom)><ShortName>Test</ShortName></Room>
+            </Asset>
+        `)
+        const testSource = new StandardForm(testWML)
+        const test = new StandardForm(testSource.toNDJSON())
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
+
+    it('should round-trip unchanged imports through NDJSON', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Import from=(testImport)><Room key=(testIn) as=(testRoom) /></Import>
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
