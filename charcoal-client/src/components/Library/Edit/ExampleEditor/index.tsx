@@ -7,6 +7,7 @@ import { EditSchema } from "../EditContext";
 import { Box, TextField } from "@mui/material";
 import useDebounce, { useDebouncedOnChange } from "../../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 
 type ExampleEditorProps = {
     componentId: string;
@@ -30,13 +31,11 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         delay: 1000,
         onChange: (value) => {
             updateStandard({
-                type: 'updateComponent',
-                componentKey: component.key,
-                update: (example) => {
-                    const newValue = example.clone()
+                type: 'update',
+                update: (example: StandardForm) => {
+                    const newValue = example.byId[componentId]
                     if (newValue instanceof StandardExample) {
                         newValue._payload._name = new StandardRender([value])
-                        return newValue
                     }
                     return example
                 }

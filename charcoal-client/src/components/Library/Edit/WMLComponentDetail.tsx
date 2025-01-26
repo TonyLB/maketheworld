@@ -72,14 +72,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     onChange={(value) => {
                         if (typeof value !== 'function') {
                             updateStandard({
-                                type: 'updateComponent',
-                                componentKey: ComponentId,
-                                update: (incoming: StandardComponent) => {
-                                    const base = incoming.clone()
+                                type: 'update',
+                                update: (incoming: StandardForm) => {
+                                    const base = incoming.byId[ComponentId]
                                     if (base instanceof StandardRoom) {
                                         base._payload._shortName = new StandardRender([value])
                                     }
-                                    return base
+                                    return incoming
                                 }
                             })
                         }
@@ -100,14 +99,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 onChange={(value) => {
                     if (typeof value !== 'function') {
                         updateStandard({
-                            type: 'updateComponent',
-                            componentKey: ComponentId,
-                            update: (incoming: StandardComponent) => {
-                                const base = incoming.clone()
+                            type: 'update',
+                            update: (incoming: StandardForm) => {
+                                const base = incoming.byId[ComponentId]
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
                                     base._payload._name = new StandardRender([value])
                                 }
-                                return base
+                                return incoming
                             }
                         })
                     }
@@ -131,14 +129,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                         }
                         if (typeof value !== 'function') {
                             updateStandard({
-                                type: 'updateComponent',
-                                componentKey: ComponentId,
-                                update: (incoming: StandardComponent) => {
-                                    const base = incoming.clone()
+                                type: 'update',
+                                update: (incoming: StandardForm) => {
+                                    const base = incoming.byId[ComponentId]
                                     if (base instanceof StandardRoom) {
                                         base._payload._summary = new StandardRender([value])
                                     }
-                                    return base
+                                    return incoming
                                 }
                             })
                         }
@@ -163,14 +160,13 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                     }
                     if (typeof value !== 'function') {
                         updateStandard({
-                            type: 'updateComponent',
-                            componentKey: ComponentId,
-                            update: (incoming: StandardComponent) => {
-                                const base = incoming.clone()
+                            type: 'update',
+                            update: (incoming: StandardForm) => {
+                                const base = incoming.byId[ComponentId]
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
                                     base._payload._description = new StandardRender([value])
                                 }
-                                return base
+                                return incoming
                             }
                         })
                     }

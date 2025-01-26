@@ -62,6 +62,7 @@ import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFa
 import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import StandardRenderString from '@tonylb/mtw-wml/ts/standardize/render/string'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
@@ -251,10 +252,9 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
 
     useEffect(() => {
         updateStandard({
-            type: 'updateComponent',
-            componentKey: character.key,
-            update: (incoming: StandardComponent) => {
-                const base = incoming.clone()
+            type: 'update',
+            update: (incoming: StandardForm) => {
+                const base = incoming.byId[character.key]
                 if (base instanceof StandardCharacter) {
                     if (tag === 'firstImpression') {
                         base._payload._firstImpression = { data: { tag: 'FirstImpression', value: debouncedTagValue }, children: [] }
@@ -266,7 +266,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
                         base._payload._outfit = { data: { tag: 'Outfit', value: debouncedTagValue }, children: [] }
                     }
                 }
-                return base
+                return incoming
             }
         })
     }, [character.key, tag, updateStandard, debouncedTagValue])
@@ -293,14 +293,13 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     useEffect(() => {
         if ((schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || '') !== debouncedTagValue) {
             updateStandard({
-                type: 'updateComponent',
-                componentKey: character.key,
-                update: (incoming: StandardComponent) => {
-                    const base = incoming.clone()
+                type: 'update',
+                update: (incoming: StandardForm) => {
+                    const base = incoming.byId[character.key]
                     if (base instanceof StandardCharacter) {
                         base._payload._name = { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: debouncedTagValue }, children: []}] }
                     }
-                    return base
+                    return incoming
                 }
             })
         }
@@ -447,14 +446,13 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const onSelectChangeHandler = useCallback((value) => {
         if (character && ((value !== 'custom') && standardPronouns[value])) {
             updateStandard({
-                type: 'updateComponent',
-                componentKey: character.key,
-                update: (incoming: StandardComponent) => {
-                    const base = incoming.clone()
+                type: 'update',
+                update: (incoming: StandardForm) => {
+                    const base = incoming.byId[character.key]
                     if (base instanceof StandardCharacter) {
                         base._payload._pronouns = { data: { tag: 'Pronouns', ...standardPronouns[value] }, children: [] }
                     }
-                    return base
+                    return incoming
                 }
             })
         }
@@ -476,14 +474,13 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             //
             else {
                 updateStandard({
-                    type: 'updateComponent',
-                    componentKey: character.key,
-                    update: (incoming: StandardComponent) => {
-                        const base = incoming.clone()
+                    type: 'update',
+                    update: (incoming: StandardForm) => {
+                        const base = incoming.byId[character.key]
                         if (base instanceof StandardCharacter) {
                             base._payload._image = { data: { tag: 'Image', key: characterIconKey }, children: [] }
                         }
-                        return base
+                        return incoming
                     }
                 })
                 SCHEMADIRTY = true

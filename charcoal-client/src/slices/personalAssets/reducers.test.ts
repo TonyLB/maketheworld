@@ -60,14 +60,13 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'updateComponent',
-                    componentKey: 'testRoom',
+                    type: 'update',
                     update: (draft) => {
-                        const base = draft.clone()
-                        if (base instanceof StandardRoom) {
-                            base._payload._name = new StandardRender(['Test Update'])
+                        const roomComponent = draft.byId['testRoom']
+                        if (roomComponent instanceof StandardRoom) {
+                            roomComponent._payload._name = new StandardRender(['Test Update'])
                         }
-                        return base
+                        return draft
                     }
                 }
             )).toEqual({
@@ -173,8 +172,12 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'removeComponent',
-                    componentKey: 'testRoom'
+                    type: 'update',
+                    update: (draft) => {
+                        delete draft._byId['testRoom.base']
+                        delete draft._byId['testRoom']
+                        return draft
+                    }
                 }
             )).toEqual({
                 base: deIndentWML(`
@@ -223,14 +226,13 @@ describe('personalAsset slice reducers', () => {
                 <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'updateComponent',
-                    componentKey: 'testRoom',
+                    type: 'update',
                     update: (draft) => {
-                        const base = draft.clone()
-                        if (base instanceof StandardRoom) {
-                            base._payload._name = undefined
+                        const roomComponent = draft.byId['testRoom']
+                        if (roomComponent instanceof StandardRoom) {
+                            roomComponent._payload._name = undefined
                         }
-                        return base
+                        return draft
                     }
                 }
             )).toEqual({
@@ -269,14 +271,13 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'updateComponent',
-                    componentKey: 'testComputed',
+                    type: 'update',
                     update: (draft) => {
-                        const base = draft.clone()
-                        if (base instanceof StandardComputed) {
-                            base._payload._src = 'testVar'
+                        const variableComponent = draft.byId['testComputed']
+                        if (variableComponent instanceof StandardComputed) {
+                            variableComponent._payload._src = 'testVar'
                         }
-                        return base
+                        return draft
                     }
                 }
             )).toEqual({
