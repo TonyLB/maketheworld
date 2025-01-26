@@ -485,8 +485,6 @@ export class StandardForm {
             .reduce<Record<string, StandardComponent>>((previous, key) => {
                 const baseComponent = this._byId[key]
                 const incomingComponent = incoming._byId[key]
-                console.log(`base: ${JSON.stringify(baseComponent?.toJSON(), null, 4)}`)
-                console.log(`incoming: ${JSON.stringify(incomingComponent?.toJSON(), null, 4)}`)
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent)
                     if (diffedComponent) {

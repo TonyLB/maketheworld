@@ -7,7 +7,7 @@ import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } 
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -128,7 +128,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { localKey, globalKey: key } = options
         return {
             data: { tag: 'Room', key: localKey },

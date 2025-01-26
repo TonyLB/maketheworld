@@ -1678,9 +1678,7 @@ describe('StandardForm', () => {
             console.log(`diff: ${JSON.stringify(diff.toJSON(), null, 4)}`)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
-                    <Remove>
-                        <Room key=(testRoom)><Feature key=(testFeature) /></Room>
-                    </Remove>
+                    <Remove><Room key=(testRoom)><Feature key=(testFeature) /></Room></Remove>
                 </Asset>
             `))
         })

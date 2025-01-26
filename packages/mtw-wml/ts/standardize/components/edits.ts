@@ -72,10 +72,14 @@ export class StandardRemove implements StandardComponent {
     }
 
     nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { removeContext} = options
+        if (removeContext) {
+            return this._match.nestedSchema(byId, options)
+        }
         const localKey = this._match.key.split('.').slice(-1)[0]
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(byId, { ...options, localKey })]
+            children: [this._match.nestedSchema(byId, { ...options, localKey, removeContext: true })]
         }
     }
 
@@ -208,7 +212,7 @@ export class StandardReplace implements StandardComponent {
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Replace' },
             children: [
