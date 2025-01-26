@@ -128,7 +128,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, localKey: string, key: string): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options): GenericTreeNode<SchemaTag> {
+        const { localKey, globalKey: key } = options
         return {
             data: { tag: 'Room', key: localKey },
             children: [
@@ -136,12 +137,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...[this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits

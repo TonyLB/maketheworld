@@ -17,6 +17,12 @@ export type StandardComponentReferenceKey = {
     global?: boolean;
 }
 
+export type NestedSchemaOptions = {
+    localKey: string;
+    globalKey: string;
+    removeContext?: boolean;
+}
+
 export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
@@ -34,7 +40,7 @@ export interface StandardComponent {
     toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
-    nestedSchema(byId: Record<string, StandardComponent>, localKey?: string, globalKey?: string): GenericTreeNode<SchemaTag>;
+    nestedSchema(byId: Record<string, StandardComponent>, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];

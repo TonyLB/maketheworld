@@ -423,7 +423,7 @@ export class StandardForm {
         const children = Object.values(this._byId)
             .filter(({ key }) => (!key.includes('.')))
             .sort(standardComponentSortOrder(this._byId))
-            .map((component) => (component.nestedSchema(this._byId)))
+            .map((component) => (component.nestedSchema(this._byId, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {
@@ -485,6 +485,8 @@ export class StandardForm {
             .reduce<Record<string, StandardComponent>>((previous, key) => {
                 const baseComponent = this._byId[key]
                 const incomingComponent = incoming._byId[key]
+                console.log(`base: ${JSON.stringify(baseComponent?.toJSON(), null, 4)}`)
+                console.log(`incoming: ${JSON.stringify(incomingComponent?.toJSON(), null, 4)}`)
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent)
                     if (diffedComponent) {

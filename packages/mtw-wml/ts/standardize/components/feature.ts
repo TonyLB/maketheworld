@@ -4,7 +4,7 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -86,14 +86,15 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { localKey, globalKey } = options
         return {
             data: { tag: 'Feature', key: localKey },
             children: [
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, reference.key, `${globalKey}.${reference.key}`)
+                        : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${globalKey}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...[this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
             ]

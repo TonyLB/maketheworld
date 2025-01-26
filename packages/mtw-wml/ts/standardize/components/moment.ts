@@ -2,7 +2,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -75,7 +75,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, key: string): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { localKey: key } = options
         return {
             data: { tag: 'Moment', key },
             children: this.messages.map((reference) => (

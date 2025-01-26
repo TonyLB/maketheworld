@@ -291,6 +291,16 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
+    it('should properly nest components in a removed component', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Remove><Room key=(testRoom)><Feature key=(testFeature) /></Room></Remove>
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
+
     it('should combine descriptions in rooms and features', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
@@ -1657,6 +1667,20 @@ describe('StandardForm', () => {
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
                     <Room key=(testRoom)><Remove><Feature key=(testFeature) /></Remove></Room>
+                </Asset>
+            `))
+        })
+
+        it('should remove components with nested components properly', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test) />`)
+            const diff = base.diff(incoming)
+            console.log(`diff: ${JSON.stringify(diff.toJSON(), null, 4)}`)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(Test)>
+                    <Remove>
+                        <Room key=(testRoom)><Feature key=(testFeature) /></Room>
+                    </Remove>
                 </Asset>
             `))
         })

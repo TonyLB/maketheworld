@@ -1,7 +1,7 @@
 import { deepEqual } from "../../lib/objects";
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
-import { StandardComponent } from "./baseClasses";
+import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
@@ -71,11 +71,11 @@ export class StandardRemove implements StandardComponent {
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const localKey = this._match.key.split('.').slice(-1)[0]
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(byId, localKey)]
+            children: [this._match.nestedSchema(byId, { ...options, localKey })]
         }
     }
 
@@ -208,12 +208,12 @@ export class StandardReplace implements StandardComponent {
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Replace' },
             children: [
-                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(byId)] },
-                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(byId)] }
+                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(byId, options)] },
+                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(byId, options)] }
             ]
         }
     }
