@@ -580,7 +580,6 @@ export class StandardForm {
                                                     .filter(excludeUndefined)
                                                     .filter((component) => {
                                                         if (component instanceof StandardExample) {
-                                                            console.log(`Standard Example: ${JSON.stringify(component.toJSON(), null, 4)}`)
                                                             return true
                                                         }
                                                         return false

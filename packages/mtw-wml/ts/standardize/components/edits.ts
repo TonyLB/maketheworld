@@ -72,9 +72,10 @@ export class StandardRemove implements StandardComponent {
     }
 
     nestedSchema(byId: Record<string, StandardComponent>): GenericTreeNode<SchemaTag> {
+        const localKey = this._match.key.split('.').slice(-1)[0]
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(byId)]
+            children: [this._match.nestedSchema(byId, localKey)]
         }
     }
 
