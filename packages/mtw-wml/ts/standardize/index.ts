@@ -423,7 +423,7 @@ export class StandardForm {
         const children = Object.values(this._byId)
             .filter(({ key }) => (!key.includes('.')))
             .sort(standardComponentSortOrder(this._byId))
-            .map((component) => (component.nestedSchema(this._byId)))
+            .map((component) => (component.nestedSchema(this._byId, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {
@@ -580,7 +580,6 @@ export class StandardForm {
                                                     .filter(excludeUndefined)
                                                     .filter((component) => {
                                                         if (component instanceof StandardExample) {
-                                                            console.log(`Standard Example: ${JSON.stringify(component.toJSON(), null, 4)}`)
                                                             return true
                                                         }
                                                         return false

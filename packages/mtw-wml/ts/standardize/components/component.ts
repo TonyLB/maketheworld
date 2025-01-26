@@ -16,7 +16,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -41,7 +41,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key: string): GenericTreeNode<SchemaTag>;
-    nestedSchema?(byId: Record<string, StandardComponent>, localKey: string, globalKey: string): GenericTreeNode<SchemaTag>;
+    nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
@@ -116,10 +116,10 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             return this._payload.schema(this.key)
         }
 
-        nestedSchema(byId: Record<string, StandardComponent>, localKey?: string, globalKey?: string): GenericTreeNode<SchemaTag> {
+        nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(byId, localKey ?? this.key, globalKey ?? this.key)
-                : this._payload.schema(localKey ?? this.key)
+                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key })
+                : this._payload.schema(options.localKey ?? this.key)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {

@@ -7,7 +7,7 @@ import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } 
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -128,20 +128,21 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, key: string): GenericTreeNode<SchemaTag> {
+    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { localKey, globalKey: key } = options
         return {
-            data: { tag: 'Room', key },
+            data: { tag: 'Room', key: localKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
+                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...[this.name, this.summary, this.description].filter(excludeUndefined).filter(({ children }) => (children.length)),
                 ...this.exits

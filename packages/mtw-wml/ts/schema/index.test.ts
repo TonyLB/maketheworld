@@ -928,6 +928,24 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip nested remove tags', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(room1)><Remove><Feature key=(base) /></Remove></Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip remove with nested tags', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Remove><Room key=(room1)><Feature key=(base) /></Room></Remove>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
     it('should correctly not persist ui select properties', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
