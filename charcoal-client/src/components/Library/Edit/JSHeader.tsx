@@ -9,6 +9,7 @@ import { StandardAction } from '@tonylb/mtw-wml/ts/standardize/components/action
 import { StandardComputed } from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import { StandardVariable } from '@tonylb/mtw-wml/ts/standardize/components/variable'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type JSTags = StandardAction | StandardComputed | StandardVariable
 
@@ -38,27 +39,25 @@ const JSHeader = <T extends JSTags>({ item, getJS, maxHeight }: JSHeaderProps<T>
                     onChange={(value) => {
                         if (['Action', 'Computed'].includes(item.tag)) {
                             updateStandard({
-                                type: 'updateComponent',
-                                componentKey: item.key,
-                                update: (incoming: StandardComponent) => {
-                                    const base = incoming.clone()
+                                type: 'update',
+                                update: (incoming: StandardForm) => {
+                                    const base = incoming.byId[item.key]
                                     if (base instanceof StandardAction || base instanceof StandardComputed) {
                                         base._payload._src = value
                                     }
-                                    return base
+                                    return incoming
                                 }
                             })                            
                         }
                         if (item.tag === 'Variable') {
                             updateStandard({
-                                type: 'updateComponent',
-                                componentKey: item.key,
-                                update: (incoming: StandardComponent) => {
-                                    const base = incoming.clone()
+                                type: 'update',
+                                update: (incoming: StandardForm) => {
+                                    const base = incoming.byId[item.key]
                                     if (base instanceof StandardVariable) {
                                         base._payload._default = value
                                     }
-                                    return base
+                                    return incoming
                                 }
                             })
                         }

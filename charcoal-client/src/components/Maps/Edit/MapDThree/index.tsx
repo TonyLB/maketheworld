@@ -68,21 +68,19 @@ export class MapDThree extends Object {
                 const mapComponent = standardForm.byId[mapId]
                 if (mapComponent && isStandardMap(mapComponent)) {
                     updateStandard({
-                        type: 'updateComponent',
-                        componentKey: mapId,
-                        update: (component) => {
+                        type: 'update',
+                        update: (incoming) => {
+                            const component = incoming.byId[mapId]
                             if (component instanceof StandardMap) {
-                                const base = component.clone()
                                 if (typeof newTree === 'function') {
-                                    const positions = produce(base.positions, newTree)
-                                    base._payload._positions = positions
+                                    const positions = produce(component.positions, newTree)
+                                    component._payload._positions = positions
                                 }
                                 else {
-                                    base._payload._positions = newTree
+                                    component._payload._positions = newTree
                                 }
-                                return base
                             }
-                            return component
+                            return incoming
                         }
                     })
                 }
@@ -128,9 +126,9 @@ export class MapDThree extends Object {
             const mapComponent = standardForm.byId[mapId]
             if (mapComponent && isStandardMap(mapComponent)) {
                 updateStandard({
-                    type: 'updateComponent',
-                    componentKey: mapId,
-                    update: (component) => {
+                    type: 'update',
+                    update: (draft) => {
+                        const component = draft.byId[mapId]
                         if (component instanceof StandardMap) {
                             const base = component.clone()
                             if (typeof newTree === 'function') {
@@ -140,9 +138,8 @@ export class MapDThree extends Object {
                             else {
                                 base._payload._positions = newTree
                             }
-                            return base
                         }
-                        return component
+                        return draft
                     }
                 })
             }

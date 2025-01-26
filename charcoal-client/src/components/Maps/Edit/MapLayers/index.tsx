@@ -33,6 +33,7 @@ import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/bas
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type MapLayersProps = {
     mapId: string;
@@ -64,14 +65,13 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
         dispatch(addOnboardingComplete(['renameNewRoom']))
         if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || roomId) {
             updateStandard({
-                type: 'updateComponent',
-                componentKey: roomComponent.key,
-                update: (incoming: StandardComponent) => {
-                    const base = incoming.clone()
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const base = draft.byId[roomId]
                     if (base instanceof StandardRoom) {
                         base._payload._shortName = new StandardRender([value])
                     }
-                    return base
+                    return draft
                 }
             })
             if (isEphemeraAssetId(AssetId)) {
@@ -299,16 +299,15 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highli
                     if (typeof value !== 'function') {
                         if (component && component instanceof StandardMap) {
                             updateStandard({
-                                type: 'updateComponent',
-                                componentKey: mapId,
-                                update: (incoming: StandardComponent) => {
-                                    const base = incoming.clone()
+                                type: 'update',
+                                update: (draft: StandardForm) => {
+                                    const base = draft.byId[mapId]
                                     if (base instanceof StandardMap) {
                                         base._payload._name = value.length ?
                                             { data: { tag: 'Name' }, children: value as GenericTree<SchemaOutputTag> }
                                             : undefined
                                     }
-                                    return base
+                                    return draft
                                 }
                             })
                         }

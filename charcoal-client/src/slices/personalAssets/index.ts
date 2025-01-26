@@ -339,14 +339,13 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                 if (description) {
                     dispatch(
                         updateStandard(assetId)({
-                            type: 'updateComponent',
-                            componentKey: roomId,
-                            update: (incoming: StandardComponent) => {
-                                const base = incoming.clone()
+                            type: 'update',
+                            update: (draft: StandardForm) => {
+                                const base = draft.byId[roomId]
                                 if (base instanceof StandardRoom) {
                                     base._payload._description = new StandardRender([description.trim()])
                                 }
-                                return base
+                                return draft
                             }
                         })
                     )
@@ -354,14 +353,13 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                 if (summary) {
                     dispatch(
                         updateStandard(assetId)({
-                            type: 'updateComponent',
-                            componentKey: roomId,
-                            update: (incoming: StandardComponent) => {
-                                const base = incoming.clone()
+                            type: 'update',
+                            update: (draft: StandardForm) => {
+                                const base = draft.byId[roomId]
                                 if (base instanceof StandardRoom) {
                                     base._payload._summary = new StandardRender([summary])
                                 }
-                                return base
+                                return draft
                             }
                         })
                     )

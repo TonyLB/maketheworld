@@ -74,9 +74,8 @@ export type UpdateStandardPayloadSetInherited = {
 }
 
 export type UpdateStandardPayloadUpdateComponent = {
-    type: 'updateComponent';
-    componentKey: string;
-    update: (draft: StandardComponent) => StandardComponent | undefined;
+    type: 'update';
+    update: (draft: StandardForm) => StandardForm;
 }
 
 export type UpdateStandardPayloadRemoveComponent = {
@@ -100,7 +99,7 @@ type UpdateStandardPayloadRenameKey = {
 export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadRemoveComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadSetBase = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSetInherited => (payload.type === 'setInherited')
-const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
+const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'update')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
@@ -138,10 +137,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         mergeToEdit(standardForm.diff(modified))
     }
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
-        const component = standardForm.byId[payload.componentKey]
-        if (component) {
-            const newOutput = payload.update(component)
-            mergeComponentToEdit(payload.componentKey, newOutput)
+        const modified = payload.update(standardForm._clone())
+        const diff = standardForm.diff(modified)
+        if (diff) {
+            mergeToEdit(diff)
         }
     }
     if (isUpdateStandardPayloadAddComponent(payload)) {

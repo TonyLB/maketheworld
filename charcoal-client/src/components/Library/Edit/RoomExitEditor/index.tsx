@@ -158,13 +158,11 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             onChange={(value) => {
                 if (typeof value !== 'function') {
                     updateStandard({
-                        type: 'updateComponent',
-                        componentKey: RoomId,
+                        type: 'update',
                         update: (component) => {
-                            if (component instanceof StandardRoom) {
-                                const base = component.clone()
+                            const base = component.byId[RoomId]
+                            if (base instanceof StandardRoom) {
                                 base._payload._exits = value
-                                return base
                             }
                             return component
                         }

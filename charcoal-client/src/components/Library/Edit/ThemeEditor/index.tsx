@@ -31,6 +31,7 @@ import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
 import { StandardRender, StandardRenderRemove, StandardRenderReplace } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 const PromptItem: FunctionComponent<{}> = () => {
     const { data, children, onChange: contextOnChange } = useEditNodeContext()
@@ -135,14 +136,13 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                 onChange={(value) => {
                     if (typeof value !== 'function') {
                         updateStandard({
-                            type: 'updateComponent',
-                            componentKey: ComponentId,
-                            update: (incoming: StandardComponent) => {
-                                const base = incoming.clone()
+                            type: 'update',
+                            update: (incoming: StandardForm) => {
+                                const base = incoming.byId[ComponentId]
                                 if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
                                     base._payload._name = new StandardRender([value])
                                 }
-                                return base
+                                return incoming
                             }
                         })
                     }
@@ -159,15 +159,13 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         onChange={(value) => {
                             if (typeof value !== 'function') {
                                 updateStandard({
-                                    type: 'updateComponent',
-                                    componentKey: ComponentId,
-                                    update: (component) => {
-                                        if (component instanceof StandardTheme) {
-                                            const base = component.clone()
+                                    type: 'update',
+                                    update: (incoming) => {
+                                        const base = incoming.byId[ComponentId]
+                                        if (base instanceof StandardTheme) {
                                             base._payload._prompts = value as GenericTreeFiltered<SchemaPromptTag, SchemaTag>
-                                            return base
                                         }
-                                        return component
+                                        return incoming
                                     }
                                 })
                             }
