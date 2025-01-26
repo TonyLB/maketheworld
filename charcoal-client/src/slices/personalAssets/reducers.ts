@@ -79,6 +79,11 @@ export type UpdateStandardPayloadUpdateComponent = {
     update: (draft: StandardComponent) => StandardComponent | undefined;
 }
 
+export type UpdateStandardPayloadRemoveComponent = {
+    type: 'removeComponent';
+    componentKey: string;
+}
+
 type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
     tag: ComponentTag;
@@ -92,10 +97,11 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadRemoveComponent | UpdateStandardPayloadAddComponent | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadSetBase = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSetInherited => (payload.type === 'setInherited')
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'updateComponent')
+const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 const isUpdateStandardPayloadAddComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadAddComponent => (payload.type === 'addComponent')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
@@ -112,32 +118,30 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const editStandardized = new StandardForm(state.edit)
         state.edit = editStandardized.merge(delta).toJSON()
     }
-    const mergeComponentToEdit = (deltaComponent: StandardComponent): void => {
-        const delta = new StandardForm(state.base.key)
-        delta.byId[deltaComponent.key] = deltaComponent
-        mergeToEdit(delta)
-    }
     if (isUpdateStandardPayloadSetBase(payload)) {
         state.inherited = payload.inherited
         return
     }
+    const base = new StandardForm(state.base)
     const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
         const editStandardized = new StandardForm(pendingEdit.edit)
         return previous.merge(editStandardized)
-    }, state.inherited ? new StandardForm(state.inherited).merge(new StandardForm(state.base)) : new StandardForm(state.base)).merge(new StandardForm(state.edit))
+    }, state.inherited ? new StandardForm(state.inherited).merge(base) : base).merge(new StandardForm(state.edit))
+    const mergeComponentToEdit = (key: string, deltaComponent: StandardComponent | undefined): void => {
+        const modified = standardForm._clone()
+        if (deltaComponent) {
+            modified._byId[key] = deltaComponent
+        }
+        else {
+            delete modified._byId[key]
+        }
+        mergeToEdit(standardForm.diff(modified))
+    }
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
         const component = standardForm.byId[payload.componentKey]
         if (component) {
             const newOutput = payload.update(component)
-            if (newOutput) {
-                const editComponent = component.diff(newOutput)
-                if (editComponent) {
-                    mergeComponentToEdit(editComponent)
-                }
-            }
-            else {
-                mergeComponentToEdit(new StandardRemove(component))
-            }
+            mergeComponentToEdit(payload.componentKey, newOutput)
         }
     }
     if (isUpdateStandardPayloadAddComponent(payload)) {
@@ -155,13 +159,22 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         //
         const component = standardComponentByTag(payload.tag, payload.key ?? syntheticKey)
         if (component) {
-            mergeComponentToEdit(payload.import
+            mergeComponentToEdit(syntheticKey, payload.import
                 ? component.withImport(new ImportItemContent(payload.import.fromKey, payload.import.assetId).toJSON())
                 : component
             )
         }
         else {
             throw new Error(`Could not create component of tag ${payload.tag}`)
+        }
+    }
+    if (isUpdateStandardPayloadRemoveComponent(payload)) {
+        const component = base.byId[payload.componentKey]
+        if (component) {
+            mergeComponentToEdit(payload.componentKey, undefined)
+        }
+        else {
+            throw new Error(`Could not find component with key ${payload.componentKey}`)
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {

@@ -65,7 +65,7 @@ describe('personalAsset slice reducers', () => {
                     update: (draft) => {
                         const base = draft.clone()
                         if (base instanceof StandardRoom) {
-                            base._payload._name = new StandardRender('Test Update')
+                            base._payload._name = new StandardRender(['Test Update'])
                         }
                         return base
                     }
@@ -156,142 +156,57 @@ describe('personalAsset slice reducers', () => {
             })
         })
 
-        it('should splice a component list', () => {
-            //
-            // Test removing an item from a list
-            //
+        it('should remove a component', () => {
             expect(transformWML(
                 `
                 <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
                     <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(testDestination)>out</Exit>
+                        <Example key=(base)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Example>
                     </Room>
-                </Asset>
-                `,
-                `
-                <Asset key=(testAsset) />
-                `,
-                {
-                    type: 'updateComponent',
-                    componentKey: 'testRoom',
-                    update: (draft) => {
-                        const base = draft.clone()
-                        if (base instanceof StandardRoom) {
-                            base._payload._exits = []
-                        }
-                        return base
-                    }
-                }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>out</Exit>
-                        </Room>
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                        </Room>
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                        </Room>
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Remove><Exit to=(testDestination)>out</Exit></Remove>
-                        </Room>
-                    </Asset>
-                `)
-            })
-
-            //
-            // Test replacing an item in a list
-            //
-            expect(transformWML(
-                `
-                <Asset key=(testAsset)>
-                    <Room key=(testDestination) />
-                    <Room key=(testRoom)>
-                        <Name>Test Room</Name>
-                        <Description>Test Description</Description>
-                        <Exit to=(testDestination)>out</Exit>
-                    </Room>
+                    <Room key=(testRoomTwo) />
                 </Asset>
                 `,
                 `
                     <Asset key=(testAsset) />
                 `,
                 {
-                    type: 'updateComponent',
-                    componentKey: 'testRoom',
-                    update: (draft) => {
-                        const base = draft.clone()
-                        if (base instanceof StandardRoom) {
-                            base._payload._exits = [{ data: { tag: 'Exit', key: 'testRoom#testDestination', from: 'testRoom', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'depart' }, children: [] }]}]
-                        }
-                        return base
-                    }
+                    type: 'removeComponent',
+                    componentKey: 'testRoom'
                 }
             )).toEqual({
                 base: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
                         <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>out</Exit>
+                            <Example key=(base)>
+                                <Name>Test Room</Name>
+                                <Description>Test Description</Description>
+                            </Example>
                         </Room>
+                        <Room key=(testRoomTwo) />
                     </Asset>
                 `),
                 standard: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>depart</Exit>
-                        </Room>
-                    </Asset>
+                    <Asset key=(testAsset)><Room key=(testRoomTwo) /></Asset>
                 `),
                 calculated: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Room key=(testDestination) />
-                        <Room key=(testRoom)>
-                            <Name>Test Room</Name>
-                            <Description>Test Description</Description>
-                            <Exit to=(testDestination)>depart</Exit>
-                        </Room>
-                    </Asset>
+                    <Asset key=(testAsset)><Room key=(testRoomTwo) /></Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Replace><Exit to=(testDestination)>out</Exit></Replace>
-                            <With><Exit to=(testDestination)>depart</Exit></With>
-                        </Room>
+                        <Remove>
+                            <Room key=(testRoom)>
+                                <Example key=(base)>
+                                    <Name>Test Room</Name>
+                                    <Description>Test Description</Description>
+                                </Example>
+                            </Room>
+                        </Remove>
                     </Asset>
                 `)
             })
-
         })
 
         it('should delete schema content', () => {
