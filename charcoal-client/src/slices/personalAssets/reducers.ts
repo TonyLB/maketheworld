@@ -168,12 +168,20 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRemoveComponent(payload)) {
-        const component = base.byId[payload.componentKey]
-        if (component) {
-            mergeComponentToEdit(payload.componentKey, undefined)
-        }
-        else {
-            throw new Error(`Could not find component with key ${payload.componentKey}`)
+        const localStandardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+            const editStandardized = new StandardForm(pendingEdit.edit)
+            return previous.merge(editStandardized)
+        }, base).merge(new StandardForm(state.edit))
+        const componentRemoved = localStandardForm._clone()
+        delete componentRemoved._byId[payload.componentKey]
+        Object.keys(componentRemoved.byId)
+            .filter((key) => (key.startsWith(`${payload.componentKey}.`)))
+            .forEach((key) => {
+                delete componentRemoved._byId[key]
+            })
+        const diff = localStandardForm.diff(componentRemoved)
+        if (diff) {
+            mergeToEdit(diff)
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {

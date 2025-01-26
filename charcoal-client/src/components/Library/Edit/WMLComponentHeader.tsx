@@ -1,17 +1,14 @@
 import React, { FunctionComponent, ReactChild, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
-import { SxProps } from '@mui/material'
+import { IconButton, SxProps } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import MiniChip from '../../MiniChip'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 
 interface WMLComponentHeaderProps {
@@ -44,6 +41,7 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
 }
 
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
+    const { updateStandard } = useLibraryAsset()
     const primary = useCallback((key) => (<WMLComponentName itemId={key} />), [])
 
     const secondaryBase: AssetDataHeaderRenderFunction = (key) => (key)
@@ -56,6 +54,15 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
         onClick={onClick}
         sx={sx}
         selected={selected}
+        actions={
+            <IconButton
+                onClick={() => {
+                    updateStandard({ type: 'removeComponent', componentKey: ItemId })
+                }}
+            >
+                <DeleteIcon />
+            </IconButton>
+        }
     />
 }
 
