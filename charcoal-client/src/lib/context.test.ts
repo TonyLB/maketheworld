@@ -4,6 +4,8 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaRoom, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "./lists"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 
 describe('context nesting helper library', () => {
     it('should nest onChange with nestOnChangeSubItem', () => {
@@ -126,7 +128,15 @@ describe('context nesting helper library', () => {
                 const previousLength = (previous ?? []).length
                 const newRooms = newValue.slice(previousLength).filter((node) => (node && treeNodeTypeguard(isSchemaRoom)({ ...node, children: [] }))).filter(excludeUndefined) as GenericTreeFiltered<SchemaRoomTag, SchemaTag>
                 newRooms.forEach((newRoom) => {
-                    addSupplement({ type: 'addComponent', componentKey: newRoom.data.key, tag: 'Room' })
+                    addSupplement({
+                        type: 'update',
+                        update: (draft: StandardForm) => {
+                            if (!(newRoom.data.key in draft.byId)) {
+                                draft.byId[newRoom.data.key] = new StandardRoom(newRoom.data.key)
+                            }
+                            return draft
+                        }
+                    })
                 })
                 return baseReducer(previous, newValue as GenericTree<SchemaTag>)
             },
@@ -166,9 +176,8 @@ describe('context nesting helper library', () => {
         ])
         expect(addSupplement).toHaveBeenCalledTimes(1)
         expect(addSupplement).toHaveBeenCalledWith({
-            type: 'addComponent',
-            componentKey: 'Room2',
-            tag: 'Room'
+            type: 'update',
+            update: expect.any(Function)
         })
     })
 

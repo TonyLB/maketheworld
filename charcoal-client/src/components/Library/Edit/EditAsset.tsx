@@ -55,6 +55,7 @@ import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
+import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 
 type AssetEditFormProps = {}
 
@@ -138,8 +139,20 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 break
         }
         updateStandard({
-            type: 'addComponent',
-            tag
+            type: 'update',
+            update: (draft) => {
+                let nextIndex = 1
+                while (`${tag}${nextIndex}` in draft.byId) { nextIndex++ }
+                const defaultedKey = `${tag}${nextIndex}`
+                const component = standardComponentByTag(tag, defaultedKey)
+                if (component) {
+                    draft._byId[defaultedKey] = component
+                }
+                else {
+                    throw new Error(`Invalid tag: ${tag}`)
+                }
+                return draft
+            }
         })
     }, [updateStandard, dispatch])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>

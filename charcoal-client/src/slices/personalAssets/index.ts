@@ -50,6 +50,8 @@ import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFa
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { update } from 'react-spring'
+import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 
 const autoSaveDebounce = new Debounce()
 
@@ -312,10 +314,21 @@ export const addImport = ({ assetId, fromAsset, as, key, tag }: {
     as?: string;
 }, options?: { overrideGetStandard?: typeof getStandardForm, overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
     dispatch(publicActions.updateStandard(assetId)({
-        type: 'addComponent',
-        tag,
-        componentKey: as ?? key,
-        importItem: { from: fromAsset, key }
+        type: 'update',
+        update: (draft: StandardForm) => {
+            const componentKey = as ?? key
+            if (key in draft.byId) {
+                draft._byId[componentKey] = draft.byId[componentKey].withImport(new ImportItemContent(fromAsset, key))
+            }
+            else {
+                const component = standardComponentByTag(tag, componentKey)
+                if (!component) {
+                    throw new Error(`Could not create component for tag ${tag}`)
+                }
+                draft._byId[componentKey] = component.withImport(new ImportItemContent(fromAsset, key))
+            }
+            return draft
+        },
     }))
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
