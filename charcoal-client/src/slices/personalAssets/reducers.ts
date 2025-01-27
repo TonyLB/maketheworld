@@ -86,7 +86,7 @@ export type UpdateStandardPayloadRemoveComponent = {
 type UpdateStandardPayloadAddComponent = {
     type: 'addComponent';
     tag: ComponentTag;
-    key?: string;
+    componentKey?: string;
     import?: StandardComponentImportPayload;
 }
 
@@ -156,10 +156,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         //
         // Add a default component
         //
-        const component = standardComponentByTag(payload.tag, payload.key ?? syntheticKey)
+        const component = standardComponentByTag(payload.tag, payload.componentKey ?? payload.import?.fromKey ?? syntheticKey)
         if (component) {
             mergeComponentToEdit(syntheticKey, payload.import
-                ? component.withImport(new ImportItemContent(payload.import.fromKey, payload.import.assetId).toJSON())
+                ? component.withImport(new ImportItemContent(payload.import.assetId, payload.import.fromKey).toJSON())
                 : component
             )
         }

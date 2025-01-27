@@ -155,6 +155,62 @@ describe('personalAsset slice reducers', () => {
             })
         })
 
+        it('should add an imported component', () => {
+            expect(transformWML(
+                `
+                <Asset key=(testAsset)>
+                    <Room key=(testRoom)>
+                        <Name>Test Room</Name>
+                        <Description>Test Description</Description>
+                    </Room>
+                </Asset>
+                `,
+                `
+                    <Asset key=(testAsset) />
+                `,
+                {
+                    type: 'addComponent',
+                    tag: 'Room',
+                    import: {
+                        assetId: 'base',
+                        fromKey: 'testRoomTwo'
+                    }
+                }
+            )).toEqual({
+                base: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
+                standard: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Import from=(base)><Room key=(testRoomTwo) /></Import>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
+                calculated: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Import from=(base)><Room key=(testRoomTwo) /></Import>
+                        <Room key=(testRoom)>
+                            <Name>Test Room</Name>
+                            <Description>Test Description</Description>
+                        </Room>
+                    </Asset>
+                `),
+                edit: deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Import from=(base)><Room key=(testRoomTwo) /></Import>
+                    </Asset>
+                `)
+            })
+        })
+
         it('should remove a component', () => {
             expect(transformWML(
                 `
