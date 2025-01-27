@@ -8,6 +8,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getDraftWML: (state: PersonalAssetsPublic) => string;
+    getLocalStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getImportData: (state: PersonalAssetsPublic & { key: string }) => Record<string, GenericTree<SchemaTag>>;
@@ -29,14 +30,13 @@ const getPendingEdits = ({ pendingEdits }: PersonalAssetsPublic) => (pendingEdit
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
-const getStandardForm = createSelector(
-    getInherited,
+const getLocalStandardForm = createSelector(
     getBase,
     getPendingEdits,
     getEdit,
-    (inherited, base, pendingEdits, edit) => {
-        const inheritedStandardized = new StandardForm(inherited)
-        const combined = [base, ...pendingEdits.map(({ edit }) => (edit)), edit].reduce<StandardForm>((previous, standardForm) => {
+    (base, pendingEdits, edit) => {
+        const baseStandardized = new StandardForm(base)
+        const combined = [...pendingEdits.map(({ edit }) => (edit)), edit].reduce<StandardForm>((previous, standardForm) => {
             try {
                 const standardized = new StandardForm(standardForm)
                 return previous.merge(standardized)
@@ -44,8 +44,23 @@ const getStandardForm = createSelector(
             catch {
                 return previous
             }
-        }, inheritedStandardized)
+        }, baseStandardized)
         return combined.toJSON()
+    }
+)
+
+const getStandardForm = createSelector(
+    getInherited,
+    getLocalStandardForm,
+    (inherited, local) => {
+        const inheritedStandardized = new StandardForm(inherited)
+        const localStandardized = new StandardForm(local)
+        try {
+            return inheritedStandardized.merge(localStandardized).toJSON()
+        }
+        catch {
+            return inheritedStandardized.toJSON()
+        }
     }
 )
 
@@ -71,6 +86,7 @@ const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefine
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getDraftWML,
+    getLocalStandardForm,
     getStandardForm,
     getInherited,
     getImportData,
