@@ -314,7 +314,7 @@ export const addImport = ({ assetId, fromAsset, as, key, tag }: {
     dispatch(publicActions.updateStandard(assetId)({
         type: 'addComponent',
         tag,
-        key: as ?? key,
+        componentKey: as ?? key,
         importItem: { from: fromAsset, key }
     }))
     dispatch(fetchImports(assetId))
