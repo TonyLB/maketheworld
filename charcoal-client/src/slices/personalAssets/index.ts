@@ -34,7 +34,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { push } from '../UI/feedback'
@@ -43,15 +43,11 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import Debounce from '../../lib/keyedDebounce'
 import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
-import { isSchemaWithKey } from '@tonylb/mtw-base/ts/schema'
-import { SchemaStringTag } from '@tonylb/mtw-base/ts/schema/renderTree'
-import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { update } from 'react-spring'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
+import { deepEqual } from '../../lib/objects'
 
 const autoSaveDebounce = new Debounce()
 
@@ -250,6 +246,7 @@ export const {
     getStatus,
     getCurrentWML,
     getDraftWML,
+    getLocalStandardForm,
     getStandardForm,
     getInherited,
     getInheritedByAssetId,
@@ -275,7 +272,12 @@ export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClie
 }
 
 export const updateStandard = (key: string) => (payload: UpdateStandardPayload) => async (dispatch: any, getState: any) => {
+    const previousImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
     dispatch(publicActions.updateStandard(key)(payload))
+    const newImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
+    if (!deepEqual(previousImports, newImports)) {
+        dispatch(fetchImports(key))
+    }
     autoSaveDebounce.set(
         key,
         () => {
