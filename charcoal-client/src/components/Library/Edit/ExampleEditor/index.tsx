@@ -2,10 +2,8 @@ import React, { FunctionComponent, useMemo, useState } from "react"
 import TitledBox from "../../../TitledBox"
 import { useLibraryAsset } from "../LibraryAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
-import DescriptionEditor from "../DescriptionEditor";
-import { EditSchema } from "../EditContext";
 import { Box, TextField } from "@mui/material";
-import useDebounce, { useDebouncedOnChange } from "../../../../hooks/useDebounce";
+import { useDebouncedOnChange } from "../../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import StandardRenderEditor from "../StandardRenderEditor";
@@ -60,6 +58,23 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             })
         }
     })
+    const [description, setDescription] = useState(new StandardRender(component.description ?? []))
+    useDebouncedOnChange({
+        value: summary,
+        delay: 1000,
+        onChange: (value: StandardRender) => {
+            updateStandard({
+                type: 'update',
+                update: (example: StandardForm) => {
+                    const newValue = example.byId[componentId]
+                    if (newValue instanceof StandardExample) {
+                        newValue._payload._description = value
+                    }
+                    return example
+                }
+            })
+        }
+    })
     return <TitledBox title="Example">
         <TextField
             value={name}
@@ -80,16 +95,12 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                 toolbar={false}
             />
         </Box>
-        <EditSchema
-            value={component.description ?? []}
-            onChange={(value) => {}}
-        >
-            <DescriptionEditor
-                validLinkTags={[]}
-                toolbar={false}
-                
-            />
-        </EditSchema>
+        <StandardRenderEditor
+            value={description}
+            onChange={setDescription}
+            validLinkTags={[]}
+            toolbar={false}
+        />
     </TitledBox>
 }
 
