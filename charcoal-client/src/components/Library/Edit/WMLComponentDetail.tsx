@@ -32,9 +32,7 @@ import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standard
 import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/ts/schema'
 import { SchemaAssetTag, SchemaStoryTag } from '@tonylb/mtw-base/ts/schema/asset'
 import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import ExampleEditor from './ExampleEditor'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
