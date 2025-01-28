@@ -60,6 +60,11 @@ export type UpdateStandardPayloadUpdateComponent = {
     update: (draft: StandardForm) => StandardForm;
 }
 
+export type UpdateStandardPayloadUpdateLocal = {
+    type: 'updateLocal';
+    update: (draft: StandardForm) => StandardForm;
+}
+
 export type UpdateStandardPayloadRemoveComponent = {
     type: 'removeComponent';
     componentKey: string;
@@ -71,10 +76,11 @@ type UpdateStandardPayloadRenameKey = {
     to: string;
 }
 
-export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadRemoveComponent | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent | UpdateStandardPayloadRenameKey
 
 const isUpdateStandardPayloadSetBase = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSetInherited => (payload.type === 'setInherited')
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'update')
+const isUpdateStandardPayloadUpdateLocal = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateLocal => (payload.type === 'updateLocal')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
@@ -96,13 +102,21 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         return
     }
     const base = new StandardForm(state.base)
-    const standardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
+    const localStandardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
         const editStandardized = new StandardForm(pendingEdit.edit)
         return previous.merge(editStandardized)
-    }, state.inherited ? new StandardForm(state.inherited).merge(base) : base).merge(new StandardForm(state.edit))
+    }, base).merge(new StandardForm(state.edit))
+    const standardForm = state.inherited ? new StandardForm(state.inherited).merge(localStandardForm) : localStandardForm
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
         const modified = payload.update(standardForm._clone())
         const diff = standardForm.diff(modified)
+        if (diff) {
+            mergeToEdit(diff)
+        }
+    }
+    if (isUpdateStandardPayloadUpdateLocal(payload)) {
+        const modified = payload.update(localStandardForm._clone())
+        const diff = localStandardForm.diff(modified)
         if (diff) {
             mergeToEdit(diff)
         }

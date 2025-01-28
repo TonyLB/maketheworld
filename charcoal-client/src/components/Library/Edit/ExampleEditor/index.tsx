@@ -92,7 +92,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         if (!(componentId in localStandardForm.byId)) {
             const parentId = componentId.split('.').slice(0, -1).join('.')
             updateStandard({
-                type: 'update',
+                type: 'updateLocal',
                 update: (draft) => {
                     const parent = draft._byId[parentId]
                     const parentImportAsset = parent?.import?.assetId
