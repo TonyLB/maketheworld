@@ -37,7 +37,6 @@ import ExampleEditor from './ExampleEditor'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
-    const dispatch = useDispatch()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
         const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (ComponentId) {
@@ -91,94 +90,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 </EditSchema>
             </StandardFormSchema>
         }
-        <StandardFormSchema componentKey={ComponentId} tag="Name">
-            <EditSchema
-                value={component?.name?.children ?? []}
-                onChange={(value) => {
-                    if (typeof value !== 'function') {
-                        updateStandard({
-                            type: 'update',
-                            update: (incoming: StandardForm) => {
-                                const base = incoming.byId[ComponentId]
-                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._name = new StandardRender([value])
-                                }
-                                return incoming
-                            }
-                        })
-                    }
-                }}
-            >
-                <TitledBox title={tag === 'Room' ? "Full Name" : "Name" }>
-                    <DescriptionEditor
-                        toolbar
-                        validLinkTags={[]}
-                    />
-                </TitledBox>
-            </EditSchema>
-        </StandardFormSchema>
-        {
-            (component instanceof StandardRoom) && <StandardFormSchema componentKey={ComponentId} tag="Summary">
-                <EditSchema
-                    value={component?.summary?.children ?? []}
-                    onChange={(value) => {
-                        if (value.length) {
-                            dispatch(addOnboardingComplete(['summarizeRoom']))
-                        }
-                        if (typeof value !== 'function') {
-                            updateStandard({
-                                type: 'update',
-                                update: (incoming: StandardForm) => {
-                                    const base = incoming.byId[ComponentId]
-                                    if (base instanceof StandardRoom) {
-                                        base._payload._summary = new StandardRender([value])
-                                    }
-                                    return incoming
-                                }
-                            })
-                        }
-                    }}
-                >
-                    <TitledBox title="Summary">
-                        <DescriptionEditor
-                            toolbar
-                            validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                            checkPoints={['summarizeRoom']}
-                        />
-                    </TitledBox>
-                </EditSchema>
-            </StandardFormSchema>
-        }
-        <StandardFormSchema componentKey={ComponentId} tag="Description">
-            <EditSchema
-                value={component?.description?.children ?? []}
-                onChange={(value) => {
-                    if (value.length) {
-                        dispatch(addOnboardingComplete(['describeRoom']))
-                    }
-                    if (typeof value !== 'function') {
-                        updateStandard({
-                            type: 'update',
-                            update: (incoming: StandardForm) => {
-                                const base = incoming.byId[ComponentId]
-                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._description = new StandardRender([value])
-                                }
-                                return incoming
-                            }
-                        })
-                    }
-                }}
-            >
-                <TitledBox>
-                    <DescriptionEditor
-                        toolbar
-                        validLinkTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']}
-                        checkPoints={component instanceof StandardRoom ? ['describeRoom'] : undefined}
-                    />
-                </TitledBox>
-            </EditSchema>
-        </StandardFormSchema>
         {
             (component.examples.map(({ key }) => (<ExampleEditor key={key} componentId={`${component.key}.${key}`} />)))
         }
