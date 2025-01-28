@@ -8,6 +8,7 @@ import { Box, TextField } from "@mui/material";
 import useDebounce, { useDebouncedOnChange } from "../../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
+import StandardRenderEditor from "../StandardRenderEditor";
 
 type ExampleEditorProps = {
     componentId: string;
@@ -42,6 +43,23 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             })
         }
     })
+    const [summary, setSummary] = useState(new StandardRender(component.summary ?? []))
+    useDebouncedOnChange({
+        value: summary,
+        delay: 1000,
+        onChange: (value: StandardRender) => {
+            updateStandard({
+                type: 'update',
+                update: (example: StandardForm) => {
+                    const newValue = example.byId[componentId]
+                    if (newValue instanceof StandardExample) {
+                        newValue._payload._summary = value
+                    }
+                    return example
+                }
+            })
+        }
+    })
     return <TitledBox title="Example">
         <TextField
             value={name}
@@ -55,16 +73,12 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                 width: '100%'
             }}
         >
-            <EditSchema
-                value={component.summary ?? []}
-                onChange={(value) => {}}
-            >
-                <DescriptionEditor
-                    validLinkTags={[]}
-                    toolbar={false}
-                    
-                />
-            </EditSchema>
+            <StandardRenderEditor
+                value={summary}
+                onChange={setSummary}
+                validLinkTags={[]}
+                toolbar={false}
+            />
         </Box>
         <EditSchema
             value={component.description ?? []}
