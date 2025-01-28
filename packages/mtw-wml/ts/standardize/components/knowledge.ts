@@ -13,12 +13,13 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference from "./reference"
+import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaDescription, isSchemaExample, isSchemaName, SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardRemove } from "./edits"
+import { deepEqual } from "../../lib/objects"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
     _name?: StandardRender;
@@ -137,6 +138,24 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         const returnValue = new StandardKnowledge(this)
         returnValue._payload = new StandardKnowledgePayload(this._payload)
         return returnValue
+    }
+
+    override diff(incoming: StandardComponent): StandardComponent | undefined {
+        if (!(incoming instanceof StandardKnowledge)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+            return undefined
+        }
+        const base = new StandardKnowledge(this.key).withImport(this.import).withExport(this.export) as StandardKnowledge
+        base._payload._name = this._payload._name
+            ? this._payload._name.diff(incoming._payload._name)
+            : incoming._payload._name
+        base._payload._description = this._payload._description
+            ? this._payload._description.diff(incoming._payload._description)
+            : incoming._payload._description
+        base._payload._examples = diffStandardReferenceList(this.examples, incoming.examples)
+        return base
     }
 
     override merge(incoming: StandardComponent): StandardComponent {

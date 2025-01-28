@@ -240,6 +240,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             ? this._payload._description.diff(incoming._payload._description)
             : incoming._payload._description
         base._payload._features = diffStandardReferenceList(this.features, incoming.features)
+        base._payload._examples = diffStandardReferenceList(this.examples, incoming.examples)
         return base
     }
 
