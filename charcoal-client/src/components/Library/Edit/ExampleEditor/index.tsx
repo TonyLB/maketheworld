@@ -7,13 +7,15 @@ import { useDebouncedOnChange } from "../../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import StandardRenderEditor from "../StandardRenderEditor";
+import SidebarTitle from "../SidebarTitle";
+import SidebarTitledBox from "../SidebarTitledBox";
 
 type ExampleEditorProps = {
     componentId: string;
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
-    const { standardForm, updateStandard } = useLibraryAsset()
+    const { standardForm, localStandardForm, updateStandard } = useLibraryAsset()
     const component = useMemo<StandardExample>(() => {
         const component = standardForm.byId[componentId]
         if (component && component instanceof StandardExample) {
@@ -24,6 +26,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             tag: 'Example'
         })
     }, [standardForm, componentId])
+    const inherited = !Boolean(localStandardForm.byId[componentId])
     const [name, setName] = useState((new StandardRender(component.name ?? [])).plainString)
     useDebouncedOnChange({
         value: name,
@@ -75,7 +78,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             })
         }
     })
-    return <TitledBox title="Example">
+    return <SidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
         <TextField
             value={name}
             onChange={(event) => { setName(event.target.value) }}
@@ -101,7 +104,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             validLinkTags={[]}
             toolbar={false}
         />
-    </TitledBox>
+    </SidebarTitledBox>
 }
 
 export default ExampleEditor
