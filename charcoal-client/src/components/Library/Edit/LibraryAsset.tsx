@@ -27,7 +27,8 @@ import {
     getStandardForm,
     getInherited,
     getInheritedByAssetId,
-    getPendingEdits
+    getPendingEdits,
+    getLocalStandardForm
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
@@ -43,6 +44,7 @@ type LibraryAssetContextType = {
     currentWML: string;
     draftWML: string;
     standardForm: StandardForm;
+    localStandardForm: StandardForm;
     inheritedStandardForm: StandardFormData;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
     updateStandard: (action: UpdateStandardPayload) => void;
@@ -61,6 +63,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     currentWML: '',
     draftWML: '',
     standardForm: new StandardForm({ key: '', byId: {}, metaData: [] }),
+    localStandardForm: new StandardForm({ key: '', byId: {}, metaData: [] }),
     inheritedStandardForm: { key: '', byId: {}, metaData: [] },
     inheritedByAssetId: [],
     updateStandard: () => {},
@@ -83,6 +86,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const AssetId = useMemo<EphemeraCharacterId | EphemeraAssetId>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
+    const localStandardFormData = useSelector(getLocalStandardForm(AssetId))
+    const localStandardForm = useMemo(() => (new StandardForm(localStandardFormData)), [localStandardFormData])
     const standardFormData = useSelector(getStandardForm(AssetId))
     const standardForm = useMemo(() => (new StandardForm(standardFormData)), [standardFormData])
     const pendingEdits = useSelector(getPendingEdits(AssetId))
@@ -109,6 +114,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             AssetId,
             currentWML,
             draftWML,
+            localStandardForm,
             standardForm,
             inheritedStandardForm,
             inheritedByAssetId,
