@@ -1649,13 +1649,24 @@ describe('StandardForm', () => {
             `))
         })
 
-        it('should return the diff for nested components', () => {
+        it('should return the diff for nested feature components', () => {
             const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
             const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /><Feature key=(testFeatureTwo) /></Room></Asset>`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
                     <Room key=(testRoom)><Feature key=(testFeatureTwo) /></Room>
+                </Asset>
+            `))
+        })
+
+        it('should return the diff for nested example components', () => {
+            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Example key=(Example1) /></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Example key=(Example1) /><Example key=(Example2) /></Room></Asset>`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(Test)>
+                    <Room key=(testRoom)><Example key=(Example2) /></Room>
                 </Asset>
             `))
         })
