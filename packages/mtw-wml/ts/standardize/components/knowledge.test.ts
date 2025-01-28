@@ -5,6 +5,7 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
+import StandardReference from "./reference"
 
 describe('StandardKnowledge class', () => {
 
@@ -20,16 +21,11 @@ describe('StandardKnowledge class', () => {
     it('should construct StandardKnowledge from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Knowledge key=(test)>
-                <Name>Name Test</Name>
-                <Description>Description Test</Description>
-            </Knowledge>
+            <Knowledge key=(test)><Example key=(base) /></Knowledge>
         `)
         schema.loadWML(testSource)
         const testKnowledge = new StandardKnowledge(schema.schema[0])
         expect(testKnowledge.key).toEqual('test')
-        expect(testKnowledge.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testKnowledge.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(schemaToWML([testKnowledge.schema])).toEqual(testSource)
     })
 
@@ -37,61 +33,26 @@ describe('StandardKnowledge class', () => {
         const testKnowledgeData: StandardKnowledgeData = {
             key: 'test',
             tag: 'Knowledge',
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+            examples: [{ key: 'base', tag: 'Example' }]
         }
         const testKnowledge = new StandardKnowledge(testKnowledgeData)
         expect(testKnowledge.key).toEqual('test')
-        expect(testKnowledge.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testKnowledge.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testKnowledge.toJSON()).toEqual(testKnowledgeData)
     })
 
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Knowledge key=(testKnowledge)>
-                <Name>Lobby</Name>
-                <Description>A plain lobby.</Description>
+                <Example key=(Example1) />
             </Knowledge>`,
             StandardKnowledge,
             `<Knowledge key=(testKnowledge)>
-                <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
-                <Description><Space />Shadows cling to the corners of the room.</Description>
+                <Example key=(Example2) />
             </Knowledge>`
         )).toEqual(deIndentWML(`
             <Knowledge key=(testKnowledge)>
-                <Name>Spooky Lobby</Name>
-                <Description>
-                    A plain lobby. Shadows cling to the corners of the room.
-                </Description>
-            </Knowledge>
-        `))
-    })
-
-    it('should map contents correctly', () => {
-        const test = new StandardKnowledge(`
-            <Knowledge key=(testKnowledge)>
-                <Name>Religion</Name>
-                <Description>A set of beliefs about the divine.</Description>
-            </Knowledge>
-        `)
-        const callback = (tree) => {
-            return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaString)(node)) {
-                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
-                }
-                else {
-                    return {
-                        ...node,
-                        children: callback(node.children)
-                    }
-                }
-            })
-        }
-        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Knowledge key=(testKnowledge)>
-                <Name>ReligionNarf!</Name>
-                <Description>A set of beliefs about the divine.Narf!</Description>
+                <Example key=(Example1) />
+                <Example key=(Example2) />
             </Knowledge>
         `))
     })

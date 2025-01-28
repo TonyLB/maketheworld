@@ -138,10 +138,10 @@ export const ThemeEditor: FunctionComponent<ThemeEditorProps> = () => {
                         updateStandard({
                             type: 'update',
                             update: (incoming: StandardForm) => {
-                                const base = incoming.byId[ComponentId]
-                                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                    base._payload._name = new StandardRender([value])
-                                }
+                                // const base = incoming.byId[ComponentId]
+                                // if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                //     base._payload._name = new StandardRender([value])
+                                // }
                                 return incoming
                             }
                         })

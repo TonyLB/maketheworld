@@ -1948,8 +1948,10 @@ describe('StandardForm', () => {
                     </Description>
                 </Feature>
                 <Knowledge key=(testKnowledge)>
-                    <Name>Learn</Name>
-                    <Description>There is so much to know!</Description>
+                    <Example key=(base)>
+                        <Name>Learn</Name>
+                        <Description>There is so much to know!</Description>
+                    </Example>
                 </Knowledge>
                 <Map key=(testMap)>
                     <Image key=(testBackground) />
