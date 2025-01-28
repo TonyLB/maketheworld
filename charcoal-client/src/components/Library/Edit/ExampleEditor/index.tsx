@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
 import { useLibraryAsset } from "../LibraryAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
 import { Box, IconButton, TextField } from "@mui/material";
@@ -11,6 +11,12 @@ import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import StandardRenderEditor from "../StandardRenderEditor";
 import SidebarTitledBox from "../SidebarTitledBox";
+import { useDispatch } from "react-redux";
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
+import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
+import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
+import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference";
+import { ImportItemContent } from "@tonylb/mtw-wml/ts/standardize/components/metaData";
 
 type ExampleEditorProps = {
     componentId: string;
@@ -80,6 +86,29 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             })
         }
     })
+
+    const localizeExample = useCallback(() => {
+        console.log(`localStandardForm[${componentId}]: ${JSON.stringify(localStandardForm.toJSON(), null, 4)}`)
+        if (!(componentId in localStandardForm.byId)) {
+            const parentId = componentId.split('.').slice(0, -1).join('.')
+            updateStandard({
+                type: 'update',
+                update: (draft) => {
+                    const parent = draft._byId[parentId]
+                    const parentImportAsset = parent?.import?.assetId
+                    if (
+                        parentImportAsset &&
+                        (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge)
+                    ) {
+                        draft._byId[componentId] = new StandardExample(componentId).withImport(new ImportItemContent(parentImportAsset, componentId))
+                        parent._payload._examples.push(new StandardReference({ key: componentId.split('.').slice(-1).join('.'), tag: 'Example' }))
+                        console.log(`Example references: ${JSON.stringify(parent._payload._examples, null, 4)}`)
+                    }
+                    return draft
+                }
+            })
+        }
+    }, [componentId, localStandardForm, updateStandard])
     return <SidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
         <Box sx={{
             display: 'flex',
@@ -123,7 +152,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                 <IconButton>
                     { inherited ? <LockIcon /> : <LockOpenIcon /> }
                 </IconButton>
-                <IconButton>
+                <IconButton onClick={localizeExample}>
                     <EditIcon />
                 </IconButton>
                 {
