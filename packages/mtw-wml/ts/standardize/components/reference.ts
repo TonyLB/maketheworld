@@ -132,7 +132,7 @@ type DiffStandardReferenceListParams = {
     incoming: (StandardReference | StandardRemove | StandardReplace)[];
     hasDiff?: (key: string) => boolean;
 }
-export const diffStandardReferenceList = ({ base, incoming }: DiffStandardReferenceListParams): (StandardReference | StandardRemove | StandardReplace)[] => {
+export const diffStandardReferenceList = ({ base, incoming, hasDiff }: DiffStandardReferenceListParams): (StandardReference | StandardRemove | StandardReplace)[] => {
     const diffReference = (baseReference: StandardReference | StandardRemove | StandardReplace | undefined, incomingReference: StandardReference | StandardRemove | StandardReplace | undefined): StandardReference | StandardRemove | StandardReplace | undefined => {
         if (baseReference) {
             if (!incomingReference) {
@@ -155,18 +155,33 @@ export const diffStandardReferenceList = ({ base, incoming }: DiffStandardRefere
             }
             if (baseReference instanceof StandardReference) {
                 if (incomingReference instanceof StandardReference) {
+                    if (hasDiff && hasDiff(baseReference.key)) {
+                        return baseReference
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (baseReference instanceof StandardRemove) {
                 if (incomingReference instanceof StandardRemove) {
+                    if (hasDiff && hasDiff(baseReference.key)) {
+                        const match = baseReference._match
+                        if (match instanceof StandardReference) {
+                            return match
+                        }
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (baseReference instanceof StandardReplace) {
                 if (incomingReference instanceof StandardReplace) {
+                    if (hasDiff && hasDiff(baseReference.key)) {
+                        const payload = baseReference._payload
+                        if (payload instanceof StandardReference) {
+                            return payload
+                        }
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
