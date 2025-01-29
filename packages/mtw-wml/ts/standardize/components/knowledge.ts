@@ -1,8 +1,6 @@
 import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
@@ -10,16 +8,16 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardRemove } from "./edits"
+import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
-    _examples: (StandardReference | StandardRemove)[] = [];
+    _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
     tag = 'Knowledge' as const
 
     constructor(previous?: StandardKnowledgePayload) {
@@ -35,8 +33,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            this._examples = node.children.filter(treeNodeTypeguard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')

@@ -9,8 +9,13 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardRemove } from "./edits";
+import { StandardRemove, StandardReplace } from "./edits";
 import { StandardReferenceData } from "./dataTypes/reference";
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
+import { unique } from "../../list";
+import { excludeUndefined } from "../../lib/lists";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { deepEqual } from "../../lib/objects";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
@@ -120,15 +125,94 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
 }
 
 // 
-// Computes the difference between two lists of `StandardReference` objects.
+// Computes the difference between two lists of  editable `StandardReference` objects.
 // 
-export const diffStandardReferenceList = (base: (StandardReference | StandardRemove)[], incoming: (StandardReference | StandardRemove)[]): (StandardReference | StandardRemove)[] => {
-    const baseRemoves = base
-        .filter(baseReference => !incoming.some(incomingReference => incomingReference.key === baseReference.key))
-        .map(baseReference => new StandardRemove(baseReference))
-    const incomingAdds = incoming
-        .filter(incomingReference => !base.some(baseReference => baseReference.key === incomingReference.key))
-    return [...baseRemoves, ...incomingAdds]
+export const diffStandardReferenceList = (base: (StandardReference | StandardRemove | StandardReplace)[], incoming: (StandardReference | StandardRemove | StandardReplace)[]): (StandardReference | StandardRemove | StandardReplace)[] => {
+    const diffReference = (baseReference: StandardReference | StandardRemove | StandardReplace | undefined, incomingReference: StandardReference | StandardRemove | StandardReplace | undefined): StandardReference | StandardRemove | StandardReplace | undefined => {
+        if (baseReference) {
+            if (!incomingReference) {
+                if (baseReference instanceof StandardRemove) {
+                    const match = baseReference._match
+                    if (match instanceof StandardReference) {
+                        return match
+                    }
+                    else {
+                        throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+                    }
+                }
+                if (baseReference instanceof StandardReplace) {
+                    return new StandardReplace(baseReference._payload, baseReference._match)
+                }
+                return new StandardRemove(baseReference)
+            }
+            if (baseReference.key !== incomingReference.key) {
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardReference) {
+                if (incomingReference instanceof StandardReference) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardRemove) {
+                if (incomingReference instanceof StandardRemove) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardReplace) {
+                if (incomingReference instanceof StandardReplace) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+        }
+        else {
+            return incomingReference
+        }
+    }
+    const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
+    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined) as (StandardReference | StandardRemove | StandardReplace)[]
+}
+
+export const editableReferenceFactory = (node: GenericTreeNode<SchemaTag>): StandardReference | StandardRemove | StandardReplace => {
+    if (treeNodeTypeguard(isSchemaRemove)(node)) {
+        const { children } = node
+        if (children.length !== 1) {
+            throw new Error('Remove node must have exactly one child')
+        }
+        const referenceSchema = children[0]
+        if (!treeNodeTypeguard(isSchemaComponent)(referenceSchema)) {
+            throw new Error('Remove node must have a component child')
+        }
+        return new StandardRemove(new StandardReference(referenceSchema))
+    }
+    if (treeNodeTypeguard(isSchemaReplace)(node)) {
+        const { children } = node
+        if (children.length !== 2) {
+            throw new Error('Replace node must have exactly two children')
+        }
+        const matchSchema = children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+        const payloadSchema = children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child))
+        if (!(matchSchema && payloadSchema)) {
+            throw new Error('Replace node must have match and payload children')
+        }
+        const baseSchema = matchSchema.children[0]
+        const incomingSchema = payloadSchema.children[0]
+        if (!treeNodeTypeguard(isSchemaComponent)(baseSchema) || !treeNodeTypeguard(isSchemaComponent)(incomingSchema)) {
+            throw new Error('Replace node must have component children')
+        }
+        const base = new StandardReference(baseSchema)
+        const incoming = new StandardReference(incomingSchema)
+        if (deepEqual(base.toNDJSON(), incoming.toNDJSON())) {
+            return base
+        }
+        return new StandardReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))
+    }
+    if (treeNodeTypeguard(isSchemaComponent)(node)) {
+        return new StandardReference(node)
+    }
+    throw new Error('Schema mismatch in editableReferenceFactory')
 }
 
 export default StandardReference

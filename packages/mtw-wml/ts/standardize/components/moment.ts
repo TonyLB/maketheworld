@@ -13,13 +13,13 @@ import StandardReference, { diffStandardReferenceList } from "./reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
-import { StandardRemove } from "./edits"
+import { StandardRemove, StandardReplace } from "./edits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { isSchemaRemove } from "../../schema/baseClasses"
 import { SerializeNDJSONMixin } from "../baseClasses"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
-    _messages: (StandardReference | StandardRemove)[] = [];
+    _messages: (StandardReference | StandardRemove | StandardReplace)[] = [];
     tag = 'Moment' as const
 
     constructor(previous?: StandardMomentPayload) {

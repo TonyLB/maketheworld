@@ -16,20 +16,20 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { StandardRemove } from "./edits"
+import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
     _exits: GenericTree<SchemaTag> = [];
     _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
-    _features: (StandardReference | StandardRemove)[] = [];
-    _examples: (StandardReference | StandardRemove)[] = [];
+    _features: (StandardReference | StandardRemove | StandardReplace)[] = [];
+    _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -61,8 +61,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._shortName = extractStandardRender<SchemaShortNameTag>(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
             this._themes = []
-            this._features = node.children.filter(treeNodeTypeguard(isSchemaFeature)).map((reference) => (new StandardReference(reference)))
-            this._examples = node.children.filter(treeNodeTypeguard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
+            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(editableReferenceFactory)
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')

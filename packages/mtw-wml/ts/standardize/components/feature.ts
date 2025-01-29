@@ -1,28 +1,23 @@
 import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import linkReferenceKeys, { dependencyReferenceKeys, mergeUniqueReferences } from "./utils/references"
-import { StandardRender } from "../render"
-import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
-import { stripUIFields } from "../render/utils"
+import { mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { isSchemaDescription, isSchemaExample, isSchemaName, SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardRemove } from "./edits"
+import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
-    _examples: (StandardReference | StandardRemove)[] = [];
+    _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
     _global?: boolean;
     tag = 'Feature' as const
 
@@ -39,8 +34,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            this._examples = node.children.filter(treeNodeTypeguard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             this._global = node.data.global
             return
         }
