@@ -13,9 +13,7 @@ describe('StandardRoom class', () => {
             <Room key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
-                <Name>Name Test</Name>
-                <Summary>Summary Test</Summary>
-                <Description>Description Test</Description>
+                <Example key=(base) />
                 <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
@@ -23,9 +21,6 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testRoom.summary).toEqual({ data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] })
-        expect(testRoom.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -36,9 +31,7 @@ describe('StandardRoom class', () => {
             <Room key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
-                <Name>Name Test</Name>
-                <Summary>Summary Test</Summary>
-                <Description>Description Test</Description>
+                <Example key=(base) />
                 <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
@@ -47,9 +40,6 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testRoom.summary).toEqual({ data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] })
-        expect(testRoom.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -57,15 +47,13 @@ describe('StandardRoom class', () => {
     it('should ignore Position tags', () => {
         const testSource = deIndentWML(`
             <Room key=(test)>
-                <Name>Name Test</Name>
                 <Position x="0" y="100" />
             </Room>
         `)
         const testRoom = new StandardRoom(testSource)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
         expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
-            <Room key=(test)><Name>Name Test</Name></Room>
+            <Room key=(test) />
         `))
     })
 
@@ -74,9 +62,6 @@ describe('StandardRoom class', () => {
             key: 'test',
             tag: 'Room',
             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
-            summary: { data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] },
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
             exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
             themes: [],
             features: [{ tag: 'Feature', key: 'testFeature' }]
@@ -85,9 +70,6 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testRoom.summary).toEqual({ data: { tag: 'Summary' }, children: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }] })
-        expect(testRoom.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
@@ -95,54 +77,23 @@ describe('StandardRoom class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Room key=(testRoomOne)>
-                <Name>Lobby</Name>
-                <Description>A plain lobby.</Description>
+                <Example key=(base)>
+                    <Name>Lobby</Name>
+                    <Description>A plain lobby.</Description>
+                </Example>
             </Room>`,
             StandardRoom,
             `<Room key=(testRoomOne)>
                 <Feature key=(testFeature) />
-                <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
-                <Description><Space />Shadows cling to the corners of the room.</Description>
+                <Example key=(base)>
+                    <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Example>
             </Room>`
         )).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature key=(testFeature) />
-                <Name>Spooky Lobby</Name>
-                <Description>
-                    A plain lobby. Shadows cling to the corners of the room.
-                </Description>
-            </Room>
-        `))
-    })
-
-    it('should map contents on output fields correctly', () => {
-        const test = new StandardRoom(`
-            <Room key=(testRoomOne)>
-                <Name>Lobby</Name>
-                <Summary>A lobby</Summary>
-                <Description>A plain lobby.</Description>
-                <Exit to=(testRoomTwo)>exit</Exit>
-            </Room>
-        `)
-        const callback = (tree) => {
-            return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaString)(node)) {
-                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
-                }
-                else {
-                    return {
-                        ...node,
-                        children: callback(node.children)
-                    }
-                }
-            })
-        }
-        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Room key=(testRoomOne)>
-                <Name>LobbyNarf!</Name>
-                <Summary>A lobbyNarf!</Summary>
-                <Description>A plain lobby.Narf!</Description>
-                <Exit to=(testRoomTwo)>exitNarf!</Exit>
+                <Example key=(base) />
             </Room>
         `))
     })
@@ -150,9 +101,11 @@ describe('StandardRoom class', () => {
     it('should map contents on exits correctly', () => {
         const test = new StandardRoom(`
             <Room key=(testRoomOne)>
-                <Name>Lobby</Name>
-                <Summary>A lobby</Summary>
-                <Description>A plain lobby.</Description>
+                <Example key=(base)>
+                    <Name>Lobby</Name>
+                    <Summary>A lobby</Summary>
+                    <Description>A plain lobby.</Description>
+                </Example>
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `)
@@ -174,9 +127,7 @@ describe('StandardRoom class', () => {
         }
         expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
-                <Name>Lobby</Name>
-                <Summary>A lobby</Summary>
-                <Description>A plain lobby.</Description>
+                <Example key=(base) />
                 <Exit to=(testRoomTwo)>
                     exit
                     Narf!
