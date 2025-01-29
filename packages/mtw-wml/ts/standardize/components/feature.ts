@@ -22,23 +22,17 @@ import { StandardRemove } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
-    _name?: StandardRender;
-    _description?: StandardRender;
     _examples: (StandardReference | StandardRemove)[] = [];
     _global?: boolean;
     tag = 'Feature' as const
 
     constructor(previous?: StandardFeaturePayload) {
         if (previous) {
-            this._name = previous._name
-            this._description = previous._description
+            this._examples = previous._examples
         }
     }
 
     fromJSON(props: StandardFeatureData) {
-        const { name, description } = props
-        this._name = extractStandardRender(name, isSchemaName, 'Schema mismatch in StandardFeature constructor')
-        this._description = extractStandardRender(description, isSchemaDescription, 'Schema mismatch in StandardFeature constructor')
         this._examples = props.examples?.map((example) => new StandardReference(example)) ?? []
         this._global = props.global
     }
@@ -46,10 +40,6 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
-            const descriptionItem = tagTree.filter({ match: 'Description' }).tree.find(wrappedNodeTypeGuard(isSchemaDescription))
-            this._name = extractStandardRender<SchemaNameTag>(nameItem as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>, isSchemaName, 'Schema mismatch in StandardFeature constructor')
-            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardFeature constructor')
             this._examples = node.children.filter(treeNodeTypeguard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
             this._global = node.data.global
             return
@@ -57,21 +47,12 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         throw new Error('Schema mismatch in StandardFeature constructor')
     }
 
-    get name() { return rebuildSchemaFromStandardRender(this._name, { tag: 'Name' as const }) }
-    get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
     get examples() { return this._examples }
     get global() { return this._global }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
-        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Feature',
-            name: stripUI
-                ? rebuildSchemaFromStandardRender(this._name?.mapContents(stripUIFields), { tag: 'Name' as const })
-                : this.name,
-            description: stripUI
-                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
-                : this.description,
             ...(this.global ? { global: true } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
         }
@@ -80,10 +61,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     schema(key: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Feature', key, global: this.global },
-            children: [
-                ...this.examples.map((reference) => (reference.schema)),
-                ...[this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
-            ]
+            children: this.examples.map((reference) => (reference.schema))
         }
     }
 
@@ -91,31 +69,22 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         const { localKey, globalKey } = options
         return {
             data: { tag: 'Feature', key: localKey },
-            children: [
-                ...this.examples.map((reference) => (
-                    reference.global
-                        ? reference.schema
-                        : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${globalKey}.${reference.key}` })
-                )).filter(excludeUndefined),
-                ...[this.name, this.description].filter(excludeUndefined).filter(({ children }) => (children.length))
-            ]
+            children: this.examples.map((reference) => (
+                reference.global
+                    ? reference.schema
+                    : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${globalKey}.${reference.key}` })
+            )).filter(excludeUndefined),
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardFeaturePayload()
-        returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
-        returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._examples = mergeUniqueReferences(this.examples, incoming.examples)
         return returnValue as this
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...linkReferenceKeys(this.description ? [this.description] : [])
-                .map((key) => ({ referenceType: 'Link' as const, key })),
-            ...dependencyReferenceKeys(this.description ? [this.description] : [])
-                .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key })),
             ...this.examples.map((example) => (example.referencedKeys())).flat(1)
         ]
@@ -123,19 +92,11 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardFeaturePayload(this)
-        if (returnValue._name) {
-            returnValue._name = returnValue._name.mapContents(callback)
-        }
-        if (returnValue._description) {
-            returnValue._description = returnValue._description.mapContents(callback)
-        }
         return returnValue as this
     }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
-    get name() { return this._payload.name }
-    get description() { return this._payload.description }
     get examples() { return this._payload.examples }
     override get global() { return this._payload.global }
 
@@ -153,12 +114,6 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
             return undefined
         }
         const base = new StandardFeature(this.key).withImport(this.import).withExport(this.export) as StandardFeature
-        base._payload._name = this._payload._name
-            ? this._payload._name.diff(incoming._payload._name)
-            : incoming._payload._name
-        base._payload._description = this._payload._description
-            ? this._payload._description.diff(incoming._payload._description)
-            : incoming._payload._description
         base._payload._examples = diffStandardReferenceList(this.examples, incoming.examples)
         return base
     }

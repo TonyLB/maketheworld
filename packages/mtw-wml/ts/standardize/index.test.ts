@@ -334,7 +334,9 @@ describe('StandardForm', () => {
                     </Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Example key=(base)><Description><If {false}>Four</If></Description></Example>
+                    <Example key=(base)>
+                        <Description><If {false}>Four</If></Description>
+                    </Example>
                 </Feature>
             </Asset>
         `))
@@ -536,10 +538,14 @@ describe('StandardForm', () => {
             <Room key=(test)>
                 <Description>One</Description>
                 <Feature key=(testLocal)>
-                    <Description>Local</Description>
+                    <Example key=(base)>
+                        <Description>Local</Description>
+                    </Example>
                 </Feature>
                 <Feature global key=(testGlobal)>
-                    <Description>Global</Description>
+                    <Example key=(base)>
+                        <Description>Global</Description>
+                    </Example>
                 </Feature>
             </Room>
             <Room key=(testTwo) />
@@ -547,12 +553,16 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Feature key=(testLocal)><Description>Local</Description></Feature>
+                    <Feature key=(testLocal)>
+                        <Example key=(base)><Description>Local</Description></Example>
+                    </Feature>
                     <Feature global key=(testGlobal) />
                     <Description>One</Description>
                 </Room>
                 <Room key=(testTwo) />
-                <Feature key=(testGlobal)><Description>Global</Description></Feature>
+                <Feature key=(testGlobal)>
+                    <Example key=(base)><Description>Global</Description></Example>
+                </Feature>
             </Asset>
         `))
     })
@@ -646,31 +656,43 @@ describe('StandardForm', () => {
     it('should render features and links correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
-                <Description>
-                    <Link to=(testFeatureOne)>test</Link>
-                </Description>
+                <Example key=(base)>
+                    <Description>
+                        <Link to=(testFeatureOne)>test</Link>
+                    </Description>
+                </Example>
             </Room>
             <Feature key=(testFeatureOne)>
-                <Name>TestOne</Name>
-                <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                <Example key=(base)>
+                    <Name>TestOne</Name>
+                    <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                </Example>
             </Feature>
             <Feature key=(testFeatureTwo)>
-                <Name>TestTwo</Name>
-                <Description>Test</Description>
+                <Example key=(base)>
+                    <Name>TestTwo</Name>
+                    <Description>Test</Description>
+                </Example>
             </Feature>
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Description><Link to=(testFeatureOne)>test</Link></Description>
+                    <Example key=(base)>
+                        <Description><Link to=(testFeatureOne)>test</Link></Description>
+                    </Example>
                 </Room>
                 <Feature key=(testFeatureOne)>
-                    <Name>TestOne</Name>
-                    <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                    <Example key=(base)>
+                        <Name>TestOne</Name>
+                        <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                    </Example>
                 </Feature>
                 <Feature key=(testFeatureTwo)>
-                    <Name>TestTwo</Name>
-                    <Description>Test</Description>
+                    <Example key=(base)>
+                        <Name>TestTwo</Name>
+                        <Description>Test</Description>
+                    </Example>
                 </Feature>
             </Asset>
         `))
@@ -679,9 +701,11 @@ describe('StandardForm', () => {
     it('should render knowledge correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room key=(test)>
-                <Description>
-                    <Link to=(testKnowledgeOne)>test</Link>
-                </Description>
+                <Example key=(base)>
+                    <Description>
+                        <Link to=(testKnowledgeOne)>test</Link>
+                    </Description>
+                </Example>
             </Room>
             <Knowledge key=(testKnowledgeOne)>
                 <Example key=(base)>
@@ -699,7 +723,9 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Description><Link to=(testKnowledgeOne)>test</Link></Description>
+                    <Example key=(base)>
+                        <Description><Link to=(testKnowledgeOne)>test</Link></Description>
+                    </Example>
                 </Room>
                 <Knowledge key=(testKnowledgeOne)>
                     <Example key=(base)>
@@ -1820,10 +1846,14 @@ describe('StandardForm', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
-                        <Description><Link to=(testFeature)>link</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(testFeature)>link</Link></Description>
+                        </Example>
                     </Room>
                     <Feature key=(testFeature)>
-                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                        </Example>
                     </Feature>
                     <Feature key=(testFeatureTwo) />
                     <Knowledge key=(testKnowledge) />
@@ -1832,10 +1862,14 @@ describe('StandardForm', () => {
             expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
-                        <Description><Link to=(testFeature)>link</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(testFeature)>link</Link></Description>
+                        </Example>
                     </Room>
                     <Feature key=(testFeature)>
-                        <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(testFeatureTwo)>link</Link></Description>
+                        </Example>
                     </Feature>
                     <Feature key=(testFeatureTwo) />
                 </Asset>
@@ -1941,11 +1975,13 @@ describe('StandardForm', () => {
                     </Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Name>Clocktower</Name>
-                    <Description>
-                        A tower built of white sandstone blocks, with an ornate clock set on
-                        the northern face.
-                    </Description>
+                    <Example key=(base)>
+                        <Name>Clocktower</Name>
+                        <Description>
+                            A tower built of white sandstone blocks, with an ornate clock
+                            set on the northern face.
+                        </Description>
+                    </Example>
                 </Feature>
                 <Knowledge key=(testKnowledge)>
                     <Example key=(base)>
@@ -1997,18 +2033,24 @@ describe('StandardForm', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Feature key=(testGlobal)>
-                    <Description>Global</Description>
+                    <Example key=(base)>
+                        <Description>Global</Description>
+                    </Example>
                 </Feature>
                 <Room key=(testRoom)>
                     <Feature key=(testLocal)>
-                        <Name>Clocktower</Name>
-                        <Description>
-                            A tower built of white sandstone blocks, with an ornate clock set on
-                            the northern face.
-                        </Description>
+                        <Example key=(base)>
+                            <Name>Clocktower</Name>
+                            <Description>
+                                A tower built of white sandstone blocks, with an ornate clock set on
+                                the northern face.
+                            </Description>
+                        </Example>
                     </Feature>
                     <Feature global key=(testGlobal) />
-                    <Name>Vortex</Name>
+                    <Example key=(base)>
+                        <Name>Vortex</Name>
+                    </Example>
                 </Room>
                 <Room key=(testRoomTwo) />
             </Asset>
@@ -2026,24 +2068,39 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testRoom',
                 universalKey: 'ROOM#001',
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                 features: [{ key: 'testLocal', tag: 'Feature' }, { key: 'testGlobal', global: true, tag: 'Feature' }],
+                examples: [{ key: 'base', tag: 'Example'}],
                 exits: [],
                 themes: []
             },
             {
+                tag: 'Example',
+                key: 'testRoom.base',
+                name:['Vortex']
+            },
+            {
                 tag: 'Feature',
                 key: 'testRoom.testLocal',
-                universalKey: 'FEATURE#004',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'A tower built of white sandstone blocks, with an ornate clock set on the northern face.' }, children: [] }] },
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Clocktower' }, children: [] }] }
+                examples: [{ key: 'base', tag: 'Example' }],
+                universalKey: 'FEATURE#004'
+            },
+            {
+                tag: 'Example',
+                key: 'testRoom.testLocal.base',
+                description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
+                name: ['Clocktower']
             },
             { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002', exits: [], themes: [] },
             {
                 tag: 'Feature',
                 key: 'testGlobal',
                 universalKey: 'FEATURE#003',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Global' }, children: [] }] }
+                examples: [{ key: 'base', tag: 'Example' }]
+            },
+            {
+                tag: 'Example',
+                key: 'testGlobal.base',
+                description: ['Global']
             }
         ])
     })
@@ -2192,26 +2249,36 @@ describe('StandardForm', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
                     <Feature key=(testFeatureOne)>
-                        <Description>
-                            <Link to=(testFeatureOne)>self link</Link>
-                            <Link to=(testFeatureTwo)>other link</Link>
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                <Link to=(testFeatureOne)>self link</Link>
+                                <Link to=(testFeatureTwo)>other link</Link>
+                            </Description>
+                        </Example>
                     </Feature>
                     <Feature key=(testFeatureTwo)>
-                        <Description><Link to=(testFeatureOne)>back link</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(testFeatureOne)>back link</Link></Description>
+                        </Example>
                     </Feature>
                 </Asset>
             `)
             expect(schemaToWML([test.renameKey([{ fromKey: 'testFeatureOne', toKey: 'renamedFeature' }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature key=(renamedFeature)>
-                        <Description>
-                            <Link to=(renamedFeature)>self link</Link>
-                            <Link to=(testFeatureTwo)>other link</Link>
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                <Link to=(renamedFeature)>self link</Link>
+                                <Link to=(testFeatureTwo)>other link</Link>
+                            </Description>
+                        </Example>
                     </Feature>
                     <Feature key=(testFeatureTwo)>
-                        <Description><Link to=(renamedFeature)>back link</Link></Description>
+                        <Example key=(base)>
+                            <Description>
+                                <Link to=(renamedFeature)>back link</Link>
+                            </Description>
+                        </Example>
                     </Feature>
                 </Asset>
             `))

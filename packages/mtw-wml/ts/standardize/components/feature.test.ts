@@ -21,16 +21,11 @@ describe('StandardFeature class', () => {
     it('should construct StandardFeature from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Feature key=(test)>
-                <Name>Name Test</Name>
-                <Description>Description Test</Description>
-            </Feature>
+            <Feature key=(test)><Example key=(base) /></Feature>
         `)
         schema.loadWML(testSource)
         const testFeature = new StandardFeature(schema.schema[0])
         expect(testFeature.key).toEqual('test')
-        expect(testFeature.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testFeature.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(schemaToWML([testFeature.schema])).toEqual(testSource)
     })
 
@@ -38,62 +33,28 @@ describe('StandardFeature class', () => {
         const testFeatureData: StandardFeatureData = {
             key: 'test',
             tag: 'Feature',
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] },
+            examples: [{ key: 'Example1', tag: 'Example' }]
         }
         const testFeature = new StandardFeature(testFeatureData)
         expect(testFeature.key).toEqual('test')
-        expect(testFeature.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
-        expect(testFeature.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }] })
         expect(testFeature.toJSON()).toEqual(testFeatureData)
     })
 
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Feature key=(testFeature)>
-                <Name>Lobby</Name>
-                <Description>A plain lobby.</Description>
+                <Example key=(Example1) />
             </Feature>`,
             StandardFeature,
             `<Feature key=(testFeature)>
-                <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
-                <Description><Space />Shadows cling to the corners of the room.</Description>
+                <Example key=(Example2) />
             </Feature>`
         )).toEqual(deIndentWML(`
             <Feature key=(testFeature)>
-                <Name>Spooky Lobby</Name>
-                <Description>
-                    A plain lobby. Shadows cling to the corners of the room.
-                </Description>
+                <Example key=(Example1) />
+                <Example key=(Example2) />
             </Feature>
         `))
     })
 
-    it('should map contents correctly', () => {
-        const test = new StandardFeature(`
-            <Feature key=(testFeature)>
-                <Name>Lobby</Name>
-                <Description>A plain lobby.</Description>
-            </Feature>
-        `)
-        const callback = (tree) => {
-            return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaString)(node)) {
-                    return { data: { tag: 'String', value: `${node.data.value}Narf!` }, children: [] }
-                }
-                else {
-                    return {
-                        ...node,
-                        children: callback(node.children)
-                    }
-                }
-            })
-        }
-        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Feature key=(testFeature)>
-                <Name>LobbyNarf!</Name>
-                <Description>A plain lobby.Narf!</Description>
-            </Feature>
-        `))
-    })
 })
