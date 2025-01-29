@@ -657,7 +657,14 @@ export class StandardForm {
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
         const returnValue = this._clone()
         const findMatchingRename = (key: string): { fromKey: string; toKey: string; retainOldExportAs?: boolean; } | undefined => {
-            return props.find(({ fromKey }) => (fromKey === key))
+            const match = props.find(({ fromKey }) => (key.startsWith(fromKey)))
+            return match
+                ? {
+                    fromKey: key,
+                    toKey: `${match.toKey}${key.slice(match.fromKey.length)}`,
+                    retainOldExportAs: match.retainOldExportAs
+                }
+                : undefined
         }
         const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
             tree.map((node) => {
@@ -709,21 +716,23 @@ export class StandardForm {
             .reduce<Record<string, StandardComponent>>((previous, component) => {
                 const matchKey = findMatchingRename(component.key)
                 if (matchKey) {
+                    console.log(`Writing ${matchKey.toKey} for ${component.key}`)
                     if (previous[matchKey.toKey]) {
                         throw new Error('renameKey collision')
                     }
+                    const exportItem = component.export
+                        ? (component.export.exportAs === matchKey.toKey) ? undefined: component.export.exportAs
+                        : matchKey.retainOldExportAs
+                            ? matchKey.fromKey
+                            : undefined
+                    console.log(`exportItem: ${exportItem}`)
+
                     return {
                         ...previous,
                         [matchKey.toKey]: component
                             .mapContents(renameContentsCallback)
                             .withKey(matchKey.toKey)
-                            .withExport(
-                                component.export
-                                    ? (component.export.exportAs === matchKey.toKey) ? undefined: component.export.exportAs
-                                    : matchKey.retainOldExportAs
-                                        ? matchKey.fromKey
-                                        : undefined
-                            )
+                            .withExport(exportItem)
                     }
                 }
                 if (previous[component.key]) {
@@ -735,6 +744,7 @@ export class StandardForm {
                 }
             }, {})
 
+        console.log(`_byId: ${JSON.stringify(Object.values(returnValue._byId).map((component) => (component.toNDJSON())))}`)
         return returnValue
     }
 

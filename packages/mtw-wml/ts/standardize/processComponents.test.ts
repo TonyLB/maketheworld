@@ -10,7 +10,10 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Character' },
     { key: 'Image' },
     { key: 'Bookmark' },
-    { key: 'Room' },
+    {
+        key: 'Room',
+        legalParents: ['Map', 'Message']
+    },
     {
         key: 'Feature',
         legalParents: ['Room']
@@ -18,11 +21,18 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Knowledge' },
     { key: 'Map' },
     { key: 'Theme' },
-    { key: 'Message' },
+    {
+        key: 'Message',
+        legalParents: ['Moment']
+    },
     { key: 'Moment' },
     { key: 'Variable' },
     { key: 'Computed' },
-    { key: 'Action' }
+    { key: 'Action' },
+    {
+        key: 'Example',
+        legalParents: ['Room', 'Feature', 'Knowledge']
+    }
 ]
 
 describe("processComponents", () => {
@@ -40,12 +50,16 @@ describe("processComponents", () => {
         const testSource = `
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
-                    <Description>Three</Description>
+                    <Example key=(base)>
+                        <Name>Test Room</Name>
+                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Description>Three</Description>
+                    </Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Description><If {false}>Four</If></Description>
+                    <Example key=(base)>
+                        <Description><If {false}>Four</If></Description>
+                    </Example>
                 </Feature>
             </Asset>
         `
@@ -58,17 +72,19 @@ describe("processComponents", () => {
 
         expect(result.test instanceof StandardRoom).toBe(true)
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
-                <Room key=(test)>
+            'test': '<Room key=(test)><Example key=(base) /></Room>',
+            'test.base': deIndentWML(`
+                <Example key=(test.base)>
                     <Name>Test Room</Name>
                     <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
-                </Room>
+                </Example>
             `),
-            'testFeature': deIndentWML(`
-                <Feature key=(testFeature)>
+            'testFeature': '<Feature key=(testFeature)><Example key=(base) /></Feature>',
+            'testFeature.base': deIndentWML(`
+                <Example key=(testFeature.base)>
                     <Description><If {false}>Four</If></Description>
-                </Feature>
+                </Example>
             `)
         })
     })
@@ -77,14 +93,16 @@ describe("processComponents", () => {
         const testSource = `
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
-                    <Description>Three</Description>
+                    <Example key=(base)>
+                        <Name>Test Room</Name>
+                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Description>Three</Description>
+                    </Example>
                     <Feature key=(testLocal)>
-                        <Description>Local</Description>
+                        <Example key=(base)><Description>Local</Description></Example>
                     </Feature>
                     <Feature global key=(testGlobal)>
-                        <Description>Global</Description>
+                        <Example key=(base)><Description>Global</Description></Example>
                     </Feature>
                 </Room>
             </Asset>
@@ -100,16 +118,27 @@ describe("processComponents", () => {
                 <Room key=(test)>
                     <Feature key=(testLocal) />
                     <Feature global key=(testGlobal) />
+                    <Example key=(base) />
+                </Room>
+            `),
+            'test.base': deIndentWML(`
+                <Example key=(test.base)>
                     <Name>Test Room</Name>
                     <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
-                </Room>
+                </Example>
             `),
             'test.testLocal': deIndentWML(`
-                <Feature key=(test.testLocal)><Description>Local</Description></Feature>
+                <Feature key=(test.testLocal)><Example key=(base) /></Feature>
+            `),
+            'test.testLocal.base': deIndentWML(`
+                <Example key=(test.testLocal.base)><Description>Local</Description></Example>
             `),
             'testGlobal': deIndentWML(`
-                <Feature global key=(testGlobal)><Description>Global</Description></Feature>
+                <Feature global key=(testGlobal)><Example key=(base) /></Feature>
+            `),
+            'testGlobal.base': deIndentWML(`
+                <Example key=(testGlobal.base)><Description>Global</Description></Example>
             `)
         })
     })
@@ -118,26 +147,34 @@ describe("processComponents", () => {
         const test = `
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Summary>
-                        One
-                        <br />
-                    </Summary>
-                    <Description>Three</Description>
+                    <Example key=(base)>
+                        <Summary>
+                            One
+                            <br />
+                        </Summary>
+                        <Description>Three</Description>
+                    </Example>
                 </Room>
                 <If {false}>
                     <Room key=(test)>
-                        <Summary>
-                            Two
-                        </Summary>
+                        <Example key=(base)>
+                            <Summary>
+                                Two
+                            </Summary>
+                        </Example>
                     </Room>
                     <Feature key=(testFeature)>
-                        <Description>
-                            Four
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                Four
+                            </Description>
+                        </Example>
                     </Feature>
                 </If>
                 <Room key=(test)>
-                    <Name>Test Room</Name>
+                    <Example key=(base)>
+                        <Name>Test Room</Name>
+                    </Example>
                 </Room>
             </Asset>
         `
@@ -150,16 +187,22 @@ describe("processComponents", () => {
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
-                <Room key=(test)>
+                <Room key=(test)><Example key=(base) /></Room>
+            `),
+            'test.base': deIndentWML(`
+                <Example key=(test.base)>
                     <Name>Test Room</Name>
                     <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
-                </Room>
+                </Example>
             `),
             'testFeature': deIndentWML(`
-                <Feature key=(testFeature)>
+                <Feature key=(testFeature)><Example key=(base) /></Feature>
+            `),
+            'testFeature.base': deIndentWML(`
+                <Example key=(testFeature.base)>
                     <Description><If {false}>Four</If></Description>
-                </Feature>
+                </Example>
             `)
         })
     })
@@ -208,18 +251,22 @@ describe("processComponents", () => {
         const test = `
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Description>
-                        One
-                        <br />
-                    </Description>
+                    <Example key=(base)>
+                        <Description>
+                            One
+                            <br />
+                        </Description>
+                    </Example>
                 </Room>
                 <Room key=(testTwo) />
                 <Message key=(testMessage)>
                     Test message
                     <Room key=(test)>
-                        <Description>
-                            Two
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                Two
+                            </Description>
+                        </Example>
                         <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Message>
@@ -238,9 +285,12 @@ describe("processComponents", () => {
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
                 <Room key=(test)>
-                    <Description>One<br />Two</Description>
+                    <Example key=(base) />
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
+            `),
+            'test.base': deIndentWML(`
+                <Example key=(test.base)><Description>One<br />Two</Description></Example>
             `),
             'testTwo': deIndentWML(`
                 <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
@@ -255,17 +305,23 @@ describe("processComponents", () => {
         const testSource = `
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Description>
-                        <Link to=(testFeatureOne)>test</Link>
-                    </Description>
+                    <Example key=(base)>
+                        <Description>
+                            <Link to=(testFeatureOne)>test</Link>
+                        </Description>
+                    </Example>
                 </Room>
                 <Feature key=(testFeatureOne)>
-                    <Name>TestOne</Name>
-                    <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                    <Example key=(base)>
+                        <Name>TestOne</Name>
+                        <Description><Link to=(testFeatureTwo)>two</Link></Description>
+                    </Example>
                 </Feature>
                 <Feature key=(testFeatureTwo)>
-                    <Name>TestTwo</Name>
-                    <Description>Test</Description>
+                    <Example key=(base)>
+                        <Name>TestTwo</Name>
+                        <Description>Test</Description>
+                    </Example>
                 </Feature>
             </Asset>
         `
@@ -278,21 +334,30 @@ describe("processComponents", () => {
 
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
-                <Room key=(test)>
+                <Room key=(test)><Example key=(base) /></Room>
+            `),
+            'test.base': deIndentWML(`
+                <Example key=(test.base)>
                     <Description><Link to=(testFeatureOne)>test</Link></Description>
-                </Room>
+                </Example>
             `),
             'testFeatureOne': deIndentWML(`
-                <Feature key=(testFeatureOne)>
+                <Feature key=(testFeatureOne)><Example key=(base) /></Feature>
+            `),
+            'testFeatureOne.base': deIndentWML(`
+                <Example key=(testFeatureOne.base)>
                     <Name>TestOne</Name>
                     <Description><Link to=(testFeatureTwo)>two</Link></Description>
-                </Feature>
+                </Example>
             `),
             'testFeatureTwo': deIndentWML(`
-                <Feature key=(testFeatureTwo)>
+                <Feature key=(testFeatureTwo)><Example key=(base) /></Feature>
+            `),
+            'testFeatureTwo.base': deIndentWML(`
+                <Example key=(testFeatureTwo.base)>
                     <Name>TestTwo</Name>
                     <Description>Test</Description>
-                </Feature>
+                </Example>
             `)
         })
     })
@@ -406,18 +471,26 @@ describe("processComponents", () => {
             <Asset key=(Test)>
                 <Replace>
                     <Room key=(test)>
-                        <Description>Test</Description>
+                        <Example key=(base)>
+                            <Description>Test</Description>
+                        </Example>
                     </Room>
                     <Feature key=(toRemove)>
-                        <Description>Test</Description>
+                        <Example key=(base)>
+                            <Description>Test</Description>
+                        </Example>
                     </Feature>
                 </Replace>
                 <With>
                     <Room key=(test)>
-                        <Description>Changed</Description>
+                        <Example key=(base)>
+                            <Description>Changed</Description>
+                        </Example>
                     </Room>
                     <Feature key=(toAdd)>
-                        <Description>Added</Description>
+                        <Example key=(base)>
+                            <Description>Added</Description>
+                        </Example>
                     </Feature>
                 </With>
             </Asset>
@@ -430,16 +503,30 @@ describe("processComponents", () => {
         })
         expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
             'test': deIndentWML(`
-                <Replace><Room key=(test)><Description>Test</Description></Room></Replace>
-                <With><Room key=(test)><Description>Changed</Description></Room></With>
+                <Replace><Room key=(test)><Example key=(base) /></Room></Replace>
+                <With><Room key=(test)><Example key=(base) /></Room></With>
+            `),
+            'test.base': deIndentWML(`
+                <Replace>
+                    <Example key=(test.base)><Description>Test</Description></Example>
+                </Replace>
+                <With>
+                    <Example key=(test.base)><Description>Changed</Description></Example>
+                </With>
             `),
             'toRemove': deIndentWML(`
+                <Remove><Feature key=(toRemove)><Example key=(base) /></Feature></Remove>
+            `),
+            'toRemove.base': deIndentWML(`
                 <Remove>
-                    <Feature key=(toRemove)><Description>Test</Description></Feature>
+                    <Example key=(toRemove.base)><Description>Test</Description></Example>
                 </Remove>
             `),
             'toAdd': deIndentWML(`
-                <Feature key=(toAdd)><Description>Added</Description></Feature>
+                <Feature key=(toAdd)><Example key=(base) /></Feature>
+            `),
+            'toAdd.base': deIndentWML(`
+                <Example key=(toAdd.base)><Description>Added</Description></Example>
             `)
         })
     })
