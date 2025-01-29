@@ -8588,7 +8588,6 @@ switch(glowingColumns) {
 exports[`large WML test should standardize properly 1`] = `
 Object {
   "VORTEX": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -8619,9 +8618,7 @@ Object {
     ],
     "fileName": undefined,
     "key": "VORTEX",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -9065,7 +9062,6 @@ Object {
     "tag": "Variable",
   },
   "cave": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -9114,9 +9110,7 @@ Object {
     ],
     "fileName": undefined,
     "key": "cave",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -9391,7 +9385,6 @@ trapDoorOpen = false
     "tag": "Example",
   },
   "curvingPassage": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -9440,9 +9433,7 @@ trapDoorOpen = false
     ],
     "fileName": undefined,
     "key": "curvingPassage",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -10103,7 +10094,6 @@ trapDoorOpen = false
     "themes": Array [],
   },
   "fireCatGrotto": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -10168,9 +10158,7 @@ trapDoorOpen = false
     ],
     "fileName": undefined,
     "key": "fireCatGrotto",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -10536,7 +10524,6 @@ trapDoorOpen = false
     "tag": "Example",
   },
   "forest": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -10601,9 +10588,7 @@ trapDoorOpen = false
     ],
     "fileName": undefined,
     "key": "forest",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -10864,7 +10849,6 @@ trapDoorOpen = false
     "tag": "Example",
   },
   "foundry": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -10929,9 +10913,7 @@ trapDoorOpen = false
     ],
     "fileName": undefined,
     "key": "foundry",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -11707,7 +11689,6 @@ trapDoorOpen = false
     "tag": "Variable",
   },
   "intersection": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -11774,9 +11755,7 @@ trapDoorOpen = false
     ],
     "fileName": undefined,
     "key": "intersection",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -12067,7 +12046,6 @@ if (robedStatueActive) {
     "tag": "Example",
   },
   "orchard": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -12116,9 +12094,7 @@ if (robedStatueActive) {
     ],
     "fileName": undefined,
     "key": "orchard",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -12983,7 +12959,6 @@ switch(glowingColumns) {
     "tag": "Example",
   },
   "statueChamber": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -13032,9 +13007,7 @@ switch(glowingColumns) {
     ],
     "fileName": undefined,
     "key": "statueChamber",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
@@ -13600,7 +13573,6 @@ determinedStatueHead = !determinedStatueHead
     "tag": "Computed",
   },
   "well": Object {
-    "description": undefined,
     "examples": Array [
       Object {
         "fileName": undefined,
@@ -13649,9 +13621,7 @@ determinedStatueHead = !determinedStatueHead
     ],
     "fileName": undefined,
     "key": "well",
-    "name": undefined,
     "shortName": undefined,
-    "summary": undefined,
     "tag": "Room",
     "themes": Array [],
   },
