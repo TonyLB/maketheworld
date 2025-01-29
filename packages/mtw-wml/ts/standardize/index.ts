@@ -490,7 +490,7 @@ export class StandardForm {
                 const baseComponent = this._byId[key]
                 const incomingComponent = incoming._byId[key]
                 if (baseComponent && incomingComponent) {
-                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (key) => (Boolean(previous[key])) })
+                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
                     if (diffedComponent) {
                         return { ...previous, [key]: diffedComponent }
                     } else {
@@ -720,7 +720,6 @@ export class StandardForm {
             .reduce<Record<string, StandardComponent>>((previous, component) => {
                 const matchKey = findMatchingRename(component.key)
                 if (matchKey) {
-                    console.log(`Writing ${matchKey.toKey} for ${component.key}`)
                     if (previous[matchKey.toKey]) {
                         throw new Error('renameKey collision')
                     }
@@ -729,7 +728,6 @@ export class StandardForm {
                         : matchKey.retainOldExportAs
                             ? matchKey.fromKey
                             : undefined
-                    console.log(`exportItem: ${exportItem}`)
 
                     return {
                         ...previous,
@@ -748,7 +746,6 @@ export class StandardForm {
                 }
             }, {})
 
-        console.log(`_byId: ${JSON.stringify(Object.values(returnValue._byId).map((component) => (component.toNDJSON())))}`)
         return returnValue
     }
 

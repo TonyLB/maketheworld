@@ -96,15 +96,16 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
     }
 
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        const { hasDiff } = options ?? {}
         if (!(incoming instanceof StandardKnowledge)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        const { hasDiff } = options ?? {}
+        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !examplesDiff.length) {
             return undefined
         }
         const base = new StandardKnowledge(this.key).withImport(this.import).withExport(this.export) as StandardKnowledge
-        base._payload._examples = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff })
+        base._payload._examples = examplesDiff
         return base
     }
 

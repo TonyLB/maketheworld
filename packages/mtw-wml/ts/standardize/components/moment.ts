@@ -123,16 +123,16 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
     }
 
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        const { hasDiff } = options ?? {}
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        const { hasDiff } = options ?? {}
+        const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages, hasDiff, parentKey: this.key })
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !messagesDiff.length) {
             return undefined
         }
         const base = new StandardMoment(this.key).withImport(this.import).withExport(this.export) as StandardMoment
-        const diff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages, hasDiff })
-        base._payload._messages = diff
+        base._payload._messages = messagesDiff
         return base
     }
 

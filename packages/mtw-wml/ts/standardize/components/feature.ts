@@ -101,15 +101,16 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
     }
 
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        const { hasDiff } = options ?? {}
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        const { hasDiff } = options ?? {}
+        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !examplesDiff.length) {
             return undefined
         }
         const base = new StandardFeature(this.key).withImport(this.import).withExport(this.export) as StandardFeature
-        base._payload._examples = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff })
+        base._payload._examples = examplesDiff
         return base
     }
 
