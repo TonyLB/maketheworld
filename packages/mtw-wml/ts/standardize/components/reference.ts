@@ -9,8 +9,11 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardRemove } from "./edits";
+import { StandardRemove, StandardReplace } from "./edits";
 import { StandardReferenceData } from "./dataTypes/reference";
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
+import { unique } from "../../list";
+import { excludeUndefined } from "../../lib/lists";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
@@ -120,15 +123,54 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
 }
 
 // 
-// Computes the difference between two lists of `StandardReference` objects.
+// Computes the difference between two lists of  editable `StandardReference` objects.
 // 
-export const diffStandardReferenceList = (base: (StandardReference | StandardRemove)[], incoming: (StandardReference | StandardRemove)[]): (StandardReference | StandardRemove)[] => {
-    const baseRemoves = base
-        .filter(baseReference => !incoming.some(incomingReference => incomingReference.key === baseReference.key))
-        .map(baseReference => new StandardRemove(baseReference))
-    const incomingAdds = incoming
-        .filter(incomingReference => !base.some(baseReference => baseReference.key === incomingReference.key))
-    return [...baseRemoves, ...incomingAdds]
+export const diffStandardReferenceList = (base: (StandardReference | StandardRemove | StandardReplace)[], incoming: (StandardReference | StandardRemove | StandardReplace)[]): (StandardReference | StandardRemove | StandardReplace)[] => {
+    const diffReference = (baseReference: StandardReference | StandardRemove | StandardReplace | undefined, incomingReference: StandardReference | StandardRemove | StandardReplace | undefined): StandardReference | StandardRemove | StandardReplace | undefined => {
+        if (baseReference) {
+            if (!incomingReference) {
+                if (baseReference instanceof StandardRemove) {
+                    const match = baseReference._match
+                    if (match instanceof StandardReference) {
+                        return match
+                    }
+                    else {
+                        throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+                    }
+                }
+                if (baseReference instanceof StandardReplace) {
+                    return new StandardReplace(baseReference._payload, baseReference._match)
+                }
+                return new StandardRemove(baseReference)
+            }
+            if (baseReference.key !== incomingReference.key) {
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardReference) {
+                if (incomingReference instanceof StandardReference) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardRemove) {
+                if (incomingReference instanceof StandardRemove) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+            if (baseReference instanceof StandardReplace) {
+                if (incomingReference instanceof StandardReplace) {
+                    return undefined
+                }
+                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
+            }
+        }
+        else {
+            return incomingReference
+        }
+    }
+    const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
+    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined) as (StandardReference | StandardRemove | StandardReplace)[]
 }
 
 export default StandardReference
