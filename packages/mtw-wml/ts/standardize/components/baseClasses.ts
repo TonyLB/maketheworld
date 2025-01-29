@@ -24,7 +24,7 @@ export type NestedSchemaOptions = {
 }
 
 export type StandardDiffOptions = {
-    keyHasBeenDiffed?: (key: string) => boolean;
+    hasDiff?: (key: string) => boolean;
 }
 
 export interface StandardComponent {

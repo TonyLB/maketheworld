@@ -7,7 +7,7 @@ import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } 
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -173,7 +173,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.merge(incoming) as StandardRoom)
     }
 
-    override diff(incoming: StandardComponent): StandardComponent | undefined {
+    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
+        const { hasDiff } = options ?? {}
         if (!(incoming instanceof StandardRoom)) {
             throw new Error('Mismatched component types in diff')
         }
@@ -184,8 +185,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
-        base._payload._features = diffStandardReferenceList(this.features, incoming.features)
-        base._payload._examples = diffStandardReferenceList(this.examples, incoming.examples)
+        base._payload._features = diffStandardReferenceList({ base: this.features, incoming: incoming.features, hasDiff })
+        base._payload._examples = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff })
         return base
     }
 

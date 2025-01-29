@@ -490,7 +490,7 @@ export class StandardForm {
                 const baseComponent = this._byId[key]
                 const incomingComponent = incoming._byId[key]
                 if (baseComponent && incomingComponent) {
-                    const diffedComponent = baseComponent.diff(incomingComponent, { keyHasBeenDiffed: (key) => (key in previous) })
+                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (key) => (Boolean(previous[key])) })
                     if (diffedComponent) {
                         return { ...previous, [key]: diffedComponent }
                     } else {
