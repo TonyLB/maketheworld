@@ -1380,12 +1380,8 @@ describe('StandardForm', () => {
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
-                    <Replace>
-                        <Example key=(base)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example key=(base)><Name>Changed again</Name></Example>
-                    </With>
+                    <Replace><Example key=(base)><Name>Lobby</Name></Example></Replace>
+                    <With><Example key=(base)><Name>Changed again</Name></Example></With>
                 </Room>
                 <Room key=(testRoomTwo) />
             </Asset>
@@ -1413,12 +1409,8 @@ describe('StandardForm', () => {
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
-                    <Replace>
-                        <Example key=(base)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example key=(base)><Name>Changed</Name></Example>
-                    </With>
+                    <Replace><Example key=(base)><Name>Lobby</Name></Example></Replace>
+                    <With><Example key=(base)><Name>Changed</Name></Example></With>
                 </Room>
                 <Room key=(testRoomTwo) />
             </Asset>

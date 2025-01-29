@@ -8,7 +8,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -34,7 +34,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             this._global = node.data.global
             return
         }

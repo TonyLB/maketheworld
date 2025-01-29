@@ -16,7 +16,7 @@ import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
@@ -61,8 +61,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._shortName = extractStandardRender<SchemaShortNameTag>(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
             this._themes = []
-            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((reference) => (new StandardReference(reference)))
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((reference) => (new StandardReference(reference)))
+            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(editableReferenceFactory)
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')

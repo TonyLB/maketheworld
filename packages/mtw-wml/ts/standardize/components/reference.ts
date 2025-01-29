@@ -14,6 +14,8 @@ import { StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { deepEqual } from "../../lib/objects";
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
@@ -171,6 +173,46 @@ export const diffStandardReferenceList = (base: (StandardReference | StandardRem
     }
     const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
     return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined) as (StandardReference | StandardRemove | StandardReplace)[]
+}
+
+export const editableReferenceFactory = (node: GenericTreeNode<SchemaTag>): StandardReference | StandardRemove | StandardReplace => {
+    if (treeNodeTypeguard(isSchemaRemove)(node)) {
+        const { children } = node
+        if (children.length !== 1) {
+            throw new Error('Remove node must have exactly one child')
+        }
+        const referenceSchema = children[0]
+        if (!treeNodeTypeguard(isSchemaComponent)(referenceSchema)) {
+            throw new Error('Remove node must have a component child')
+        }
+        return new StandardRemove(new StandardReference(referenceSchema))
+    }
+    if (treeNodeTypeguard(isSchemaReplace)(node)) {
+        const { children } = node
+        if (children.length !== 2) {
+            throw new Error('Replace node must have exactly two children')
+        }
+        const matchSchema = children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+        const payloadSchema = children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child))
+        if (!(matchSchema && payloadSchema)) {
+            throw new Error('Replace node must have match and payload children')
+        }
+        const baseSchema = matchSchema.children[0]
+        const incomingSchema = payloadSchema.children[0]
+        if (!treeNodeTypeguard(isSchemaComponent)(baseSchema) || !treeNodeTypeguard(isSchemaComponent)(incomingSchema)) {
+            throw new Error('Replace node must have component children')
+        }
+        const base = new StandardReference(baseSchema)
+        const incoming = new StandardReference(incomingSchema)
+        if (deepEqual(base.toNDJSON(), incoming.toNDJSON())) {
+            return base
+        }
+        return new StandardReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))
+    }
+    if (treeNodeTypeguard(isSchemaComponent)(node)) {
+        return new StandardReference(node)
+    }
+    throw new Error('Schema mismatch in editableReferenceFactory')
 }
 
 export default StandardReference
