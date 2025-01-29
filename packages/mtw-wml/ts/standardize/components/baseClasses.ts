@@ -23,6 +23,10 @@ export type NestedSchemaOptions = {
     removeContext?: boolean;
 }
 
+export type StandardDiffOptions = {
+    hasDiff?: (key: string) => boolean;
+}
+
 export interface StandardComponent {
     key: string;
     clone(): StandardComponent;
@@ -42,7 +46,7 @@ export interface StandardComponent {
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(byId: Record<string, StandardComponent>, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
-    diff(incoming: StandardComponent): StandardComponent | undefined;
+    diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }

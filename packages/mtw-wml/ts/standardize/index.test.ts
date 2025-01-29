@@ -954,7 +954,6 @@ describe('StandardForm', () => {
                 </Message>
             </Moment>
         </Asset>`)
-        // console.log(`byId: ${JSON.stringify(test._byId, null, 4)}`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
@@ -1877,7 +1876,6 @@ describe('StandardForm', () => {
             const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
             const incoming = new StandardForm(`<Asset key=(Test) />`)
             const diff = base.diff(incoming)
-            console.log(`diff: ${JSON.stringify(diff.toJSON(), null, 4)}`)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
                     <Remove><Room key=(testRoom)><Feature key=(testFeature) /></Room></Remove>

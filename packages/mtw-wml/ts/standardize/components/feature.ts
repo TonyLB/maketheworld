@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -100,15 +100,17 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return returnValue
     }
 
-    override diff(incoming: StandardComponent): StandardComponent | undefined {
+    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        const { hasDiff } = options ?? {}
+        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !examplesDiff.length) {
             return undefined
         }
         const base = new StandardFeature(this.key).withImport(this.import).withExport(this.export) as StandardFeature
-        base._payload._examples = diffStandardReferenceList(this.examples, incoming.examples)
+        base._payload._examples = examplesDiff
         return base
     }
 

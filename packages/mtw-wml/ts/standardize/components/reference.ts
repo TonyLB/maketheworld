@@ -127,9 +127,16 @@ export class StandardReference extends componentClassFactory(StandardReferencePa
 // 
 // Computes the difference between two lists of  editable `StandardReference` objects.
 // 
-export const diffStandardReferenceList = (base: (StandardReference | StandardRemove | StandardReplace)[], incoming: (StandardReference | StandardRemove | StandardReplace)[]): (StandardReference | StandardRemove | StandardReplace)[] => {
+type DiffStandardReferenceListParams = {
+    base: (StandardReference | StandardRemove | StandardReplace)[];
+    incoming: (StandardReference | StandardRemove | StandardReplace)[];
+    hasDiff?: (key: string) => boolean;
+    parentKey?: string;
+}
+export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }: DiffStandardReferenceListParams): (StandardReference | StandardRemove | StandardReplace)[] => {
     const diffReference = (baseReference: StandardReference | StandardRemove | StandardReplace | undefined, incomingReference: StandardReference | StandardRemove | StandardReplace | undefined): StandardReference | StandardRemove | StandardReplace | undefined => {
         if (baseReference) {
+            const lookupKey = baseReference.global || (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
             if (!incomingReference) {
                 if (baseReference instanceof StandardRemove) {
                     const match = baseReference._match
@@ -150,18 +157,33 @@ export const diffStandardReferenceList = (base: (StandardReference | StandardRem
             }
             if (baseReference instanceof StandardReference) {
                 if (incomingReference instanceof StandardReference) {
+                    if (hasDiff && hasDiff(lookupKey)) {
+                        return baseReference
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (baseReference instanceof StandardRemove) {
                 if (incomingReference instanceof StandardRemove) {
+                    if (hasDiff && hasDiff(lookupKey)) {
+                        const match = baseReference._match
+                        if (match instanceof StandardReference) {
+                            return match
+                        }
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (baseReference instanceof StandardReplace) {
                 if (incomingReference instanceof StandardReplace) {
+                    if (hasDiff && hasDiff(lookupKey)) {
+                        const payload = baseReference._payload
+                        if (payload instanceof StandardReference) {
+                            return payload
+                        }
+                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')

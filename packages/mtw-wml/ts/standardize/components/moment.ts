@@ -2,7 +2,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
@@ -122,16 +122,17 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.merge(incoming) as StandardMoment)
     }
 
-    override diff(incoming: StandardComponent): StandardComponent | undefined {
+    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        const { hasDiff } = options ?? {}
+        const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages, hasDiff, parentKey: this.key })
+        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !messagesDiff.length) {
             return undefined
         }
         const base = new StandardMoment(this.key).withImport(this.import).withExport(this.export) as StandardMoment
-        const diff = diffStandardReferenceList(this._payload._messages, incoming._payload._messages)
-        base._payload._messages = diff
+        base._payload._messages = messagesDiff
         return base
     }
 
