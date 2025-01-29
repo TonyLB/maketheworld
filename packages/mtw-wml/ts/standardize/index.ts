@@ -479,14 +479,18 @@ export class StandardForm {
     }
 
     diff(incoming: StandardForm): StandardForm {
-        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
+        const allKeys = unique(
+            [...Object.values(this._byId), ...Object.values(incoming._byId)]
+            .sort((a, b) => (standardComponentSortOrder(this._byId)(b, a)))
+            .map(({ key }) => (key))
+        )
         const returnValue = this._clone()
         returnValue._byId = allKeys
             .reduce<Record<string, StandardComponent>>((previous, key) => {
                 const baseComponent = this._byId[key]
                 const incomingComponent = incoming._byId[key]
                 if (baseComponent && incomingComponent) {
-                    const diffedComponent = baseComponent.diff(incomingComponent)
+                    const diffedComponent = baseComponent.diff(incomingComponent, { keyHasBeenDiffed: (key) => (key in previous) })
                     if (diffedComponent) {
                         return { ...previous, [key]: diffedComponent }
                     } else {
