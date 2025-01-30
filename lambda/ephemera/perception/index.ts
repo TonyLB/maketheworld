@@ -75,7 +75,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 internalCache.Global.get('assets')
             ])
             const assetsByMessageId = Object.entries(momentMetaByAsset as Record<string, ComponentMetaItem<StandardMoment>>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
-                messages.map(({ data }) => (data)).filter(isSchemaMessage).reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => ({
+                messages.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => ({
                     ...accumulator,
                     [messageId]: [
                         ...(accumulator[messageId] || []),
