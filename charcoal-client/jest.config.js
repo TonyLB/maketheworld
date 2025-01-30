@@ -11,7 +11,7 @@ export default {
         "<rootDir>/src"
     ],
     transform: {
-        '^.+\\.[j|t]sx?$': ['ts-jest', { useESM: true }]
+        '^.+\\.[jt]sx?$': ['ts-jest', { useESM: true }]
     },
     preset: 'ts-jest/presets/js-with-ts-esm',
     testEnvironment: 'node',
