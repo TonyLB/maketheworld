@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
+import React, { FunctionComponent, createContext, useCallback, useContext, useMemo, useState } from "react"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { v4 as uuidv4 } from 'uuid'
 import { Draft, produce } from "immer"
@@ -9,7 +9,7 @@ type EditHighlightContextType = {
     setHighlight: (value: string) => void;
 }
 
-const EditHighlightContext = React.createContext<EditHighlightContextType>({
+const EditHighlightContext = createContext<EditHighlightContextType>({
     highlightId: '',
     setHighlight: () => {}
 })
@@ -30,7 +30,7 @@ type EditContextType = {
     setHighlight: (value?: string) => void;
 }
 
-const EditContext = React.createContext<EditContextType>({
+const EditContext = createContext<EditContextType>({
     id: 'NONE',
     value: [],
     onChange: () => {},

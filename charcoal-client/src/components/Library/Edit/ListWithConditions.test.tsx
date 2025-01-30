@@ -1,8 +1,8 @@
 jest.mock('./CodeEditor')
 import CodeEditor from './CodeEditor'
 
-import renderer from 'react-test-renderer'
 import React, { FunctionComponent } from 'react'
+import { render } from '@testing-library/react'
 
 import ListWithConditions from './ListWithConditions'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
@@ -13,7 +13,7 @@ import { isSchemaExit } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 describe('ListWithConditions component', () => {
-    const render: FunctionComponent<{}> = () => {
+    const renderComponent: FunctionComponent<{}> = () => {
         const { value } = useEditContext()
         return <React.Fragment>
             { value
@@ -28,8 +28,7 @@ describe('ListWithConditions component', () => {
     })
 
     it('renders non-conditions correctly', () => {
-        expect(renderer
-            .create(
+        expect(render(
                 <EditSchema
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
@@ -39,18 +38,17 @@ describe('ListWithConditions component', () => {
                 >
                     <ListWithConditions
                         typeGuard={isSchemaExit}
-                        render={render}
+                        render={renderComponent}
                         label="Exit"
                         defaultNode={{ tag: 'Exit', from: '', to: '', key: '#' }}
                     />
                 </EditSchema>
-            ).toJSON()
+            ).container
         ).toMatchSnapshot()
     })
 
     it('renders conditions correctly', () => {
-        expect(renderer
-            .create(
+        expect(render(
                 <EditSchema
                     value={[
                         { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
@@ -64,12 +62,12 @@ describe('ListWithConditions component', () => {
                 >
                     <ListWithConditions
                         typeGuard={isSchemaExit}
-                        render={render}
+                        render={renderComponent}
                         label="Exit"
                         defaultNode={{ tag: 'Exit', from: '', to: '', key: '#' }}
                     />
                 </EditSchema>
-            ).toJSON()
+            ).container
         ).toMatchSnapshot()
     })
 

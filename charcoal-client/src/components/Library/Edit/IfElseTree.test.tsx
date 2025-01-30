@@ -1,8 +1,8 @@
 jest.mock('./CodeEditor')
 import CodeEditor from './CodeEditor'
 
-import renderer from 'react-test-renderer'
 import React, { FunctionComponent } from 'react'
+import { render } from '@testing-library/react'
 
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
@@ -13,7 +13,7 @@ import { isSchemaExit } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 describe('IfElseTree component', () => {
-    const render: FunctionComponent<{}> = () => {
+    const renderComponent: FunctionComponent<{}> = () => {
         const { value } = useEditContext()
         return <React.Fragment>
             { value
@@ -28,77 +28,74 @@ describe('IfElseTree component', () => {
     })
 
     it('renders single statement correctly', () => {
-        expect(renderer
-            .create(
-                <EditSchema
-                    value={[{
-                        data: { tag: 'If' },
-                        children: [
-                            {
-                                data: { tag: 'Statement', if: 'true' },
-                                children: [
-                                    { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
-                                    { data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}
-                                ]
-                            }
-                        ]
-                    }]}
-                    onChange={() => {}}
-                >
-                    <IfElseTree render={render} />
-                </EditSchema>
-            ).toJSON()
-        ).toMatchSnapshot()
+        const { container } = render(
+            <EditSchema
+                value={[{
+                    data: { tag: 'If' },
+                    children: [
+                        {
+                            data: { tag: 'Statement', if: 'true' },
+                            children: [
+                                { data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]},
+                                { data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}
+                            ]
+                        }
+                    ]
+                }]}
+                onChange={() => {}}
+            >
+                <IfElseTree render={renderComponent} />
+            </EditSchema>
+        )
+        expect(container).toMatchSnapshot()
     })
 
     it('renders elseif correctly', () => {
-        expect(renderer
-            .create(
-                <EditSchema
-                    value={[{
-                        data: { tag: 'If' },
-                        children: [
-                            {
-                                data: { tag: 'Statement', if: 'true' },
-                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
-                            },
-                            {
-                                data: { tag: 'Statement', if: 'false' },
-                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
-                            }
-                        ]
-                    }]}
-                    onChange={() => {}}
-                >
-                    <IfElseTree render={render} />
-                </EditSchema>
-            ).toJSON()
-        ).toMatchSnapshot()
+        const { container } = render(
+            <EditSchema
+                value={[{
+                    data: { tag: 'If' },
+                    children: [
+                        {
+                            data: { tag: 'Statement', if: 'true' },
+                            children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
+                        },
+                        {
+                            data: { tag: 'Statement', if: 'false' },
+                            children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
+                        }
+                    ]
+                }]}
+                onChange={() => {}}
+            >
+                <IfElseTree render={renderComponent} />
+            </EditSchema>
+        )
+        expect(container).toMatchSnapshot()
     })
 
     it('renders else correctly', () => {
-        expect(renderer
-            .create(
-                <EditSchema
-                    value={[{
-                        data: { tag: 'If' },
-                        children: [
-                            {
-                                data: { tag: 'Statement', if: 'true' },
-                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
-                            },
-                            {
-                                data: { tag: 'Fallthrough' },
-                                children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
-                            }
-                        ]
-                    }]}
-                    onChange={() => {}}
-                >
-                    <IfElseTree render={render} />
-                </EditSchema>
-            ).toJSON()
-        ).toMatchSnapshot()
+        const { container } = render(
+            <EditSchema
+                value={[{
+                    data: { tag: 'If' },
+                    children: [
+                        {
+                            data: { tag: 'Statement', if: 'true' },
+                            children: [{ data: { tag: 'Exit', from: 'room1', to: 'room2', key: 'room1#room2' }, children: [{ data: { tag: 'String', value: 'closet' }, children: [] }]}]
+                        },
+                        {
+                            data: { tag: 'Fallthrough' },
+                            children: [{ data: { tag: 'Exit', from: 'room1', to: 'room3', key: 'room1#room3' }, children: [{ data: { tag: 'String', value: 'lobby' }, children: [] }]}]
+                        }
+                    ]
+                }]}
+                onChange={() => {}}
+            >
+                <IfElseTree render={renderComponent} />
+            </EditSchema>
+        )
+        expect(container).toMatchSnapshot()
     })
 
 })

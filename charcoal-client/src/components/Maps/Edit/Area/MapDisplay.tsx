@@ -13,6 +13,7 @@ import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { useMapContext } from '../../Controller'
 import { MapContextPosition, MapTreeExit } from '../../Controller/baseClasses'
+import { DevEnvironment } from '../../../../environment'
 
 interface MapDisplayProps  {
     exits: MapTreeExit[];
@@ -162,7 +163,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                     }, previous)
                 ), [])
-            const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
+            const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
             return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bindArgs}>
                 <div 
                     style={{

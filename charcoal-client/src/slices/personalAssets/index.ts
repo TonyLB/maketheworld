@@ -48,6 +48,8 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 import { deepEqual } from '../../lib/objects'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { isStandardExample } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/example'
 
 const autoSaveDebounce = new Debounce()
 
@@ -344,41 +346,33 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
     const roomComponent = standard.byId[roomId]
 
     if (roomComponent && isStandardRoom(roomComponent)) {
-        const name = schemaOutputToString(ignoreWrapped(roomComponent.name)?.children ?? []) || schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? [])
+        const name = schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? [])
         if (name) {
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',
                 name
             }, { service: 'asset' })).then((results: { description: string; summary: string; }) => {
                 const { description, summary } = results
-                if (description) {
-                    dispatch(
-                        updateStandard(assetId)({
-                            type: 'update',
-                            update: (draft: StandardForm) => {
-                                const base = draft.byId[roomId]
-                                if (base instanceof StandardRoom) {
-                                    base._payload._description = new StandardRender([description.trim()])
+                dispatch(
+                    updateStandard(assetId)({
+                        type: 'update',
+                        update: (draft: StandardForm) => {
+                            const room = draft.byId[roomId]
+                            if (room instanceof StandardRoom) {
+                                const example = draft.byId[`${roomId}.${room.examples[0].key}`]
+                                if (example instanceof StandardExample) {
+                                    if (description) {
+                                        example._payload._description = new StandardRender([description.trim()])
+                                    }
+                                    if (summary) {
+                                        example._payload._summary = new StandardRender([summary.trim()])
+                                    }
                                 }
-                                return draft
                             }
-                        })
-                    )
-                }
-                if (summary) {
-                    dispatch(
-                        updateStandard(assetId)({
-                            type: 'update',
-                            update: (draft: StandardForm) => {
-                                const base = draft.byId[roomId]
-                                if (base instanceof StandardRoom) {
-                                    base._payload._summary = new StandardRender([summary])
-                                }
-                                return draft
-                            }
-                        })
-                    )
-                }
+                            return draft
+                        }
+                    })
+                )
                 if (description || summary) {
                     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY']}))
                     dispatch(heartbeat)
