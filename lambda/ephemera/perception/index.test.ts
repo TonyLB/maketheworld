@@ -27,12 +27,14 @@ describe('Perception message', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            fileURL: 'https://example.com/image.jpg'
         })
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
             FirstImpression: 'Testy',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            fileURL: 'https://example.com/image.jpg'
         })
         await perceptionMessage({ payloads: [
             {
@@ -56,7 +58,8 @@ describe('Perception message', () => {
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess', 
             FirstImpression: 'Testy',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            fileURL: 'https://example.com/image.jpg'
         })
     })
 

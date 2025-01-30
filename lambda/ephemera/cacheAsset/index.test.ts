@@ -283,7 +283,11 @@ describe('cacheAsset', () => {
 
         const testStandard = new StandardForm(`
             <Asset key=(test)>
-                <Room key=(room1)><Name>Vortex</Name></Room>
+                <Room key=(room1)>
+                    <Example key=(base)>
+                        <Name>Vortex</Name>
+                    </Example>
+                </Room>
                 <Map key=(map1)>
                     <Image key=(image1) />
                     <Room key=(room1)><Position x="0" y="0" /></Room>
@@ -293,6 +297,7 @@ describe('cacheAsset', () => {
                 switch(key) {
                     case 'Test': return 'ASSET#Test'
                     case 'room1': return 'ROOM#ABC'
+                    case 'room1.base': return 'EXAMPLE#CDE'
                     case 'map1': return 'MAP#DEF'
                     case 'image1': return 'IMAGE#GHI'
                 }
@@ -313,7 +318,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#ABC',
                 key: 'room1',
                 tag: 'Room',
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
+                examples: [{ tag: 'Example', key: 'base' }],
                 exits: [],
                 themes: [],
                 stateMapping: {},
@@ -339,13 +344,24 @@ describe('cacheAsset', () => {
             }],
             expect.any(Object)
         )
+        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
+        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('test')
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+            ['ROOM#ABC']: [{
+                key: 'room1.base',
+                tag: 'Example',
+                universalKey: 'EXAMPLE#CDE',
+                name: ['Vortex']
+            }]
+        })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             scopeMap: {
                 room1: 'ROOM#ABC',
                 map1: 'MAP#DEF',
-                image1: 'IMAGE#GHI'
+                image1: 'IMAGE#GHI',
+                'room1.base': 'EXAMPLE#CDE'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
@@ -363,9 +379,11 @@ describe('cacheAsset', () => {
 
         const testStandard = new StandardForm(`
             <Asset key=(Test)>
-                <Room key=(ABC)><Name>Vortex</Name></Room>
+                <Room key=(ABC)>
+                    <Example key=(base)><Name>Vortex</Name></Example>
+                </Room>
                 <Room key=(DEF)>
-                    <Name>Elsewhere</Name>
+                    <Example key=(base)><Name>Elsewhere</Name></Example>
                     <If {open}><Exit to=(ABC)>Vortex</Exit></If>
                 </Room>
                 <Variable key=(open) default={false} />
@@ -373,7 +391,9 @@ describe('cacheAsset', () => {
             `).withUpdatedUniversalKeys((key) => {
                 switch(key) {
                     case 'ABC': return 'ROOM#ABC'
+                    case 'ABC.base': return 'EXAMPLE#CDE'
                     case 'DEF': return 'ROOM#DEF'
+                    case 'DEF.base': return 'EXAMPLE#FGH'
                     case 'open': return 'VARIABLE#QRS'
                 }
                 return undefined
@@ -394,9 +414,9 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
                 tag: 'Room',
+                examples: [{ tag: 'Example', key: 'base' }],
                 exits: [],
                 themes: [],
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -404,6 +424,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#DEF',
                 key: 'DEF',
                 tag: 'Room',
+                examples: [{ tag: 'Example', key: 'base' }],
                 exits: [{
                     data: { tag: 'If' },
                     children: [{
@@ -412,7 +433,6 @@ describe('cacheAsset', () => {
                     }]
                 }],
                 themes: [],
-                name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
                 keyMapping: { ABC: 'ROOM#ABC' },
                 stateMapping: { open: 'VARIABLE#QRS' }
             },
@@ -424,12 +444,30 @@ describe('cacheAsset', () => {
             }],
             expect.any(Object)
         )
+        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
+        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+            ['ROOM#ABC']: [{
+                key: 'ABC.base',
+                tag: 'Example',
+                universalKey: 'EXAMPLE#CDE',
+                name: ['Vortex']
+            }],
+            ['ROOM#DEF']: [{
+                key: 'DEF.base',
+                tag: 'Example',
+                universalKey: 'EXAMPLE#FGH',
+                name: ['Elsewhere']
+            }]
+        })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#Test",
             DataCategory: "Meta::Asset",
             scopeMap: {
                 ABC: 'ROOM#ABC',
+                'ABC.base': 'EXAMPLE#CDE',
                 DEF: 'ROOM#DEF',
+                'DEF.base': 'EXAMPLE#FGH',
                 open: 'VARIABLE#QRS'
             }
         })
