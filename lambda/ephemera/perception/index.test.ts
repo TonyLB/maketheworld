@@ -33,7 +33,8 @@ describe('Perception message', () => {
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
             FirstImpression: 'Testy',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            fileURL: 'https://example.com/image.jpg'
         })
         await perceptionMessage({ payloads: [
             {
