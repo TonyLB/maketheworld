@@ -24,6 +24,7 @@ import { Typography } from '@mui/material'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { getMySettings } from '../../slices/player'
 import TutorialPopover from '../Onboarding/TutorialPopover'
+import { DevEnvironment } from '../../environment'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -50,7 +51,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 80 : medium ? 60 : 40
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
+    const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
     const [knowledgeUnlocked] = useOnboarding('navigateHome')
     const [charactersUnlocked] = useOnboarding('closeTab')
     const [libraryUnlocked] = useOnboarding('closeTab')

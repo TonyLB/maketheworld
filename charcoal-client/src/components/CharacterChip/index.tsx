@@ -11,6 +11,7 @@ import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getConfiguration } from '../../slices/configuration'
+import { DevEnvironment } from '../../environment'
 
 type CharacterChipProps = {
     CharacterId: EphemeraCharacterId;
@@ -21,7 +22,7 @@ type CharacterChipProps = {
 
 export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, fileURL, onClick }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
+    const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
     const charactersInPlay = useSelector(getCharactersInPlay)
     const { Name: defaultName, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
     return (

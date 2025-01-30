@@ -9,6 +9,7 @@ import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getConfiguration } from '../../slices/configuration'
+import { DevEnvironment } from '../../environment'
 
 interface CharacterAvatarDirectProps {
     CharacterId: EphemeraCharacterId;
@@ -20,7 +21,7 @@ interface CharacterAvatarDirectProps {
 
 export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps> = ({ CharacterId, Name, fileURL, width, height }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
+    const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
     const dressedFileURL = useMemo(() => {
         if (fileURL?.match(/https?:\/\//)) {
             return fileURL

@@ -37,6 +37,7 @@ import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { DevEnvironment } from '../../../environment'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -166,7 +167,7 @@ export const useLibraryImageURL = (key: string): string => {
     }, [syntheticURL, loadedImage])
 
     const fileURL = useMemo(() => {
-        const appBaseURL = import.meta.env.DEV ? `https://${AppBaseURL}` : ''
+        const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
         return syntheticURL ? syntheticURL.fileURL : properties[key] ? `${appBaseURL}/images/${properties[key].fileName}.png` : ''
     }, [syntheticURL, properties, key])
 

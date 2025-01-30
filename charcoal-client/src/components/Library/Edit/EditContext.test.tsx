@@ -1,5 +1,5 @@
-import renderer from 'react-test-renderer'
 import React, { FunctionComponent, useEffect } from 'react'
+import { render, act } from '@testing-library/react'
 
 import { useEditContext, EditSchema, EditSubListSchema, useEditNodeContext, EditChildren } from './EditContext'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
@@ -19,15 +19,14 @@ const Render: FunctionComponent<{}> = () => {
 describe('EditSchema', () => {
 
     it('should provide value for children', () => {
-        expect(renderer
-            .create(
+        expect(render(
                 <EditSchema
                     value={[{ data: { tag: 'String', value: 'Test' }, children: [] }]}
                     onChange={() => {}}
                 >
                     <Render />
                 </EditSchema>
-            ).toJSON()
+            ).container
         ).toMatchSnapshot()
 
     })
@@ -57,8 +56,7 @@ describe('EditChildren', () => {
     }
 
     it('should extract node children', () => {
-        expect(renderer
-            .create(
+        expect(render(
                 <EditSchema
                     value={testSchema}
                     onChange={() => {}}
@@ -67,11 +65,11 @@ describe('EditChildren', () => {
                         <MultiRender />
                     </EditChildren>
                 </EditSchema>
-            ).toJSON()
+            ).container
         ).toMatchSnapshot()
     })
 
-    it('should bubble up onChange events', () => {
+    it('should bubble up onChange events', async () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditContext()
             useEffect(() => {
@@ -84,8 +82,8 @@ describe('EditChildren', () => {
             return <MultiRender />
         }
         const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
+        await act(async () => {
+            render(
                 <EditSchema
                     value={testSchema}
                     onChange={onChange}
@@ -107,7 +105,7 @@ describe('EditChildren', () => {
         }])
     })
 
-    it('should clear on true isEmpty', () => {
+    it('should clear on true isEmpty', async () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditContext()
             useEffect(() => {
@@ -120,8 +118,8 @@ describe('EditChildren', () => {
             return <MultiRender />
         }
         const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
+        await act(() => {
+            render(
                 <EditSchema
                     value={testSchema}
                     onChange={onChange}
@@ -146,8 +144,7 @@ describe('EditSubListSchema', () => {
     ]
 
     it('should extract an indexed value from node children', () => {
-        expect(renderer
-            .create(
+        expect(render(
                 <EditSchema
                     value={testSchema}
                     onChange={() => {}}
@@ -156,11 +153,11 @@ describe('EditSubListSchema', () => {
                         <Render />
                     </EditSubListSchema>
                 </EditSchema>
-            ).toJSON()
+            ).container
         ).toMatchSnapshot()
     })
 
-    it('should bubble up onChange events', () => {
+    it('should bubble up onChange events', async () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditNodeContext()
             useEffect(() => {
@@ -169,8 +166,8 @@ describe('EditSubListSchema', () => {
             return <Render />
         }
         const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
+        await act(() => {
+            render(
                 <EditSchema
                     value={testSchema}
                     onChange={onChange}
@@ -189,7 +186,7 @@ describe('EditSubListSchema', () => {
         ])
     })
 
-    it('should bubble up functional onChange events', () => {
+    it('should bubble up functional onChange events', async () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onChange } = useEditNodeContext()
             useEffect(() => {
@@ -203,8 +200,8 @@ describe('EditSubListSchema', () => {
             return <Render />
         }
         const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
+        await act(() => {
+            render(
                 <EditSchema
                     value={testSchema}
                     onChange={onChange}
@@ -230,7 +227,7 @@ describe('EditSubListSchema', () => {
         ])
     })
 
-    it('should bubble up onDelete events', () => {
+    it('should bubble up onDelete events', async () => {
         const ChangeRender: FunctionComponent<{}> = () => {
             const { onDelete } = useEditNodeContext()
             useEffect(() => {
@@ -239,8 +236,8 @@ describe('EditSubListSchema', () => {
             return <Render />
         }
         const onChange = jest.fn()
-        renderer.act(() => {
-            renderer.create(
+        await act(() => {
+            render(
                 <EditSchema
                     value={testSchema}
                     onChange={onChange}
