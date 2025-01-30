@@ -13,7 +13,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
                 type: 'PublishMessage',
                 targets: [RoomId],
                 displayProtocol: DisplayProtocol as any,
-                message: [{ tag: 'String', value: Message }],
+                message: [Message],
                 characterId: CharacterId,
                 name: Name || '',
                 color: (Color || 'grey') as LegalCharacterColor

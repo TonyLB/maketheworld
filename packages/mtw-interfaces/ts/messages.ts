@@ -114,8 +114,6 @@ export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBo
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
-
-
 const isRenderTree = (message: any): message is RenderTree | undefined => {
     if (typeof message === 'undefined') {
         return true
