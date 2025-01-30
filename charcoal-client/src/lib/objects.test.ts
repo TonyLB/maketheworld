@@ -3,7 +3,7 @@ import { objectMap, objectFilter, deepEqual } from './objects.js'
 describe('Objects utility functions', () => {
 
     it('should correctly map an empty object with objectMap', () => {
-        expect(objectMap({}, ({ Test }) => ({ Test: Test * 2 }))).toEqual({})
+        expect(objectMap({}, ({ Test }: { Test: number }) => ({ Test: Test * 2 }))).toEqual({})
     })
 
     it('should correctly map an object with objectMap', () => {
@@ -19,7 +19,7 @@ describe('Objects utility functions', () => {
     })
 
     it('should correctly filter an empty object with objectFilter', () => {
-        expect(objectFilter({}, ({ Test }) => (Test))).toEqual({})
+        expect(objectFilter({} as Record<string, { Test: number }>, ({ Test }: { Test: number }) => (Boolean(Test)))).toEqual({})
     })
 
     it('should correctly filter an object with objectFilter', () => {
