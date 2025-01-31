@@ -19,7 +19,6 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     },
     { key: 'Knowledge' },
     { key: 'Map' },
-    { key: 'Theme' },
     {
         key: 'Message',
         legalParents: ['Moment']

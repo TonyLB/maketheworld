@@ -177,7 +177,6 @@ describe('cacheAsset', () => {
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
                 exits: [],
-                themes: [],
                 tag: 'Room',
                 stateMapping: {},
                 keyMapping: {},
@@ -320,7 +319,6 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 examples: [{ tag: 'Example', key: 'base' }],
                 exits: [],
-                themes: [],
                 stateMapping: {},
                 keyMapping: {}
             },
@@ -330,7 +328,6 @@ describe('cacheAsset', () => {
                 tag: 'Map',
                 positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
-                themes: [],
                 keyMapping: { room1: 'ROOM#ABC' },
                 stateMapping: {}
             },
@@ -416,7 +413,6 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 examples: [{ tag: 'Example', key: 'base' }],
                 exits: [],
-                themes: [],
                 keyMapping: {},
                 stateMapping: {}
             },
@@ -432,7 +428,6 @@ describe('cacheAsset', () => {
                         children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                     }]
                 }],
-                themes: [],
                 keyMapping: { ABC: 'ROOM#ABC' },
                 stateMapping: { open: 'VARIABLE#QRS' }
             },

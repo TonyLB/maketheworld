@@ -3,7 +3,7 @@ import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -18,7 +18,7 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardRemove, StandardReplace } from "./edits"
@@ -27,7 +27,6 @@ import { deepEqual } from "../../lib/objects"
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
     _exits: GenericTree<SchemaTag> = [];
-    _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
     _features: (StandardReference | StandardRemove | StandardReplace)[] = [];
     _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
     tag = 'Room' as const
@@ -36,7 +35,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         if (previous) {
             this._shortName = previous._shortName
             this._exits = [...previous.exits]
-            this._themes = [...previous.themes]
             this._features = previous._features.map((reference) => (reference.clone()))
             this._examples = previous._examples.map((reference) => (reference.clone()))
         }
@@ -46,7 +44,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { shortName } = props
         this._shortName = extractStandardRender(shortName, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
         this._exits = props.exits
-        this._themes = props.themes
         this._features = props.features?.map((reference) => (new StandardReference(reference))) ?? []
         this._examples = props.examples?.map((reference) => (new StandardReference(reference))) ?? []
     }
@@ -60,7 +57,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
             this._shortName = extractStandardRender<SchemaShortNameTag>(shortNameItem as EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>, isSchemaShortName, 'Schema mismatch in StandardRoom constructor')
             this._exits = defaultSelected(exitTagTree.tree)
-            this._themes = []
             this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(editableReferenceFactory)
             this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
             return
@@ -70,7 +66,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     get shortName() { return rebuildSchemaFromStandardRender(this._shortName, { tag: 'ShortName' as const }) }
     get exits() { return this._exits }
-    get themes() { return this._themes }
     get features() { return this._features }
     get examples() { return this._examples }
 
@@ -82,7 +77,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ? rebuildSchemaFromStandardRender(this._shortName?.mapContents(stripUIFields), { tag: 'ShortName' as const })
                 : this.shortName,
             exits: stripUI ? stripUIFields(this.exits) : this.exits,
-            themes: this.themes,
             ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
         }
@@ -125,7 +119,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._exits = applyEdits([...this.exits, ...incoming.exits])
-        returnValue._themes = [...this.themes, ...incoming.themes]
         returnValue._features = mergeUniqueReferences(this.features, incoming.features)
         returnValue._examples = mergeUniqueReferences(this.examples, incoming.examples)
         return returnValue as this
@@ -155,7 +148,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
     get shortName() { return this._payload.shortName }
     get exits() { return this._payload.exits }
-    get themes() { return this._payload.themes }
     get features() { return this._payload.features }
     get examples() { return this._payload.examples }
 

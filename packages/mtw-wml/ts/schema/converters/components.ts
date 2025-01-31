@@ -6,7 +6,7 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, isSchemaTheme, SchemaPromptTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, SchemaPromptTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 const componentTemplates = {
@@ -41,11 +41,6 @@ const componentTemplates = {
         y: { required: true, type: ParsePropertyTypes.Literal },
     },
     Map: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key },
-        as: { type: ParsePropertyTypes.Key }
-    },
-    Theme: {
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
@@ -134,21 +129,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Position', x: parseInt(x), y: parseInt(y)
-            }
-        }
-    },
-    Theme: {
-        initialize: ({ parseOpen }): SchemaThemeTag => ({
-            tag: 'Theme',
-            ...validateProperties(componentTemplates.Theme)(parseOpen)
-        }),
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaThemeTag, SchemaTag> => {
-            if (!isSchemaTheme(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children
             }
         }
     },
@@ -275,23 +255,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
 
-    },
-    Theme: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        //
-        // Reassemble the contents out of name and description fields
-        //
-        if (!isSchemaTheme(tag)) {
-            return [{ printMode: PrintMode.naive, output: '' }]
-        }
-        return tagRender({
-            ...args,
-            tag: 'Theme',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'as', type: 'key', value: tag.as ?? '' }
-            ],
-            node: { data: tag, children }
-        })
     },
     Prompt: (args: PrintMapEntryArguments) => {
         const tag = args.tag.data

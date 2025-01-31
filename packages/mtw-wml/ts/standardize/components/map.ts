@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
@@ -15,14 +15,13 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { positionReferenceKeys } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaOutputTag, SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag> = [];
     _positions: GenericTree<SchemaTag> = [];
-    _themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag> = [];
     tag = 'Map' as const
 
     constructor(previous?: StandardMapPayload) {
@@ -30,7 +29,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             this._name = previous._name
             this._images = [...previous._images]
             this._positions = [...previous.positions]
-            this._themes = [...previous.themes]
         }
     }
 
@@ -38,7 +36,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         this._name = props.name
         this._images = props.images
         this._positions = props.positions
-        this._themes = props.themes
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -64,15 +61,13 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     get name() { return this._name }
     get images() { return this._images }
     get positions() { return this._positions }
-    get themes() { return this._themes }
 
     toJSON(): Omit<StandardMapData, 'key' | 'universalKey'> {
         return {
             tag: 'Map',
             name: this.name,
             images: this.images,
-            positions: this.positions,
-            themes: this.themes
+            positions: this.positions
         }
     }
 
@@ -82,8 +77,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             children: [
                 ...[this.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
                 ...this.images,
-                ...this.positions,
-                ...this.themes
+                ...this.positions
             ]
         }
     }
@@ -93,7 +87,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
         returnValue._images = applyEdits([...this.images, ...incoming.images])
         returnValue._positions = applyEdits([...this.positions, ...incoming.positions])
-        returnValue._themes = [...this.themes, ...incoming.themes]
         return returnValue as this
     }
 
@@ -114,7 +107,6 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
     get name() { return this._payload.name }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
-    get themes() { return this._payload.themes }
 
     override clone(): StandardMap {
         const returnValue = new StandardMap(this)

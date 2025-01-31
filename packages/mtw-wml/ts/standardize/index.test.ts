@@ -84,13 +84,11 @@ describe('StandardForm', () => {
                     match: {
                         tag: 'Room',
                         key: 'testRoom',
-                        themes: [],
                         exits: []
                     },
                     payload: {
                         tag: 'Room',
                         key: 'testRoom',
-                        themes: [],
                         exits: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testRoomTwo', key: 'testRoom#testRoomTwo' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }],
                     }
                 },
@@ -100,7 +98,6 @@ describe('StandardForm', () => {
                     component: {
                         tag: 'Room',
                         key: 'testRoomTwo',
-                        themes: [],
                         exits: []
                     }
                 }
@@ -169,8 +166,7 @@ describe('StandardForm', () => {
                     exits: [{
                         data: { tag: 'Remove' },
                         children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
-                    }],
-                    themes: []
+                    }]
                 },
                 'testRoom.base': {
                     tag: 'Example',
@@ -193,8 +189,7 @@ describe('StandardForm', () => {
                     component: {
                         tag: 'Room',
                         key: 'testRoomRemove',
-                        exits: [],
-                        themes: []
+                        exits: []
                     }
                 },
                 testRoomReplace: {
@@ -204,15 +199,13 @@ describe('StandardForm', () => {
                         tag: 'Room',
                         key: 'testRoomReplace',
                         examples: [{ key: 'base', tag: 'Example' }],
-                        exits: [],
-                        themes: []
+                        exits: []
                     },
                     payload: {
                         tag: 'Room',
                         key: 'testRoomReplace',
                         examples: [{ key: 'base', tag: 'Example' }],
-                        exits: [],
-                        themes: []
+                        exits: []
                     }
                 },
                 'testRoomReplace.base': {
@@ -251,7 +244,6 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoom',
                     examples: [{ key: 'base', tag: 'Example' }],
-                    themes: [],
                     exits: [],
                 },
                 'testRoom.base': {
@@ -282,8 +274,7 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'Room1',
                     examples: [{ key: 'base', tag: 'Example' }],
-                    exits: [],
-                    themes: []
+                    exits: []
                 },
                 'Room1.base': {
                     tag: 'Example',
@@ -432,7 +423,6 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'test',
                     examples: [{ key: 'base', tag: 'Example' }],
-                    themes: [],
                     exits: [],
                     features: [
                         { tag: 'Feature', key: 'testLocal' },
@@ -468,7 +458,6 @@ describe('StandardForm', () => {
                 testTwo: {
                     tag: 'Room',
                     key: 'testTwo',
-                    themes: [],
                     exits: []
                 }
             }
@@ -491,7 +480,6 @@ describe('StandardForm', () => {
                 test: {
                     tag: 'Room',
                     key: 'test',
-                    themes: [],
                     exits: [],
                     examples: [{ tag: 'Example', key: 'testLocal' }]
                 },
@@ -503,7 +491,6 @@ describe('StandardForm', () => {
                 testTwo: {
                     tag: 'Room',
                     key: 'testTwo',
-                    themes: [],
                     exits: []
                 }
             }
@@ -554,7 +541,6 @@ describe('StandardForm', () => {
                 test: {
                     tag: 'Room',
                     key: 'test',
-                    themes: [],
                     exits: [],
                     features: [{ tag: 'Feature', key: 'testFeature' }]
                 },
@@ -571,7 +557,6 @@ describe('StandardForm', () => {
                 testTwo: {
                     tag: 'Room',
                     key: 'testTwo',
-                    themes: [],
                     exits: []
                 }
             }
@@ -854,36 +839,6 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should render themes correctly', () => {
-        const test = new StandardForm(`<Asset key=(Test)>
-            <Map key=(testMap)>
-                <Room key=(testRoomOne)>
-                    <Position x="0" y="0" />
-                </Room>
-            </Map>
-            <Theme key=(testTheme)>
-                <Name>Spooky shenanigans</Name>
-                <Prompt>Spooky</Prompt>
-                <Room key=(testRoomOne) />
-                <Map key=(testMap) />
-            </Theme>
-        </Asset>`)
-        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(testRoomOne) />
-                <Map key=(testMap)>
-                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                </Map>
-                <Theme key=(testTheme)>
-                    <Name>Spooky shenanigans</Name>
-                    <Prompt>Spooky</Prompt>
-                    <Room key=(testRoomOne) />
-                    <Map key=(testMap) />
-                </Theme>
-            </Asset>
-        `))
-    })
-
     it('should render messages correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Message key=(testMessage)>
@@ -1041,7 +996,6 @@ describe('StandardForm', () => {
             exits: [],
             key: 'testRoomOne',
             tag: 'Room',
-            themes: [],
             from: {
                 action: 'Content',
                 payload: { assetId: 'vanishingPoint', fromKey: 'testRoomOne' }
@@ -1055,8 +1009,7 @@ describe('StandardForm', () => {
         expect(mapTest._byId.testRoomOne.toJSON()).toEqual({
             exits: [],
             key: 'testRoomOne',
-            tag: 'Room',
-            themes: []
+            tag: 'Room'
         })
     })
 
@@ -1628,7 +1581,6 @@ describe('StandardForm', () => {
                     key: 'testRoomOne',
                     examples: [{ key: 'base', tag: 'Example' }],
                     exits: [],
-                    themes: [],
                 },
                 'testRoomOne.base': {
                     tag: 'Example',
@@ -1663,7 +1615,6 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoomOne',
                     exits: [],
-                    themes: [],
                     shortName: {
                         data: { tag: 'Replace' },
                         children: [
@@ -2212,8 +2163,7 @@ describe('StandardForm', () => {
                 universalKey: 'ROOM#001',
                 features: [{ key: 'testLocal', tag: 'Feature' }, { key: 'testGlobal', global: true, tag: 'Feature' }],
                 examples: [{ key: 'base', tag: 'Example'}],
-                exits: [],
-                themes: []
+                exits: []
             },
             {
                 tag: 'Example',
@@ -2232,7 +2182,7 @@ describe('StandardForm', () => {
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
                 name: ['Clocktower']
             },
-            { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002', exits: [], themes: [] },
+            { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002', exits: [] },
             {
                 tag: 'Feature',
                 key: 'testGlobal',
@@ -2381,8 +2331,7 @@ describe('StandardForm', () => {
     //         },
     //         summary: { data: { tag: 'Summary' }, children: [] },
     //         description: { data: { tag: 'Description' }, children: [] },
-    //         exits: [],
-    //         themes: []
+    //         exits: []
     //     })
     // })
 

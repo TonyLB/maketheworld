@@ -82,7 +82,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardAction => (value instanceof StandardAction))), [standardForm])
 
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
+    const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))

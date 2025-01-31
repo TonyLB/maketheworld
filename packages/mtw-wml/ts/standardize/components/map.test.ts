@@ -48,8 +48,7 @@ describe('StandardMap class', () => {
             tag: 'Map',
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
             images: [{ data: { tag: 'Image', key: "testImage" }, children: [] }],
-            positions: [{ data: { tag: 'Room', key: "testRoom" }, children: [{ data: { tag: 'Position', x: 10, y: 100 }, children: [] }] }],
-            themes: []
+            positions: [{ data: { tag: 'Room', key: "testRoom" }, children: [{ data: { tag: 'Position', x: 10, y: 100 }, children: [] }] }]
         }
         const testMap = new StandardMap(testMapData)
         expect(testMap.key).toEqual('test')

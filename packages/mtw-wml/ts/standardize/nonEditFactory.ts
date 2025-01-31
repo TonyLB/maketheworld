@@ -1,5 +1,5 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardAction, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
+import { isStandardAction, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardVariable, StandardComponentData } from "./baseClasses"
 import StandardAction from "./components/action"
 import StandardCharacter from "./components/character"
 import { StandardComponent } from "./components/baseClasses"
@@ -12,11 +12,10 @@ import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardRoom from "./components/room"
-import StandardTheme from "./components/theme"
 import { isSchemaTreeNode } from "./components/utils"
 import StandardVariable from "./components/variable"
 import { isStandardExample } from "./components/dataTypes/example"
-import { isSchemaCharacter, isSchemaTheme, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
@@ -52,9 +51,6 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
     }
     if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMoment)(arg))) {
         return new StandardMoment(arg)
-    }
-    if ((!isSchemaTreeNode(arg) && isStandardTheme(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaTheme)(arg))) {
-        return new StandardTheme(arg)
     }
     if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaVariable)(arg))) {
         return new StandardVariable(arg)
@@ -92,8 +88,6 @@ export const standardComponentByTag = (tag: ComponentTag, key: string): Standard
             return new StandardMessage(key)
         case "Moment":
             return new StandardMoment(key)
-        case "Theme":
-            return new StandardTheme(key)
         case "Variable":
             return new StandardVariable(key)
         case "Computed":

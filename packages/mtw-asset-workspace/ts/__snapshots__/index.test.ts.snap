@@ -4,35 +4,11 @@ exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properti
 Object {
   "byId": Object {
     "testRoom": Object {
-      "description": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Description",
-        },
-      },
       "exits": Array [],
       "fileName": undefined,
       "key": "testRoom",
-      "name": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Name",
-        },
-      },
-      "shortName": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "ShortName",
-        },
-      },
-      "summary": Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "Summary",
-        },
-      },
+      "shortName": undefined,
       "tag": "Room",
-      "themes": Array [],
       "universalKey": "ROOM#001",
     },
   },
@@ -45,7 +21,6 @@ exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
 Object {
   "byId": Object {
     "a123": Object {
-      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -68,15 +43,11 @@ Object {
       ],
       "fileName": undefined,
       "key": "a123",
-      "name": undefined,
       "shortName": undefined,
-      "summary": undefined,
       "tag": "Room",
-      "themes": Array [],
       "universalKey": "ROOM#UUID-0",
     },
     "b456": Object {
-      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -99,11 +70,8 @@ Object {
       ],
       "fileName": undefined,
       "key": "b456",
-      "name": undefined,
       "shortName": undefined,
-      "summary": undefined,
       "tag": "Room",
-      "themes": Array [],
       "universalKey": "ROOM#UUID-1",
     },
   },
@@ -116,7 +84,6 @@ exports[`AssetWorkspace setWML should look up import namespace mappings 1`] = `
 Object {
   "byId": Object {
     "a123": Object {
-      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -146,15 +113,11 @@ Object {
         },
       },
       "key": "a123",
-      "name": undefined,
       "shortName": undefined,
-      "summary": undefined,
       "tag": "Room",
-      "themes": Array [],
       "universalKey": "testImport",
     },
     "b456": Object {
-      "description": undefined,
       "exits": Array [
         Object {
           "children": Array [
@@ -177,15 +140,11 @@ Object {
       ],
       "fileName": undefined,
       "key": "b456",
-      "name": undefined,
       "shortName": undefined,
-      "summary": undefined,
       "tag": "Room",
-      "themes": Array [],
       "universalKey": "ROOM#UUID-0",
     },
     "c789": Object {
-      "description": undefined,
       "fileName": undefined,
       "from": Object {
         "action": "Content",
@@ -195,7 +154,6 @@ Object {
         },
       },
       "key": "c789",
-      "name": undefined,
       "tag": "Feature",
       "universalKey": "testFeature",
     },
@@ -207,16 +165,17 @@ Object {
         Object {
           "children": Array [],
           "data": Object {
-            "from": "base",
-            "key": "a123",
+            "as": "a123",
+            "key": "base",
             "tag": "Room",
           },
         },
         Object {
           "children": Array [],
           "data": Object {
-            "from": "Feature2",
-            "key": "c789",
+            "as": "c789",
+            "global": undefined,
+            "key": "Feature2",
             "tag": "Feature",
           },
         },
