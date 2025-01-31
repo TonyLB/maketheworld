@@ -1,3 +1,7 @@
+/**
+* @vitest-environment jsdom
+*/
+import { vi } from 'vitest'
 import React, { FunctionComponent, useEffect } from 'react'
 import { render, act } from '@testing-library/react'
 
@@ -81,7 +85,7 @@ describe('EditChildren', () => {
             }, [])
             return <MultiRender />
         }
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         await act(async () => {
             render(
                 <EditSchema
@@ -117,7 +121,7 @@ describe('EditChildren', () => {
             }, [])
             return <MultiRender />
         }
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         await act(() => {
             render(
                 <EditSchema
@@ -165,7 +169,7 @@ describe('EditSubListSchema', () => {
             }, [])
             return <Render />
         }
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         await act(() => {
             render(
                 <EditSchema
@@ -199,7 +203,7 @@ describe('EditSubListSchema', () => {
             }, [])
             return <Render />
         }
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         await act(() => {
             render(
                 <EditSchema
@@ -235,7 +239,7 @@ describe('EditSubListSchema', () => {
             }, [])
             return <Render />
         }
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         await act(() => {
             render(
                 <EditSchema

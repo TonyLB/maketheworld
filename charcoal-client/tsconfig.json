@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "types": ["@types/jest"],
+    "types": ["@types/jest", "vitest/globals"],
     "allowJs": false,
     "skipLibCheck": false,
     "esModuleInterop": false,

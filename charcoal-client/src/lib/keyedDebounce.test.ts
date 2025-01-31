@@ -3,46 +3,46 @@ import Debounce from './keyedDebounce'
 describe('keyedDebounce', () => {
     const debounce = new Debounce()
     beforeEach(() => {
-        jest.useFakeTimers()
+        vi.useFakeTimers()
         debounce.clear()
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
     })
 
     afterEach(() => {
-        jest.clearAllTimers()
-        jest.useRealTimers()
+        vi.clearAllTimers()
+        vi.useRealTimers()
     })
 
     it('should set a timeout when a debounce is created', () => {
-        const callback = jest.fn()
+        const callback = vi.fn()
         debounce.set('test', callback, 1000)
         expect(callback).not.toHaveBeenCalled()
-        jest.advanceTimersByTime(2000)
+        vi.advanceTimersByTime(2000)
         expect(callback).toHaveBeenCalled()
     })
 
     it('should reset a timeout', () => {
-        const callbackOne = jest.fn()
-        const callbackTwo = jest.fn()
+        const callbackOne = vi.fn()
+        const callbackTwo = vi.fn()
         debounce.set('test', callbackOne, 1000)
-        jest.advanceTimersByTime(500)
+        vi.advanceTimersByTime(500)
         debounce.set('testTwo', callbackTwo, 1000)
         debounce.set('test', callbackOne, 2000)
         expect(callbackOne).not.toHaveBeenCalled()
         expect(callbackTwo).not.toHaveBeenCalled()
-        jest.advanceTimersByTime(1500)
+        vi.advanceTimersByTime(1500)
         expect(callbackOne).not.toHaveBeenCalled()
         expect(callbackTwo).toHaveBeenCalled()
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
         expect(callbackOne).toHaveBeenCalled()
     })
 
     it('should reset on execute', () => {
-        const testCallback = jest.fn()
+        const testCallback = vi.fn()
         debounce.set('test', testCallback, 1000)
         expect(Object.keys(debounce._timeouts)).toEqual(['test'])
-        jest.advanceTimersByTime(2000)
+        vi.advanceTimersByTime(2000)
         expect(debounce._timeouts).toEqual({})
     })
 

@@ -1,3 +1,4 @@
+import { vi, MockedFunction } from 'vitest'
 import {
     ISSMAttemptNode,
     ISSMChoiceNode,
@@ -6,7 +7,7 @@ import {
     TemplateFromNodes
 } from './baseClasses'
 
-jest.mock('./ssmHeartbeat')
+vi.mock('./ssmHeartbeat')
 import { heartbeat } from './ssmHeartbeat'
 
 import { iterateOneSSM } from './'
@@ -34,17 +35,17 @@ const mockPromiseCache = new PromiseCache<any>()
 
 describe('iterateOneSSM', () => {
     beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
     })
 
-    const dispatch = jest.fn()
-    const getState = jest.fn()
-    const internalStateChange = jest.fn() as jest.MockedFunction<{ (arg: { newState: string, inProgress?: string }): ({ newState: string, inProgress?: string }) }>
-    const internalIntentChange = jest.fn() as jest.MockedFunction<{ (arg: { newIntent: string[] }): ({ newIntent: string[] }) }>
-    const getSSMData = jest.fn()
-    const condition = jest.fn()
-    const attempt = jest.fn()
+    const dispatch = vi.fn()
+    const getState = vi.fn()
+    const internalStateChange = vi.fn() as MockedFunction<{ (arg: { newState: string, inProgress?: string }): ({ newState: string, inProgress?: string }) }>
+    const internalIntentChange = vi.fn() as MockedFunction<{ (arg: { newIntent: string[] }): ({ newIntent: string[] }) }>
+    const getSSMData = vi.fn()
+    const condition = vi.fn()
+    const attempt = vi.fn()
 
     const baseGraph: TestTemplate = {
         initialState: 'INITIAL',

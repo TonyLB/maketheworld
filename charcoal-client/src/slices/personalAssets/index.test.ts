@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { addImport } from "."
 import { Schema } from "@tonylb/mtw-wml/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
@@ -11,20 +12,20 @@ schema.loadWML(`<Asset key=(testAsset)>
 </Asset>`)
 const standard = new StandardForm(schema.schema[0])
 
-const overrideGetStandardInternal = jest.fn()
-const overrideGetStandard = jest.fn()
-const overrideUpdateStandardInternal = jest.fn()
-const overrideUpdateStandard = jest.fn()
+const overrideGetStandardInternal = vi.fn()
+const overrideGetStandard = vi.fn()
+const overrideUpdateStandardInternal = vi.fn()
+const overrideUpdateStandard = vi.fn()
 
-const dispatch = jest.fn()
-const getState = jest.fn().mockReturnValue({})
+const dispatch = vi.fn()
+const getState = vi.fn().mockReturnValue({})
 
 describe('personalAssets slice', () => {
     describe('addImport', () => {
 
         beforeEach(() => {
-            jest.clearAllMocks()
-            jest.resetAllMocks()
+            vi.clearAllMocks()
+            vi.resetAllMocks()
             overrideGetStandardInternal.mockReturnValue(standard.toJSON())
             overrideGetStandard.mockReturnValue(overrideGetStandardInternal)
             overrideUpdateStandard.mockReturnValue(overrideUpdateStandardInternal)

@@ -46,17 +46,16 @@
     "typescript": "^4.5.4",
     "uuid": "^11.0.5",
     "vite": "^6.0.7",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.4"
   },
   "scripts": {
     "start": "vite",
     "check": "tsc --noEmit --skipLibCheck",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "jest --jsx=automatic",
-    "test:watch": "jest --jsx=automatic --watch",
-    "test:coverage": "jest --coverage .",
-    "test:debug": "jest --inspect-brk --runInBand --no-cache",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
     "introspect": "node introspect.js"
   },
   "browserslist": {

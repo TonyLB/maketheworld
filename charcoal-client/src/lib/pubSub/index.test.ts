@@ -1,4 +1,5 @@
-jest.mock('uuid')
+import { vi } from 'vitest'
+vi.mock('uuid')
 import { v4 as uuidMock } from 'uuid'
 import { PubSub } from './index'
 import { mockFunction } from '../jestHelpers'
@@ -12,20 +13,20 @@ const uuid = mockFunction(uuidMock)
 describe('PubSub class', () => {
     let testPubSub: PubSub<testData>
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
         testPubSub = new PubSub<testData>()
     })
     it('should accept subscriptions', () => {
         expect(testPubSub.subscriptions).toEqual([])
-        const callbackOne = jest.fn()
-        uuid.mockReturnValueOnce('testUUID1').mockReturnValueOnce('testUUID2')
+        const callbackOne = vi.fn()
+        uuid.mockReturnValueOnce('testUUID1' as any).mockReturnValueOnce('testUUID2' as any)
         const subscriptionOne = testPubSub.subscribe(callbackOne)
         expect(testPubSub.subscriptions).toEqual([{
             id: 'testUUID1',
             callback: callbackOne
         }])
         expect(subscriptionOne).toEqual('testUUID1')
-        const callbackTwo = jest.fn()
+        const callbackTwo = vi.fn()
         const subscriptionTwo = testPubSub.subscribe(callbackTwo)
         expect(testPubSub.subscriptions).toEqual([{
             id: 'testUUID1',
@@ -39,14 +40,14 @@ describe('PubSub class', () => {
     })
     it('should accept unsubscribe', () => {
         expect(testPubSub.subscriptions).toEqual([])
-        const callbackOne = jest.fn()
-        uuid.mockReturnValueOnce('testUUID1').mockReturnValueOnce('testUUID2')
+        const callbackOne = vi.fn()
+        uuid.mockReturnValueOnce('testUUID1' as any).mockReturnValueOnce('testUUID2' as any)
         testPubSub.subscribe(callbackOne)
         expect(testPubSub.subscriptions).toEqual([{
             id: 'testUUID1',
             callback: callbackOne
         }])
-        const callbackTwo = jest.fn()
+        const callbackTwo = vi.fn()
         testPubSub.subscribe(callbackTwo)
         testPubSub.unsubscribe('testUUID1')
         expect(testPubSub.subscriptions).toEqual([{
@@ -56,11 +57,11 @@ describe('PubSub class', () => {
     })
     it('should call all callbacks on publish', () => {
         expect(testPubSub.subscriptions).toEqual([])
-        uuid.mockReturnValueOnce('testUUID1').mockReturnValueOnce('testUUID2')
-        const callbackOne = jest.fn()
+        uuid.mockReturnValueOnce('testUUID1' as any).mockReturnValueOnce('testUUID2' as any)
+        const callbackOne = vi.fn()
         testPubSub.subscribe(callbackOne)
         testPubSub.publish({ value: 'Test One' })
-        const callbackTwo = jest.fn()
+        const callbackTwo = vi.fn()
         testPubSub.subscribe(callbackTwo)
         testPubSub.publish({ value: 'Test Two' })
         expect(callbackOne).toHaveBeenCalledWith({ payload: { value: 'Test One' }, unsubscribe: expect.any(Function) })
@@ -70,10 +71,10 @@ describe('PubSub class', () => {
     })
     it('should unsubscribe correctly within callbacks', () => {
         expect(testPubSub.subscriptions).toEqual([])
-        uuid.mockReturnValueOnce('testUUID1').mockReturnValueOnce('testUUID2')
-        const callbackOne = jest.fn().mockImplementation(({ unsubscribe }) => { unsubscribe() })
+        uuid.mockReturnValueOnce('testUUID1' as any).mockReturnValueOnce('testUUID2' as any)
+        const callbackOne = vi.fn().mockImplementation(({ unsubscribe }) => { unsubscribe() })
         testPubSub.subscribe(callbackOne)
-        const callbackTwo = jest.fn()
+        const callbackTwo = vi.fn()
         testPubSub.subscribe(callbackTwo)
         expect(testPubSub.subscriptions).toEqual([{
             id: 'testUUID1',

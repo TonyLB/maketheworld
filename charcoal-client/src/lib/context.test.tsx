@@ -1,3 +1,7 @@
+/**
+* @vitest-environment jsdom
+*/
+import { vi } from 'vitest'
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { nestOnChangeChildren, nestOnChangeSubItem, nestTransformTreeReducer } from "./context"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -9,7 +13,7 @@ import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 
 describe('context nesting helper library', () => {
     it('should nest onChange with nestOnChangeSubItem', () => {
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         nestOnChangeSubItem({
             tree: [
                 { data: { tag: 'String', value: 'A' }, children: [] },
@@ -27,7 +31,7 @@ describe('context nesting helper library', () => {
     })
 
     it('should nest onChange with nestOnChangeChildren', () => {
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         nestOnChangeChildren({
             data: { tag: 'Description' },
             children: [
@@ -52,7 +56,7 @@ describe('context nesting helper library', () => {
     })
 
     it('should combine nesting', () => {
-        const onChange = jest.fn()
+        const onChange = vi.fn()
         const testSchema: GenericTree<SchemaTag> = [{
             data: { tag: 'Description' },
             children: [
@@ -122,7 +126,7 @@ describe('context nesting helper library', () => {
             { data: { tag: 'Room', key: 'Room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }]}
         ]
 
-        const addSupplement = jest.fn()
+        const addSupplement = vi.fn()
         const mappedReducer = nestTransformTreeReducer(
             (baseReducer, _, addSupplement) => (previous, newValue) => {
                 const previousLength = (previous ?? []).length

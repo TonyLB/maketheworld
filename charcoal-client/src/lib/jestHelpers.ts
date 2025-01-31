@@ -1,7 +1,9 @@
-export function mockFunction<T extends (...args: any[]) => any>(fn: T): jest.MockedFunction<T> {
-    return fn as jest.MockedFunction<T>;
+import { MockedFunction, MockedClass } from 'vitest'
+
+export function mockFunction<T extends (...args: any[]) => any>(fn: T): MockedFunction<T> {
+    return fn as MockedFunction<T>;
 }
 
-export function mockClass <T extends { new (...args: any): any }>(item: T): jest.MockedClass<typeof item> {
-    return item as jest.MockedClass<typeof item>
+export function mockClass <T extends { new (...args: any): any }>(item: T): MockedClass<typeof item> {
+    return item as MockedClass<typeof item>
 }

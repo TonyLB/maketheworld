@@ -1,10 +1,15 @@
+/**
+* @vitest-environment jsdom
+*/
+
+import { vi } from 'vitest'
 import React from 'react'
 import { render } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
 
-jest.mock('../../cacheDB')
+vi.mock('../../cacheDB')
 
 const mockStore = configureStore()
 const store = mockStore({

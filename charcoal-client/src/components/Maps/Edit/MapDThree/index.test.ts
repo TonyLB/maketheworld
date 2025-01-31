@@ -1,21 +1,21 @@
-jest.mock('./MapDThreeTree.ts')
-import MapDThreeTreeRaw from './MapDThreeTree'
+import * as MapDThreeTreeModule from './MapDThreeTree'
+vi.mock('./MapDThreeTree')
 import { MapDThree } from '.'
 
-import { mockClass } from '../../../../lib/jestHelpers'
 import { assertInstance, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
-const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('MapDThree', () => {
 
     beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
     })
 
     it('should initialize stack on construction', () => {
+        const mapTreeSpy = vi.spyOn(MapDThreeTreeModule, 'MapDThreeTree')
+
         const testSchema = new Schema()
         testSchema.loadWML(`
             <Asset key=(testOne)>
@@ -34,14 +34,14 @@ describe('MapDThree', () => {
         
         const testTree = assertInstance(testComponent, StandardMap)?.positions ?? []
 
-        const testMapDThree = new MapDThree({
+        new MapDThree({
             tree: testTree,
             standardForm: testStandard.toJSON(),
             mapId: 'testMap',
             updateStandard: () => {}
         })
-        expect(MapDThreeTree).toHaveBeenCalledTimes(1)
-        expect(MapDThreeTree.mock.calls[0][0].tree).toMatchSnapshot()
+        expect(mapTreeSpy).toHaveBeenCalledTimes(1)
+        expect(mapTreeSpy.mock.calls[0][0].tree).toMatchSnapshot()
 
     })
 })
