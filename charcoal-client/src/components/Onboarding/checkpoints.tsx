@@ -1,4 +1,5 @@
-import React, { ReactElement } from "react"
+import { ReactElement } from "react"
+import * as React from 'react'
 import { Stack, Typography, Chip } from "@mui/material"
 import HomeIcon from '@mui/icons-material/Home'
 import OnboardingIcon from '@mui/icons-material/Lightbulb'

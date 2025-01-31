@@ -1,3 +1,4 @@
+jest.mock('../../../environment')
 jest.mock('./CodeEditor')
 import CodeEditor from './CodeEditor'
 

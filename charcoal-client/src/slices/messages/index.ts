@@ -83,7 +83,8 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
     const lastSyncUpdateTargets = unique(messages.map(({ Target }) => (Target))) as EphemeraCharacterId[]
     const updateLastSync = LastSync
         ? Promise.all(lastSyncUpdateTargets.map((CharacterId) => (cacheDB.characterSync
-            .update(CharacterId, (storedLastSync: number) => (Math.max(LastSync ?? 0, storedLastSync)))
+            .where('CharacterId').equals(CharacterId)
+            .modify((storedLastSync) => { storedLastSync.lastSync = Math.max(LastSync ?? 0, storedLastSync.lastSync) })
             .then((update) => {
                 if (!update) {
                     cacheDB.characterSync.put({ CharacterId, lastSync: LastSync ?? 0 })
