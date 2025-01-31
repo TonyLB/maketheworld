@@ -47,7 +47,6 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Room',
                 shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
                 exits: [],
-                themes: [],
                 key: 'testRoom',
                 stateMapping: {},
                 keyMapping: {}
@@ -99,8 +98,6 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: { data: { tag: 'Name' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 key: 'testFeature',
                 tag: 'Feature',
                 stateMapping: {
@@ -112,7 +109,6 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
                 assetId: 'Base',
-                name: { data: { tag: 'Name' }, children: [] },
                 key: 'testFeature',
                 tag: 'Feature',
                 stateMapping: {
@@ -171,8 +167,6 @@ describe('ComponentRender cache handler', () => {
             Base: {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Base',
-                name: { data: { tag: 'Name' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 key: 'testKnowledge',
                 tag: 'Knowledge',
                 stateMapping: {
@@ -184,8 +178,6 @@ describe('ComponentRender cache handler', () => {
             Personal: {
                 EphemeraId: 'KNOWLEDGE#TestOne',
                 assetId: 'Personal',
-                name: { data: { tag: 'Name' }, children: [] },
-                description: { data: { tag: 'Description' }, children: [] },
                 key: 'testKnowledge',
                 tag: 'Knowledge',
                 stateMapping: {
@@ -250,7 +242,6 @@ describe('ComponentRender cache handler', () => {
                             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }] },
                             images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
                             positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
-                            themes: [],
                             key: 'testMap',
                             tag: 'Map',
                             stateMapping: {},
@@ -260,7 +251,6 @@ describe('ComponentRender cache handler', () => {
                             EphemeraId: 'MAP#TestOne',
                             assetId: 'Personal',
                             images: [],
-                            themes: [],
                             positions: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }],
                             key: 'testMap',
                             tag: 'Map',
@@ -278,17 +268,16 @@ describe('ComponentRender cache handler', () => {
                                 { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Other Room' }, children: [] }] },
                                 { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Not in Map' }, children: [] }] }
                             ],
-                            themes: [],
                             key: 'room1',
                             tag: 'Room',
                             stateMapping: {},
                             keyMapping: { room2: 'ROOM#TestRoomTwo', room3: 'ROOM#TestRoomThree' }
                         },
-                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', exits: [], themes: [], key: 'room1', tag: 'Room', stateMapping: {}, keyMapping: {} }
+                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', exits: [], key: 'room1', tag: 'Room', stateMapping: {}, keyMapping: {} }
                     } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraRoomId }>
                 case 'ROOM#TestRoomTwo':
                     return {
-                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', exits: [], themes: [], key: 'room2', tag: 'Room', stateMapping: {}, keyMapping: {} },
+                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', exits: [],  key: 'room2', tag: 'Room', stateMapping: {}, keyMapping: {} },
                         Personal: {
                             EphemeraId: 'ROOM#TestRoomTwo',
                             assetId: 'Personal',
@@ -296,7 +285,6 @@ describe('ComponentRender cache handler', () => {
                             exits: [
                                 { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2' }, children: [{ data: { tag: 'String', value: 'First Room' }, children: [] }] }
                             ],
-                            themes: [],
                             key: 'room2',
                             tag: 'Room',
                             stateMapping: {},
@@ -342,93 +330,4 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
-    // it('should correctly invalidate evaluations on asset state change', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: [],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
-    //         switch(ephemeraId) {
-    //             case 'ROOM#TestOne':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'ROOM#TestOne',
-    //                         assetId: 'Base',
-    //                         shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
-    //                         description: { data: { tag: 'Description' }, children: [
-    //                             { data: { tag: 'String', value: 'First' }, children: [] },
-    //                             {
-    //                                 data: { tag: 'If' },
-    //                                 children: [{
-    //                                     data: { tag: 'Statement', if: 'testTwo' },
-    //                                     children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
-    //                                 }]
-    //                             }
-    //                         ] },
-    //                         exits: [],
-    //                         themes: [],
-    //                         stateMapping: { testTwo: 'VARIABLE#testVariable' },
-    //                         keyMapping: {},
-    //                         key: 'testRoom',
-    //                         tag: 'Room'
-    //                     }
-    //                 }
-    //         }
-    //         throw new Error(`Undefined test EphemeraId: ${ephemeraId}`)
-    //     })
-    //     jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-    //         { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
-    //     ])
-    //     jest.spyOn(internalCache.EvaluateCode, "get")
-    //         .mockResolvedValueOnce(false)
-    //         .mockResolvedValueOnce(true)
-    //         .mockResolvedValueOnce(false)
-    //     const outputOne = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base'])
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
-    //     expect(outputOne).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         ShortName: [{ tag: 'String', value: 'TestRoom' }],
-    //         Name: [],
-    //         Summary: [],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'First' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
-
-    //     internalCache.AssetState.invalidate('VARIABLE#testVariable')
-    //     const outputTwo = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
-    //     expect(outputTwo).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         ShortName: [{ tag: 'String', value: 'TestRoom' }],
-    //         Name: [],
-    //         Summary: [],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
-
-    //     internalCache.AssetState.invalidate('VARIABLE#otherVariable')
-    //     const outputThree = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
-    //     expect(outputThree).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         ShortName: [{ tag: 'String', value: 'TestRoom' }],
-    //         Name: [],
-    //         Summary: [],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
-    // })
 })

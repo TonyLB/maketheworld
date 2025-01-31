@@ -13,12 +13,11 @@ import { StandardMapData, isStandardMap } from "./map";
 import { StandardMessageData, isStandardMessage } from "./message";
 import { StandardMomentData, isStandardMoment } from "./moment";
 import { StandardRoomData, isStandardRoom } from "./room";
-import { StandardThemeData, isStandardTheme } from "./theme";
 import { checkAll } from "./typeguards";
 import { StandardVariableData, isStandardVariable } from "./variable";
-import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
 export type StandardReferenceData = {
     tag: ComponentTag;
@@ -33,7 +32,6 @@ export type StandardComponentNonEditData =
     StandardFeatureData |
     StandardKnowledgeData |
     StandardMapData |
-    StandardThemeData |
     StandardMessageData |
     StandardMomentData |
     StandardVariableData |
@@ -64,7 +62,6 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardFeature(value) ||
     isStandardKnowledge(value) ||
     isStandardMap(value) ||
-    isStandardTheme(value) ||
     isStandardMessage(value) ||
     isStandardMoment(value) ||
     isStandardVariable(value) ||

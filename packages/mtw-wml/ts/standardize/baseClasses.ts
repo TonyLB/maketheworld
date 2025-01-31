@@ -13,7 +13,6 @@ import { StandardMessageData } from "./components/dataTypes/message";
 import { StandardComponentExport, StandardComponentImport } from "./components/dataTypes/metaData";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
-import { StandardThemeData } from "./components/dataTypes/theme";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
@@ -34,7 +33,6 @@ export type StandardRoom = StandardRoomData
 export type StandardFeature = StandardFeatureData
 export type StandardKnowledge = StandardKnowledgeData
 export type StandardMap = StandardMapData
-export type StandardTheme = StandardThemeData
 export type StandardMessage = StandardMessageData
 export type StandardMoment = StandardMomentData
 export type StandardVariable = StandardVariableData
@@ -49,7 +47,6 @@ export type StandardComponentDataNonEdit =
     StandardFeature |
     StandardKnowledge |
     StandardMap |
-    StandardTheme |
     StandardMessage |
     StandardMoment |
     StandardVariable |
@@ -90,7 +87,6 @@ export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
 export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
 export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
-export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
 export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
 export const isStandardAction = isStandardFactory<StandardAction>("Action")
@@ -114,8 +110,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
             return {
                 tag,
                 key,
-                exits: [],
-                themes: []
+                exits: []
             }
         case 'Feature':
         case 'Knowledge':
@@ -150,17 +145,8 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
             return {
                 tag: 'Map' as const,
                 key,
-                themes: [],
                 images: [],
                 positions: [],
-            }
-        case 'Theme':
-            return {
-                tag: 'Theme' as const,
-                key,
-                prompts: [],
-                rooms: [],
-                maps: [],
             }
         default:
             throw new Error(`No default component for tag: '${tag}'`)

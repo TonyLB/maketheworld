@@ -63,7 +63,6 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
             exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
-            themes: [],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
         const testRoom = new StandardRoom(testRoomData)

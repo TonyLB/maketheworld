@@ -17,7 +17,6 @@ describe('ComponentMeta', () => {
             DataCategory: 'ASSET#Base',
             description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
             exits: [],
-            themes: [],
             stateMapping: {},
             keyMapping: {}
         },
@@ -25,7 +24,6 @@ describe('ComponentMeta', () => {
             DataCategory: 'ASSET#Layer',
             description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }] },
             exits: [],
-            themes: [],
             stateMapping: {},
             keyMapping: {}
         }])
@@ -36,7 +34,6 @@ describe('ComponentMeta', () => {
                 assetId: 'Base',
                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
                 exits: [],
-                themes: [],
                 stateMapping: {},
                 keyMapping: {}
             },
@@ -45,7 +42,6 @@ describe('ComponentMeta', () => {
                 assetId: 'Layer',
                 description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }] },
                 exits: [],
-                themes: [],
                 stateMapping: {},
                 keyMapping: {}
             }
@@ -66,18 +62,16 @@ describe('ComponentMeta', () => {
             assetId: 'Layer',
             key: 'testTwo',
             tag: 'Room',
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: "String", value: 'TestingTwo' }, children: [] }] },
+            examples: [{ key: 'base', tag: 'Example' }],
             exits: [],
-            themes: [],
             stateMapping: {},
             keyMapping: {}
         })
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+            examples: [{ key: 'test', tag: 'Example' }],
             tag: 'Room',
             exits: [],
-            themes: [],
             key: 'test',
             stateMapping: {},
             keyMapping: {}
@@ -88,9 +82,8 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 tag: 'Room',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+                examples: [{ key: 'test', tag: 'Example' }],
                 exits: [],
-                themes: [],
                 key: 'test',
                 stateMapping: {},
                 keyMapping: {}
@@ -99,9 +92,8 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
                 tag: 'Room',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }] },
+                examples: [{ key: 'base', tag: 'Example' }],
                 exits: [],
-                themes: [],
                 key: 'testTwo',
                 stateMapping: {},
                 keyMapping: {}
@@ -119,9 +111,8 @@ describe('ComponentMeta', () => {
     it('should default fetches that do not return', async () => {
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+            examples: [{ key: 'test', tag: 'Example' }],
             exits: [],
-            themes: [],
             key: 'test',
             stateMapping: {},
             keyMapping: {}
@@ -131,9 +122,8 @@ describe('ComponentMeta', () => {
             Base: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+                examples: [{ key: 'test', tag: 'Example' }],
                 exits: [],
-                themes: [],
                 key: 'test',
                 stateMapping: {},
                 keyMapping: {}
@@ -144,7 +134,6 @@ describe('ComponentMeta', () => {
                 key: '',
                 tag: 'Room',
                 exits: [],
-                themes: [],
                 stateMapping: {},
                 keyMapping: {}
             }

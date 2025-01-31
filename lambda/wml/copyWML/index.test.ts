@@ -29,7 +29,6 @@ describe('copyWML', () => {
             key: 'TestRoom',
             examples: [{ key: 'base', tag: 'Example' }],
             exits: [],
-            themes: [],
             universalKey: 'ROOM#ABCDEF'
         }
         const testExample = {

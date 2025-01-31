@@ -8620,7 +8620,6 @@ Object {
     "key": "VORTEX",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "VORTEX.base": Object {
     "description": Array [
@@ -9112,7 +9111,6 @@ Object {
     "key": "cave",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "cave.base": Object {
     "description": Array [
@@ -9435,7 +9433,6 @@ trapDoorOpen = false
     "key": "curvingPassage",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "curvingPassage.base": Object {
     "description": Array [
@@ -10091,7 +10088,6 @@ trapDoorOpen = false
       },
     ],
     "tag": "Map",
-    "themes": Array [],
   },
   "fireCatGrotto": Object {
     "examples": Array [
@@ -10160,7 +10156,6 @@ trapDoorOpen = false
     "key": "fireCatGrotto",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "fireCatGrotto.base": Object {
     "description": Array [
@@ -10590,7 +10585,6 @@ trapDoorOpen = false
     "key": "forest",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "forest.base": Object {
     "description": Array [
@@ -10915,7 +10909,6 @@ trapDoorOpen = false
     "key": "foundry",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "foundry.base": Object {
     "description": Array [
@@ -11757,7 +11750,6 @@ trapDoorOpen = false
     "key": "intersection",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "intersection.base": Object {
     "description": Array [
@@ -12096,7 +12088,6 @@ if (robedStatueActive) {
     "key": "orchard",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "orchard.base": Object {
     "description": Array [
@@ -13009,7 +13000,6 @@ switch(glowingColumns) {
     "key": "statueChamber",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "statueChamber.base": Object {
     "description": Array [
@@ -13623,7 +13613,6 @@ determinedStatueHead = !determinedStatueHead
     "key": "well",
     "shortName": undefined,
     "tag": "Room",
-    "themes": Array [],
   },
   "well.base": Object {
     "description": Array [

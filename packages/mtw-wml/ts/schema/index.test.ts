@@ -42,10 +42,6 @@ describe('schemaFromParse', () => {
                         <Exit to=(DEF)>welcome</Exit>
                     </Room>
                 </If>
-                <Theme key=(Theme1)>
-                    <Prompt>Spooky</Prompt>
-                    <Room key=(ABC) />
-                </Theme>
                 <Room key=(DEF)>
                     <Name>Welcome</Name>
                     <Exit to=(DEF)>vortex</Exit>
@@ -168,16 +164,6 @@ describe('schemaFromParse', () => {
                             }],
                         }],
                     }]
-                },
-                {
-                    data: {
-                        tag: "Theme",
-                        key: "Theme1"
-                    },
-                    children: [
-                        { data: { tag: 'Prompt', value: 'Spooky' }, children: [] },
-                        { data: { tag: 'Room', key: 'ABC' }, children: [] }
-                    ]
                 },
                 {
                     data: {
@@ -835,19 +821,6 @@ describe('schemaToWML', () => {
                     <Name>Learning is power!</Name>
                     <Description>There is so very much to see and discover!</Description>
                 </Knowledge>
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip theme items', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)><ShortName>Test</ShortName></Room>
-                <Theme key=(test)>
-                    <Prompt>Spooky</Prompt>
-                    <Room key=(ABC) />
-                </Theme>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)

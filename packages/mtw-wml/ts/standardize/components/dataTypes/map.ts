@@ -1,15 +1,14 @@
-import { GenericTree, GenericTreeFiltered } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
-import { SchemaOutputTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardMapData = {
     tag: 'Map';
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     images: GenericTree<SchemaTag>;
     positions: GenericTree<SchemaTag>;
-    themes: GenericTreeFiltered<SchemaThemeTag, SchemaTag>;
 } & StandardBaseData
 
 export const isStandardMap = (arg: any): arg is StandardMapData => {
@@ -21,7 +20,6 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
         ('tag' in arg && arg.tag === 'Map'),
         checkTypes(arg, {
             key: 'string',
-            themes: 'tree',
             positions: 'tree',
             images: 'tree'
         },

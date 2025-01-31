@@ -87,11 +87,7 @@ describe('AssetWorkspace', () => {
                     key: 'testRoom',
                     universalKey: 'ROOM#001',
                     shortName: { data: { tag: 'ShortName' }, children: [] },
-                    summary: { data: { tag: 'Summary' }, children: [] },
-                    name: { data: { tag: 'Name' }, children: [] },
-                    description: { data: { tag: 'Description' }, children: [] },
-                    exits: [],
-                    themes: []
+                    exits: []
                 }
             ]
             s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
