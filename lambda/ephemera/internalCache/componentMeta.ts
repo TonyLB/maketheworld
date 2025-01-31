@@ -5,7 +5,6 @@ import { DeferredCache } from './deferredCache'
 import { EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
 import {
     EphemeraActionId,
-    EphemeraBookmarkId,
     EphemeraComputedId,
     EphemeraFeatureId,
     EphemeraId,
@@ -16,7 +15,6 @@ import {
     EphemeraRoomId,
     EphemeraVariableId,
     isEphemeraActionId,
-    isEphemeraBookmarkId,
     isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraId,
@@ -35,7 +33,6 @@ export type ComponentMetaId =
     EphemeraRoomId |
     EphemeraFeatureId |
     EphemeraKnowledgeId |
-    EphemeraBookmarkId |
     EphemeraMapId |
     EphemeraMessageId |
     EphemeraMomentId |
@@ -46,7 +43,6 @@ const isComponentMetaId = (value: EphemeraId): value is ComponentMetaId => (
     isEphemeraRoomId(value) ||
     isEphemeraFeatureId(value) ||
     isEphemeraKnowledgeId(value) ||
-    isEphemeraBookmarkId(value) ||
     isEphemeraMapId(value) ||
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
@@ -122,9 +118,6 @@ export class ComponentMetaData {
         }
         if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
             return factoryReturnValue<ComponentMetaItem<StandardFeature | StandardKnowledge>>('name', 'description', 'stateMapping', 'keyMapping')
-        }
-        if (isEphemeraBookmarkId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardKnowledge>>('description', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraMapId(EphemeraId)) {
             return factoryReturnValue<ComponentMetaItem<StandardMap>>('name', 'images', 'rooms', 'stateMapping', 'keyMapping')

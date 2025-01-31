@@ -81,9 +81,6 @@ export const isEphemeraVariableId = isEphemeraTaggedId<'VARIABLE'>('VARIABLE')
 export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
 export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
 
-export type EphemeraBookmarkId = EphemeraWrappedId<'BOOKMARK'>
-export const isEphemeraBookmarkId = isEphemeraTaggedId<'BOOKMARK'>('BOOKMARK')
-
 export type EphemeraMessageId = EphemeraWrappedId<'MESSAGE'>
 export const isEphemeraMessageId = isEphemeraTaggedId<'MESSAGE'>('MESSAGE')
 
@@ -97,7 +94,7 @@ export type EphemeraImageId = EphemeraWrappedId<'IMAGE'>
 export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
 
 
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'ACTION' | 'VARIABLE' | 'COMPUTED' | 'BOOKMARK' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'ACTION' | 'VARIABLE' | 'COMPUTED' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraExampleId(value) ||
@@ -109,7 +106,6 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraActionId(value) ||
     isEphemeraVariableId(value) ||
     isEphemeraComputedId(value) ||
-    isEphemeraBookmarkId(value) ||
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
     isEphemeraImageId(value)

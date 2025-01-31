@@ -2,7 +2,6 @@ import { isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import {
     EphemeraActionId,
     EphemeraAssetId,
-    EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
@@ -54,16 +53,6 @@ export type TaggedLinkUnrestricted = {
     to: string;
 }
 
-export type TaggedBookmark = {
-    tag: 'Bookmark';
-    to: EphemeraBookmarkId;
-}
-
-export type TaggedBookmarkUnrestricted = {
-    tag: 'Bookmark';
-    to: string;
-}
-
 export type TaggedConditionalItemDependency = {
     key: string;
     EphemeraId: string;
@@ -103,14 +92,14 @@ export type TaggedReplaceUnrestricted = {
     contents: TaggedMessageContentUnrestricted[];
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedBookmark | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional | TaggedReplace;
+export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional | TaggedReplace;
 
 //
 // TaggedMessageContentUnrestricted is a utility type which should (hopefully) match ComponentRenderItem from mtw-wml,
 // and let the more basic of the message utility functions operate identically on both those types (since
 // they share a lot of basic structure, with ComponentRenderItem using local keys rather than global ones)
 //
-export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBookmarkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted | TaggedReplaceUnrestricted;
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted | TaggedReplaceUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -140,7 +129,6 @@ export const isTaggedNotificationContent = (notification: any): notification is 
 }
 
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
-export const isTaggedBookmark = (item: TaggedMessageContent): item is TaggedBookmark => (item.tag === 'Bookmark')
 export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted | TaggedNotificationContent): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent | TaggedNotificationContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
@@ -158,7 +146,7 @@ export const validateTaggedNotificationList = (items: any): items is TaggedNotif
 
 export type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
-    renderBookmark?: (bookmark: EphemeraBookmarkId) => Promise<TaggedMessageContent[]>;
+    renderBookmark?: (bookmark: any) => Promise<TaggedMessageContent[]>;
 }
 
 const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions): Promise<(TaggedMessageContentFlat | TaggedSpacer)[]> => {
@@ -197,10 +185,6 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
             }
             else if (isTaggedReplace(message)) {
                 return evaluateTaggedMessageContent(message.contents, options)
-            }
-            else if (isTaggedBookmark(message)) {
-                const evaluatedContents = await renderBookmark(message.to)
-                return evaluateTaggedMessageContent(evaluatedContents, options)
             }
             else {
                 return [message]
@@ -379,12 +363,6 @@ const validateRoomCharacterList = (items: any) => {
             && checkTypes(roomItem, { Name: 'string', CharacterId: 'string' })
             && isEphemeraCharacterId(roomItem.CharacterId)
     ), true)
-}
-
-export type BookmarkDescribeData = {
-    Description: RenderTree;
-    BookmarkId: EphemeraBookmarkId;
-    assets?: EphemeraAssetId[];
 }
 
 export type RoomDescribeData = {
