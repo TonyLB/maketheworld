@@ -1,7 +1,6 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import {
     EphemeraActionId,
-    EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
@@ -13,7 +12,6 @@ import {
     EphemeraRoomId,
     EphemeraVariableId,
     isEphemeraActionId,
-    isEphemeraBookmarkId,
     isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
@@ -75,11 +73,6 @@ export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
 } & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
-
-export type EphemeraBookmark = {
-    EphemeraId: EphemeraBookmarkId;
-    key: string;
-} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
@@ -159,11 +152,10 @@ export type EphemeraComputed = {
     dependencies: EphemeraItemDependency[];
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraBookmark | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 export const isEphemeraFeatureItem = (item: EphemeraItem): item is EphemeraFeature => (isEphemeraFeatureId(item.EphemeraId))
 export const isEphemeraKnowledgeItem = (item: EphemeraItem): item is EphemeraKnowledge => (isEphemeraKnowledgeId(item.EphemeraId))
-export const isEphemeraBookmarkItem = (item: EphemeraItem): item is EphemeraBookmark => (isEphemeraBookmarkId(item.EphemeraId))
 export const isEphemeraMessageItem = (item: EphemeraItem): item is EphemeraMessage => (isEphemeraMessageId(item.EphemeraId))
 export const isEphemeraMomentItem = (item: EphemeraItem): item is EphemeraMoment => (isEphemeraMomentId(item.EphemeraId))
 export const isEphemeraRoomItem = (item: EphemeraItem): item is EphemeraRoom => (isEphemeraRoomId(item.EphemeraId))

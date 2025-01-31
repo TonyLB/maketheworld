@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraBookmarkId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { EphemeraActionId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
 import internalCache from "../internalCache"
 import { EphemeraComponentMixin } from "./baseClasses"
@@ -7,17 +7,17 @@ import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
-import { isSchemaBookmark, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaEdit } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isStandardExample } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
 
-const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
+const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||
     isEphemeraRoomId(EphemeraId) ||
     isEphemeraKnowledgeId(EphemeraId) ||
-    isEphemeraBookmarkId(EphemeraId) ||
     isEphemeraMapId(EphemeraId) ||
     isEphemeraFeatureId(EphemeraId) ||
     isEphemeraActionId(EphemeraId) ||
@@ -26,12 +26,11 @@ const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (Ephemer
     isEphemeraMomentId(EphemeraId)
 )
 
-const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId) => (
+const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraFeatureId | EphemeraMapId) => (
     isEphemeraComputedId(EphemeraId) ||
     isEphemeraRoomId(EphemeraId) ||
     isEphemeraFeatureId(EphemeraId) ||
     isEphemeraKnowledgeId(EphemeraId) ||
-    isEphemeraBookmarkId(EphemeraId) ||
     isEphemeraMapId(EphemeraId)
 )
 
@@ -79,12 +78,6 @@ const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, ke
                 ].filter((target) => (!previous.includes(target)))
             ]
         }
-        if (treeNodeTypeguard(isSchemaBookmark)(item)) {
-            return [
-                ...previous.filter(({ target }) => (target !== item.data.key)),
-                ...keysToDependencies(keyMapping)([item.data.key])
-            ]
-        }
         if (treeNodeTypeguard(isSchemaLink)(item)) {
             return [
                 ...previous.filter(({ target }) => (target !== item.data.to)),
@@ -99,17 +92,12 @@ const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, ke
 const extractDependenciesFromEphemeraItem = (item: StandardComponentData & EphemeraComponentMixin): EphemeraDependency[] => {
     let dependencies: EphemeraDependency[] = []
     if (isEphemeraInternallyBacklinked(item.EphemeraId)) {
-        if (isStandardRoom(item)) {
+        if (isStandardExample(item)) {
             dependencies = [
                 ...dependencies,
-                ...extractDependenciesFromTaggedContent([item.description].filter(excludeUndefined), item.keyMapping ?? {}),
-                ...extractDependenciesFromTaggedContent([item.summary].filter(excludeUndefined), item.keyMapping ?? {})
-            ]
-        }
-        if (isStandardFeature(item) || isStandardKnowledge(item)) {
-            dependencies = [
-                ...dependencies,
-                ...extractDependenciesFromTaggedContent([item.description].filter(excludeUndefined), item.keyMapping ?? {})
+                ...extractDependenciesFromTaggedContent((item.name || []).filter(excludeUndefined), item.keyMapping ?? {}),
+                ...extractDependenciesFromTaggedContent((item.description || []).filter(excludeUndefined), item.keyMapping ?? {}),
+                ...extractDependenciesFromTaggedContent((item.summary || []).filter(excludeUndefined), item.keyMapping ?? {})
             ]
         }
         if (isStandardMap(item)) {

@@ -37,7 +37,7 @@ import { EditWrappedStandardNode, isStandardMap, isStandardRoom, StandardCompone
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
-import { isSchemaBookmark, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected } from '@tonylb/mtw-base/ts/schema/condition';
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from '@tonylb/mtw-base/ts/schema/renderTree';
 import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
@@ -136,9 +136,9 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
     return allMappedAppearances.filter((value: T | undefined): value is T => (Boolean(value)))
 }
 
-export const isComponentTag = (tag) => (['Room', 'Feature', 'Bookmark'].includes(tag))
+export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 
-export const isComponentKey = (key) => (['ROOM', 'FEATURE', 'BOOKMARK'].includes(splitType(key)[0]))
+export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))
 
 //
 // flattenSchemaOutputTags is a temporary conversion between unconditional SchemaOutputTag trees and
@@ -156,7 +156,7 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
                 to: lookupTarget
             }
         }
-        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) ||isSchemaBookmark(data) ||  isSchemaReplace(data)) {
+        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) ||  isSchemaReplace(data)) {
             return { tag: 'String', value: '' }
         }
         if (isSchemaLineBreak(data)) {
