@@ -11,7 +11,13 @@ export class KeyPayload {
     _universalKey?: string;
     _fileName?: string;
 
-    constructor(props: string | ComponentKey) {
+    constructor(props: string | ComponentKey | KeyPayload) {
+        if (props instanceof KeyPayload) {
+            this._key = props.key
+            this._universalKey = props.universalKey
+            this._fileName = props.fileName
+            return
+        }
         if (typeof props === 'string') {
             this._key = props
             return
