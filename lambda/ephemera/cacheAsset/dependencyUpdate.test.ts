@@ -13,7 +13,7 @@ const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCach
 describe('dependencyUpdate', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.restoreAllMocks()
+        jest.resetAllMocks()
         internalCacheMock.CharacterSessions.get.mockResolvedValue([])
         // @ts-ignore
         GraphUpdateMock.mockClear()
@@ -38,24 +38,19 @@ describe('dependencyUpdate', () => {
             },
             {
                 key: {
-                    EphemeraId: 'ROOM#DEF',
+                    EphemeraId: 'EXAMPLE#DEF',
                     DataCategory: 'ASSET#test'
                 },
                 action: {
-                    EphemeraId: 'ROOM#DEF',
+                    EphemeraId: 'EXAMPLE#DEF',
                     DataCategory: 'ASSET#test',
-                    key: 'ABC',
-                    tag: 'Room',
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] },
-                    description: {
-                        data: { tag: 'Description' },
-                        children: [{
-                            data: { tag: 'If', conditions: [{ if: 'active' }] },
-                            children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
-                        }]
-                    },
-                    exits: [],
-                    themes: [],
+                    key: 'GHI.base',
+                    tag: 'Example',
+                    name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                    description: [{
+                        data: { tag: 'If', conditions: [{ if: 'active' }] },
+                        children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
+                    }],
                     stateMapping: { active: 'COMPUTED#XYZ' },
                     keyMapping: {}
                 },
@@ -74,22 +69,6 @@ describe('dependencyUpdate', () => {
                     stateMapping: {},
                     keyMapping: { room1: 'ROOM#DEF' }
                 }
-            },
-            {
-                key: {
-                    EphemeraId: 'KNOWLEDGE#GHI',
-                    DataCategory: 'ASSET#test'
-                },
-                action: {
-                    EphemeraId: 'KNOWLEDGE#GHI',
-                    DataCategory: 'ASSET#test',
-                    key: 'testKnowledge',
-                    tag: 'Knowledge',
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
-                    render: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }],
-                    stateMapping: {},
-                    keyMapping: {}
-                },
             },
             {
                 key: {
@@ -139,12 +118,11 @@ describe('dependencyUpdate', () => {
                 }
             }
         ])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(7)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(6)
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#ABC', []))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'ABC' } }, { target: 'COMPUTED#XYZ', context: 'test', data: { scopedId: 'active' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI.base' } }, { target: 'COMPUTED#XYZ', context: 'test', data: { scopedId: 'active' } }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', data: { scopedId: 'room1' }, context: 'test' }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('KNOWLEDGE#GHI', [{ target: 'ASSET#test', context: 'test' }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#QRS', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'powered' } }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#TUV', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'switchedOn' } }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('COMPUTED#XYZ', [
@@ -161,12 +139,19 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#Base',
                     DataCategory: 'ASSET#test'
                 },
+                action: 'ignore'
+            },
+            {
+                key: {
+                    EphemeraId: 'EXAMPLE#BaseEx',
+                    DataCategory: 'ASSET#test'
+                },
                 action: {
-                    EphemeraId: 'FEATURE#Base',
+                    EphemeraId: 'EXAMPLE#BaseEx',
                     DataCategory: 'ASSET#test',
-                    key: 'Base',
-                    tag: 'Feature',
-                    name: { data: { tag: 'Name' }, children: [{ tag: 'String', value: 'Feature Base Test' }] },
+                    key: 'Base.base',
+                    tag: 'Example',
+                    name: [{ tag: 'String', value: 'Feature Base Test' }],
                     stateMapping: {},
                     keyMapping: {}
                 }
@@ -176,33 +161,23 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#ABC',
                     DataCategory: 'ASSET#test'
                 },
-                action: {
-                    EphemeraId: 'FEATURE#ABC',
-                    DataCategory: 'ASSET#test',
-                    key: 'ABC',
-                    tag: 'Feature',
-                    name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }] },
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }] },
-                    stateMapping: {},
-                    keyMapping: { Base: 'FEATURE#Base' }
-                }
+                action: 'ignore'
             },
             {
                 key: {
-                    EphemeraId: 'ROOM#DEF',
+                    EphemeraId: 'EXAMPLE#DEF',
                     DataCategory: 'ASSET#test'
                 },
                 action: {
-                    EphemeraId: 'ROOM#DEF',
+                    EphemeraId: 'EXAMPLE#DEF',
                     DataCategory: 'ASSET#test',
-                    key: 'DEF',
-                    tag: 'Room',
-                    exits: [{ tag: 'Exit', from: 'DEF', to: 'GHI', key: 'DEF#GHI' }],
-                    name: { data: { tag: 'Name' }, children: [{ tag: 'String', value: 'Vortex' }] },
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }] },
+                    key: 'ABC.base',
+                    tag: 'Example',
+                    name: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }],
+                    description: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }],
                     stateMapping: {},
-                    keyMapping: { ABC: 'FEATURE#ABC', GHI: 'ROOM#GHI' }
-                },
+                    keyMapping: { Base: 'FEATURE#Base' }
+                }
             },
             {
                 key: {
@@ -214,17 +189,49 @@ describe('dependencyUpdate', () => {
                     DataCategory: 'ASSET#test',
                     key: 'GHI',
                     tag: 'Room',
-                    exits: [{ tag: 'Exit', from: 'GHI', to: 'DEF', key: 'GHI#DEF' }],
+                    exits: [{ tag: 'Exit', from: 'GHI', to: 'MNO', key: 'GHI#MNO' }],
                     stateMapping: {},
-                    keyMapping: { DEF: 'ROOM#DEF' }
+                    keyMapping: { MNO: 'ROOM#MNO' }
+                },
+            },
+            {
+                key: {
+                    EphemeraId: 'EXAMPLE#JKL',
+                    DataCategory: 'ASSET#test'
+                },
+                action: {
+                    EphemeraId: 'EXAMPLE#JKL',
+                    DataCategory: 'ASSET#test',
+                    key: 'GHI.base',
+                    tag: 'Example',
+                    name: [{ data: { tag: 'String', value: 'VORTEX' }, children: [] }],
+                    description: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }],
+                    stateMapping: {},
+                    keyMapping: { ABC: 'FEATURE#ABC' }
+                }
+            },
+            {
+                key: {
+                    EphemeraId: 'ROOM#MNO',
+                    DataCategory: 'ASSET#test'
+                },
+                action: {
+                    EphemeraId: 'ROOM#MNO',
+                    DataCategory: 'ASSET#test',
+                    key: 'MNO',
+                    tag: 'Room',
+                    exits: [{ tag: 'Exit', from: 'MNO', to: 'GHI', key: 'MNO#GHI' }],
+                    stateMapping: {},
+                    keyMapping: { GHI: 'ROOM#GHI' }
                 }
             }
         ])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(4)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(5)
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('FEATURE#Base', [{ target: 'ASSET#test', context: 'test' }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('FEATURE#ABC', [{ target: 'ASSET#test', context: 'test' }, { target: 'FEATURE#Base', context: 'test', data: { scopedId: 'Base' } }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'DEF' } }, { target: 'FEATURE#ABC', context: 'test', data: { scopedId: 'ABC' } }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#GHI', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#BaseEx', [{ target: 'ASSET#test', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', data: { scopedId: 'ABC.base' }, context: 'test' }, { target: 'FEATURE#Base', context: 'test', data: { scopedId: 'Base' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#GHI', [{ target: 'ASSET#test', data: { scopedId: 'GHI' }, context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#JKL', [{ target: 'ASSET#test', data: { scopedId: 'GHI.base' }, context: 'test' }, { target: 'FEATURE#ABC', context: 'test', data: { scopedId: 'ABC' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#MNO', [{ target: 'ASSET#test', data: { scopedId: 'MNO' }, context: 'test' }]))
     })
 })
