@@ -42,11 +42,7 @@ import ImageHeader from './ImageHeader'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
-import ThemeEditor from './ThemeEditor'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
-import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
-import StandardTheme from '@tonylb/mtw-wml/ts/standardize/components/theme'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -58,51 +54,6 @@ import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 
 type AssetEditFormProps = {}
-
-// const defaultItemFromTag = (tag: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
-//     switch(tag) {
-//         case 'Room':
-//         case 'Feature':
-//         case 'Knowledge':
-//             return {
-//                 tag,
-//                 key
-//             }
-//         case 'Image':
-//             return {
-//                 tag: 'Image' as const,
-//                 key
-//             }
-//         case 'Variable':
-//             return {
-//                 tag: 'Variable' as const,
-//                 key,
-//                 default: 'false'
-//             }
-//         case 'Computed':
-//             return {
-//                 tag: 'Computed' as const,
-//                 key,
-//                 src: ''
-//             }
-//         case 'Action':
-//             return {
-//                 tag: 'Action' as const,
-//                 key,
-//                 src: ''
-//             }
-//         case 'Map':
-//             return {
-//                 tag: 'Map' as const,
-//                 key
-//             }
-//         case 'Theme':
-//             return {
-//                 tag: 'Theme' as const,
-//                 key
-//             }
-//     }
-// }
 
 const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
     <ListItemButton onClick={onAdd}>
@@ -121,7 +72,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     //
     // TODO: Refactor below into a single reduce statement that updates a record of lists.
     //
-    const themes = useMemo<StandardTheme[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardTheme => (value instanceof StandardTheme))), [standardForm])
     const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardRoom => (value instanceof StandardRoom))), [standardForm])
     const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardFeature => (value instanceof StandardFeature))), [standardForm])
     const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardKnowledge => (value instanceof StandardKnowledge))), [standardForm])
@@ -177,21 +127,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <List>
-                    <ListSubheader>Themes</ListSubheader>
-                    { themes.length
-                        ? <React.Fragment>
-                            { themes.map((themeItem) => (
-                                <ListItemButton key={themeItem.key} onClick={() => { navigate(`Theme/${themeItem.key}`)}}>
-                                    <ListItemIcon>
-                                        <ThemeIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary={schemaOutputToString(ignoreWrapped(themeItem.name)?.children ?? []) || 'Untitled'} secondary={themeItem.key} />
-                                </ListItemButton>
-                            ))}
-                        </React.Fragment>
-                        : null
-                    }
-                    { !readonly && <AddWMLComponent type="Theme" onAdd={addAsset('Theme')} /> }
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
@@ -313,7 +248,6 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                         <Routes>
                             <Route path={'WML'} element={<WMLEdit />} />
                             <Route path={'Map/:MapId'} element={<MapEdit />} />
-                            <Route path={'Theme/:ComponentId'} element={<ThemeEditor />} />
                             <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
