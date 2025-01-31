@@ -1,10 +1,15 @@
+/**
+* @vitest-environment jsdom
+*/
+
+import { vi } from 'vitest'
 import React from 'react'
 import { render } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
-jest.mock('../../../cacheDB')
+vi.mock('../../../cacheDB')
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
@@ -87,8 +92,8 @@ describe('LibraryAsset context provider', () => {
 
     beforeEach(() => {
         store.clearActions()
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
     })
 
     it('should provide currentWML', () => {

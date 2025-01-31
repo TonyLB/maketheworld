@@ -1,6 +1,7 @@
+import { vi } from 'vitest'
 import MapDThreeTree, { MapDFSWalkInnerCallbackReduce, SimulationTreeNode, mapDFSWalk, mapTreeTranslate } from './MapDThreeTree'
 
-jest.mock('./MapDThreeIterator.tsx')
+vi.mock('./MapDThreeIterator.tsx')
 import MapDThreeIteratorRaw from './MapDThreeIterator'
 
 import { mockClass } from '../../../../lib/jestHelpers'
@@ -22,8 +23,8 @@ type MapDThreeDFSOutput = {
 
 describe('mapTreeTranslate', () => {
     beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
     })
 
     it('should aggregate nodes and links', () => {
@@ -397,8 +398,8 @@ describe('MapDThreeStack', () => {
     // let testLayerTwo = new MapDThreeIterator('stub', [], [])
 
     beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
+        vi.clearAllMocks()
+        vi.resetAllMocks()
         const nodesOne = [{
             id: 'GHI',
             roomId: 'GHI',
@@ -436,19 +437,19 @@ describe('MapDThreeStack', () => {
                 nodes: nodesTwo,
                 _nodes: nodesTwo,
                 key: '',
-                simulation: { stop: jest.fn() },
-                setCallbacks: jest.fn(),
-                liven: jest.fn(),
-                update: jest.fn()
+                simulation: { stop: vi.fn() },
+                setCallbacks: vi.fn(),
+                liven: vi.fn(),
+                update: vi.fn()
             } as any))
             .mockImplementationOnce(() => ({
                 nodes: nodesOne,
                 _nodes: nodesOne,
                 key: '::(true)',
-                simulation: { stop: jest.fn() },
-                setCallbacks: jest.fn(),
-                liven: jest.fn(),
-                update: jest.fn()
+                simulation: { stop: vi.fn() },
+                setCallbacks: vi.fn(),
+                liven: vi.fn(),
+                update: vi.fn()
             } as any))
     })
 

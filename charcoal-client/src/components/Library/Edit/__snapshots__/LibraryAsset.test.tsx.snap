@@ -1,4 +1,38 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LibraryAsset context provider > should provide currentWML 1`] = `
+"
+<Asset key=(Test)>
+    <Import from=(BASE)>
+        <Variable key=(basePower) as=(power) />
+        <Room key=(DEF) />
+    </Import>
+    <Feature key=(clockTower)>
+        <Description>
+            A worn stone clock tower.
+        </Description>
+    </Feature>
+    <Room key=(ABC)>
+        <Name>Vortex</Name>
+        <Description>
+            Vortex
+            <Link to=(toggleOpen)>(toggle)</Link>
+        </Description>
+    </Room>
+    <If {open}>
+        <Room key=(ABC)>
+            <Exit to=(DEF)>welcome</Exit>
+        </Room>
+    </If>
+    <Room key=(DEF)>
+        <Name>Welcome</Name>
+        <Exit to=(ABC)>vortex</Exit>
+    </Room>
+    <Variable key=(open) default={false} />
+    <Action key=(toggleOpen) src={open = !open} />
+</Asset>
+"
+`;
 
 exports[`LibraryAsset context provider should provide currentWML 1`] = `
 "

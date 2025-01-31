@@ -1,8 +1,9 @@
+import { vi } from 'vitest'
 export const cacheDB = {
     clientSettings: {
         where: () => ({
             startsWith: () => ({
-                delete: jest.fn
+                delete: vi.fn
             })
         })
     }

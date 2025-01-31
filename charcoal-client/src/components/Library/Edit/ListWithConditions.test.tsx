@@ -1,4 +1,8 @@
-jest.mock('./CodeEditor')
+/**
+* @vitest-environment jsdom
+*/
+import { vi, Mock } from 'vitest'
+vi.mock('./CodeEditor')
 import CodeEditor from './CodeEditor'
 
 import React, { FunctionComponent } from 'react'
@@ -24,7 +28,7 @@ describe('ListWithConditions component', () => {
     }
 
     beforeEach(() => {
-        (CodeEditor as jest.Mock).mockReturnValue(null)
+        (CodeEditor as Mock).mockReturnValue(null)
     })
 
     it('renders non-conditions correctly', () => {

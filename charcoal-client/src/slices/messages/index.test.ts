@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import reducer, {
     binarySearch,
     receiveMessages,
@@ -7,7 +8,7 @@ import {
     WorldMessage
 } from '@tonylb/mtw-interfaces/ts/messages'
 
-jest.mock('../../cacheDB')
+vi.mock('../../cacheDB')
 
 describe('messages reducer', () => {
     describe('binarySearch', () => {

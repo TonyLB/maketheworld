@@ -1,6 +1,9 @@
-jest.mock('../../../environment')
-jest.mock('./CodeEditor')
-import CodeEditor from './CodeEditor'
+/**
+* @vitest-environment jsdom
+*/
+import { vi } from 'vitest'
+vi.mock('../../../environment')
+import * as CodeEditorModule from './CodeEditor'
 
 import React, { FunctionComponent } from 'react'
 import { render } from '@testing-library/react'
@@ -25,7 +28,7 @@ describe('IfElseTree component', () => {
     }
 
     beforeEach(() => {
-        (CodeEditor as jest.Mock).mockReturnValue(null)
+        vi.spyOn(CodeEditorModule, 'CodeEditor').mockReturnValue(null)
     })
 
     it('renders single statement correctly', () => {

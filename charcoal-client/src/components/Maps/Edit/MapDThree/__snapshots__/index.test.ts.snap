@@ -1,4 +1,82 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MapDThree > should initialize stack on construction 1`] = `
+[
+  {
+    "children": [
+      {
+        "children": [],
+        "data": {
+          "tag": "Position",
+          "x": 300,
+          "y": 300,
+        },
+      },
+    ],
+    "data": {
+      "key": "GHI",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
+    "wrapperTag": undefined,
+  },
+  {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "data": {
+                  "tag": "Position",
+                  "x": 300,
+                  "y": 200,
+                },
+              },
+            ],
+            "data": {
+              "key": "DEF",
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+            "wrapperTag": undefined,
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "data": {
+                  "tag": "Position",
+                  "x": 200,
+                  "y": 200,
+                },
+              },
+            ],
+            "data": {
+              "key": "ABC",
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+            "wrapperTag": undefined,
+          },
+        ],
+        "data": {
+          "if": "true",
+          "selected": true,
+          "tag": "Statement",
+        },
+      },
+    ],
+    "data": {
+      "tag": "If",
+    },
+  },
+]
+`;
 
 exports[`MapDThree should initialize stack on construction 1`] = `
 Array [
