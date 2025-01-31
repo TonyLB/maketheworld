@@ -6,7 +6,7 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, SchemaPromptTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaMapContents, isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 const componentTemplates = {
@@ -44,8 +44,7 @@ const componentTemplates = {
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
-    },
-    Prompt: {}
+    }
 } as const
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
@@ -129,26 +128,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Position', x: parseInt(x), y: parseInt(y)
-            }
-        }
-    },
-    Prompt: {
-        initialize: ({ parseOpen }): SchemaPromptTag => ({
-            tag: 'Prompt',
-            value: '',
-            ...validateProperties(componentTemplates.Prompt)(parseOpen)
-        }),
-        typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaPromptTag, SchemaTag> => {
-            if (!isSchemaPrompt(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: {
-                    ...initialTag,
-                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                },
-                children: []
             }
         }
     },
@@ -255,18 +234,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
 
-    },
-    Prompt: (args: PrintMapEntryArguments) => {
-        const tag = args.tag.data
-        if (isSchemaPrompt(tag)) {
-            return tagRender({
-                ...args,
-                tag: tag.tag,
-                properties: [],
-                node: { data: tag, children: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }] }
-            })
-        }
-        return [{ printMode: PrintMode.naive, output: '' }]
     },
     Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
