@@ -1,6 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 
-export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaActionTag  | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
 type SchemaBase = {
@@ -167,13 +167,12 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaSelectedTag
+export type SchemaTaggedMessageIncomingContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaReplaceTag | SchemaSelectedTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag | SchemaSelectedTag
 export const isSchemaOutputTag = (tag: any): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
-    isSchemaBookmark(tag) ||
     isSchemaLineBreak(tag) ||
     isSchemaSpacer(tag) ||
     isSchemaCondition(tag) ||
@@ -211,12 +210,6 @@ export type SchemaRemoveTag = {
 } & SchemaBase
 
 export type SchemaEditTag = SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag
-
-export type SchemaBookmarkTag = {
-    tag: 'Bookmark';
-    key: string;
-    display?: 'replace';
-} & SchemaImportableBase
 
 export type SchemaLineBreakTag = {
     tag: 'br';
@@ -329,7 +322,6 @@ export type SchemaTag = SchemaAssetTag |
     SchemaLineBreakTag |
     SchemaSpacerTag |
     SchemaLinkTag |
-    SchemaBookmarkTag |
     SchemaShortNameTag |
     SchemaNameTag |
     SchemaExampleTag |
@@ -361,7 +353,6 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaKnowledgeTag |
     SchemaDescriptionTag |
     SchemaSummaryTag |
-    SchemaBookmarkTag |
     SchemaExitTag |
     SchemaCharacterTag |
     SchemaMapTag |
@@ -387,7 +378,6 @@ export const isSchemaReplaceMatch = (value: SchemaTag): value is SchemaReplaceMa
 export const isSchemaReplacePayload = (value: SchemaTag): value is SchemaReplacePayloadTag => (value.tag === 'ReplacePayload')
 export const isSchemaRemove = (value: SchemaTag): value is SchemaRemoveTag => (value.tag === 'Remove')
 export const isSchemaEdit = (value: SchemaTag): value is SchemaRemoveTag | SchemaReplaceTag | SchemaReplaceMatchTag | SchemaReplacePayloadTag => (['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag))
-export const isSchemaBookmark = (value: SchemaTag): value is SchemaBookmarkTag => (value.tag === 'Bookmark')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaKnowledge = (value: SchemaTag): value is SchemaKnowledgeTag => (value.tag === 'Knowledge')
@@ -399,7 +389,7 @@ export const isSchemaPrompt = (value: SchemaTag): value is SchemaPromptTag => (v
 export const isSchemaMap = (value: SchemaTag): value is SchemaMapTag => (value.tag === 'Map')
 export const isSchemaMessage = (value: SchemaTag): value is SchemaMessageTag => (value.tag === 'Message')
 export const isSchemaMoment = (value: SchemaTag): value is SchemaMomentTag => (value.tag === 'Moment')
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMeta(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaSelected(value) || isSchemaRemove(value) || isSchemaReplace(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaAction(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMeta(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaTheme(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaSelected(value) || isSchemaRemove(value) || isSchemaReplace(value))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If', 'Name', 'Theme'].includes(value.tag))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
@@ -474,23 +464,23 @@ export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'If', 'Example', 'Room', 'Theme', 'Prompt', 'Feature', 'Bookmark', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
+    ['Asset', 'Story', 'If', 'Example', 'Room', 'Theme', 'Prompt', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
 )
 
-export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaActionTag | SchemaComputedTag | SchemaVariableTag => (
-    ['Example', 'Room', 'Theme', 'Feature', 'Bookmark', 'Knowledge', 'Map', 'Message', 'Moment', 'Action', 'Computed', 'Variable'].includes(value?.tag)
+export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaActionTag | SchemaComputedTag | SchemaVariableTag => (
+    ['Example', 'Room', 'Theme', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Action', 'Computed', 'Variable'].includes(value?.tag)
 )
 export const isImportableTag = (tag: string): boolean => (
-    ['Example', 'Room', 'Theme', 'Feature', 'Bookmark', 'Knowledge', 'Map', 'Message', 'Moment', 'Action', 'Computed', 'Variable'].includes(tag)
+    ['Example', 'Room', 'Theme', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Action', 'Computed', 'Variable'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaThemeTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaThemeTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Asset', 'Story', 'Example', 'Room', 'Theme', 'Feature', 'Knowledge', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(value.tag)
+    ['Asset', 'Story', 'Example', 'Room', 'Theme', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(value.tag)
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'Statement', 'Fallthrough'].includes(value.tag)
+    ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Space', 'br', 'If', 'Statement', 'Fallthrough'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {
@@ -523,7 +513,6 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
             'Prompt',
             'Feature',
             'Knowledge',
-            'Bookmark',
             'Message',
             'Moment',
             'Map',

@@ -6,7 +6,7 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaBookmark, isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, isSchemaTheme, SchemaBookmarkTag, SchemaPromptTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaMapContents, isSchemaPrompt, isSchemaTaggedMessageLegalContents, isSchemaTheme, SchemaPromptTag, SchemaTag, SchemaThemeTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 const componentTemplates = {
@@ -15,12 +15,6 @@ const componentTemplates = {
     },
     Description: {},
     Summary: {},
-    Bookmark: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        display: { type: ParsePropertyTypes.Literal },
-        from: { type: ParsePropertyTypes.Key },
-        as: { type: ParsePropertyTypes.Key }
-    },
     Name: {},
     ShortName: {},
     Room: {
@@ -81,29 +75,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 data: initialTag,
                 children
-            }
-        }
-    },
-    Bookmark: {
-        initialize: ({ parseOpen }): SchemaBookmarkTag => {
-            const { display, ...rest } = validateProperties(componentTemplates.Bookmark)(parseOpen)
-            if (display && display !== 'replace') {
-                throw new Error(`Display property must be one of 'replace'`)
-            }
-            return {
-                tag: 'Bookmark',
-                display: display as 'replace',
-                ...rest
-            }
-        },
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => {
-            if (!isSchemaBookmark(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
             }
         }
     },
@@ -369,19 +340,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
-    Bookmark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
-        isSchemaBookmark(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Bookmark',
-                properties: [
-                    { key: 'key', type: 'key', value: tag.key },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
-                ],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
     Position: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaPosition(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]

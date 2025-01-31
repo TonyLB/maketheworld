@@ -4,7 +4,7 @@ import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { deIndentWML } from '../schema/utils'
-import { SchemaTag, isSchemaBookmark, isSchemaWithKey } from '../schema/baseClasses'
+import { SchemaTag, isSchemaFeature, isSchemaWithKey } from '../schema/baseClasses'
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
@@ -605,34 +605,47 @@ describe('TagTree', () => {
         it('should prune specific node values', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset key=(test)>
-                    <Bookmark key=(bookmark1)>
-                        Test <Bookmark key=(bookmark2)>Red herring</Bookmark>
-                    </Bookmark>
-                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                    <Feature key=(testOne) />
+                    <Feature key=(testTwo)>
+                        <Example key=(base)>
+                            <Description>
+                                Test <Link to=(testOne)>Test</Link> More data
+                            </Description>
+                        </Example>
+                    </Feature>
                 </Asset>
             `))))
-            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ or: [{ before: { match: { data: { tag: 'Bookmark', key: 'bookmark1' } } } }, { after: { match: (node) => (isSchemaBookmark(node.data) && node.data.key !== 'bookmark1') } }] })
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Example'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune({ or: [{ match: (node) => (isSchemaFeature(node.data) && node.data.key === 'testOne' )}, { after: { match: (node) => (isSchemaFeature(node.data) && node.data.key !== 'testOne') } }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
-                <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) />More data</Bookmark>
+                <Asset key=(test)><Feature key=(testTwo) /></Asset>
             `))
         })
 
         it('should prune after sequences', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset key=(test)>
-                    <Bookmark key=(bookmark1)>
-                        Test <Bookmark key=(bookmark2)>Red herring</Bookmark>
-                    </Bookmark>
-                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                    <Feature key=(testFeature)>
+                        <Example key=(base)>
+                            <Name>Test</Name>
+                            <Summary>Test</Summary>
+                        </Example>
+                    </Feature>
+                    <Knowledge key=(testKnowledge)>
+                        <Example key=(base)>
+                            <Summary>Thing to know</Summary>
+                        </Example>
+                    </Knowledge>
                 </Asset>
             `))))
-            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: 'Bookmark' }, { match: 'Bookmark' }] } })
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Example'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: 'Feature' }, { match: 'Example' }] } })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
-                    <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) /></Bookmark>
-                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                    <Feature key=(testFeature)><Example key=(base) /></Feature>
+                    <Knowledge key=(testKnowledge)>
+                        <Example key=(base)><Summary>Thing to know</Summary></Example>
+                    </Knowledge>
                 </Asset>
             `))
         })

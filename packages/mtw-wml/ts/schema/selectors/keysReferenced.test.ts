@@ -12,16 +12,14 @@ describe('keyReferenced selector', () => {
                     <Description>
                         TestZero
                         <Link to=(feature1)>Link</Link>
-                        <Bookmark key=(bookmark1) />
                     </Description>
                     <Exit to=(room2)>Exit</Exit>
                 </Room>
                 <Room key=(room2) />
                 <Feature key=(feature1) />
-                <Bookmark key=(bookmark1) />
             </Asset>
         `)
-        expect(selectKeysReferenced(selectItemsByKey('room1')(testOne.schema))).toEqual(['feature1', 'bookmark1', 'room2', 'room1'])
+        expect(selectKeysReferenced(selectItemsByKey('room1')(testOne.schema))).toEqual(['feature1', 'room2', 'room1'])
     })
 
     it('should select keys referenced in a map', () => {

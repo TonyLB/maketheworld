@@ -1024,7 +1024,7 @@ describe('schemaToWML', () => {
                             <Space />TestTwo
                         </If><If {!testVar}>
                             <Space />TestThree
-                        </If><Bookmark key=(testBookmark) />
+                        </If>
                     </Description>
                 </Room>
             </Asset>

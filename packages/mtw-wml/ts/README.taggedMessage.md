@@ -52,5 +52,3 @@ returns the string ' Test', with a space added at the beginning.
 - ***Link***: `<Link to=(test)>text</Link>` creates a named link to either a Feature or
 an Action.  Clicking on a Feature link will view the feature.  Clicking on an Action link
 will execute the action.
-- ***Bookmark***: `<Bookmark key=(test) />` will insert the contents of a defined Bookmark
-object.  Bookmarks can be defined once and then displayed in many places.

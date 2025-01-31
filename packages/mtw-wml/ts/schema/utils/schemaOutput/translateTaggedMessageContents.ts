@@ -2,7 +2,7 @@
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaBookmark, isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, isSchemaWhitespace } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -35,7 +35,7 @@ export const translateTaggedMessageContents = (contents: GenericTree<SchemaTag>)
                 }
             }
         }
-        if (isSchemaLineBreak(item.data) || isSchemaSpacer(item.data) || isSchemaLink(item.data) || isSchemaBookmark(item.data)) {
+        if (isSchemaLineBreak(item.data) || isSchemaSpacer(item.data) || isSchemaLink(item.data)) {
             if (currentToken) {
                 returnValue.push(currentToken)
                 currentToken = undefined

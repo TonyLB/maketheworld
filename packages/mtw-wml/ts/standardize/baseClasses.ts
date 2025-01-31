@@ -2,7 +2,6 @@ import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponent, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
-import { StandardBookmarkData } from "./components/dataTypes/bookmark";
 import { StandardCharacterData } from "./components/dataTypes/character";
 import { StandardComputedData } from "./components/dataTypes/computed";
 import { StandardExampleData } from "./components/dataTypes/example";
@@ -34,7 +33,6 @@ export type StandardCharacter = StandardCharacterData
 export type StandardRoom = StandardRoomData
 export type StandardFeature = StandardFeatureData
 export type StandardKnowledge = StandardKnowledgeData
-export type StandardBookmark = StandardBookmarkData
 export type StandardMap = StandardMapData
 export type StandardTheme = StandardThemeData
 export type StandardMessage = StandardMessageData
@@ -50,7 +48,6 @@ export type StandardComponentDataNonEdit =
     StandardRoom |
     StandardFeature |
     StandardKnowledge |
-    StandardBookmark |
     StandardMap |
     StandardTheme |
     StandardMessage |
@@ -92,7 +89,6 @@ export const isStandardCharacter = isStandardFactory<StandardCharacter>("Charact
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
 export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
 export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
-export const isStandardBookmark = isStandardFactory<StandardBookmark>("Bookmark")
 export const isStandardMap = isStandardFactory<StandardMap>("Map")
 export const isStandardTheme = isStandardFactory<StandardTheme>("Theme")
 export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
