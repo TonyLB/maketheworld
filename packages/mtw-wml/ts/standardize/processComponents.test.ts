@@ -9,7 +9,6 @@ import StandardRoom from "./components/room"
 const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Character' },
     { key: 'Image' },
-    { key: 'Bookmark' },
     {
         key: 'Room',
         legalParents: ['Map', 'Message']

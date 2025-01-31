@@ -1,7 +1,6 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardAction, isStandardBookmark, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
+import { isStandardAction, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardTheme, isStandardVariable, StandardComponentData } from "./baseClasses"
 import StandardAction from "./components/action"
-import StandardBookmark from "./components/bookmark"
 import StandardCharacter from "./components/character"
 import { StandardComponent } from "./components/baseClasses"
 import StandardComputed from "./components/computed"
@@ -17,12 +16,11 @@ import StandardTheme from "./components/theme"
 import { isSchemaTreeNode } from "./components/utils"
 import StandardVariable from "./components/variable"
 import { isStandardExample } from "./components/dataTypes/example"
-import { isSchemaBookmark, isSchemaCharacter, isSchemaTheme, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCharacter, isSchemaTheme, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
-import { SchemaWithKey } from "../schema/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
 
 //
@@ -45,9 +43,6 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
     }
     if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaKnowledge)(arg))) {
         return new StandardKnowledge(arg)
-    }
-    if ((!isSchemaTreeNode(arg) && isStandardBookmark(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaBookmark)(arg))) {
-        return new StandardBookmark(arg)
     }
     if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMap)(arg))) {
         return new StandardMap(arg)
@@ -91,8 +86,6 @@ export const standardComponentByTag = (tag: ComponentTag, key: string): Standard
             return new StandardFeature(key)
         case "Knowledge":
             return new StandardKnowledge(key)
-        case "Bookmark":
-            return new StandardBookmark(key)
         case "Map":
             return new StandardMap(key)
         case "Message":

@@ -146,13 +146,11 @@ export const validateTaggedNotificationList = (items: any): items is TaggedNotif
 
 export type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
-    renderBookmark?: (bookmark: any) => Promise<TaggedMessageContent[]>;
 }
 
 const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions): Promise<(TaggedMessageContentFlat | TaggedSpacer)[]> => {
     const {
         evaluateConditional = async (src) => (src === 'true' ? true : false),
-        renderBookmark = async () => ([])
     } = options
     const evaluatedMessages: (TaggedMessageContentFlat | TaggedSpacer)[][] = await Promise.all(
         messages.map(async (message) => {

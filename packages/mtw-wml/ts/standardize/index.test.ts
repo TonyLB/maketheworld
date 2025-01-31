@@ -792,27 +792,6 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should render bookmarks correctly', () => {
-        const test = new StandardForm(`<Asset key=(Test)>
-            <Bookmark key=(testOne)>
-                TestOne<Bookmark key=(testThree) />
-            </Bookmark>
-            <Bookmark key=(testTwo)>
-                TestTwo<Bookmark key=(testOne) />
-            </Bookmark>
-            <Bookmark key=(testThree)>
-                TestThree
-            </Bookmark>
-        </Asset>`)
-        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
-                <Bookmark key=(testThree)>TestThree</Bookmark>
-                <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
-            </Asset>
-        `))
-    })
-
     it('should render maps correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Map key=(testMap)>

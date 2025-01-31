@@ -11,7 +11,6 @@ describe('keysByTag selector', () => {
                     <Description>
                         TestZero
                         <Link to=(feature1)>Link</Link>
-                        <Bookmark key=(bookmark1) />
                     </Description>
                     <Exit to=(room2)>Exit</Exit>
                 </Room>
@@ -22,7 +21,6 @@ describe('keysByTag selector', () => {
         `)
         expect(selectKeysByTag('Room')(testOne.schema)).toEqual(['room1', 'room2'])
         expect(selectKeysByTag('Feature')(testOne.schema)).toEqual(['feature1', 'feature2'])
-        expect(selectKeysByTag('Bookmark')(testOne.schema)).toEqual(['bookmark1'])
     })
 
 })

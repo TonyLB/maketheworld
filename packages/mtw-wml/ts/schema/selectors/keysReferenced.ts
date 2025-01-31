@@ -1,7 +1,7 @@
 import { unique } from "../../list"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import dfsWalk from "../../tree/dfsWalk"
-import { isSchemaBookmark, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExit, isSchemaMap, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 
@@ -17,12 +17,6 @@ export const selectKeysReferenced = (tree: GenericTree<SchemaTag>, options?: { t
             if (isSchemaLink(tag)) {
                 return {
                     output: [...previous.output, tag.to],
-                    state: previous.state
-                }
-            }
-            if (isSchemaBookmark(tag)) {
-                return {
-                    output: [...previous.output, tag.key],
                     state: previous.state
                 }
             }

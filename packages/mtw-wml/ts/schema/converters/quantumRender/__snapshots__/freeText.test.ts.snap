@@ -7,7 +7,7 @@ exports[`description schemaToWML should correctly handle sequential complex cond
 </If><If {!testVar}>
     <Space />
     TestThree
-</If><Bookmark key=(testBookmark) />"
+</If>"
 `;
 
 exports[`description schemaToWML should word wrap descriptions 1`] = `

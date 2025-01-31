@@ -124,7 +124,7 @@ export const standardComponentSortOrder = (byId: Record<string, StandardComponen
     const elementToCompareA = differingAncestorsA.length ? byId[[commonAncestorString, differingAncestorsA[0]].filter((value) => (value)).join('.')] : componentA
     const elementToCompareB = differingAncestorsB.length ? byId[[commonAncestorString, differingAncestorsB[0]].filter((value) => (value)).join('.')] : componentB
     
-    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const tagA = ((elementToCompareA instanceof StandardRemove || elementToCompareA instanceof StandardReplace)
         ? elementToCompareA._match.tag
         : elementToCompareA.tag) as ComponentTag
@@ -210,12 +210,11 @@ export class StandardForm {
                 this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
 
                 //
-                // Templates for the following component tags: 'Character', 'Image', 'Bookmark', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
+                // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Theme', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
                 //
                 const componentTemplates: ComponentProcessingTemplate[] = [
                     { key: 'Character' },
                     { key: 'Image' },
-                    { key: 'Bookmark' },
                     {
                         key: 'Room',
                         legalParents: ['Map', 'Message']

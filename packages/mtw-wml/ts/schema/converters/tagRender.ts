@@ -35,7 +35,7 @@ export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag
         }
         return previous
     }, undefined)
-    return (contextTagRaw ?? '') === 'Bookmark' ? 'Description' : contextTagRaw
+    return contextTagRaw
 }
 
 //

@@ -98,13 +98,6 @@ describe('description schemaToWML', () => {
                                 { data: { tag: 'String', value: 'TestThree' }, children: [] }
                             ]
                         }]
-                    },
-                    {
-                        data: {
-                            tag: 'Bookmark',
-                            key: 'testBookmark'
-                        },
-                        children: []
                     }
                 ]
             }

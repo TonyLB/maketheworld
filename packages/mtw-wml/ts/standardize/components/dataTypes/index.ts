@@ -3,7 +3,6 @@ import { SerializeNDJSONMixin } from "../../baseClasses";
 import { isSchemaTreeNode } from "../utils";
 import { ComponentTag, StandardBaseData } from "./abstract";
 import { StandardActionData, isStandardAction } from "./action";
-import { StandardBookmarkData, isStandardBookmark } from "./bookmark";
 import { isStandardCharacter, StandardCharacterData } from "./character";
 import { StandardComputedData, isStandardComputed } from "./computed";
 import { isStandardExample, StandardExampleData } from "./example";
@@ -19,7 +18,7 @@ import { checkAll } from "./typeguards";
 import { StandardVariableData, isStandardVariable } from "./variable";
 import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardBookmark, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardTheme, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
 export type StandardReferenceData = {
     tag: ComponentTag;
@@ -33,7 +32,6 @@ export type StandardComponentNonEditData =
     StandardRoomData |
     StandardFeatureData |
     StandardKnowledgeData |
-    StandardBookmarkData |
     StandardMapData |
     StandardThemeData |
     StandardMessageData |
@@ -65,7 +63,6 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardRoom(value) ||
     isStandardFeature(value) ||
     isStandardKnowledge(value) ||
-    isStandardBookmark(value) ||
     isStandardMap(value) ||
     isStandardTheme(value) ||
     isStandardMessage(value) ||
