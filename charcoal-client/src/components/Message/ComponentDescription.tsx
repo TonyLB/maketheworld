@@ -11,8 +11,7 @@ import FeatureIcon from '@mui/icons-material/Search'
 import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
-    KnowledgeDescription as KnowledgeDescriptionType,
-    isTaggedText
+    KnowledgeDescription as KnowledgeDescriptionType
 } from '@tonylb/mtw-interfaces/ts/messages'
 
 import RenderTreeContent from './RenderTreeContent'
