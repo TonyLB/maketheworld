@@ -6,7 +6,6 @@ import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraMapId,
-    EphemeraNotificationId,
     EphemeraRoomId,
     isEphemeraAssetId,
     isEphemeraCharacterId,
@@ -113,36 +112,12 @@ const isRenderTree = (message: any): message is RenderTree | undefined => {
     return false
 }
 
-export type TaggedNotificationContent = TaggedText | TaggedLineBreak;
-
-export const isTaggedNotificationContent = (notification: any): notification is TaggedNotificationContent => {
-    if (typeof notification !== 'object') {
-        return false
-    }
-    switch(notification.tag) {
-        case 'String':
-            return checkTypes(notification, { value: 'string' })
-        case 'LineBreak':
-            return true
-        default: return false
-    }
-}
-
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
-export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted | TaggedNotificationContent): item is TaggedText => (item.tag === 'String')
-export const isTaggedLineBreak = (item: TaggedMessageContent | TaggedNotificationContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
+export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
+export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Condition')
 export const isTaggedReplace = (item: TaggedMessageContent): item is TaggedReplace => (item.tag === 'Replace')
-
-export const validateTaggedNotificationList = (items: any): items is TaggedNotificationContent[] => {
-    if (!Array.isArray(items)) {
-        return false
-    }
-    return items.reduce<boolean>((previous, item) => (
-        previous && isTaggedNotificationContent(item)
-    ), true)
-}
 
 export type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
@@ -582,48 +557,3 @@ export const isMessage = (message: any): message is Message => {
         default: return false
     }
 }
-
-export type NotificationBase = {
-    NotificationId: EphemeraNotificationId;
-    CreatedTime: number;
-    Target: string;
-    Subject: string;
-    read?: boolean;
-    archived?: boolean;
-}
-
-export type InformationNotification = {
-    DisplayProtocol: 'Information';
-    Message: TaggedNotificationContent[];
-} & NotificationBase
-
-export type UpdateMarksNotification = {
-    DisplayProtocol: 'UpdateMarks';
-    NotificationId: string;
-    Target: string;
-    UpdateTime: number;
-    read?: boolean;
-    archived?: boolean;
-}
-
-export type Notification = UpdateMarksNotification |
-    InformationNotification
-
-export const isNotification = (notification: any): notification is Notification => {
-    if (typeof notification !== 'object') {
-        return false
-    }
-    if (!checkTypes(notification, { NotificationId: 'string', Target: 'string' })) {
-        return false
-    }
-    switch(notification.DisplayProtocol) {
-        case 'UpdateMarks':
-            return true
-        case 'Information':
-            return checkTypes(notification, { CreatedTime: 'number', Subject: 'string' }) &&
-                validateTaggedNotificationList(notification.Message)
-        default: return false
-    }
-}
-
-export const isUpdateMarksNotification = (value: Notification): value is UpdateMarksNotification => (value.DisplayProtocol === 'UpdateMarks')

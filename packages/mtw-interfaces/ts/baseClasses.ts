@@ -87,9 +87,6 @@ export const isEphemeraMessageId = isEphemeraTaggedId<'MESSAGE'>('MESSAGE')
 export type EphemeraMomentId = EphemeraWrappedId<'MOMENT'>
 export const isEphemeraMomentId = isEphemeraTaggedId<'MOMENT'>('MOMENT')
 
-export type EphemeraNotificationId = EphemeraWrappedId<'NOTIFICATION'>
-export const isEphemeraNotificationId = isEphemeraTaggedId<'NOTIFICATION'>('NOTIFICATION')
-
 export type EphemeraImageId = EphemeraWrappedId<'IMAGE'>
 export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
 
