@@ -51,36 +51,6 @@ export const handler = async (event: any) => {
             }))
         }
     }
-    else {
-        if (RequestId) {
-            await snsClient.send(new PublishCommand({
-                TopicArn: FEEDBACK_TOPIC,
-                Message: JSON.stringify({
-                    messageType: 'Notifications',
-                    notifications: messages,
-                    LastSync: Math.max(...messages.map(({ CreatedTime }) => (CreatedTime))),
-                }),
-                MessageAttributes: {
-                    RequestId: { DataType: 'String', StringValue: RequestId },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
-                    Type: { DataType: 'String', StringValue: 'Success' }
-                }
-            }))
-        }
-        else {
-            await snsClient.send(new PublishCommand({
-                TopicArn: FEEDBACK_TOPIC,
-                Message: JSON.stringify({
-                    messageType: 'Notifications',
-                    notifications: messages
-                }),
-                MessageAttributes: {
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
-                    Type: { DataType: 'String', StringValue: 'Success' }
-                }
-            }))
-        }
-    }
 
     return { statusCode: 200 }
 
