@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/ts/messages"
+import { FeatureDescription, RoomDescription, CharacterDescription, TaggedNotificationContent } from "@tonylb/mtw-interfaces/ts/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
@@ -96,28 +96,6 @@ export type PublishMessage = PublishWorldMessage |
     PublishKnowledgeDescriptionMessage |
     PublishRoomDescriptionMessage |
     PublishCharacterDescriptionMessage
-
-export type PublishNotificationBase = {
-    type: 'PublishNotification';
-    target: string;
-    subject: string;
-}
-    
-export type PublishInformationNotification = {
-    displayProtocol: 'Information';
-    message: TaggedNotificationContent[];
-} & PublishNotificationBase
-
-export type PublishUpdateMarksNotification = {
-    type: 'PublishNotification';
-    displayProtocol: 'UpdateMarks';
-    target: string;
-    notificationId: `NOTIFICATION#${string}`;
-    read: boolean;
-    archived: boolean;
-}
-
-export type PublishNotification = PublishInformationNotification | PublishUpdateMarksNotification
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -297,7 +275,6 @@ export type CanonAddRemoveMessage = {
 export type CanonUpdateMessage = CanonAddRemoveMessage | CanonSetMessage
 
 export type MessageType = PublishMessage |
-    PublishNotification |
     ReturnValueMessage |
     RegisterCharacterMessage |
     UnregisterCharacterMessage |
@@ -324,9 +301,6 @@ export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is P
 export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
 export const isKnowledgeDescriptionPublishMessage = (prop: PublishMessage): prop is PublishKnowledgeDescriptionMessage => (prop.displayProtocol === 'KnowledgeDescription')
 export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
-
-export const isPublishNotification = (prop: MessageType): prop is PublishNotification => (prop.type === 'PublishNotification')
-export const isInformationNotification = (prop: PublishNotification): prop is PublishInformationNotification => (prop.displayProtocol === 'Information')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 

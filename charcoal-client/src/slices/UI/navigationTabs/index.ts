@@ -19,7 +19,7 @@ type NavigationTabBase = {
 }
 
 type NavigationTabGeneral = {
-    type: 'CharacterEdit' | 'Notifications';
+    type: 'CharacterEdit';
 } & NavigationTabBase
 
 type NavigationTabMap = {

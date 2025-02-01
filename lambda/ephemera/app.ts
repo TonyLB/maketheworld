@@ -14,8 +14,6 @@ import {
     isCommandAPIMessage,
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
-    isSyncNotificationAPIMessage,
-    isUpdateNotificationsAPIMessage,
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
@@ -99,32 +97,6 @@ export const handler = async (event: any, context: any) => {
                             characterId
                         })
                     }
-                }
-                break
-            case 'Publish Notification':
-                if (event.detail.player && event.detail.message && event.detail.subject) {
-                    messageBus.send({
-                        type: 'PublishNotification',
-                        target: event.detail.player,
-                        subject: event.detail.subject,
-                        displayProtocol: 'Information',
-                        message: [{
-                            tag: 'String',
-                            value: event.detail.message
-                        }]
-                    })
-                }
-                break
-            case 'Update Notification':
-                if (event.detail.player && event.detail.notificationId && (typeof event.detail.read === 'boolean') && (typeof event.detail.archived === 'boolean')) {
-                    messageBus.send({
-                        type: 'PublishNotification',
-                        target: event.detail.player,
-                        displayProtocol: 'UpdateMarks',
-                        notificationId: event.detail.notificationId,
-                        read: event.detail.read,
-                        archived: event.detail.archived
-                    })
                 }
                 break
             case 'Canonize Asset':
@@ -220,38 +192,6 @@ export const handler = async (event: any, context: any) => {
                 }
                 else {
                     console.log(`Invalid CharacterId on SyncAPI`)
-                }
-            }
-            if (isSyncNotificationAPIMessage(request)) {
-                const player = await internalCache.Global.get("player")
-                await sfnClient.send(new StartExecutionCommand({
-                    stateMachineArn: process.env.SYNC_MESSAGE_SFN,
-                    input: JSON.stringify({
-                        RequestId: request.RequestId,
-                        ConnectionId: connectionId,
-                        Target: player,
-                        StartingAt: `${request.startingAt} || 0}`
-                    })
-                }))
-                return { statusCode: 200, body: "{}" }
-            }
-            if (isUpdateNotificationsAPIMessage(request)) {
-                const player = await internalCache.Global.get('player')
-                if (player) {
-                    request.updates.forEach(({ notificationId, read, archived }) => {
-                        messageBus.send({
-                            type: 'PublishNotification',
-                            target: player,
-                            displayProtocol: 'UpdateMarks',
-                            notificationId: notificationId,
-                            read: read ?? false,
-                            archived: archived ?? false
-                        })
-                    })
-                    messageBus.send({
-                        type: 'ReturnValue',
-                        body: { message: 'Success' }
-                    })
                 }
             }
             if (isMapSubscribeAPIMessage(request)) {

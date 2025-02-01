@@ -466,8 +466,6 @@ Resources:
               detail-type:
                 - Calculate Cascade
                 - Execute Action
-                - Publish Notification
-                - Update Notification
         Assets:
           Type: CloudWatchEvent
           Properties:

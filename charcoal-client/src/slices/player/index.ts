@@ -2,7 +2,6 @@ import { PlayerData, PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     fetchDraftAsset,
-    fetchNotifications,
     lifelineCondition,
     subscribeAction,
     syncAction,

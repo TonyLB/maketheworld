@@ -10,7 +10,6 @@ import {
     isExecuteActionMessage,
     isMapSubscription,
     isMapUpdateMessage,
-    isPublishNotification,
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
     isCanonUpdateMessage,
@@ -29,7 +28,6 @@ import roomUpdateMessage from '../roomUpdate'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
-import publishNotification from '../publishNotification'
 import { canonUpdateMessage } from '../canonUpdate'
 import checkLocation from "../checkLocation"
 
@@ -39,12 +37,6 @@ messageBus.subscribe({
     priority: 15,
     filter: isPublishMessage,
     callback: publishMessage
-})
-messageBus.subscribe({
-    tag: 'PublishNotification',
-    priority: 15,
-    filter: isPublishNotification,
-    callback: publishNotification
 })
 messageBus.subscribe({
     tag: 'EphemeraUpdate',
