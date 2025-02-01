@@ -83,12 +83,6 @@ export const {
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',
                 action: subscribeAction,
-                resolve: 'FETCHNOTIFICATIONS',
-                reject: 'ERROR'
-            },
-            FETCHNOTIFICATIONS: {
-                stateType: 'ATTEMPT',
-                action: fetchNotifications,
                 resolve: 'SYNCHRONIZE',
                 reject: 'ERROR'
             },
