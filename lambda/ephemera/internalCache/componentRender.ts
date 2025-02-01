@@ -1,9 +1,9 @@
 import { ComponentMetaData, ComponentMetaId, ComponentMetaItem } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraCondition } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, KnowledgeDescribeData, TaggedLink } from '@tonylb/mtw-interfaces/ts/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
-import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
+import { unique } from '@tonylb/mtw-utilities/ts/lists';
 import { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
     EphemeraAssetId,
@@ -139,87 +139,6 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
 export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 
 export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))
-
-//
-// flattenSchemaOutputTags is a temporary conversion between unconditional SchemaOutputTag trees and
-// legacy TaggedMessageContentFlat format
-//
-const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMessageContentFlat[] => {
-    return tree.map(({ data }) => {
-        if (isSchemaLink(data)) {
-            const lookupTarget = data.to
-            if (!(isEphemeraFeatureId(lookupTarget) || isEphemeraActionId(lookupTarget) || isEphemeraCharacterId(lookupTarget) || isEphemeraKnowledgeId(lookupTarget))) {
-                return { tag: 'String', value: '' }
-            }
-            return {
-                ...data,
-                to: lookupTarget
-            }
-        }
-        if (isSchemaCondition(data) || isSchemaConditionFallthrough(data) || isSchemaConditionStatement(data) ||  isSchemaReplace(data)) {
-            return { tag: 'String', value: '' }
-        }
-        if (isSchemaLineBreak(data)) {
-            return { tag: 'LineBreak' }
-        }
-        if (isSchemaSpacer(data)) {
-            return { tag: 'String', value: ' ' }
-        }
-        if (isSchemaSelected(data)) {
-            return { tag: 'String', value: ' ' }
-        }
-        return data
-    }) as any
-}
-
-// const renderTreeToTaggedMessage = (tree: RenderTree): TaggedMessageContentFlat[] => {
-//     return tree.map((node) => {
-//         if (typeof node === 'string') {
-//             return { tag: 'String' as const, value: node }
-//         }
-//         const { data } = node
-//         if (isSchemaString(data)) {
-//             return data
-//         }
-//         if (isSchemaLink(data)) {
-//             const lookupTarget = data.to
-//             if (!(isEphemeraFeatureId(lookupTarget) || isEphemeraActionId(lookupTarget) || isEphemeraCharacterId(lookupTarget) || isEphemeraKnowledgeId(lookupTarget))) {
-//                 return { tag: 'String' as const, value: '' }
-//             }
-//             return {
-//                 ...data,
-//                 to: lookupTarget
-//             } as TaggedLink
-//         }
-//         if (isSchemaLineBreak(data)) {
-//             return { tag: 'LineBreak' as const }
-//         }
-//         if (isSchemaSpacer(data)) {
-//             return { tag: 'String' as const, value: ' ' }
-//         }
-//         if (isSchemaSelected(data)) {
-//             return { tag: 'String' as const, value: ' ' }
-//         }
-//         return undefined
-//     }).filter(excludeUndefined)
-// }
-
-// //
-// // deflattenSchemaOutputTags is a temporary conversion between legacy TaggedMessageContentFlat format and
-// // unconditional SchemaOutputTag trees
-// //
-// const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTree<SchemaOutputTag> => {
-//     return tags.map((tag) => {
-//         switch(tag.tag) {
-//             case 'Link':
-//                 return { data: { tag: 'Link', to: tag.to, text: tag.text }, children: [] }
-//             case 'LineBreak':
-//                 return { data: { tag: 'br' }, children: [] }
-//             case 'String':
-//                 return { data: { tag: 'String', value: tag.value }, children: [] }
-//         }
-//     })
-// }
 
 export class ComponentRenderData {
     _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
