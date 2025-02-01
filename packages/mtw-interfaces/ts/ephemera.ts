@@ -1,6 +1,6 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraNotificationId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraNotificationId, isEphemeraRoomId } from "./baseClasses"
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
-import { isMapDescribeData, isMessage, isNotification, MapDescribeData, Message, Notification } from "./messages"
+import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
 
 export type RegisterCharacterAPIMessage = {
@@ -27,37 +27,6 @@ export type SyncAPIMessage = {
     CharacterId: string;
     startingAt?: number;
     limit?: number;
-}
-
-export type SyncNotificationAPIMessage = {
-    message: 'syncNotification';
-    startingAt?: number;
-    limit?: number;
-}
-
-type UpdateNotificationsSingleUpdate = {
-    notificationId: EphemeraNotificationId;
-    target?: string;
-    read?: boolean;
-    archived?: boolean;
-}
-
-const isValidNotificationUpdate = (value: any): value is UpdateNotificationsSingleUpdate => {
-    if (checkTypes(value, { notificationId: 'string' }) && isEphemeraNotificationId(value.notificationId) && (!('target' in value) || checkTypes(value, { target: 'string' }))) {
-        if ('read' in value && typeof value.read !== 'boolean') {
-            return false
-        }
-        if ('archived' in value && typeof value.archived !== 'boolean') {
-            return false
-        }
-        return true
-    }
-    return false
-}
-
-export type UpdateNotificationsAPIMessage = {
-    message: 'updateNotifications';
-    updates: UpdateNotificationsSingleUpdate[];
 }
 
 export type MapSubscribeAPIMessage = {
@@ -143,8 +112,6 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     FetchEphemeraAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
-    SyncNotificationAPIMessage |
-    UpdateNotificationsAPIMessage |
     MapSubscribeAPIMessage |
     MapUnsubscribeAPIMessage |
     ActionAPIMessage |
@@ -157,8 +124,6 @@ export const isUnregisterCharacterAPIMessage = (message: EphemeraAPIMessage): me
 export const isFetchEphemeraAPIMessage = (message: EphemeraAPIMessage): message is FetchEphemeraAPIMessage => (message.message === 'fetchEphemera')
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
-export const isSyncNotificationAPIMessage = (message: EphemeraAPIMessage): message is SyncNotificationAPIMessage => (message.message === 'syncNotification')
-export const isUpdateNotificationsAPIMessage = (message: EphemeraAPIMessage): message is UpdateNotificationsAPIMessage => (message.message === 'updateNotifications')
 export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapSubscribeAPIMessage => (message.message === 'subscribeToMaps')
 export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapUnsubscribeAPIMessage => (message.message === 'unsubscribeFromMaps')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
@@ -193,13 +158,6 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 && (typeof (message.startingAt ?? 0) === 'number')
                 && (typeof (message.limit ?? 0) === 'number')
             )
-        case 'syncNotification':
-            return Boolean(
-                (typeof (message.startingAt ?? 0) === 'number')
-                && (typeof (message.limit ?? 0) === 'number')
-            )
-        case 'updateNotifications':
-                return checkAll(message.updates.map(isValidNotificationUpdate))
         case 'link':
             return Boolean(
                 checkTypes(message, { to: 'string' }, { CharacterId: 'string' })
@@ -371,12 +329,6 @@ export type EphemeraClientMessagePublishMessages = {
     messages: Message[];
 }
 
-export type EphemeraClientMessagePublishNotifications = {
-    messageType: 'Notifications';
-    RequestId?: string;
-    notifications: Notification[];
-}
-
 export type EphemeraClientMessageRegisterMessage = {
     messageType: 'Registration';
     RequestId?: string;
@@ -401,7 +353,6 @@ export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
-    EphemeraClientMessagePublishNotifications |
     EphemeraClientMessageRegisterMessage |
     EphemeraClientMessageUnregisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage |
@@ -446,17 +397,6 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             }
             return messages.reduce<boolean>((previous, subMessage) => (
                 previous && isMessage(subMessage)
-            ), true)
-        case 'Notifications':
-            if (!('notifications' in message)) {
-                return false
-            }
-            const notifications = message.notifications
-            if (!Array.isArray(notifications)) {
-                return false
-            }            
-            return notifications.reduce<boolean>((previous, subMessage) => (
-                previous && isNotification(subMessage)
             ), true)
         default: return false
     }

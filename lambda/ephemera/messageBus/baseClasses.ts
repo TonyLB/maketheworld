@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { FeatureDescription, RoomDescription, CharacterDescription, TaggedNotificationContent } from "@tonylb/mtw-interfaces/ts/messages"
+import { FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/ts/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
