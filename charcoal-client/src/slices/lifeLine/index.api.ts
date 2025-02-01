@@ -24,8 +24,6 @@ import { isSubscriptionClientMessage, SubscriptionsAPIMessage } from '@tonylb/mt
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 import { getConfiguration, receiveRefreshToken } from '../configuration'
-import { cacheNotifications } from '../notifications'
-import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/ts/messages'
 import { push } from '../UI/feedback'
 import { getPlayer } from '../player'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -83,16 +81,9 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
-const receiveNotifications = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
-    if (payload.messageType === 'Notifications') {
-        dispatch(cacheNotifications(payload.notifications.filter((value: Notification): value is InformationNotification => (value.DisplayProtocol === 'Information'))))
-    }
-}
-
 export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
     const messageSubscription = LifeLinePubSub.subscribe(receiveMessages(dispatch))
-    const notificationSubscription = LifeLinePubSub.subscribe(receiveNotifications(dispatch))
-    return { internalData: { messageSubscription, notificationSubscription }}
+    return { internalData: { messageSubscription }}
 }
 
 //

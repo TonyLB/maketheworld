@@ -36,8 +36,7 @@ export const {
             incrementalBackoff: 0.5,
             pingInterval: null,
             refreshTimeout: null,
-            messageSubscription: null,
-            notificationSubscription: null
+            messageSubscription: null
         },
         publicData: {
             webSocket: null
@@ -57,8 +56,7 @@ export const {
                 incrementalBackoff: 0.5,
                 pingInterval: null,
                 refreshTimeout: null,
-                messageSubscription: null,
-                notificationSubscription: null
+                messageSubscription: null
             },
             publicData: {
                 webSocket: null

@@ -31,7 +31,6 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
 import OnboardingIcon from '@mui/icons-material/Lightbulb'
 import SettingsIcon from '@mui/icons-material/Settings'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import AssetIcon from '@mui/icons-material/Landscape'
 import EditIcon from '@mui/icons-material/Edit'
@@ -47,7 +46,6 @@ import EditAsset from '../Library/Edit/EditAsset'
 
 import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
-import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
@@ -71,8 +69,6 @@ const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; ass
                 <EditIcon />
                 <MapIcon />
             </React.Fragment>
-        case 'Notifications':
-            return <NotificationsActiveIcon />
         case 'Library':
             return <LibraryIcon />
         case 'Asset':
@@ -292,7 +288,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
             <Route path="/Help/" element={<HelpPage />} />
             <Route path="/Who/" element={whoPanel} />
-            <Route path="/Notifications/" element={<Notifications />} />
             <Route path="/Settings/" element={settingsPanel} />
             <Route path="/index.html" element={homePanel} />
             <Route path="/" element={homePanel} />

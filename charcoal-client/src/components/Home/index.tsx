@@ -306,44 +306,8 @@ export const Home: FunctionComponent<HomeProps> = ({
 
             </Grid>
 
-            {/* <Grid item xs={12} sx={{ textAlign: "center" }}>
-                <Divider />
-                    <h2>Administer</h2>
-                <Divider />
-            </Grid>
-            {[
-                {
-                    icon: <NotificationsActiveIcon />,
-                    title: 'Notifications',
-                    href: '/Notifications/',
-                    onClick: undefined
-                }
-            ].map(({ icon, title, href, onClick }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                        else {
-                            if (onClick) {
-                                onClick()
-                            }
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) } */}
         </Grid>
     </Box>
 }
-//
-// TODO: Re-enable Notifications when there is a more complete workflow including them
-//
 
 export default Home
