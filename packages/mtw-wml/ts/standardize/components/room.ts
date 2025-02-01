@@ -23,6 +23,7 @@ import { isSchemaFeature, isSchemaRoom, isSchemaShortName, SchemaShortNameTag } 
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
+import { listDiff } from "../../schema/treeManipulation/listDiff"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardRender;
@@ -181,6 +182,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             : incoming._payload._shortName
         base._payload._features = featuresDiff
         base._payload._examples = examplesDiff
+        base._payload._exits = listDiff(this.exits, incoming.exits)
         return base
     }
 

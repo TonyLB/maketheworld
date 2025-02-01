@@ -56,7 +56,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
-                this._key = props._key
+                this._key = new KeyPayload(props._key)
                 this._payload = props._payload
                 this._import = props._import
                 this._export = props._export
@@ -135,7 +135,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         merge(incoming: StandardComponent): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.key)
             if (incoming.key !== this.key) {
-                throw new MergeConflictError(`Merge of two unequal keys in ${label}`)
+                throw new MergeConflictError(`Merge of two unequal keys in ${label} (${this.key} vs ${incoming.key})`)
             }
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
@@ -154,7 +154,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         diff(incoming: StandardComponent): StandardComponent | undefined {
             if (this.key !== incoming.key) {
-                throw new Error('Mismatched keys in StandardComponent diff')
+                throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
             if (deepEqual(this.toJSON(), incoming.toJSON())) {
                 return undefined
@@ -166,7 +166,9 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         withKey(key: string): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
-            returnValue._key._key = key
+            const newKey = new KeyPayload(returnValue._key)
+            newKey._key = key
+            returnValue._key = newKey
             return returnValue
         }
 

@@ -1812,6 +1812,33 @@ describe('StandardForm', () => {
                 </Asset>
             `))
         })
+
+        it('should diff a rename correctly', () => {
+            const base = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(Room1)><Exit to=(Room2)>text</Exit></Room>
+                    <Room key=(Room2)>
+                        <Example key=(base)><Name>Garden</Name></Example>
+                    </Room>
+                </Asset>
+            `)
+            const incoming = base.renameKey([{ fromKey: 'Room2', toKey: 'garden' }])
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(garden)><Example key=(base)><Name>Garden</Name></Example></Room>
+                    <Room key=(Room1)>
+                        <Remove><Exit to=(Room2)>text</Exit></Remove>
+                        <Exit to=(garden)>text</Exit>
+                    </Room>
+                    <Remove>
+                        <Room key=(Room2)>
+                            <Example key=(base)><Name>Garden</Name></Example>
+                        </Room>
+                    </Remove>
+                </Asset>
+            `))
+        })
     })
 
     describe('subset method', () => {

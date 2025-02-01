@@ -477,9 +477,11 @@ export class StandardForm {
     }
 
     diff(incoming: StandardForm): StandardForm {
+        const mergedForKeys = this.merge(incoming)
         const allKeys = unique(
             [...Object.values(this._byId), ...Object.values(incoming._byId)]
-            .sort((a, b) => (standardComponentSortOrder(this._byId)(b, a)))
+            .filter(excludeUndefined)
+            .sort((a, b) => (standardComponentSortOrder(mergedForKeys._byId)(b, a)))
             .map(({ key }) => (key))
         )
         const returnValue = this._clone()
