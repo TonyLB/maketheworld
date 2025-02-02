@@ -263,7 +263,7 @@ export class StandardForm {
                         data: { tag: 'Replace' as const },
                         children: [
                             { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { ...schema.data, as: component.export.exportAs } as SchemaTag, children: [] }] },
-                            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { ...schema.data, as: component.export.exportAs } as SchemaTag, children: [] }] }
+                            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { ...schema.data, as: component.export._payload } as SchemaTag, children: [] }] }
                         ]
                     }
                 }
@@ -517,8 +517,17 @@ export class StandardForm {
                             : incomingImport
                                 ? incomingImport
                                 : undefined
+                    const baseExport = baseComponent.export
+                    const incomingExport = incomingComponent.export
+                    const diffExport = (baseExport && incomingExport)
+                        ? baseExport.diff(incomingExport)
+                        : baseExport
+                            ? new ExportItemRemove(baseExport.exportAs)
+                            : incomingExport
+                                ? incomingExport
+                                : undefined
                     if (diffedComponent) {
-                        return { ...previous, [key]: diffedComponent.withImport(diffImport) }
+                        return { ...previous, [key]: diffedComponent.withImport(diffImport).withExport(diffExport) }
                     } else {
                         return previous
                     }
