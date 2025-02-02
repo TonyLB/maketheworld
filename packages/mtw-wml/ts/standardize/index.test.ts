@@ -1850,13 +1850,12 @@ describe('StandardForm', () => {
             `)
             const incoming = base._clone()
             incoming._byId['Room1'] = incoming._byId['Room1'].withImport(new ImportItemContent('base', 'testRoom'))
-            console.log(`incoming: ${schemaToWML([incoming.schema])}`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Import from=(base)>
-                        <Remove><Room key=(Room1) /></Remove>
-                        <Room key=(testRoom) as=(Room1) />
+                        <Replace><Room key=(Room1) /></Replace>
+                        <With><Room key=(testRoom) as=(Room1) /></With>
                     </Import>
                     <Room key=(Room1) />
                 </Asset>

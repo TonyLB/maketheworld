@@ -518,7 +518,7 @@ export class StandardForm {
                                 ? incomingImport
                                 : undefined
                     if (diffedComponent) {
-                        return { ...previous, [key]: diffedComponent }
+                        return { ...previous, [key]: diffedComponent.withImport(diffImport) }
                     } else {
                         return previous
                     }
