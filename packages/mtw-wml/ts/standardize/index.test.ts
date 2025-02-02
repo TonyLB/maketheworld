@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '../schema/baseClasses'
 import StandardRoom from './components/room'
 import { KeyPayload } from './components/key'
-import { ImportItemContent } from './components/metaData'
+import { ExportItemContent, ImportItemContent } from './components/metaData'
 
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
@@ -1858,6 +1858,28 @@ describe('StandardForm', () => {
                         <With><Room key=(testRoom) as=(Room1) /></With>
                     </Import>
                     <Room key=(Room1) />
+                </Asset>
+            `))
+        })
+
+        it('should diff an export change correctly', () => {
+            const base = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(Room1) />
+                    <Export><Room key=(Room1) as=(testOne) /></Export>
+                </Asset>
+            `)
+            const incoming = base._clone()
+            incoming._byId['Room1'] = incoming._byId['Room1'].withExport(new ExportItemContent('testTwo'))
+            console.log(`incoming: ${schemaToWML([incoming.schema])}`)
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(Room1) />
+                    <Export>
+                        <Replace><Room key=(Room1) as=(testOne) /></Replace>
+                        <With><Room key=(Room1) as=(testTwo) /></With>
+                    </Export>
                 </Asset>
             `))
         })

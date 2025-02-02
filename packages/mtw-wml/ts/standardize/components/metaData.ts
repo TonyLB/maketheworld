@@ -204,6 +204,7 @@ export class ImportItemReplace implements StandardImportItem {
 export interface StandardExportItem {
     toJSON(): StandardComponentExport;
     merge(incoming: StandardExportItem): StandardExportItem | undefined;
+    diff(incoming: StandardExportItem): StandardExportItem | undefined;
     exportAs: string;
 }
 
@@ -244,6 +245,20 @@ export class ExportItemContent implements StandardExportItem {
         }
         return undefined
     }
+
+    diff(incoming: StandardExportItem): StandardExportItem | undefined {
+        if (incoming instanceof ExportItemContent) {
+            if (this.exportAs === incoming.exportAs) {
+                return undefined
+            }
+            return new ExportItemReplace(this.exportAs, incoming.exportAs)
+        }
+        if (incoming instanceof ExportItemRemove || incoming instanceof ExportItemReplace) {
+            throw new MergeConflictError()
+        }
+        return undefined
+    }
+
 }
 
 export class ExportItemRemove implements StandardExportItem {
@@ -274,6 +289,22 @@ export class ExportItemRemove implements StandardExportItem {
         }
         return undefined
     }
+
+    diff(incoming: StandardExportItem): StandardExportItem | undefined {
+        if (incoming instanceof ExportItemRemove) {
+            if (this.exportAs === incoming.exportAs) {
+                return undefined
+            }
+            throw new ExportItemReplace(this.exportAs, incoming.exportAs)
+        }
+        if (incoming instanceof ExportItemReplace) {
+            if (this.exportAs === incoming._match) {
+                return new ExportItemContent(incoming._payload)
+            }
+        }
+        throw new MergeConflictError()
+    }
+
 }
 
 export class ExportItemReplace implements StandardExportItem {
@@ -323,4 +354,26 @@ export class ExportItemReplace implements StandardExportItem {
         }
         return undefined
     }
+
+    diff(incoming: StandardExportItem): StandardExportItem | undefined {
+        if (incoming instanceof ExportItemReplace) {
+            if (this._match === incoming._match) {
+                if (this._payload === incoming._payload) {
+                    return undefined
+                }
+                return new ExportItemReplace(
+                    this._payload,
+                    incoming._payload
+                )
+            }
+            throw new MergeConflictError()
+        }
+        if (incoming instanceof ExportItemRemove) {
+            if (this._match === incoming.exportAs) {
+                return new ExportItemRemove(this._payload)
+            }
+        }
+        throw new MergeConflictError()
+    }
+
 }

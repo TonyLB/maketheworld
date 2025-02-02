@@ -329,6 +329,76 @@ describe('Standard metadata', () => {
             }
         })
 
+        it('should correct diff content against same content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemContent('test')
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should correctly diff content against different content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemContent('testTwo')
+            const test = testOne.diff(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test instanceof ExportItemReplace).toBeTruthy()
+                if (test instanceof ExportItemReplace) {
+                    expect(test._match).toEqual('test')
+                    expect(test._payload).toEqual('testTwo')
+                }
+            }
+        })
+
+        it('should throw error on diffing incoming remove against base content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemRemove('test')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should throw error on diffing incoming replace against base content', () => {
+            const testOne = new ExportItemContent('test')
+            const testTwo = new ExportItemReplace('test', 'testTwo')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should correctly diff identical removes', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemRemove('test')
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should throw error on different removes', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemRemove('testTwo')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should throw error on diffing incoming content against base remove', () => {
+            const testOne = new ExportItemRemove('test')
+            const testTwo = new ExportItemContent('testTwo')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should correctly diff identical replaces', () => {
+            const testOne = new ExportItemReplace('test', 'testTwo')
+            const testTwo = new ExportItemReplace('test', 'testTwo')
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should chain diff on different replace payloads', () => {
+            const testOne = new ExportItemReplace('test', 'testTwo')
+            const testTwo = new ExportItemReplace('test', 'testThree')
+            const test = testOne.diff(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test instanceof ExportItemReplace).toBeTruthy()
+                if (test instanceof ExportItemReplace) {
+                    expect(test._match).toEqual('testTwo')
+                    expect(test._payload).toEqual('testThree')
+                }
+            }
+        })
+        
     })
 
 })
