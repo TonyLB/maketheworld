@@ -1,7 +1,9 @@
 import { vi } from 'vitest'
 import { addImport } from "."
-import { Schema } from "@tonylb/mtw-wml/ts/schema"
+import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { update } from 'react-spring'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
@@ -12,8 +14,6 @@ schema.loadWML(`<Asset key=(testAsset)>
 </Asset>`)
 const standard = new StandardForm(schema.schema[0])
 
-const overrideGetStandardInternal = vi.fn()
-const overrideGetStandard = vi.fn()
 const overrideUpdateStandardInternal = vi.fn()
 const overrideUpdateStandard = vi.fn()
 
@@ -26,8 +26,6 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             vi.clearAllMocks()
             vi.resetAllMocks()
-            overrideGetStandardInternal.mockReturnValue(standard.toJSON())
-            overrideGetStandard.mockReturnValue(overrideGetStandardInternal)
             overrideUpdateStandard.mockReturnValue(overrideUpdateStandardInternal)
         })
 
@@ -37,8 +35,19 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoom',
                 tag: 'Room'
-            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
-            expect(overrideUpdateStandardInternal).not.toHaveBeenCalled()
+            }, { overrideUpdateStandard })(dispatch, getState)
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+                type: 'update',
+                update: expect.any(Function)
+            })
+            const base = new StandardForm(`
+                <Asset key=(testAsset)>
+                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                </Asset>
+            `)
+            const diff = base.diff(overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone()))
+            console.log(`diff: ${schemaToWML([diff.schema])}`)
+            expect(schemaToWML([diff.schema])).toEqual('<Asset key=(testAsset) />')
         })
 
         it('should add children on an import from same asset', () => {
@@ -47,17 +56,26 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoomTwo',
                 tag: 'Room'
-            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
+            }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
-                type: 'replaceMetaData',
-                metaData: [{
-                    data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
-                    children: [
-                        { data: { tag: 'Room', key: 'testRoom' }, children: [] },
-                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [] }
-                    ]
-                }]
+                type: 'update',
+                update: expect.any(Function)
             })
+            const base = new StandardForm(`
+                <Asset key=(testAsset)>
+                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                </Asset>
+            `)
+            const updated = overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone())
+            const diff = base.diff(updated)
+            expect(diff).toBeDefined()
+            if (diff) {
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Import from=(testImport)><Room key=(testRoomTwo) /></Import>
+                    </Asset>
+                `))
+            }
         })
 
         it('should return new import item on an import from different asset', () => {
@@ -66,22 +84,26 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImportTwo',
                 key: 'testRoomTwo',
                 tag: 'Room'
-            }, { overrideGetStandard, overrideUpdateStandard })(dispatch, getState)
+            }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
-                type: 'replaceMetaData',
-                metaData: [{
-                    data: { tag: 'Import', from: 'testImport', mapping: expect.any(Object) },
-                    children: [
-                        { data: { tag: 'Room', key: 'testRoom' }, children: [] },
-                    ]
-                },
-                {
-                    data: { tag: 'Import', from: 'testImportTwo', mapping: expect.any(Object) },
-                    children: [
-                        { data: { tag: 'Room', key: 'testRoomTwo' }, children: [] },
-                    ]
-                }]
+                type: 'update',
+                update: expect.any(Function)
             })
+            const base = new StandardForm(`
+                <Asset key=(testAsset)>
+                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                </Asset>
+            `)
+            const updated = overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone())
+            const diff = base.diff(updated)
+            expect(diff).toBeDefined()
+            if (diff) {
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset key=(testAsset)>
+                        <Import from=(testImportTwo)><Room key=(testRoomTwo) /></Import>
+                    </Asset>
+                `))
+            }
         })
 
     })
