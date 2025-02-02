@@ -129,6 +129,79 @@ describe('Standard metadata', () => {
             }
         })
 
+        it('should correct diff content against same content', () => {
+            const testOne = new ImportItemContent('test', 'testKey')
+            const testTwo = new ImportItemContent('test', 'testKey')
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should correctly diff content against different content', () => {
+            const testOne = new ImportItemContent('test', 'testKey')
+            const testTwo = new ImportItemContent('testTwo', 'testKeyTwo')
+            const test = testOne.diff(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test instanceof ImportItemReplace).toBeTruthy()
+                if (test instanceof ImportItemReplace) {
+                    expect(test._match.assetId).toEqual('test')
+                    expect(test._match.fromKey).toEqual('testKey')
+                    expect(test._payload.assetId).toEqual('testTwo')
+                    expect(test._payload.fromKey).toEqual('testKeyTwo')
+                }
+            }
+        })
+
+        it('should throw error on diffing incoming remove against base content', () => {
+            const testOne = new ImportItemContent('test', 'testKey')
+            const testTwo = new ImportItemRemove('test', 'testKey')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should throw error on diffing incoming replace against base content', () => {
+            const testOne = new ImportItemContent('test', 'testKey')
+            const testTwo = new ImportItemReplace({ assetId: 'test', fromKey: 'testKey' }, { assetId: 'testTwo', fromKey: 'testKeyTwo' })
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should correctly diff identical removes', () => {
+            const testOne = new ImportItemRemove('test', 'testKey')
+            const testTwo = new ImportItemRemove('test', 'testKey')
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should throw error on different removes', () => {
+            const testOne = new ImportItemRemove('test', 'testKey')
+            const testTwo = new ImportItemRemove('testTwo', 'testKeyTwo')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should throw error on diffing incoming content against base remove', () => {
+            const testOne = new ImportItemRemove('test', 'testKey')
+            const testTwo = new ImportItemContent('testTwo', 'testKeyTwo')
+            expect(() => testOne.diff(testTwo)).toThrow()
+        })
+
+        it('should correctly diff identical replaces', () => {
+            const testOne = new ImportItemReplace({ assetId: 'test', fromKey: 'testKey' }, { assetId: 'testTwo', fromKey: 'testKeyTwo' })
+            const testTwo = new ImportItemReplace({ assetId: 'test', fromKey: 'testKey' }, { assetId: 'testTwo', fromKey: 'testKeyTwo' })
+            expect(testOne.diff(testTwo)).toBeUndefined()
+        })
+
+        it('should chain diff on different replace payloads', () => {
+            const testOne = new ImportItemReplace({ assetId: 'test', fromKey: 'testKey' }, { assetId: 'testTwo', fromKey: 'testKeyTwo' })
+            const testTwo = new ImportItemReplace({ assetId: 'test', fromKey: 'testKey' }, { assetId: 'testThree', fromKey: 'testKeyThree' })
+            const test = testOne.diff(testTwo)
+            expect(test).toBeDefined()
+            if (test) {
+                expect(test instanceof ImportItemReplace).toBeTruthy()
+                if (test instanceof ImportItemReplace) {
+                    expect(test._match.assetId).toEqual('testTwo')
+                    expect(test._match.fromKey).toEqual('testKeyTwo')
+                    expect(test._payload.assetId).toEqual('testThree')
+                    expect(test._payload.fromKey).toEqual('testKeyThree')
+                }
+            }
+        })
     })
 
     describe('ExportItem', () => {

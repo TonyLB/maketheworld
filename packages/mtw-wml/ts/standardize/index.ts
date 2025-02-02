@@ -508,6 +508,15 @@ export class StandardForm {
                 const incomingComponent = incoming._byId[key]
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
+                    const baseImport = baseComponent.import
+                    const incomingImport = incomingComponent.import
+                    const diffImport = (baseImport && incomingImport)
+                        ? baseImport.diff(incomingImport)
+                        : baseImport
+                            ? new ImportItemRemove(baseImport.assetId, baseImport.fromKey)
+                            : incomingImport
+                                ? incomingImport
+                                : undefined
                     if (diffedComponent) {
                         return { ...previous, [key]: diffedComponent }
                     } else {
