@@ -4,6 +4,7 @@ import { StandardComponentExport, StandardComponentExportContent, StandardCompon
 export interface StandardImportItem {
     toJSON(): StandardComponentImport;
     merge(incoming: StandardImportItem): StandardImportItem | undefined;
+    diff(incoming: StandardImportItem): StandardImportItem | undefined;
     assetId: string;
     fromKey: string;
 }
@@ -51,6 +52,19 @@ export class ImportItemContent implements StandardImportItem {
         }
         return undefined
     }
+
+    diff(incoming: StandardImportItem): StandardImportItem | undefined {
+        if (incoming instanceof ImportItemContent) {
+            if (this.assetId === incoming.assetId && this.fromKey === incoming.fromKey) {
+                return undefined
+            }
+            return new ImportItemReplace(this, incoming)
+        }
+        if (incoming instanceof ImportItemRemove || incoming instanceof ImportItemReplace) {
+            throw new MergeConflictError()
+        }
+        return undefined
+    }
 }
 
 export class ImportItemRemove implements StandardImportItem {
@@ -86,6 +100,21 @@ export class ImportItemRemove implements StandardImportItem {
             )
         }
         return undefined
+    }
+
+    diff(incoming: StandardImportItem): StandardImportItem | undefined {
+        if (incoming instanceof ImportItemRemove) {
+            if (this.assetId === incoming.assetId && this.fromKey === incoming.fromKey) {
+                return undefined
+            }
+            throw new ImportItemReplace(this, incoming)
+        }
+        if (incoming instanceof ImportItemReplace) {
+            if (this.assetId === incoming._match.assetId && this.fromKey === incoming._match.fromKey) {
+                return new ImportItemContent(incoming._payload.assetId, incoming._payload.fromKey)
+            }
+        }
+        throw new MergeConflictError()
     }
 }
 
@@ -148,6 +177,27 @@ export class ImportItemReplace implements StandardImportItem {
             )
         }
         return undefined
+    }
+
+    diff(incoming: StandardImportItem): StandardImportItem | undefined {
+        if (incoming instanceof ImportItemReplace) {
+            if (this._match.assetId === incoming._match.assetId && this._match.fromKey === incoming._match.fromKey) {
+                if (this._payload.assetId === incoming._payload.assetId && this._payload.fromKey === incoming._payload.fromKey) {
+                    return undefined
+                }
+                return new ImportItemReplace(
+                    { assetId: this._payload.assetId, fromKey: this._payload.fromKey },
+                    { assetId: incoming._payload.assetId, fromKey: incoming._payload.fromKey }
+                )
+            }
+            throw new MergeConflictError()
+        }
+        if (incoming instanceof ImportItemRemove) {
+            if (this._match.assetId === incoming.assetId && this._match.fromKey === incoming.fromKey) {
+                return new ImportItemRemove(this._payload.assetId, this._payload.fromKey)
+            }
+        }
+        throw new MergeConflictError()
     }
 }
 

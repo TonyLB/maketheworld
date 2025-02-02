@@ -4,6 +4,8 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '../schema/baseClasses'
 import StandardRoom from './components/room'
+import { KeyPayload } from './components/key'
+import { ImportItemContent } from './components/metaData'
 
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
@@ -1836,6 +1838,26 @@ describe('StandardForm', () => {
                             <Example key=(base)><Name>Garden</Name></Example>
                         </Room>
                     </Remove>
+                </Asset>
+            `))
+        })
+
+        it('should diff an import change correctly', () => {
+            const base = new StandardForm(`
+                <Asset key=(test)>
+                    <Import from=(base)><Room key=(Room1) /></Import>
+                </Asset>
+            `)
+            const incoming = base._clone()
+            incoming._byId['Room1'] = incoming._byId['Room1'].withImport(new ImportItemContent('base', 'testRoom'))
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Import from=(base)>
+                        <Replace><Room key=(Room1) /></Replace>
+                        <With><Room key=(testRoom) as=(Room1) /></With>
+                    </Import>
+                    <Room key=(Room1) />
                 </Asset>
             `))
         })

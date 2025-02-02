@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponent, isStandardForm, StandardComponentData, StandardFormData } from "./components/dataTypes"
 import { unique } from "../list"
@@ -477,7 +477,24 @@ export class StandardForm {
     }
 
     diff(incoming: StandardForm): StandardForm {
-        const mergedForKeys = this.merge(incoming)
+        //
+        // Merge the two forms, but only include stub components with the keys and tags in the merged form.
+        // This provides a base for standardComponentSortOrder to merge the two key lists in the correct order
+        // (without risking the possibility of merge conflicts that are irrelevant at this stage).
+        //
+        const mergedForKeys = new StandardForm({
+            key: this.key,
+            byId: [...Object.values(this._byId), ...Object.values(incoming._byId)]
+                .filter(excludeUndefined)
+                .reduce<Record<string, StandardComponentData>>((previous, component) => {
+                    return { ...previous, [component.key]: defaultComponentFromTag(component.tag, component.key) }
+                }, {}),
+            metaData: []
+        })
+        //
+        // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
+        // to diff the components in each StandardForm against each other.
+        //
         const allKeys = unique(
             [...Object.values(this._byId), ...Object.values(incoming._byId)]
             .filter(excludeUndefined)
@@ -491,8 +508,17 @@ export class StandardForm {
                 const incomingComponent = incoming._byId[key]
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
+                    const baseImport = baseComponent.import
+                    const incomingImport = incomingComponent.import
+                    const diffImport = (baseImport && incomingImport)
+                        ? baseImport.diff(incomingImport)
+                        : baseImport
+                            ? new ImportItemRemove(baseImport.assetId, baseImport.fromKey)
+                            : incomingImport
+                                ? incomingImport
+                                : undefined
                     if (diffedComponent) {
-                        return { ...previous, [key]: diffedComponent }
+                        return { ...previous, [key]: diffedComponent.withImport(diffImport) }
                     } else {
                         return previous
                     }
