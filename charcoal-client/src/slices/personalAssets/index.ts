@@ -316,8 +316,8 @@ export const addImport = ({ assetId, fromAsset, as, key, tag }: {
     tag: SchemaImportMapping["type"];
     key: string;
     as?: string;
-}, options?: { overrideGetStandard?: typeof getStandardForm, overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
-    dispatch(publicActions.updateStandard(assetId)({
+}, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
+    dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
             const componentKey = as ?? key
