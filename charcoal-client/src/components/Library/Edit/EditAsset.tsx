@@ -52,6 +52,7 @@ import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { getRecentlyVisited } from '../../../slices/messages/selectors'
 
 type AssetEditFormProps = {}
 
@@ -80,6 +81,12 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const variables = useMemo<StandardVariable[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardVariable => (value instanceof StandardVariable))), [standardForm])
     const computes = useMemo<StandardComputed[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardComputed => (value instanceof StandardComputed))), [standardForm])
     const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardAction => (value instanceof StandardAction))), [standardForm])
+
+    //
+    // TEMPORARY: Stub display of recentlyVisited data
+    //
+    const recentlyVisitedTimestamp = useMemo(() => (Date.now() - 1000 * 60 * 15), [])
+    const recentlyVisited = useSelector(getRecentlyVisited(recentlyVisitedTimestamp))
 
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
@@ -126,6 +133,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
+                { recentlyVisited.map(({ fromAssetId, key, name }) => (<div>{ `${fromAssetId}[${key}]: ${name}` }</div>)) }
                 <List>
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length

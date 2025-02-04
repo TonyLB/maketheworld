@@ -5,6 +5,9 @@ import { Message, RoomHeader } from '@tonylb/mtw-interfaces/ts/messages'
 import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import binarySearch from './binarySearch'
+import { unique } from '../../lib/lists'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -179,5 +182,52 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
             } as MessageRoomInProgress)
         const { currentGroup: discard, ...rest } = combineCurrentHeader(aggregate)
         return rest
+    }
+)
+
+type MessageRecentVisit = {
+    fromAssetId: string;
+    key: string;
+    name: string;
+}
+
+export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
+    getMessages,
+    (allMessages) => {
+        const keysByAssetId = Object.values(allMessages)
+            .map((messages) => {
+                const firstIndex = binarySearch(messages, fromTime)
+                return messages.slice(firstIndex.index)
+            })
+            .flat(1)
+            .reduce<Record<string, { key: string, name: string }[]>>((previous, message) => {
+                if (
+                    message.DisplayProtocol === 'RoomHeader' ||
+                    message.DisplayProtocol === 'RoomUpdate' ||
+                    message.DisplayProtocol === 'RoomDescription' ||
+                    message.DisplayProtocol === 'FeatureDescription' ||
+                    message.DisplayProtocol === 'KnowledgeDescription'
+                ) {
+                    return Object.entries(message.assets ?? {}).reduce((accumulator, [fromAsset, key]) => {
+                        return {
+                            ...accumulator,
+                            [fromAsset]: [
+                                ...(accumulator[fromAsset] || []).filter(({ key: checkKey }) => (key !== checkKey)),
+                                { key, name: new StandardRender(message.Name).plainString }
+                            ]
+                        }
+                    }, previous)
+                }
+                return previous
+            }, {})
+        return Object.entries(keysByAssetId).map(([fromAssetId, items]) => {
+            return items.map(({ key, name }) => {
+                return {
+                    fromAssetId,
+                    key,
+                    name
+                }
+            })
+        }).flat(1)
     }
 )
