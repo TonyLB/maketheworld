@@ -7,6 +7,7 @@ import { Selector } from '../../store'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
 import { unique } from '../../lib/lists'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -187,6 +188,7 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
 type MessageRecentVisit = {
     fromAssetId: string;
     key: string;
+    name: string;
 }
 
 export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
@@ -198,7 +200,7 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                 return messages.slice(firstIndex.index)
             })
             .flat(1)
-            .reduce<Record<string, string[]>>((previous, message) => {
+            .reduce<Record<string, { key: string, name: string }[]>>((previous, message) => {
                 if (
                     message.DisplayProtocol === 'RoomHeader' ||
                     message.DisplayProtocol === 'RoomUpdate' ||
@@ -210,19 +212,20 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                         return {
                             ...accumulator,
                             [fromAsset]: [
-                                ...(accumulator[fromAsset] || []),
-                                key
+                                ...(accumulator[fromAsset] || []).filter(({ key: checkKey }) => (key !== checkKey)),
+                                { key, name: new StandardRender(message.Name).plainString }
                             ]
                         }
                     }, previous)
                 }
                 return previous
             }, {})
-        return Object.entries(keysByAssetId).map(([fromAssetId, keys]) => {
-            return unique(keys).map((key) => {
+        return Object.entries(keysByAssetId).map(([fromAssetId, items]) => {
+            return items.map(({ key, name }) => {
                 return {
                     fromAssetId,
-                    key
+                    key,
+                    name
                 }
             })
         }).flat(1)

@@ -133,7 +133,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
-                { recentlyVisited.map(({ fromAssetId, key }) => (<div>{ `${fromAssetId}: ${key}` }</div>)) }
+                { recentlyVisited.map(({ fromAssetId, key, name }) => (<div>{ `${fromAssetId}[${key}]: ${name}` }</div>)) }
                 <List>
                     <ListSubheader>Maps</ListSubheader>
                     { maps.length
