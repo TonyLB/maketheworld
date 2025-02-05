@@ -13,6 +13,7 @@ import { useLibraryAsset } from "./LibraryAsset"
 import { getRecentlyVisited } from "../../../slices/messages/selectors"
 import { useSelector } from "react-redux"
 import { Collapse } from "@mui/material"
+import { ImportItemContent, ImportItemReplace } from "@tonylb/mtw-wml/ts/standardize/components/metaData"
 
 type RecentlyVisitedProps = {
 
@@ -24,17 +25,36 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
     const recentlyVisitedTimestamp = useMemo(() => (Date.now() - 1000 * 60 * 15), [])
     const recentlyVisited = useSelector(getRecentlyVisited(recentlyVisitedTimestamp))
 
+    const importsFromStandard = useMemo<{ fromAssetId: string; key: string; }[]>(() => {
+        return Object.values(standardForm.byId).map((component) => {
+            const importItem = component.import
+            if (importItem) {
+                if (importItem instanceof ImportItemContent) {
+                    return [{ fromAssetId: importItem.assetId, key: importItem.fromKey }]
+                }
+                if (importItem instanceof ImportItemReplace) {
+                    return [{ fromAssetId: importItem._payload.assetId, key: importItem._payload.fromKey }]
+                }
+            }
+            return []
+        }).flat(1)
+    }, [standardForm.byId])
+
     const recentlyVisitedByAsset = useMemo(() => {
-        return recentlyVisited.reduce<Record<string, { key: string, name: string }[]>>((previous, { ephemeraId, name, assets }) => {
-            return assets.reduce<Record<string, { key: string, name: string }[]>>((accumulator, { fromAssetId, key }) => ({
-                ...accumulator,
-                [fromAssetId]: [
-                    ...accumulator[fromAssetId] ?? [],
-                    { key, name }
-                ]
-            }), previous)
+        return recentlyVisited.reduce<Record<string, { key: string, name: string }[]>>((previous, { name, assets }) => {
+            if (assets.some(({ fromAssetId, key }) => importsFromStandard.some((importItem) => `ASSET#${importItem.fromAssetId}` === fromAssetId && importItem.key === key))) {
+                return previous
+            }
+            return assets
+                .reduce<Record<string, { key: string, name: string }[]>>((accumulator, { fromAssetId, key }) => ({
+                    ...accumulator,
+                    [fromAssetId]: [
+                        ...accumulator[fromAssetId] ?? [],
+                        { key, name }
+                    ]
+                }), previous)
         }, {})
-    }, [recentlyVisited])
+    }, [recentlyVisited, importsFromStandard])
 
     const [collapseStates, setCollapseStates] = React.useState<Record<string, boolean>>({})
 
