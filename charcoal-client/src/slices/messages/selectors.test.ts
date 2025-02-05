@@ -3,7 +3,8 @@ import { RootState } from '../../store'
 
 import {
     getMessages,
-    getMessagesByRoom
+    getMessagesByRoom,
+    getRecentlyVisited
 } from './selectors'
 
 const testState = {
@@ -253,6 +254,81 @@ describe('messages selectors', () => {
                         messageCount: 2
                 }]
             })
+        })
+    })
+
+    describe('getRecentlyVisited', () => {
+
+        const testState = {
+            messages: {
+                'CHARACTER#TESS': [{
+                    DisplayProtocol: 'RoomHeader',
+                    MessageId: 'Test1',
+                    CreatedTime: 1,
+                    Target: 'CHARACTER#TESS',
+                    RoomId: 'TEST',
+                    Description: ['Test1'],
+                    Name: ['Test1'],
+                    Exits: [],
+                    Characters: [],
+                    assets: { 'ASSET#test': 'key1', 'ASSET#testTwo': 'key1' }
+                }, {
+                    DisplayProtocol: 'WorldMessage',
+                    MessageId: 'Test2',
+                    Message: ['Test2'],
+                    CreatedTime: 2,
+                    Target: 'CHARACTER#TESS'
+                }, {
+                    DisplayProtocol: 'RoomUpdate',
+                    MessageId: 'Test3',
+                    CreatedTime: 3,
+                    Target: 'CHARACTER#TESS',
+                    RoomId: 'TEST',
+                    assets: { 'ASSET#test': 'key1', 'ASSET#testTwo': 'key1' },
+                    Name: ['Test3']
+                }, {
+                    DisplayProtocol: 'RoomHeader',
+                    MessageId: 'Test4',
+                    CreatedTime: 4,
+                    Target: 'CHARACTER#TESS',
+                    RoomId: 'TEST4',
+                    Description: ['Test4'],
+                    Name: ['Test4'],
+                    Exits: [],
+                    Characters: [],
+                    assets: { 'ASSET#test': 'key3' }
+                }, {
+                    DisplayProtocol: 'WorldMessage',
+                    MessageId: 'Test5',
+                    Message: ['Test5'],
+                    CreatedTime: 5,
+                    Target: 'CHARACTER#TESS'
+                }]
+            } as MessageState
+        } as unknown as RootState
+
+        it('should return empty when no messages exist', () => {
+            expect(getRecentlyVisited(6)(testState)).toEqual([])
+        })
+
+        it('should return recently visited rooms', () => {
+            expect(getRecentlyVisited(1)(testState)).toEqual([{
+                ephemeraId: 'TEST',
+                name: 'Test3',
+                assets: [{ fromAssetId: 'ASSET#test', key: 'key1' }, { fromAssetId: 'ASSET#testTwo', key: 'key1' }]
+            }, {
+                ephemeraId: 'TEST4',
+                name: 'Test4',
+                assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
+            }])
+        })
+
+        it('should filter out messages before the given time', () => {
+            expect(getRecentlyVisited(4)(testState)).toEqual([{
+                ephemeraId: 'TEST4',
+                name: 'Test4',
+                assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
+            }])
         })
     })
 

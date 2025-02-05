@@ -20,7 +20,7 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
     const recentlyVisited = useSelector(getRecentlyVisited(recentlyVisitedTimestamp))
 
     return <List dense>
-        { recentlyVisited.map(({ fromAssetId, key, name }, index) => (
+        { recentlyVisited.map(({ name, assets }) => (assets.map((assetList) => ({ ...assetList, name })))).flat(1).map(({ fromAssetId, key, name }, index) => (
             <ListItem
                 key={`recentlyVisited-${index}`}
                 sx={{ borderRadius: '0.5em',
