@@ -219,6 +219,7 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                         const name = message.Name ? (Array.isArray(message.Name) ? new StandardRender(message.Name) : new StandardRender([message.Name])).plainString : ""
                         const adjustedAssets: MessageRecentVisit["assets"] = Object.entries(message.assets ?? {})
                             .filter(([fromAsset]) => (((Object.keys(message.assets ?? {})).length === 1) || fromAsset !== 'ASSET#primitives'))
+                            .filter(([_, key]) => (key))
                             .map(([fromAssetId, key]) => ({ fromAssetId, key }))
                         return [
                             ...previous.filter(({ ephemeraId: id }) => id !== ephemeraId),
