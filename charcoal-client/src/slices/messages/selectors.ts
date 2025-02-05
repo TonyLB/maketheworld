@@ -208,15 +208,17 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                     message.DisplayProtocol === 'FeatureDescription' ||
                     message.DisplayProtocol === 'KnowledgeDescription'
                 ) {
-                    return Object.entries(message.assets ?? {}).reduce((accumulator, [fromAsset, key]) => {
-                        return {
-                            ...accumulator,
-                            [fromAsset]: [
-                                ...(accumulator[fromAsset] || []).filter(({ key: checkKey }) => (key !== checkKey)),
-                                { key, name: new StandardRender(message.Name).plainString }
-                            ]
-                        }
-                    }, previous)
+                    return Object.entries(message.assets ?? {})
+                        .filter(([fromAsset, key]) => ((Object.keys(message.assets ?? {})).length === 1 || fromAsset !== 'ASSET#primitives'))
+                        .reduce((accumulator, [fromAsset, key]) => {
+                            return {
+                                ...accumulator,
+                                [fromAsset]: [
+                                    ...(accumulator[fromAsset] || []).filter(({ key: checkKey }) => (key !== checkKey)),
+                                    { key, name: new StandardRender(message.Name).plainString }
+                                ]
+                            }
+                        }, previous)
                 }
                 return previous
             }, {})
