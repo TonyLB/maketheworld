@@ -186,50 +186,53 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
 )
 
 type MessageRecentVisit = {
-    fromAssetId: string;
-    key: string;
+    ephemeraId: string;
     name: string;
+    assets: {
+        fromAssetId: string;
+        key: string;    
+    }[]
 }
 
 export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
     getMessages,
     (allMessages) => {
-        const keysByAssetId = Object.values(allMessages)
+        const recentlyVisited: MessageRecentVisit[] = Object.values(allMessages)
             .map((messages) => {
                 const firstIndex = binarySearch(messages, fromTime)
                 return messages.slice(firstIndex.index)
             })
             .flat(1)
-            .reduce<Record<string, { key: string, name: string }[]>>((previous, message) => {
+            .reduce<MessageRecentVisit[]>((previous, message) => {
                 if (
                     message.DisplayProtocol === 'RoomHeader' ||
-                    message.DisplayProtocol === 'RoomUpdate' ||
                     message.DisplayProtocol === 'RoomDescription' ||
                     message.DisplayProtocol === 'FeatureDescription' ||
                     message.DisplayProtocol === 'KnowledgeDescription'
                 ) {
-                    return Object.entries(message.assets ?? {})
-                        .filter(([fromAsset, key]) => ((Object.keys(message.assets ?? {})).length === 1 || fromAsset !== 'ASSET#primitives'))
-                        .reduce((accumulator, [fromAsset, key]) => {
-                            return {
-                                ...accumulator,
-                                [fromAsset]: [
-                                    ...(accumulator[fromAsset] || []).filter(({ key: checkKey }) => (key !== checkKey)),
-                                    { key, name: new StandardRender(message.Name).plainString }
-                                ]
+                    const ephemeraId = (message.DisplayProtocol === 'RoomHeader' || message.DisplayProtocol === 'RoomDescription')
+                        ? message.RoomId
+                        : message.DisplayProtocol === 'FeatureDescription'
+                            ? message.FeatureId
+                            : message.KnowledgeId
+                    if (ephemeraId) {
+                        const name = message.Name ? (Array.isArray(message.Name) ? new StandardRender(message.Name) : new StandardRender([message.Name])).plainString : ""
+                        const adjustedAssets: MessageRecentVisit["assets"] = Object.entries(message.assets ?? {})
+                            .filter(([fromAsset]) => (((Object.keys(message.assets ?? {})).length === 1) || fromAsset !== 'ASSET#primitives'))
+                            .filter(([_, key]) => (key))
+                            .map(([fromAssetId, key]) => ({ fromAssetId, key }))
+                        return [
+                            ...previous.filter(({ ephemeraId: id }) => id !== ephemeraId),
+                            {
+                                ephemeraId,
+                                name,
+                                assets: adjustedAssets
                             }
-                        }, previous)
+                        ]    
+                    }
                 }
                 return previous
-            }, {})
-        return Object.entries(keysByAssetId).map(([fromAssetId, items]) => {
-            return items.map(({ key, name }) => {
-                return {
-                    fromAssetId,
-                    key,
-                    name
-                }
-            })
-        }).flat(1)
+            }, [])
+        return recentlyVisited
     }
 )
