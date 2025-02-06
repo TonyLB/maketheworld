@@ -8,6 +8,7 @@ import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
 import { unique } from '../../lib/lists'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -191,7 +192,8 @@ type MessageRecentVisit = {
     assets: {
         fromAssetId: string;
         key: string;    
-    }[]
+    }[];
+    tag: SchemaImportMapping["type"];
 }
 
 export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
@@ -226,7 +228,12 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                             {
                                 ephemeraId,
                                 name,
-                                assets: adjustedAssets
+                                assets: adjustedAssets,
+                                tag: (message.DisplayProtocol === 'RoomHeader' || message.DisplayProtocol === 'RoomDescription')
+                                    ? 'Room'
+                                    : (message.DisplayProtocol === 'FeatureDescription')
+                                        ? 'Feature'
+                                        : 'Knowledge'
                             }
                         ]    
                     }
