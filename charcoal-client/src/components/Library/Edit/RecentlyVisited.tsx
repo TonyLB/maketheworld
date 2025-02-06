@@ -5,8 +5,10 @@ import ListItem from "@mui/material/ListItem"
 import ListItemText from "@mui/material/ListItemText"
 import ListItemButton from "@mui/material/ListItemButton"
 import ListSubheader from "@mui/material/ListSubheader"
+import IconButton from "@mui/material/IconButton"
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
+import DownloadIcon from '@mui/icons-material/Download'
 import { blue } from "@mui/material/colors"
 
 import { useLibraryAsset } from "./LibraryAsset"
@@ -96,6 +98,11 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
                                 }}
                             >
                                 <ListItemText primary={name} secondary={key} />
+                                <IconButton
+                                    onClick={() => {}}
+                                >
+                                    <DownloadIcon />
+                                </IconButton>
                             </ListItem>
                         )) }
                     </List>
