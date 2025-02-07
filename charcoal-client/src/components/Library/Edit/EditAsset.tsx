@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
     CircularProgress,
+    Button,
     IconButton,
     List,
-    ListSubheader,
     ListItemButton,
     ListItemIcon,
     ListItemText
@@ -14,7 +14,6 @@ import {
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
 import AddIcon from '@mui/icons-material/Add'
-import ThemeIcon from '@mui/icons-material/TheaterComedy'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -59,12 +58,14 @@ import { blue } from '@mui/material/colors'
 type AssetEditFormProps = {}
 
 const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
-    <ListItemButton onClick={onAdd}>
-        <ListItemIcon>
-            <AddIcon />
-        </ListItemIcon>
-        <ListItemText primary={`Add ${type}`} />
-    </ListItemButton>
+    <Button
+        onClick={onAdd}
+        variant='contained'
+        startIcon={<AddIcon />}
+        sx={{ margin: '0.5em' }}
+    >
+        {type}
+    </Button>
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
