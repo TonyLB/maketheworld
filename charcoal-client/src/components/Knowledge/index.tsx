@@ -14,7 +14,6 @@ import ComponentDescription from '../Message/ComponentDescription'
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
-import EditButton from '../Message/EditButton'
 
 type KnowledgeProps = {
 }
@@ -63,11 +62,6 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
                     }}
                     icon={<KnowledgeIcon />}
                     onClickLink={onClickLink}
-                    toolActions={
-                        showEdit
-                            ? <EditButton tag="Knowledge" assets={currentAssets} />
-                            : undefined
-                    }
                 />
                 : <Spinner size={150} border={10} />
         }

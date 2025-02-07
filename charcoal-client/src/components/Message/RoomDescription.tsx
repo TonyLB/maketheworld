@@ -25,7 +25,6 @@ import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
-import EditButton from './EditButton'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 interface RoomDescriptionProps {
@@ -71,10 +70,6 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 )
             }}
             leftIcon={<HouseIcon />}
-            toolActions={showEdit
-                ? <EditButton tag="Room" assets={currentAssets} />
-                : undefined
-            }
         >
             <Box
                 sx={{
