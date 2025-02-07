@@ -130,7 +130,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <RecentlyVisited />
                 <List>
-                    <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
                             { maps.map((mapItem) => (<MapHeader
@@ -142,7 +141,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     { !readonly && <AddWMLComponent type="Map" onAdd={addAsset('Map')} /> }
-                    <ListSubheader>Rooms</ListSubheader>
                     { rooms.length
                         ? rooms.map((room) => (<WMLComponentHeader
                                 key={room.key}
@@ -152,7 +150,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     { !readonly && <AddWMLComponent type="Room" onAdd={addAsset('Room')} /> }
-                    <ListSubheader>Features</ListSubheader>
                     { features.length
                         ? features.map((feature) => (<WMLComponentHeader
                                 key={feature.key}
@@ -163,7 +160,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     { !readonly && <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} /> }
-                    <ListSubheader>Knowledge</ListSubheader>
                     { knowledges.length
                         ? knowledges.map((knowledge) => (<WMLComponentHeader
                                 key={knowledge.key}
@@ -174,7 +170,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     { !readonly && <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} /> }
-                    <ListSubheader>Images</ListSubheader>
                     { images.length
                         ? images.map((image) => (<ImageHeader
                                 key={image.key}
@@ -184,7 +179,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     { !readonly && <AddWMLComponent type="Image" onAdd={addAsset('Image')} /> }
-                    <ListSubheader>Variables</ListSubheader>
                     { (variables || [])
                         .map((variable) => (<JSHeader
                             key={variable.key}
@@ -194,7 +188,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         />))
                     }
                     { !readonly && <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} /> }
-                    <ListSubheader>Computes</ListSubheader>
                     { (computes || []).map((compute) => (<JSHeader
                             key={compute.key}
                             item={compute}
@@ -203,7 +196,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         />))
                     }
                     { !readonly && <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} /> }
-                    <ListSubheader>Actions</ListSubheader>
                     { (actions || []).map((action) => (<JSHeader
                             key={action.key}
                             item={action}
