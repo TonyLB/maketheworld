@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
     CircularProgress,
+    Button,
     IconButton,
     List,
-    ListSubheader,
     ListItemButton,
     ListItemIcon,
     ListItemText
@@ -14,7 +14,6 @@ import {
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
 import AddIcon from '@mui/icons-material/Add'
-import ThemeIcon from '@mui/icons-material/TheaterComedy'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -52,18 +51,21 @@ import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { getRecentlyVisited } from '../../../slices/messages/selectors'
 import { RecentlyVisited } from './RecentlyVisited'
+import { LabelledIndentBox } from './LabelledIndentBox'
+import { blue } from '@mui/material/colors'
 
 type AssetEditFormProps = {}
 
 const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
-    <ListItemButton onClick={onAdd}>
-        <ListItemIcon>
-            <AddIcon />
-        </ListItemIcon>
-        <ListItemText primary={`Add ${type}`} />
-    </ListItemButton>
+    <Button
+        onClick={onAdd}
+        variant='contained'
+        startIcon={<AddIcon />}
+        sx={{ margin: '0.5em' }}
+    >
+        {type}
+    </Button>
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
@@ -208,6 +210,15 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             </Box>
             <DraftLockout />
         </Box>
+        { !readonly &&
+            <LabelledIndentBox label="Add Component" color={blue}>
+                <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
+                <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
+                <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+            </LabelledIndentBox>
+        }
     </Box>
 }
 
