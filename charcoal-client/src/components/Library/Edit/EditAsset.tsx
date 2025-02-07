@@ -52,8 +52,9 @@ import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable
 import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
 import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { getRecentlyVisited } from '../../../slices/messages/selectors'
 import { RecentlyVisited } from './RecentlyVisited'
+import { LabelledIndentBox } from './LabelledIndentBox'
+import { blue } from '@mui/material/colors'
 
 type AssetEditFormProps = {}
 
@@ -208,6 +209,15 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             </Box>
             <DraftLockout />
         </Box>
+        { !readonly &&
+            <LabelledIndentBox label="Add Component" color={blue}>
+                <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
+                <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
+                <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+            </LabelledIndentBox>
+        }
     </Box>
 }
 
