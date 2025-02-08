@@ -8,7 +8,8 @@ import {
     List,
     ListItemButton,
     ListItemIcon,
-    ListItemText
+    ListItemText,
+    ListSubheader
 } from '@mui/material'
 
 import FeatureIcon from '@mui/icons-material/Search'
@@ -131,7 +132,8 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <RecentlyVisited />
-                <List>
+                <List dense>
+                    <ListSubheader>Components</ListSubheader>
                     { maps.length
                         ? maps.map((mapItem) => (<WMLComponentHeader
                                 key={mapItem.key}
