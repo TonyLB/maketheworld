@@ -133,9 +133,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <RecentlyVisited />
                 <List>
                     { maps.length
-                        ? maps.map((mapItem) => (<MapHeader
+                        ? maps.map((mapItem) => (<WMLComponentHeader
                                 key={mapItem.key}
-                                itemId={mapItem.key}
+                                ItemId={mapItem.key}
                                 onClick={() => { navigate(`Map/${mapItem.key}`)}}
                             />))
                         : null
