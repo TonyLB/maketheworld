@@ -32,7 +32,6 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
-import MapHeader from './MapHeader'
 import WMLComponentDetail from './WMLComponentDetail'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
