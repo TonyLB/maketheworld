@@ -133,16 +133,13 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <RecentlyVisited />
                 <List>
                     { maps.length
-                        ? <React.Fragment>
-                            { maps.map((mapItem) => (<MapHeader
+                        ? maps.map((mapItem) => (<MapHeader
                                 key={mapItem.key}
                                 itemId={mapItem.key}
                                 onClick={() => { navigate(`Map/${mapItem.key}`)}}
-                            />))}
-                        </React.Fragment>
+                            />))
                         : null
                     }
-                    { !readonly && <AddWMLComponent type="Map" onAdd={addAsset('Map')} /> }
                     { rooms.length
                         ? rooms.map((room) => (<WMLComponentHeader
                                 key={room.key}
@@ -151,7 +148,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             />))
                         : null
                     }
-                    { !readonly && <AddWMLComponent type="Room" onAdd={addAsset('Room')} /> }
                     { features.length
                         ? features.map((feature) => (<WMLComponentHeader
                                 key={feature.key}
@@ -161,7 +157,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             />))
                         : null
                     }
-                    { !readonly && <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} /> }
                     { knowledges.length
                         ? knowledges.map((knowledge) => (<WMLComponentHeader
                                 key={knowledge.key}
@@ -171,7 +166,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             />))
                         : null
                     }
-                    { !readonly && <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} /> }
                     { images.length
                         ? images.map((image) => (<ImageHeader
                                 key={image.key}
@@ -180,7 +174,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             />))
                         : null
                     }
-                    { !readonly && <AddWMLComponent type="Image" onAdd={addAsset('Image')} /> }
                     { (variables || [])
                         .map((variable) => (<JSHeader
                             key={variable.key}
@@ -189,7 +182,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             maxHeight="4em"
                         />))
                     }
-                    { !readonly && <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} /> }
                     { (computes || []).map((compute) => (<JSHeader
                             key={compute.key}
                             item={compute}
@@ -197,7 +189,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             maxHeight="8em"
                         />))
                     }
-                    { !readonly && <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} /> }
                     { (actions || []).map((action) => (<JSHeader
                             key={action.key}
                             item={action}
@@ -205,7 +196,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             maxHeight="32em"
                         />))
                     }
-                    { !readonly && <AddWMLComponent type="Action" onAdd={addAsset('Action')} /> }
                 </List>
             </Box>
             <DraftLockout />
