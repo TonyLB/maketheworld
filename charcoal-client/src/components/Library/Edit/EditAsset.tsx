@@ -14,6 +14,7 @@ import {
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
 import AddIcon from '@mui/icons-material/Add'
+import MapIcon from '@mui/icons-material/Map'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -32,7 +33,6 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
-import MapHeader from './MapHeader'
 import WMLComponentDetail from './WMLComponentDetail'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
@@ -133,10 +133,11 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <RecentlyVisited />
                 <List>
                     { maps.length
-                        ? maps.map((mapItem) => (<MapHeader
+                        ? maps.map((mapItem) => (<WMLComponentHeader
                                 key={mapItem.key}
-                                itemId={mapItem.key}
+                                ItemId={mapItem.key}
                                 onClick={() => { navigate(`Map/${mapItem.key}`)}}
+                                icon={<MapIcon />}
                             />))
                         : null
                     }
