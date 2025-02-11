@@ -11,18 +11,18 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/
 const authorizationTemplates = {
     Grant: {
         player: { required: true, type: ParsePropertyTypes.Key },
-        action: { required: true, type: ParsePropertyTypes.Literal },
+        actions: { required: true, type: ParsePropertyTypes.Literal },
     }
 } as const
 
 export const authorizationConverters: Record<string, ConverterMapEntry> = {
     Grant: {
         initialize: ({ parseOpen }): SchemaGrantTag => {
-            const { player, action } = validateProperties(authorizationTemplates.Grant)(parseOpen)
+            const { player, actions } = validateProperties(authorizationTemplates.Grant)(parseOpen)
             return {
                 tag: 'Grant',
                 player,
-                actions: action.split(',').map((action: string) => action.trim())
+                actions: actions.split(',').map((action: string) => action.trim())
             }
         },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaGrantTag, SchemaTag> => {
@@ -47,7 +47,7 @@ export const authorizationPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Grant',
             properties: [
                 { key: 'player', type: 'key', value: tag.player },
-                { key: 'action', type: 'literal', value: tag.actions.join(', ') }
+                { key: 'actions', type: 'literal', value: tag.actions.join(', ') }
             ],
             node: { data: tag, children }
         })
