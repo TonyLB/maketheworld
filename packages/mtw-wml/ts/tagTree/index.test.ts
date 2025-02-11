@@ -4,7 +4,8 @@ import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { deIndentWML } from '../schema/utils'
-import { SchemaTag, isSchemaFeature, isSchemaWithKey } from '../schema/baseClasses'
+import { SchemaTag, isSchemaWithKey } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaFeature } from '@tonylb/mtw-base/ts/schema/components'
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
