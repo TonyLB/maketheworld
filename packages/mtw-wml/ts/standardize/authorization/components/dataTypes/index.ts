@@ -1,3 +1,5 @@
+import { StandardReferenceData } from "../../../components/dataTypes";
+import { isStandardReferenceData } from "../../../components/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 
@@ -60,4 +62,34 @@ export const unwrapStandardAuthComponent = (component: StandardAuthorizationData
 
 export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRemoveData | StandardAuthReplaceData
 
-export const isStandardAuthorizationItem = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEdit(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
+export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEdit(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
+
+export type StandardAuthorizationCollectionGrantData = {
+    reference: StandardReferenceData;
+    grants: StandardAuthorizationData[];
+}
+
+export const isStandardAuthorizationCollectionGrantData = (arg: any): arg is StandardAuthorizationCollectionGrantData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('reference' in arg && isStandardReferenceData(arg.reference)),
+        ('grant' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
+    )
+}
+
+export type StandardAuthorizationCollectionData = {
+    key: string;
+    grants: StandardAuthorizationCollectionGrantData[];
+}
+
+export const isStandardAuthorizationCollection = (arg: any): arg is StandardAuthorizationCollectionData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('key' in arg && typeof arg.key === 'string'),
+        ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationCollectionGrantData))
+    )
+}
