@@ -8,6 +8,6 @@ export type SchemaGrantTag = {
 } & SchemaBase
 
 export const isSchemaGrant = (schema: any): schema is SchemaGrantTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, player: CheckTypes.STRING }, values: { tag: 'Name' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING, player: CheckTypes.STRING }, values: { tag: 'Grant' } })(schema)
     && Array.isArray(schema.actions) && schema.actions.every((action: any) => typeof action === 'string')
 )
