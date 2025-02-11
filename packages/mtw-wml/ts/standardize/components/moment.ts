@@ -15,7 +15,7 @@ import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
 import { StandardRemove, StandardReplace } from "./edits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
-import { isSchemaRemove } from "../../schema/baseClasses"
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { SerializeNDJSONMixin } from "../baseClasses"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {

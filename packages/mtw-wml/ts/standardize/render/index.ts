@@ -12,7 +12,7 @@ import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionState
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit"
 import { isRenderTree, isRenderTreeNode, RenderTree, RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
-import { SchemaConditionTag } from "../../schema/baseClasses"
+import { SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 

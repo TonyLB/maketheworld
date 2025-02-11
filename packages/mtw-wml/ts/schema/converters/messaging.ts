@@ -6,7 +6,7 @@ import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRemove } from "../baseClasses"
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 
 const messagingTemplates = {
     Message: {

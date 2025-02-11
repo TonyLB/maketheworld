@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag } from "../../schema/baseClasses";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardComponentData } from "./dataTypes";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardExportItem, StandardImportItem } from "./metaData";

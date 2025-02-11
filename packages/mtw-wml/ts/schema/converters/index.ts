@@ -6,6 +6,7 @@ import { componentConverters, componentPrintMap } from "./components"
 import { computationConverters, computationPrintMap } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
 import { editConverters, editPrintMap } from './edit'
+import { authorizationConverters, authorizationPrintMap } from "./authorization"
 import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
@@ -39,6 +40,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...importExportConverters,
     ...messagingConverters,
     ...taggedMessageConverters,
+    ...authorizationConverters,
 }
 
 export const printMap: Record<string, PrintMapEntry> = {
@@ -66,6 +68,7 @@ export const printMap: Record<string, PrintMapEntry> = {
     ...importExportPrintMap,
     ...messagingPrintMap,
     ...taggedMessagePrintMap,
+    ...authorizationPrintMap
 }
 
 export default converterMap
