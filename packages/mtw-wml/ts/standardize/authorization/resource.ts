@@ -2,14 +2,25 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { StandardAuthorizationResourceData } from "./components/dataTypes";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
     grants: StandardAuthorizationItem[] = [];
 
-    constructor({ reference, grants }: { reference?: StandardReference; grants: StandardAuthorizationItem[] }) {
-        this.reference = reference;
-        this.grants = grants;
+    constructor(props: { reference?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData) {
+        if (props instanceof StandardAuthorizationResource) {
+            this.reference = props.reference
+            this.grants = props.grants
+        }
+        else {
+            if (typeof props.reference !== 'object') {
+                throw new Error('Invalid argument in StandardAuthorizationResource')
+            }
+            const { reference, grants } = props
+            this.reference = reference as StandardReference;
+            this.grants = grants as StandardAuthorizationItem[];
+        }
     }
 
     toJSON() {

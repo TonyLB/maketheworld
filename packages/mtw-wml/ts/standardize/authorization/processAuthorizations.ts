@@ -9,6 +9,7 @@ import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import { StandardAuthorizationCollectionGrant } from "."
 import StandardGrant from "./components/grant"
+import { StandardAuthorizationResource } from "./resource"
 
 //
 // mergeAuthByIds takes two objects keyed by resource ID and merges them together, using the merge method of the StandardAuthorizationItem class.
@@ -45,7 +46,7 @@ export const processAuthorizations = (props: {
     schema: GenericTree<SchemaTag>;
     componentContext?: { key: string; tag: ComponentTag; }[];
     inContextOfRemove?: boolean;
-}): Record<string, StandardAuthorizationItem> => {
+}): Record<string, StandardAuthorizationResource> => {
     //
     // Loop through each tag in standard order
     //
