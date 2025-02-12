@@ -13,6 +13,10 @@ import { isSchemaTreeNode } from "../components/utils"
 import { ComponentProcessingTemplate } from "../processComponents"
 import { standardAuthorizationFactory } from "./authorizationFactory"
 import { excludeUndefined } from "../../lib/lists"
+import processAuthorizations from "./processAuthorizations"
+import { StandardAuthorizationResource } from "./resource"
+import { StandardBaseData } from "../components/dataTypes/abstract"
+import { SerializeNDJSONMixin } from "../baseClasses"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -35,7 +39,7 @@ export type StandardAuthorizationCollectionGrant = {
 
 export class StandardAuthorizationCollection {
     _key: string;
-    _grants: StandardAuthorizationCollectionGrant[];
+    _grants: StandardAuthorizationResource[];
 
     constructor(args: StandardAuthorizationCollectionData | GenericTreeNode<SchemaTag> | string) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
@@ -46,25 +50,19 @@ export class StandardAuthorizationCollection {
         if (isStandardAuthorizationCollection(args)) {
             this._key = args.key
 
-            const grantsByReference = args.grants.reduce<Record<string, StandardAuthorizationCollectionGrant>>((previous, standardData) => {
-                const { reference, grants } = standardData
-                const standardGrantItems = grants.map(standardAuthorizationFactory).filter(excludeUndefined)
+            const grantsByReference = args.grants.reduce<Record<string, StandardAuthorizationResource>>((previous, standardResource) => {
+                const { reference, grants } = standardResource
                 if (reference) {
                     const key = reference.key
                     return {
                         ...previous,
-                        [key]: {
-                            reference: previous[key]?.reference ?? new StandardReference(reference),
-                            grants: [...(previous[key]?.grants ?? []), ...standardGrantItems]
-                        }
+                        [key]: new StandardAuthorizationResource(standardResource)
                     }
                 }
                 else {
                     return {
                         ...previous,
-                        '': {
-                            grants: [...(previous['']?.grants ?? []), ...standardGrantItems]
-                        }
+                        '': new StandardAuthorizationResource(standardResource)
                     }
                 }
             }, {})
@@ -112,7 +110,7 @@ export class StandardAuthorizationCollection {
                     }
                 ]
         
-                this._byId = processComponents({ componentTemplates, schema: node.children })
+                this._grants = Object.values(processAuthorizations({ componentTemplates, schema: node.children }))
                 return
             }
         }
@@ -127,7 +125,25 @@ export class StandardAuthorizationCollection {
         }
     }
 
-    get byId(): Record<string, StandardComponent> { return this._byId }
+    get byId(): Record<string, StandardAuthorizationResource> {
+        return this._grants.reduce<Record<string, StandardAuthorizationResource>>((previous, resource) => {
+            const key = resource.reference?.key ?? ''
+            if (!key) {
+                return previous
+            }
+            return {
+                ...previous,
+                [key]: resource
+            }
+        }, {})
+    }
+    get global(): StandardAuthorizationResource {
+        const globalResource = this._grants.find((resource) => (!resource.reference))
+        if (globalResource) {
+            return globalResource
+        }
+        return new StandardAuthorizationResource({ reference: undefined, grants: [] })
+    }
     get key(): string { return this._key }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {

@@ -64,24 +64,24 @@ export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRe
 
 export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEdit(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
 
-export type StandardAuthorizationCollectionGrantData = {
-    reference: StandardReferenceData;
+export type StandardAuthorizationResourceData = {
+    reference?: StandardReferenceData;
     grants: StandardAuthorizationData[];
 }
 
-export const isStandardAuthorizationCollectionGrantData = (arg: any): arg is StandardAuthorizationCollectionGrantData => {
+export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAuthorizationResourceData => {
     if (typeof arg !== 'object') {
         return false
     }
     return checkAll(
-        ('reference' in arg && isStandardReferenceData(arg.reference)),
+        (!('reference' in arg && arg.reference && !isStandardReferenceData(arg.reference))),
         ('grant' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }
 
 export type StandardAuthorizationCollectionData = {
     key: string;
-    grants: StandardAuthorizationCollectionGrantData[];
+    grants: StandardAuthorizationResourceData[];
 }
 
 export const isStandardAuthorizationCollection = (arg: any): arg is StandardAuthorizationCollectionData => {
@@ -90,6 +90,6 @@ export const isStandardAuthorizationCollection = (arg: any): arg is StandardAuth
     }
     return checkAll(
         ('key' in arg && typeof arg.key === 'string'),
-        ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationCollectionGrantData))
+        ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationResourceData))
     )
 }
