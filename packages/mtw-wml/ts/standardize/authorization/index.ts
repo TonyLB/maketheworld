@@ -11,7 +11,7 @@ import { isLegalKey, nodeFromWML } from "../utils"
 import StandardReference from "../components/reference"
 import { isSchemaTreeNode } from "../components/utils"
 import { ComponentProcessingTemplate } from "../processComponents"
-import { standardAuthorizationFactory } from "./authorizationFacory"
+import { standardAuthorizationFactory } from "./authorizationFactory"
 import { excludeUndefined } from "../../lib/lists"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {

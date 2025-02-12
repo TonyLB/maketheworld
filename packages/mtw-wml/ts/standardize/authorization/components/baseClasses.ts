@@ -4,6 +4,7 @@ import { NestedSchemaOptions, StandardDiffOptions, StandardToJSONOptions } from 
 import { StandardAuthorizationData } from "./dataTypes";
 
 export interface StandardAuthorizationItem {
+    player: string;
     clone(): StandardAuthorizationItem;
     tag: 'Grant' | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardAuthorizationData;
