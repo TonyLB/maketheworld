@@ -189,16 +189,18 @@ export const mergeAuthWithEdits = (base: StandardAuthorizationItem, incomingComp
             }
             else {
                 //
-                // Remove should evaluate the match and then remove the relevant component
+                // Remove should evaluate the match and then remove the relevant grants
                 //
                 if (incomingComponent instanceof StandardAuthRemove) {
                     if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {
+                        console.log(`base: ${JSON.stringify(base.toJSON(), null, 4)}`)
+                        console.log(`incoming: ${JSON.stringify(incomingComponent._match.toJSON(), null, 4)}`)
                         throw new MergeConflictError()
                     }
                     return undefined
                 }
                 //
-                // Replace should evaluate the match and then replace the relevant component
+                // Replace should evaluate the match and then replace the relevant grants
                 //
                 if (incomingComponent instanceof StandardAuthReplace) {
                     if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {

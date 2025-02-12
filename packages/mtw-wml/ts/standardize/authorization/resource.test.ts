@@ -4,6 +4,7 @@ import { StandardAuthorizationItem } from "./components/baseClasses"
 import StandardGrant from "./components/grant"
 import { schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
+import { StandardAuthRemove, StandardAuthReplace } from "./components/edits"
 
 describe('StandardAuthorizationResource class', () => {
 
@@ -66,6 +67,35 @@ describe('StandardAuthorizationResource class', () => {
         const resource2 = new StandardAuthorizationResource({ reference, grants })
         const mergedResource = resource1.merge(resource2)
         expect(mergedResource.grants).toEqual(grants)
+    })
+
+    it('should handle merging remove elements', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] })
+        ]
+        const resource1 = new StandardAuthorizationResource({ reference, grants })
+        const resource2 = new StandardAuthorizationResource({ reference, grants: [
+            new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }))
+        ] })
+        const mergedResource = resource1.merge(resource2)
+        expect(mergedResource.grants).toEqual([new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })])
+    })
+
+    it('should handle merging replace elements', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] })
+        ]
+        const resource1 = new StandardAuthorizationResource({ reference, grants })
+        const resource2 = new StandardAuthorizationResource({ reference, grants: [
+            new StandardAuthReplace(
+                new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }),
+                new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action3'] })
+            )
+        ] })
+        const mergedResource = resource1.merge(resource2)
+        expect(mergedResource.grants).toEqual([new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action3'] })])
     })
 
     it('should render schema for resource with reference', () => {

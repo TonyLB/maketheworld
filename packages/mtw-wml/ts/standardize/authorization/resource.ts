@@ -3,6 +3,7 @@ import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardAuthorizationResourceData } from "./components/dataTypes";
+import { mergeAuthWithEdits } from "./components/edits";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
@@ -14,11 +15,8 @@ export class StandardAuthorizationResource {
             this.grants = props.grants
         }
         else {
-            if (typeof props.reference !== 'object') {
-                throw new Error('Invalid argument in StandardAuthorizationResource')
-            }
             const { reference, grants } = props
-            this.reference = reference as StandardReference;
+            this.reference = reference as StandardReference | undefined;
             this.grants = grants as StandardAuthorizationItem[];
         }
     }
@@ -33,7 +31,6 @@ export class StandardAuthorizationResource {
     get schema(): GenericTree<SchemaTag> {
         const reference = this.reference?.schema
         const grants = this.grants.map(grant => grant.schema)
-        console.log(`reference: ${JSON.stringify(reference, null, 4)}`)
         if (reference) {
             return [{
                 data: reference.data,
@@ -49,7 +46,7 @@ export class StandardAuthorizationResource {
         const newGrants = incoming.grants.reduce((previous, grant) => {
             const base = previous.find(baseGrant => baseGrant.player === grant.player)
             if (base) {
-                const merged = base.merge(grant)
+                const merged = mergeAuthWithEdits(base, grant)
                 if (merged) {
                     return [...previous.filter(baseGrant => baseGrant.player !== grant.player), merged]
                 }
