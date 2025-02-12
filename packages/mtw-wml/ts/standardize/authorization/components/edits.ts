@@ -24,6 +24,8 @@ export class StandardAuthRemove implements StandardAuthorizationItem {
         return
     }
 
+    get player() { return this._match.player }
+    
     clone(): StandardAuthRemove {
         return new StandardAuthRemove(this)
     }
@@ -88,6 +90,8 @@ export class StandardAuthReplace implements StandardAuthorizationItem {
         }
         throw new Error('StandardReplace constructor called with invalid arguments')
     }
+
+    get player() { return this._match.player }
 
     clone(): StandardAuthorizationItem {
         return new StandardAuthReplace(this)
