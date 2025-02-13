@@ -18,11 +18,11 @@ import { StandardAuthorizationResource } from "./resource"
 //
 // TODO: Create StandardAuthorizationCollection class, and use that to handle merge processes in this function
 //
-const mergeAuthByIds = (byId: Record<string, StandardAuthorizationItem[]>, newById: Record<string, StandardAuthorizationItem[]>): Record<string, StandardAuthorizationItem[]> => {
+const mergeAuthByIds = (byId: Record<string, StandardAuthorizationResource>, newById: Record<string, StandardAuthorizationResource>): Record<string, StandardAuthorizationResource> => {
     return Object.entries(newById).reduce((previous, [key, value]) => {
         const base = previous[key]
         if (base) {
-            const merged = mergeAuthWithEdits(base, value)
+            const merged = base.merge(value)
             if (merged) {
                 return { ...previous, [key]: merged }
             }
@@ -57,7 +57,7 @@ export const processAuthorizations = (props: {
         inContextOfRemove = false
     } = props
 
-    const recursiveById = schema.reduce<Record<string, StandardAuthorizationItem[]>>((previous, item) => {
+    const recursiveById = schema.reduce<Record<string, StandardAuthorizationResource>>((previous, item) => {
 
         //
         // If the item is a remove, set inContextOfRemove to true
@@ -80,15 +80,17 @@ export const processAuthorizations = (props: {
                 const matchById = processAuthorizations({ ...props, schema: replaceMatch.children })
                 const payloadById = processAuthorizations({ ...props, schema: replacePayload.children })
                 const mergedById = objectMerge(matchById, payloadById)
-                const replaceById = Object.entries(mergedById).reduce<Record<string, StandardAuthorizationItem>>((previous, [key, { itemA: matchComponent, itemB: payloadComponent }]) => {
-                    if (matchComponent && payloadComponent) {
-                        return { ...previous, [key]: new StandardAuthReplace(matchComponent, payloadComponent) }
+                const replaceById = Object.entries(mergedById).reduce<Record<string, StandardAuthorizationResource>>((previous, [key, { itemA: matchResource, itemB: payloadResource }]) => {
+                    if (matchResource && payloadResource) {
+                        const diff = matchResource.diff(payloadResource)
+                        return diff ? { ...previous, [key]: diff } : previous
                     }
-                    if (matchComponent) {
-                        return { ...previous, [key]: new StandardAuthRemove(matchComponent) }
+                    if (matchResource) {
+                        const diff = new StandardAuthorizationResource({ reference: matchResource.reference, grants: [] }).diff(matchResource)
+                        return diff ? { ...previous, [key]: diff } : previous
                     }
-                    if (payloadComponent) {
-                        return { ...previous, [key]: payloadComponent }
+                    if (payloadResource) {
+                        return { ...previous, [key]: payloadResource }
                     }
                     return previous
                 }, {})
@@ -122,9 +124,12 @@ export const processAuthorizations = (props: {
         if (treeNodeTypeguard(isSchemaGrant)(item)) {
             //
             // Create a reference to the nearest parent in the componentContext, and use
-            // that to create a new StandardGrant object
+            // that to create a new StandardAuthorizationResource object to merge.
             //
-            return mergeAuthByIds(previous, { [item.data.key]: new StandardGrant(item) })
+            const reference = componentContext.slice(-1)[0]
+            const key = reference?.key ?? ''
+            const itemResource = new StandardAuthorizationResource({ reference, grants: [new StandardGrant(item)] })
+            return mergeAuthByIds(previous, { [key]: itemResource })
         }
         return mergeAuthByIds(previous, processAuthorizations({ ...props, schema: item.children }))
     }, {})

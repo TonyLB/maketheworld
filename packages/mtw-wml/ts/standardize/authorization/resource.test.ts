@@ -124,4 +124,59 @@ describe('StandardAuthorizationResource class', () => {
             <Grant player=(player2) actions="action2" />
         `))
     })
+
+    it('should diff added grants', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants1: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })
+        ]
+        const grants2: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
+        ]
+        const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
+        const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
+        const diffResource = resource1.diff(resource2)
+        expect(diffResource).toEqual(new StandardAuthorizationResource({ reference, grants: [
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
+        ] }))
+    })
+
+    it('should diff removed grants', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants1: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
+        ]
+        const grants2: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })
+        ]
+        const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
+        const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
+        const diffResource = resource1.diff(resource2)
+        expect(diffResource).toEqual(new StandardAuthorizationResource({ reference, grants: [
+            new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] }))
+        ] }))
+    })
+
+    it('should diff changed grants', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants1: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action1', 'action2'] })
+        ]
+        const grants2: StandardAuthorizationItem[] = [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action1', 'action3'] })
+        ]
+        const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
+        const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
+        const diffResource = resource1.diff(resource2)
+        expect(diffResource).toEqual(new StandardAuthorizationResource({ reference, grants: [
+            new StandardAuthReplace(
+                new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] }),
+                new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action3'] })
+            )
+        ] }))
+    })
 })

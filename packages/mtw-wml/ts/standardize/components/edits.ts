@@ -152,8 +152,6 @@ export class StandardReplace implements StandardComponent {
             const match = propsArray[0] as StandardComponent
             const payload = propsArray[1] as StandardComponent
             if (!(match.key === payload.key && match.tag === payload.tag)) {
-                console.log(`Match: ${JSON.stringify(match.toJSON())}`)
-                console.log(`Payload: ${JSON.stringify(payload.toJSON())}`)
                 throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
             }
             this._match = match
