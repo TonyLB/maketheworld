@@ -10,6 +10,7 @@ import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import { StandardAuthorizationCollectionGrant } from "."
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
+import StandardReference from "../components/reference"
 
 //
 // mergeAuthByIds takes two objects keyed by resource ID and merges them together, using the merge method of the StandardAuthorizationItem class.
@@ -128,7 +129,14 @@ export const processAuthorizations = (props: {
             //
             const reference = componentContext.slice(-1)[0]
             const key = reference?.key ?? ''
-            const itemResource = new StandardAuthorizationResource({ reference, grants: [new StandardGrant(item)] })
+            const itemResource = new StandardAuthorizationResource({
+                reference: new StandardReference(reference),
+                grants: [
+                    inContextOfRemove
+                        ? new StandardAuthRemove(new StandardGrant(item))
+                        : new StandardGrant(item)
+                ]
+            })
             return mergeAuthByIds(previous, { [key]: itemResource })
         }
         return mergeAuthByIds(previous, processAuthorizations({ ...props, schema: item.children }))
