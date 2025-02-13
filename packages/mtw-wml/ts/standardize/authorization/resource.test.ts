@@ -175,13 +175,15 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action1', 'action2'] })
         ]
         const grants2: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action1', 'action3'] })
         ]
         const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
         const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
         const diffResource = resource1.diff(resource2)
+        console.log(`diffResource: ${JSON.stringify(diffResource?.toJSON(), null, 4)}`)
         expect(diffResource).toEqual(new StandardAuthorizationResource({ reference, grants: [
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }),
             new StandardAuthReplace(
                 new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] }),
                 new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action3'] })

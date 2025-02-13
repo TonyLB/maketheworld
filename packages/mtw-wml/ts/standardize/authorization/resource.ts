@@ -7,6 +7,8 @@ import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./c
 import StandardGrant from "./components/grant";
 import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
+import { diffSignedStringSets, removeStringsFromList, SignedStringSet } from "./components/utils";
+import { unique } from "../../list";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
@@ -72,16 +74,45 @@ export class StandardAuthorizationResource {
     }
 
     diff(incoming: StandardAuthorizationResource): StandardAuthorizationResource | undefined {
-        const allPlayers = [...this.grants, ...incoming.grants].map(grant => grant.player)
+        const allPlayers = unique([...this.grants, ...incoming.grants].map(grant => grant.player))
         const newGrants = allPlayers.reduce((previous, player) => {
             const base = this.grants.find(baseGrant => baseGrant.player === player) ?? new StandardGrant({ tag: 'Grant', player, actions: [] })
             const incomingGrant = incoming.grants.find(incomingGrant => incomingGrant.player === player) ?? new StandardGrant({ tag: 'Grant', player, actions: [] })
-            const diff = base.diff(incomingGrant)
-            if (diff) {
-                return [...previous, diff]
+            const baseSignedActions: SignedStringSet = base instanceof StandardAuthReplace
+                ? {
+                    add: base._payload instanceof StandardGrant ? base._payload.actions : [],
+                    remove: base._match instanceof StandardGrant ? base._match.actions : []
+                }
+                : base instanceof StandardAuthRemove
+                    ? { add: [], remove: base._match instanceof StandardGrant ? base._match.actions : [] }
+                    : { add: base instanceof StandardGrant ? base.actions : [], remove: [] }
+            const incomingSignedActions: SignedStringSet = incomingGrant instanceof StandardAuthReplace
+                ? {
+                    add: incomingGrant._payload instanceof StandardGrant ? incomingGrant._payload.actions : [],
+                    remove: incomingGrant._match instanceof StandardGrant ? incomingGrant._match.actions : []
+                }
+                : incomingGrant instanceof StandardAuthRemove
+                    ? { add: [], remove: incomingGrant._match instanceof StandardGrant ? incomingGrant._match.actions : [] }
+                    : { add: incomingGrant instanceof StandardGrant ? incomingGrant.actions : [], remove: [] }
+            const diffedActions = diffSignedStringSets(baseSignedActions, incomingSignedActions)
+            if (diffedActions.add.length > 0) {
+                if (diffedActions.remove.length > 0) {
+                    return [...previous, new StandardAuthReplace(
+                        new StandardGrant({ tag: 'Grant', player: base.player, actions: diffedActions.remove }),
+                        new StandardGrant({ tag: 'Grant', player: base.player, actions: diffedActions.add })
+                    )]
+                }
+                else {
+                    return [...previous, new StandardGrant({ tag: 'Grant', player: base.player, actions: diffedActions.add })]
+                }
             }
             else {
-                return previous
+                if (diffedActions.remove.length > 0) {
+                    return [...previous, new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: base.player, actions: diffedActions.remove }))]
+                }
+                else {
+                    return previous
+                }
             }
         }, [] as StandardAuthorizationItem[])
         if (newGrants.length > 0) {
