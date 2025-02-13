@@ -53,79 +53,103 @@ describe('StandardAuthorizationResource class', () => {
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(testWML))
     })
 
+    it('should correctly handle replace edits', () => {
+        const testWML = `
+            <Room key=(Room1)>
+                <Replace><Grant player=(player2) actions="action2" /></Replace>
+                <With><Grant player=(player2) actions="action3" /></With>
+            </Room>
+        `
+        const resource = new StandardAuthorizationResource(testWML)
+        expect(schemaToWML(resource.schema)).toEqual(deIndentWML(testWML))
+    })
+
     it('should merge StandardAuthorizationResource correctly', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants1: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })
-        ]
-        const grants2: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }),
-            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action3'] })
-        ]
-        const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
-        const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
-        const mergedResource = resource1.merge(resource2)
-        expect(mergedResource.grants).toEqual([
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] }),
-            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action3'] })
-        ])
+        const resourceOne = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+            </Room>
+        `)
+        const resourceTwo = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action2" />
+                <Grant player=(player2) actions="action3" />
+            </Room>
+        `)
+
+        const mergedResource = resourceOne.merge(resourceTwo)
+        expect(schemaToWML(mergedResource.schema)).toEqual(deIndentWML(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1, action2" />
+                <Grant player=(player2) actions="action3" />
+            </Room>
+        `))
     })
 
     it('should handle merging with no overlapping grants', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants1: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })
-        ]
-        const grants2: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
-        ]
-        const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
-        const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
-        const mergedResource = resource1.merge(resource2)
-        expect(mergedResource.grants).toEqual([
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
-            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
-        ])
+        const resourceOne = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+            </Room>
+        `)
+        const resourceTwo = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player2) actions="action2" />
+            </Room>
+        `)
+        const mergedResource = resourceOne.merge(resourceTwo)
+        expect(schemaToWML(mergedResource.schema)).toEqual(deIndentWML(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+                <Grant player=(player2) actions="action2" />
+            </Room>
+        `))
     })
 
     it('should handle merging with identical grants', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })
-        ]
-        const resource1 = new StandardAuthorizationResource({ reference, grants })
-        const resource2 = new StandardAuthorizationResource({ reference, grants })
-        const mergedResource = resource1.merge(resource2)
-        expect(mergedResource.grants).toEqual(grants)
+        const testWML = `<Room key=(Room1)><Grant player=(player1) actions="action1" /></Room>`
+        const resourceOne = new StandardAuthorizationResource(testWML)
+        const mergedResource = resourceOne.merge(resourceOne)
+        expect(schemaToWML(mergedResource.schema)).toEqual(testWML)
     })
 
     it('should handle merging remove elements', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] })
-        ]
-        const resource1 = new StandardAuthorizationResource({ reference, grants })
-        const resource2 = new StandardAuthorizationResource({ reference, grants: [
-            new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }))
-        ] })
-        const mergedResource = resource1.merge(resource2)
-        expect(mergedResource.grants).toEqual([new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] })])
+        const base = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1, action2" />
+            </Room>
+        `)
+        const incoming = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Remove><Grant player=(player1) actions="action2" /></Remove>
+            </Room>
+        `)
+        const mergedResource = base.merge(incoming)
+        expect(schemaToWML(mergedResource.schema)).toEqual(deIndentWML(`
+            <Room key=(Room1)><Grant player=(player1) actions="action1" /></Room>
+        `))
     })
 
     it('should handle merging replace elements', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants: StandardAuthorizationItem[] = [
-            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action2'] })
-        ]
-        const resource1 = new StandardAuthorizationResource({ reference, grants })
-        const resource2 = new StandardAuthorizationResource({ reference, grants: [
-            new StandardAuthReplace(
-                new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }),
-                new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action3'] })
-            )
-        ] })
-        const mergedResource = resource1.merge(resource2)
-        expect(mergedResource.grants).toEqual([new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1', 'action3'] })])
+        const base = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1, action2" />
+            </Room>
+        `)
+        const incoming = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Replace>
+                    <Grant player=(player1) actions="action2" />
+                </Replace>
+                <With>
+                    <Grant player=(player1) actions="action3" />
+                </With>
+            </Room>
+        `)
+        const mergedResource = base.merge(incoming)
+        expect(schemaToWML(mergedResource.schema)).toEqual(deIndentWML(`
+            <Room key=(Room1)><Grant player=(player1) actions="action1, action3" /></Room>
+        `))
     })
 
     it('should render schema for resource with reference', () => {

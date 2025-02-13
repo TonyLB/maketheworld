@@ -46,8 +46,8 @@ export const standardAuthorizationFactory = (arg: StandardAuthorizationData | Ge
     }
     if (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaReplace)(arg)) {
         const { children } = arg
-        const match = children.find(isSchemaReplaceMatch)
-        const payload = children.find(isSchemaReplacePayload)
+        const match = children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+        const payload = children.find(treeNodeTypeguard(isSchemaReplacePayload))
         if (match?.children?.length !== 1) {
             throw new Error("SchemaReplace must have exactly one match child")
         }
