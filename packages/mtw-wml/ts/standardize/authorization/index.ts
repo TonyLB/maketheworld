@@ -171,10 +171,7 @@ export class StandardAuthorizationCollection {
 
     _clone(): StandardAuthorizationCollection {
         const returnValue = new StandardAuthorizationCollection(this.key)
-        returnValue._grants = this._grants.map(({ reference, grants }) => ({
-            reference: reference?.clone(),
-            grants: grants.map((grant) => (grant.clone()))
-        }))
+        returnValue._grants = this._grants.map((resource) => (resource.clone()))
         return returnValue
     }
 
