@@ -6,6 +6,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardAuthorizationItem } from "./baseClasses";
 import StandardGrant from "./grant";
+import { unique } from "../../../list";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -141,81 +142,55 @@ export class StandardAuthReplace implements StandardAuthorizationItem {
 
 }
 
+const removeStringsFromList = (base: string[], remove: string[]): string[] => {
+    return base.filter(item => !remove.includes(item))
+}
+
+const addStringsToList = (base: string[], add: string[]): string[] => {
+    return unique(base, add)
+}
+
 export const mergeAuthWithEdits = (base: StandardAuthorizationItem, incomingComponent: StandardAuthorizationItem): StandardAuthorizationItem | undefined => {
     //
     // Branch out to the several possible cases of combining edit tags and/or content
     //
-    if (base) {
-        if (incomingComponent) {
-            if (base instanceof StandardAuthRemove) {
-                if (incomingComponent instanceof StandardAuthRemove) {
-                    throw new Error('StandardRemove types cannot be directly merged')
-                }
-                if (incomingComponent instanceof StandardAuthReplace) {
-                    throw new MergeConflictError()
-                }
-                //
-                // A remove operation followed by an add should be merged into a Replace
-                //
-                return new StandardAuthReplace(base._match, incomingComponent)
-            }
-            else if (base instanceof StandardAuthReplace) {
-                //
-                // A replace followed by a remove should be merged into a remove of the original content
-                //
-                if (incomingComponent instanceof StandardAuthRemove) {
-                    if (!deepEqual(base._payload.toJSON(), incomingComponent._match.toJSON())) {
-                        throw new MergeConflictError()
-                    }
-                    return new StandardAuthRemove(base._match)
-                }
-                //
-                // Two replace operations should be merged into a single chained operation
-                //
-                if (incomingComponent instanceof StandardAuthReplace) {
-                    if (!deepEqual(base._payload.toJSON(), incomingComponent._match.toJSON())) {
-                        throw new MergeConflictError()
-                    }
-                    return new StandardAuthReplace(base._match, incomingComponent._payload)
-                }
-                //
-                // A replace operation followed by more content should be merged to a replace with combined payload
-                //
-                const mergedPayload = base._payload.merge(incomingComponent)
-                if (!mergedPayload) {
-                    throw new MergeConflictError()
-                }
-                return new StandardAuthReplace(base._match, mergedPayload)
-            }
-            else {
-                //
-                // Remove should evaluate the match and then remove the relevant grants
-                //
-                if (incomingComponent instanceof StandardAuthRemove) {
-                    if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {
-                        console.log(`base: ${JSON.stringify(base.toJSON(), null, 4)}`)
-                        console.log(`incoming: ${JSON.stringify(incomingComponent._match.toJSON(), null, 4)}`)
-                        throw new MergeConflictError()
-                    }
-                    return undefined
-                }
-                //
-                // Replace should evaluate the match and then replace the relevant grants
-                //
-                if (incomingComponent instanceof StandardAuthReplace) {
-                    if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {
-                        throw new MergeConflictError()
-                    }
-                    return incomingComponent._payload
-                }
-                return base.merge(incomingComponent as any)
-            }
-        }
-        else {
-            return base
-        }
+    const actionsToAddRaw = addStringsToList(
+        base instanceof StandardAuthRemove
+            ? []
+            : base instanceof StandardAuthReplace
+                ? (base._payload as StandardGrant).actions
+                : (base as StandardGrant).actions,
+        incomingComponent instanceof StandardAuthRemove
+            ? []
+            : incomingComponent instanceof StandardAuthReplace
+                ? (incomingComponent._payload as StandardGrant).actions
+                : (incomingComponent as StandardGrant).actions
+    )
+    const actionsToRemoveRaw = addStringsToList(
+        base instanceof StandardAuthRemove
+            ? (base._match as StandardGrant).actions
+            : base instanceof StandardAuthReplace
+                ? (base._match as StandardGrant).actions
+                : [],
+        incomingComponent instanceof StandardAuthRemove
+            ? (incomingComponent._match as StandardGrant).actions
+            : incomingComponent instanceof StandardAuthReplace
+                ? (incomingComponent._match as StandardGrant).actions
+                : []
+    )
+    const actionsToAdd = removeStringsFromList(actionsToAddRaw, actionsToRemoveRaw)
+    const actionsToRemove = removeStringsFromList(actionsToRemoveRaw, actionsToAddRaw)
+    if (actionsToAdd.length === 0 && actionsToRemove.length === 0) {
+        return undefined
     }
-    else {
-        return incomingComponent
+    if (actionsToRemove.length === 0) {
+        return new StandardGrant({ tag: 'Grant', player: base.player, actions: actionsToAdd })
     }
+    if (actionsToAdd.length === 0) {
+        return new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: base.player, actions: actionsToRemove }))
+    }
+    return new StandardAuthReplace(
+        new StandardGrant({ tag: 'Grant', player: base.player, actions: actionsToRemove }),
+        new StandardGrant({ tag: 'Grant', player: base.player, actions: actionsToAdd })
+    )
 }
