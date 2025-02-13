@@ -23,6 +23,15 @@ describe('StandardAuthorizationResource class', () => {
         })
     })
 
+    it('should correctly handle remove edits', () => {
+        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const grants: StandardAuthorizationItem[] = [
+            new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }))
+        ]
+        const resource = new StandardAuthorizationResource({ reference, grants })
+        expect(resource.grants).toEqual(grants)
+    })
+
     it('should merge StandardAuthorizationResource correctly', () => {
         const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
         const grants1: StandardAuthorizationItem[] = [

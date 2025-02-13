@@ -2,8 +2,8 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardAuthorizationResourceData } from "./components/dataTypes";
-import { mergeAuthWithEdits } from "./components/edits";
+import { isStandardAuthorizationResourceData, StandardAuthorizationResourceData } from "./components/dataTypes";
+import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits";
 import StandardGrant from "./components/grant";
 import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
@@ -13,14 +13,17 @@ export class StandardAuthorizationResource {
     grants: StandardAuthorizationItem[] = [];
 
     constructor(props: { reference?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData) {
-        if (props instanceof StandardAuthorizationResource) {
-            this.reference = props.reference
-            this.grants = props.grants
-        }
-        else {
-            const { reference, grants } = props as StandardAuthorizationResourceData
+        if (isStandardAuthorizationResourceData(props)) {
+            const { reference, grants } = props
             this.reference = reference ? new StandardReference(reference) : undefined
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+        }
+        else {
+            if (!(props.grants.every(grant => (grant instanceof StandardGrant || grant instanceof StandardAuthRemove || grant instanceof StandardAuthReplace)) && (!props.reference || props.reference instanceof StandardReference))) {
+                throw new Error('Invalid StandardAuthorizationResource props')
+            }
+            this.reference = props.reference
+            this.grants = props.grants
         }
     }
 
@@ -46,15 +49,19 @@ export class StandardAuthorizationResource {
     }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {
+        console.log(`merging: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
         const newGrants = incoming.grants.reduce((previous, grant) => {
             const base = previous.find(baseGrant => baseGrant.player === grant.player)
+            console.log(`base: ${JSON.stringify(base?.toJSON(), null, 4)}`)
             if (base) {
+                const previousWithoutMatch = previous.filter(baseGrant => baseGrant.player !== grant.player)
                 const merged = mergeAuthWithEdits(base, grant)
+                console.log(`merged: ${JSON.stringify(merged?.toJSON(), null, 4)}`)
                 if (merged) {
-                    return [...previous.filter(baseGrant => baseGrant.player !== grant.player), merged]
+                    return [...previousWithoutMatch, merged]
                 }
                 else {
-                    return previous
+                    return previousWithoutMatch
                 }
             }
             else {
