@@ -7,26 +7,37 @@ import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./c
 import StandardGrant from "./components/grant";
 import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
-import { diffSignedStringSets, removeStringsFromList, SignedStringSet } from "./components/utils";
+import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
+import { treeFromWML } from "../utils";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
     grants: StandardAuthorizationItem[] = [];
 
-    constructor(props: { reference?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData) {
+    constructor(props: { reference?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string) {
         if (isStandardAuthorizationResourceData(props)) {
             const { reference, grants } = props
             this.reference = reference ? new StandardReference(reference) : undefined
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+            return
         }
-        else {
+        else if (typeof props === 'object') {
+            if (!('grants' in props)) {
+                throw new Error('Invalid StandardAuthorizationResource props')
+            }
             if (!(props.grants.every(grant => (grant instanceof StandardGrant || grant instanceof StandardAuthRemove || grant instanceof StandardAuthReplace)) && (!props.reference || props.reference instanceof StandardReference))) {
                 throw new Error('Invalid StandardAuthorizationResource props')
             }
             this.reference = props.reference
             this.grants = props.grants
+            return
         }
+        const schema = typeof props === 'string' ? treeFromWML(props) : props
+        const reference = schema.length === 1 ? new StandardReference(schema[0]) : undefined
+        const grants = reference ? schema[0].children.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) : schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+        this.reference = reference
+        this.grants = grants
     }
 
     toJSON() {
@@ -51,14 +62,11 @@ export class StandardAuthorizationResource {
     }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {
-        console.log(`merging: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
         const newGrants = incoming.grants.reduce((previous, grant) => {
             const base = previous.find(baseGrant => baseGrant.player === grant.player)
-            console.log(`base: ${JSON.stringify(base?.toJSON(), null, 4)}`)
             if (base) {
                 const previousWithoutMatch = previous.filter(baseGrant => baseGrant.player !== grant.player)
                 const merged = mergeAuthWithEdits(base, grant)
-                console.log(`merged: ${JSON.stringify(merged?.toJSON(), null, 4)}`)
                 if (merged) {
                     return [...previousWithoutMatch, merged]
                 }
