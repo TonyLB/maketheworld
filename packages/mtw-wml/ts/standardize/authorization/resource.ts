@@ -48,6 +48,13 @@ export class StandardAuthorizationResource {
         }
     }
 
+    clone(): StandardAuthorizationResource {
+        return new StandardAuthorizationResource({
+            reference: this.reference?.clone(),
+            grants: this.grants.map(grant => grant.clone())
+        })
+    }
+
     get schema(): GenericTree<SchemaTag> {
         const reference = this.reference?.schema
         const grants = this.grants.map(grant => grant.schema)
