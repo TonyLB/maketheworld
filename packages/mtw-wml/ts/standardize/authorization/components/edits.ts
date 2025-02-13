@@ -7,6 +7,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardAuthorizationItem } from "./baseClasses";
 import StandardGrant from "./grant";
 import { addStringsToList, removeStringsFromList } from "./utils";
+import { isStandardAuthorizationNonEdit, StandardAuthorizationNonEdit } from "./nonEdit";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -14,14 +15,17 @@ import { addStringsToList, removeStringsFromList } from "./utils";
 // at the StandardForm level, rather than on the individual component classes.
 //
 export class StandardAuthRemove implements StandardAuthorizationItem {
-    _match: StandardAuthorizationItem;
+    _match: StandardAuthorizationNonEdit;
     tag: 'Grant' | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardAuthRemove | StandardAuthorizationItem) {
         if (props instanceof StandardAuthRemove) {
             this._match = props._match.clone()
             return
         }
-        this._match = props as StandardAuthorizationItem
+        if (!isStandardAuthorizationNonEdit(props)) {
+            throw new Error('Invalid StandardAuthRemove props')
+        }
+        this._match = props
         return
     }
 
@@ -72,13 +76,16 @@ export class StandardAuthRemove implements StandardAuthorizationItem {
 // at the StandardForm level, rather than on the individual component classes.
 //
 export class StandardAuthReplace implements StandardAuthorizationItem {
-    _match: StandardAuthorizationItem;
-    _payload: StandardAuthorizationItem;
+    _match: StandardAuthorizationNonEdit;
+    _payload: StandardAuthorizationNonEdit;
     tag: 'Grant' | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardAuthReplace] | [StandardAuthorizationItem, StandardAuthorizationItem]) {
         if (propsArray.length > 1) {
-            const match = propsArray[0] as StandardAuthorizationItem
-            const payload = propsArray[1] as StandardAuthorizationItem
+            const match = propsArray[0]
+            const payload = propsArray[1]
+            if (!(isStandardAuthorizationNonEdit(match) && isStandardAuthorizationNonEdit(payload))) {
+                throw new Error('Invalid StandardAuthReplace props')
+            }
             this._match = match
             this._payload = payload
             return

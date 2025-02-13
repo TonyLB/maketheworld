@@ -7,6 +7,7 @@ import { isStandardAuthRemove, isStandardAuthReplace, isStandardGrant, StandardA
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import StandardGrant from "./components/grant"
+import { isStandardAuthorizationNonEdit } from "./components/nonEdit"
 
 //
 // standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,
@@ -31,14 +32,14 @@ export const standardAuthorizationFactory = (arg: StandardAuthorizationData | Ge
             throw new Error("SchemaRemove must have exactly one child")
         }
         const childComponent = standardAuthorizationFactory(children[0])
-        if (!childComponent) {
+        if (!(childComponent && isStandardAuthorizationNonEdit(childComponent))) {
             throw new Error("SchemaRemove must have a valid child component")
         }
         return new StandardAuthRemove(childComponent)
     }
     if (!isSchemaTreeNode(arg) && isStandardAuthRemove(arg)) {
         const childComponent = standardAuthorizationFactory(arg.component)
-        if (!childComponent) {
+        if (!(childComponent && isStandardAuthorizationNonEdit(childComponent))) {
             throw new Error("SchemaRemove must have a valid child component")
         }
         return new StandardAuthRemove(childComponent)
@@ -55,7 +56,7 @@ export const standardAuthorizationFactory = (arg: StandardAuthorizationData | Ge
         }
         const matchComponent = standardAuthorizationFactory(match.children[0])
         const payloadComponent = standardAuthorizationFactory(payload.children[0])
-        if (!matchComponent || !payloadComponent) {
+        if (!(matchComponent && isStandardAuthorizationNonEdit(matchComponent) && payloadComponent && isStandardAuthorizationNonEdit(payloadComponent))) {
             throw new Error("SchemaReplace must have valid child components")
         }
         return new StandardAuthReplace(matchComponent, payloadComponent)

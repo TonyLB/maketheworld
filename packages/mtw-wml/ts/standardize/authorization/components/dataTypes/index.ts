@@ -19,7 +19,7 @@ export type StandardAuthReplaceData = {
     payload: StandardAuthNonEditData;
 }
 
-export const isStandardAuthNonEdit = (value: any): value is StandardAuthNonEditData => (
+export const isStandardAuthNonEditData = (value: any): value is StandardAuthNonEditData => (
     isStandardGrant(value)
 )
 
@@ -29,7 +29,7 @@ export const isStandardAuthRemoveWithOptions = (options: { typeGuard?: (value: a
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Remove'),
-        ('component' in arg && (options.typeGuard ?? isStandardAuthNonEdit)(arg.component))
+        ('component' in arg && (options.typeGuard ?? isStandardAuthNonEditData)(arg.component))
     )
 }
 
@@ -41,15 +41,15 @@ export const isStandardAuthReplaceWithOptions = (options: { typeGuard?: (value: 
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Replace'),
-        ('match' in arg && (options.typeGuard ?? isStandardAuthNonEdit)(arg.match)),
-        ('payload' in arg && (options.typeGuard ?? isStandardAuthNonEdit)(arg.payload))
+        ('match' in arg && (options.typeGuard ?? isStandardAuthNonEditData)(arg.match)),
+        ('payload' in arg && (options.typeGuard ?? isStandardAuthNonEditData)(arg.payload))
     )
 }
 
 export const isStandardAuthReplace = isStandardAuthReplaceWithOptions()
 
 export const unwrapStandardAuthComponent = (component: StandardAuthorizationData): StandardAuthNonEditData => {
-    if (isStandardAuthNonEdit(component)) {
+    if (isStandardAuthNonEditData(component)) {
         return component
     }
     else if (isStandardAuthRemove(component)) {
@@ -62,7 +62,7 @@ export const unwrapStandardAuthComponent = (component: StandardAuthorizationData
 
 export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRemoveData | StandardAuthReplaceData
 
-export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEdit(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
+export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEditData(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
 
 export type StandardAuthorizationResourceData = {
     reference?: StandardReferenceData;

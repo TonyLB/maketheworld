@@ -23,13 +23,34 @@ describe('StandardAuthorizationResource class', () => {
         })
     })
 
+    it('should construct resource grant from WML', () => {
+        const wml = deIndentWML(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+                <Grant player=(player2) actions="action2" />
+            </Room>
+        `)
+        const resource = new StandardAuthorizationResource(wml)
+        expect(schemaToWML(resource.schema)).toEqual(wml)
+    })
+
+    it('should construct global grants from WML', () => {
+        const wml = deIndentWML(`
+            <Grant player=(player1) actions="action1" />
+            <Grant player=(player2) actions="action2" />
+        `)
+        const resource = new StandardAuthorizationResource(wml)
+        expect(schemaToWML(resource.schema)).toEqual(wml)
+    })
+
     it('should correctly handle remove edits', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
-        const grants: StandardAuthorizationItem[] = [
-            new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }))
-        ]
-        const resource = new StandardAuthorizationResource({ reference, grants })
-        expect(resource.grants).toEqual(grants)
+        const testWML = `
+            <Room key=(Room1)>
+                <Remove><Grant player=(player2) actions="action2" /></Remove>
+            </Room>
+        `
+        const resource = new StandardAuthorizationResource(testWML)
+        expect(schemaToWML(resource.schema)).toEqual(deIndentWML(testWML))
     })
 
     it('should merge StandardAuthorizationResource correctly', () => {
@@ -181,7 +202,6 @@ describe('StandardAuthorizationResource class', () => {
         const resource1 = new StandardAuthorizationResource({ reference, grants: grants1 })
         const resource2 = new StandardAuthorizationResource({ reference, grants: grants2 })
         const diffResource = resource1.diff(resource2)
-        console.log(`diffResource: ${JSON.stringify(diffResource?.toJSON(), null, 4)}`)
         expect(diffResource).toEqual(new StandardAuthorizationResource({ reference, grants: [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action2'] }),
             new StandardAuthReplace(
