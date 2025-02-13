@@ -5,6 +5,8 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardAuthorizationResourceData } from "./components/dataTypes";
 import { mergeAuthWithEdits } from "./components/edits";
 import StandardGrant from "./components/grant";
+import { standardAuthorizationFactory } from "./authorizationFactory";
+import { excludeUndefined } from "../../lib/lists";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
@@ -16,9 +18,9 @@ export class StandardAuthorizationResource {
             this.grants = props.grants
         }
         else {
-            const { reference, grants } = props
-            this.reference = reference as StandardReference | undefined;
-            this.grants = grants as StandardAuthorizationItem[];
+            const { reference, grants } = props as StandardAuthorizationResourceData
+            this.reference = reference ? new StandardReference(reference) : undefined
+            this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
         }
     }
 
