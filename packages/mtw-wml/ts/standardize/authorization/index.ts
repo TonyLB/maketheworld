@@ -18,6 +18,7 @@ import { StandardAuthorizationResource } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
 import { SerializeNDJSONMixin } from "../baseClasses"
 import { StandardToJSONOptions } from "../components/baseClasses"
+import { standardComponentSortOrder } from ".."
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -155,24 +156,16 @@ export class StandardAuthorizationCollection {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
-        const metaData = this.metaData
-        const children = Object.values(this._byId)
-            .filter(({ key }) => (!key.includes('.')))
-            .sort(standardComponentSortOrder(this._byId))
-            .map((component) => (component.nestedSchema(this._byId, {})))
-        const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
-        const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
+        const children = Object.values(this._grants)
+            //
+            // ISS5289: Recursively process in order to allow grants at all levels of
+            // a nested hierarchy
+            //
+            .map((resource) => (resource.schema))
+            .flat(1)
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
-            children: [
-                ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
-                ...imports,
-                //
-                // Don't include a separate schema entry for an import that doesn't change the component
-                //
-                ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                ...metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
-            ]
+            children
         }
     }
 
