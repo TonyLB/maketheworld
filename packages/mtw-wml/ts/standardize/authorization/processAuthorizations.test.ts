@@ -111,7 +111,7 @@ describe("processAuthorizations", () => {
                         <Grant player=(test1) actions="action1" />
                     </Replace>
                     <With>
-                        <Grant player=(test2) actions="action2" />
+                        <Grant player=(test1) actions="action2" />
                     </With>
                 </Room>
             </Asset>
@@ -127,7 +127,7 @@ describe("processAuthorizations", () => {
                 reference: new StandardReference({ key: 'test', tag: 'Room' }),
                 grants: [new StandardAuthReplace(
                     new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] }),
-                    new StandardGrant({ tag: 'Grant', player: 'test2', actions: ['action2'] })
+                    new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action2'] })
                 )]
             })
         })
