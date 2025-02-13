@@ -17,6 +17,7 @@ import processAuthorizations from "./processAuthorizations"
 import { StandardAuthorizationResource } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
 import { SerializeNDJSONMixin } from "../baseClasses"
+import { StandardToJSONOptions } from "../components/baseClasses"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -146,16 +147,10 @@ export class StandardAuthorizationCollection {
     }
     get key(): string { return this._key }
 
-    toJSON(options?: StandardToJSONOptions): StandardFormData {
+    toJSON(options?: StandardToJSONOptions): StandardAuthorizationCollectionData {
         return {
             key: this._key,
-            metaData: this.metaData,
-            byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
-                return {
-                    ...previous,
-                    [component.key]: component.toJSON(options) as StandardComponentData
-                }
-            }, {})
+            grants: this._grants.map((resource) => (resource.toJSON()))
         }
     }
 
