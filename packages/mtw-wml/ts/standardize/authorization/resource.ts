@@ -10,6 +10,7 @@ import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { treeFromWML } from "../utils";
+import { StandardReferenceData } from "../components/dataTypes";
 
 export class StandardAuthorizationResource {
     reference?: StandardReference;
@@ -40,9 +41,9 @@ export class StandardAuthorizationResource {
         this.grants = grants
     }
 
-    toJSON() {
+    toJSON(): StandardAuthorizationResourceData {
         return {
-            reference: this.reference?.toJSON(),
+            reference: this.reference?.toJSON() as StandardReferenceData | undefined,
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
