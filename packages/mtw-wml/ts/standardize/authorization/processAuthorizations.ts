@@ -69,10 +69,8 @@ export const processAuthorizations = (props: {
 
         //
         // If the item is a replace, manually create byId entries for the ReplaceMatch and ReplacePayload entries,
-        // then use objectMerge to generate a key-by-key comparison of the two:
-        //    - If the key is present in both, merge a StandardReplace entry
-        //    - If the key is present only in the ReplaceMatch, merge a StandardRemove entry
-        //    - If the key is present only in the ReplacePayload, merge the StandardComponent entry
+        // then use objectMerge to generate a key-by-key comparison of the two, using the diff method of the
+        // StandardAuthorizationResource class to generate the final result.
         //
         if (treeNodeTypeguard(isSchemaReplace)(item)) {
             const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))

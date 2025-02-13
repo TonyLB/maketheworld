@@ -1,12 +1,12 @@
 import { deepEqual } from "../../../lib/objects";
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { NestedSchemaOptions, StandardComponent } from "../../components/baseClasses";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { NestedSchemaOptions } from "../../components/baseClasses";
 import { StandardAuthNonEditData, StandardAuthRemoveData, StandardAuthReplaceData } from "./dataTypes";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardAuthorizationItem } from "./baseClasses";
 import StandardGrant from "./grant";
-import { unique } from "../../../list";
+import { addStringsToList, removeStringsFromList } from "./utils";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -140,14 +140,6 @@ export class StandardAuthReplace implements StandardAuthorizationItem {
         return undefined
     }
 
-}
-
-const removeStringsFromList = (base: string[], remove: string[]): string[] => {
-    return base.filter(item => !remove.includes(item))
-}
-
-const addStringsToList = (base: string[], add: string[]): string[] => {
-    return unique(base, add)
 }
 
 export const mergeAuthWithEdits = (base: StandardAuthorizationItem, incomingComponent: StandardAuthorizationItem): StandardAuthorizationItem | undefined => {
