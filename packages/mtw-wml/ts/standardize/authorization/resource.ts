@@ -75,6 +75,26 @@ export class StandardAuthorizationResource {
             return [{ data: reference.schema.data, children: previous }]
         }, grants)
     }
+    
+    get key(): string {
+        return this.referenceStack.map(reference => reference.key).join('.')
+    }
+
+    nestedSchema(byId: Record<string, StandardAuthorizationResource>): GenericTree<SchemaTag> {
+        const grants = this.grants.map(grant => grant.schema)
+        const children = Object.values(byId)
+            .filter((value) => value.referenceStack.length === this.referenceStack.length + 1 && value.referenceStack.slice(0, -1).every((reference, index) => reference.key === this.referenceStack[index].key))
+            .map((value) => value.nestedSchema(byId))
+            .flat(1)
+
+        const finalReference = this.referenceStack.slice(-1)[0]
+        if (finalReference) {
+            return [{ data: finalReference.schema.data, children: [...grants, ...children] }]
+        }
+        else {
+            return [...grants, ...children]
+        }
+    }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {
         const newGrants = incoming.grants.reduce((previous, grant) => {

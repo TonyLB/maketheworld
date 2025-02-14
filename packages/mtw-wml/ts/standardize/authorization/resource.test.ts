@@ -64,6 +64,45 @@ describe('StandardAuthorizationResource class', () => {
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(testWML))
     })
 
+    it('should correctly render nestedSchema', () => {
+        const room = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+            </Room>
+        `)
+        const featureOne = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Feature key=(Feature1)>
+                    <Grant player=(player1) actions="action2" />
+                </Feature>
+            </Room>
+        `)
+        const featureTwo = new StandardAuthorizationResource(`
+            <Room key=(Room1)>
+                <Feature key=(Feature2)>
+                    <Grant player=(player1) actions="action3" />
+                </Feature>
+            </Room>
+        `)
+        const byId = {
+            'Room1': room,
+            'Feature1': featureOne,
+            'Feature2': featureTwo
+        }
+        const schema = room.nestedSchema(byId)
+        expect(schemaToWML(schema)).toEqual(deIndentWML(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+                <Feature key=(Feature1)>
+                    <Grant player=(player1) actions="action2" />
+                </Feature>
+                <Feature key=(Feature2)>
+                    <Grant player=(player1) actions="action3" />
+                </Feature>
+            </Room>
+        `))
+    })
+
     it('should merge StandardAuthorizationResource correctly', () => {
         const resourceOne = new StandardAuthorizationResource(`
             <Room key=(Room1)>
