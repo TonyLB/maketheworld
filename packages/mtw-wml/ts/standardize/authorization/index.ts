@@ -19,6 +19,7 @@ import { StandardBaseData } from "../components/dataTypes/abstract"
 import { SerializeNDJSONMixin } from "../baseClasses"
 import { StandardToJSONOptions } from "../components/baseClasses"
 import { standardComponentSortOrder } from ".."
+import { unique } from "../../list"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -176,31 +177,26 @@ export class StandardAuthorizationCollection {
     }
 
     //
-    // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
-    // and merges all contents in place
+    // StandardAuthorizationCollection merge function collects and merges StandardAuthorizationResource
+    // entries
     //
-    merge(incoming: StandardForm): StandardForm {
-        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
-        const returnValue = this._clone()
-        returnValue._byId = allKeys
-            .reduce<Record<string, StandardComponent>>((previous, key) => {
-                const baseComponent = this._byId[key]
-                const incomingComponent = incoming._byId[key]
-                if (baseComponent && incomingComponent) {
-                    const mergedComponent = mergeWithEdits(baseComponent, incomingComponent)
-                    if (mergedComponent) {
-                        return { ...previous, [key]: mergedComponent }
-                    } else {
-                        const { [key]: _, ...rest } = previous
-                        return rest
-                    }
+    merge(incoming: StandardAuthorizationCollection): StandardAuthorizationCollection {
+        const allKeys = unique(
+            this._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.')),
+            incoming._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.'))
+        )
+        const newGrants = allKeys
+            .reduce<StandardAuthorizationResource[]>((previous, key) => {
+                const baseResource = this._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+                const incomingResource = incoming._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+                if (baseResource && incomingResource) {
+                    return [...previous, baseResource.merge(incomingResource)].filter(excludeUndefined)
                 }
                 else {
-                    return { ...previous, [key]: baseComponent ?? incomingComponent }
+                    return [...previous, baseResource ?? incomingResource].filter(excludeUndefined)
                 }
-            }, {})
-
-        return returnValue
+            }, [])
+        return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     diff(incoming: StandardForm): StandardForm {
