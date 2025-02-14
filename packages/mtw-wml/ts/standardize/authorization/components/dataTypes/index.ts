@@ -75,7 +75,7 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
     }
     return checkAll(
         ('referenceStack' in arg && Array.isArray(arg.referenceStack) && arg.referenceStack.every(isStandardReferenceData)),
-        ('grant' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
+        ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }
 
