@@ -199,77 +199,26 @@ export class StandardAuthorizationCollection {
         return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
-    diff(incoming: StandardForm): StandardForm {
-        //
-        // Merge the two forms, but only include stub components with the keys and tags in the merged form.
-        // This provides a base for standardComponentSortOrder to merge the two key lists in the correct order
-        // (without risking the possibility of merge conflicts that are irrelevant at this stage).
-        //
-        const mergedForKeys = new StandardForm({
-            key: this.key,
-            byId: [...Object.values(this._byId), ...Object.values(incoming._byId)]
-                .filter(excludeUndefined)
-                .reduce<Record<string, StandardComponentData>>((previous, component) => {
-                    return { ...previous, [component.key]: defaultComponentFromTag(component.tag, component.key) }
-                }, {}),
-            metaData: []
-        })
-        //
-        // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
-        // to diff the components in each StandardForm against each other.
-        //
+    diff(incoming: StandardAuthorizationCollection): StandardAuthorizationCollection {
         const allKeys = unique(
-            [...Object.values(this._byId), ...Object.values(incoming._byId)]
-            .filter(excludeUndefined)
-            .sort((a, b) => (standardComponentSortOrder(mergedForKeys._byId)(b, a)))
-            .map(({ key }) => (key))
+            this._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.')),
+            incoming._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.'))
         )
-        const returnValue = this._clone()
-        returnValue._byId = allKeys
-            .reduce<Record<string, StandardComponent>>((previous, key) => {
-                const baseComponent = this._byId[key]
-                const incomingComponent = incoming._byId[key]
-                if (baseComponent && incomingComponent) {
-                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
-                    const baseImport = baseComponent.import
-                    const incomingImport = incomingComponent.import
-                    const diffImport = (baseImport && incomingImport)
-                        ? baseImport.diff(incomingImport)
-                        : baseImport
-                            ? new ImportItemRemove(baseImport.assetId, baseImport.fromKey)
-                            : incomingImport
-                                ? incomingImport
-                                : undefined
-                    const baseExport = baseComponent.export
-                    const incomingExport = incomingComponent.export
-                    const diffExport = (baseExport && incomingExport)
-                        ? baseExport.diff(incomingExport)
-                        : baseExport
-                            ? new ExportItemRemove(baseExport.exportAs)
-                            : incomingExport
-                                ? incomingExport
-                                : undefined
-                    if (diffedComponent) {
-                        return { ...previous, [key]: diffedComponent.withImport(diffImport).withExport(diffExport) }
-                    } else {
-                        return previous
-                    }
+        const newGrants = allKeys
+            .reduce<StandardAuthorizationResource[]>((previous, key) => {
+                const baseResource = this._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+                const incomingResource = incoming._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+                if (baseResource && incomingResource) {
+                    return [...previous, baseResource.diff(incomingResource)].filter(excludeUndefined)
+                }
+                else if (incomingResource) {
+                    return [...previous, new StandardAuthorizationResource({ referenceStack: incomingResource?.referenceStack, grants: [] }).diff(incomingResource)].filter(excludeUndefined)
                 }
                 else {
-                    if (baseComponent) {
-                        return { ...previous, [key]: new StandardRemove(baseComponent) }
-                    }
-                    if (incomingComponent) {
-                        return { ...previous, [key]: incomingComponent }
-                    }
-                    throw new Error('diff error')
+                    return [...previous, baseResource].filter(excludeUndefined)
                 }
-            }, {})
-
-        const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
-        returnValue._metaData = applyEdits(combinedMetaData.tree)
-
-        return returnValue
+            }, [])
+        return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
