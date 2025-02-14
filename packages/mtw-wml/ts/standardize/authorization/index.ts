@@ -54,19 +54,10 @@ export class StandardAuthorizationCollection {
             this._key = args.key
 
             const grantsByReference = args.grants.reduce<Record<string, StandardAuthorizationResource>>((previous, standardResource) => {
-                const { reference, grants } = standardResource
-                if (reference) {
-                    const key = reference.key
-                    return {
-                        ...previous,
-                        [key]: new StandardAuthorizationResource(standardResource)
-                    }
-                }
-                else {
-                    return {
-                        ...previous,
-                        '': new StandardAuthorizationResource(standardResource)
-                    }
+                const { referenceStack } = standardResource
+                return {
+                    ...previous,
+                    [referenceStack.map(({ key }) => (key)).join('.')]: new StandardAuthorizationResource(standardResource)
                 }
             }, {})
             this._grants = Object.values(grantsByReference)
@@ -221,94 +212,27 @@ export class StandardAuthorizationCollection {
         return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
-    renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
+    renameKey(props: { fromKey: string; toKey: string; }[]): StandardAuthorizationCollection {
         const returnValue = this._clone()
-        const findMatchingRename = (key: string): { fromKey: string; toKey: string; retainOldExportAs?: boolean; } | undefined => {
-            const match = props.find(({ fromKey }) => (key.startsWith(fromKey)))
-            return match
-                ? {
-                    fromKey: key,
-                    toKey: `${match.toKey}${key.slice(match.fromKey.length)}`,
-                    retainOldExportAs: match.retainOldExportAs
-                }
-                : undefined
-        }
-        const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
-            tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaWithKey)(node)) {
-                    const match = findMatchingRename(node.data.key)
-                    if (match) {
-                        return {
-                            data: { ...node.data, key: match.toKey },
-                            children: renameContentsCallback(node.children)
-                        }
-                    }
-                    return node
+        returnValue._grants = props.reduce<StandardAuthorizationResource[]>((previous, { fromKey, toKey }) => {
+            const fromStack: string[] = fromKey.split('.')
+            const toStack: string[] = toKey.split('.')
+            if (fromStack.length !== toStack.length) {
+                throw new Error('Key mismatch in StandardAuthorizationCollection renameKey')
+            }
+            return previous.map((resource) => {
+                const { referenceStack, grants } = resource
+                if (referenceStack.slice(0, fromStack.length).every(({ key }, index) => (key === fromStack[index]))) {
+                    return new StandardAuthorizationResource({
+                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? new StandardReference({ ...reference.toJSON(), key: toStack[index] }) : reference)),
+                        grants
+                    })
                 }
                 else {
-                    if (treeNodeTypeguard(isSchemaExit)(node)) {
-                        const matchFrom = findMatchingRename(node.data.from)
-                        const matchTo = findMatchingRename(node.data.to)
-                        if (matchFrom || matchTo) {
-                            return {
-                                data: {
-                                    ...node.data,
-                                    to: matchTo ? matchTo.toKey : node.data.to,
-                                    from: matchFrom ? matchFrom.toKey : node.data.from
-                                },
-                                children: renameContentsCallback(node.children)
-                            }
-                        }
-                    }
-                    if (treeNodeTypeguard(isSchemaLink)(node)) {
-                        const matchTo = findMatchingRename(node.data.to)
-                        if (matchTo) {
-                            return {
-                                data: {
-                                    ...node.data,
-                                    to: matchTo.toKey
-                                },
-                                children: renameContentsCallback(node.children)
-                            }
-                        }
-                    }
-                }
-                return {
-                    ...node,
-                    children: renameContentsCallback(node.children)
+                    return resource
                 }
             })
-        )
-        returnValue._byId = Object.values(returnValue._byId)
-            .reduce<Record<string, StandardComponent>>((previous, component) => {
-                const matchKey = findMatchingRename(component.key)
-                if (matchKey) {
-                    if (previous[matchKey.toKey]) {
-                        throw new Error('renameKey collision')
-                    }
-                    const exportItem = component.export
-                        ? (component.export.exportAs === matchKey.toKey) ? undefined: component.export.exportAs
-                        : matchKey.retainOldExportAs
-                            ? matchKey.fromKey
-                            : undefined
-
-                    return {
-                        ...previous,
-                        [matchKey.toKey]: component
-                            .mapContents(renameContentsCallback)
-                            .withKey(matchKey.toKey)
-                            .withExport(exportItem)
-                    }
-                }
-                if (previous[component.key]) {
-                    throw new Error('renameKey collision')
-                }
-                return {
-                    ...previous,
-                    [component.key]: component.mapContents(renameContentsCallback)
-                }
-            }, {})
-
+        }, returnValue._grants)
         return returnValue
     }
 
