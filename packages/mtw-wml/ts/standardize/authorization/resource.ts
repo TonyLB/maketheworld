@@ -1,7 +1,7 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isStandardAuthorizationResourceData, StandardAuthorizationResourceData } from "./components/dataTypes";
 import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits";
 import StandardGrant from "./components/grant";
@@ -38,8 +38,19 @@ export class StandardAuthorizationResource {
             return
         }
         const schema = typeof props === 'string' ? treeFromWML(props) : props
-        const referenceStack = schema.length === 1 ? [new StandardReference(schema[0])] : []
-        const grants = referenceStack ? schema[0].children.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) : schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+        const extractGrants = (schema: GenericTree<SchemaTag>): { referenceStack: StandardReference[], grants: StandardAuthorizationItem[] } => {
+            if (schema.length === 0) {
+                return { referenceStack: [], grants: [] }
+            }
+            if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
+                const { referenceStack, grants } = extractGrants(schema[0].children)
+                return { referenceStack: [new StandardReference(schema[0]), ...referenceStack], grants }
+            }
+            else {
+                return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }
+            }
+        }
+        const { referenceStack, grants } = extractGrants(schema)
         this.referenceStack = referenceStack
         this.grants = grants
     }
@@ -59,17 +70,10 @@ export class StandardAuthorizationResource {
     }
 
     get schema(): GenericTree<SchemaTag> {
-        const reference = this.referenceStack[0]?.schema
         const grants = this.grants.map(grant => grant.schema)
-        if (reference) {
-            return [{
-                data: reference.data,
-                children: grants
-            }]
-        }
-        else {
-            return grants
-        }
+        return this.referenceStack.reduceRight<GenericTree<SchemaTag>>((previous, reference) => {
+            return [{ data: reference.schema.data, children: previous }]
+        }, grants)
     }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {

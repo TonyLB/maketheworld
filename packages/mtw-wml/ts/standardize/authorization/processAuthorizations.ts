@@ -85,7 +85,7 @@ export const processAuthorizations = (props: {
                         return diff ? { ...previous, [key]: diff } : previous
                     }
                     if (matchResource) {
-                        const diff = new StandardAuthorizationResource({ reference: matchResource.referenceStack, grants: [] }).diff(matchResource)
+                        const diff = new StandardAuthorizationResource({ referenceStack: matchResource.referenceStack, grants: [] }).diff(matchResource)
                         return diff ? { ...previous, [key]: diff } : previous
                     }
                     if (payloadResource) {
@@ -125,10 +125,10 @@ export const processAuthorizations = (props: {
             // Create a reference to the nearest parent in the componentContext, and use
             // that to create a new StandardAuthorizationResource object to merge.
             //
-            const reference = componentContext.slice(-1)[0]
-            const key = reference?.key ?? ''
+            const referenceStack = componentContext.map(({ key, tag }) => (new StandardReference({ key: key.split('.').slice(-1)[0], tag })))
+            const key = referenceStack.map(({ key }) => key).join('.')
             const itemResource = new StandardAuthorizationResource({
-                reference: new StandardReference(reference),
+                referenceStack,
                 grants: [
                     inContextOfRemove
                         ? new StandardAuthRemove(new StandardGrant(item))

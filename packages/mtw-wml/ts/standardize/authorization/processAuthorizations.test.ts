@@ -49,7 +49,7 @@ describe("processAuthorizations", () => {
 
         expect(result).toEqual({
             'test': new StandardAuthorizationResource({
-                reference: new StandardReference({ key: 'test', tag: 'Room' }),
+                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
                 grants: [new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] })]
             })
         })
@@ -73,7 +73,10 @@ describe("processAuthorizations", () => {
         })
         expect(result).toEqual({
             'test.testFeature': new StandardAuthorizationResource({
-                reference: new StandardReference({ key: 'test.testFeature', tag: 'Feature' }),
+                referenceStack: [
+                    new StandardReference({ key: 'test', tag: 'Room' }),
+                    new StandardReference({ key: 'testFeature', tag: 'Feature' })
+                ],
                 grants: [new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] })]
             })
         })
@@ -97,7 +100,7 @@ describe("processAuthorizations", () => {
         })
         expect(result).toEqual({
             'test': new StandardAuthorizationResource({
-                reference: new StandardReference({ key: 'test', tag: 'Room' }),
+                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
                 grants: [new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] }))]
             })
         })
@@ -124,7 +127,7 @@ describe("processAuthorizations", () => {
         })
         expect(result).toEqual({
             'test': new StandardAuthorizationResource({
-                reference: new StandardReference({ key: 'test', tag: 'Room' }),
+                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
                 grants: [new StandardAuthReplace(
                     new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] }),
                     new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action2'] })
