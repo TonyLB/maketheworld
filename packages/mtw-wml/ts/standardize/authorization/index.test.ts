@@ -142,6 +142,27 @@ describe('StandardAuthorizationCollection', () => {
         expect(schemaToWML([collection.schema])).toEqual(testWML)
     })
 
+    it('should sort schema appropriately', () => {
+        const collection = new StandardAuthorizationCollection(`
+            <Asset key=(test)>
+                <Feature key=(FeatureTwo)><Grant player=(Player1) actions="action2" /></Feature>
+                <Room key=(Room1)><Grant player=(Player1) actions="action3" /></Room>
+                <Feature key=(FeatureOne)><Grant player=(Player1) actions="action1" /></Feature>
+            </Asset>
+        `)
+        expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(Room1)><Grant player=(Player1) actions="action3" /></Room>
+                <Feature key=(FeatureOne)>
+                    <Grant player=(Player1) actions="action1" />
+                </Feature>
+                <Feature key=(FeatureTwo)>
+                    <Grant player=(Player1) actions="action2" />
+                </Feature>
+            </Asset>
+        `))
+    })
+
     it('should clone collection', () => {
         const collection = new StandardAuthorizationCollection(`
             <Asset key=(test)>
