@@ -148,20 +148,6 @@ export class StandardAuthorizationCollection {
         }
     }
 
-    get schema(): GenericTreeNode<SchemaTag> {
-        const children = Object.values(this._grants)
-            //
-            // ISS5289: Recursively process in order to allow grants at all levels of
-            // a nested hierarchy
-            //
-            .map((resource) => (resource.schema))
-            .flat(1)
-        return {
-            data: { tag: 'Asset', key: this._key, Story: undefined },
-            children
-        }
-    }
-
     _clone(): StandardAuthorizationCollection {
         const returnValue = new StandardAuthorizationCollection(this.key)
         returnValue._grants = this._grants.map((resource) => (resource.clone()))
@@ -186,6 +172,22 @@ export class StandardAuthorizationCollection {
             const aComponent = sortOrderById[a.referenceStack.map(({ key }) => (key)).join('.')]
             const bComponent = sortOrderById[b.referenceStack.map(({ key }) => (key)).join('.')]
             return standardComponentSortOrder(sortOrderById)(aComponent, bComponent)
+        }
+    }
+
+    get schema(): GenericTreeNode<SchemaTag> {
+        const globalChildren = Object.values(this._grants)
+            .filter((resource) => (resource.referenceStack.length === 0))
+            .map((resource) => (resource.schema))
+            .flat(1)
+        const byIdChildren = Object.values(this._grants)
+            .filter((resource) => (resource.referenceStack.length > 0))
+            .sort(this._sortOrderFactory())
+            .map((resource) => (resource.schema))
+            .flat(1)
+        return {
+            data: { tag: 'Asset', key: this._key, Story: undefined },
+            children: [...globalChildren, ...byIdChildren]
         }
     }
 
