@@ -16,10 +16,11 @@ import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
 import { StandardAuthorizationResource } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
-import { SerializeNDJSONMixin } from "../baseClasses"
-import { StandardToJSONOptions } from "../components/baseClasses"
+import { defaultComponentFromTag, SerializeNDJSONMixin } from "../baseClasses"
+import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
 import { standardComponentSortOrder } from ".."
 import { unique } from "../../list"
+import { standardComponentByTag } from "../nonEditFactory"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -165,6 +166,27 @@ export class StandardAuthorizationCollection {
         const returnValue = new StandardAuthorizationCollection(this.key)
         returnValue._grants = this._grants.map((resource) => (resource.clone()))
         return returnValue
+    }
+
+    _sortOrderFactory(): (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number {
+        const sortOrderById = Object.values(this.byId)
+            .reduce<Record<string, StandardComponent>>((previous, resource) => {
+                const referenceStack = resource.referenceStack
+                const key = referenceStack.map(({ key }) => (key)).join('.')
+                const lastItem = referenceStack.slice(-1)[0]
+                if (!(key && lastItem)) { return previous }
+                const defaultComponent = standardComponentByTag(lastItem.tag, key)
+                if (!defaultComponent) { return previous }
+                return {
+                    ...previous,
+                    [key]: defaultComponent
+                }
+            }, {})
+        return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
+            const aComponent = sortOrderById[a.referenceStack.map(({ key }) => (key)).join('.')]
+            const bComponent = sortOrderById[b.referenceStack.map(({ key }) => (key)).join('.')]
+            return standardComponentSortOrder(sortOrderById)(aComponent, bComponent)
+        }
     }
 
     //
