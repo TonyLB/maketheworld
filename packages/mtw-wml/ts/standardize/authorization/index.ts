@@ -129,7 +129,7 @@ export class StandardAuthorizationCollection {
 
     get byId(): Record<string, StandardAuthorizationResource> {
         return this._grants.reduce<Record<string, StandardAuthorizationResource>>((previous, resource) => {
-            const key = resource.reference?.key ?? ''
+            const key = resource.referenceStack?.key ?? ''
             if (!key) {
                 return previous
             }
@@ -140,7 +140,7 @@ export class StandardAuthorizationCollection {
         }, {})
     }
     get global(): StandardAuthorizationResource {
-        const globalResource = this._grants.find((resource) => (!resource.reference))
+        const globalResource = this._grants.find((resource) => (!resource.referenceStack))
         if (globalResource) {
             return globalResource
         }

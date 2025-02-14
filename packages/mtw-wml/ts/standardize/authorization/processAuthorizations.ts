@@ -85,7 +85,7 @@ export const processAuthorizations = (props: {
                         return diff ? { ...previous, [key]: diff } : previous
                     }
                     if (matchResource) {
-                        const diff = new StandardAuthorizationResource({ reference: matchResource.reference, grants: [] }).diff(matchResource)
+                        const diff = new StandardAuthorizationResource({ reference: matchResource.referenceStack, grants: [] }).diff(matchResource)
                         return diff ? { ...previous, [key]: diff } : previous
                     }
                     if (payloadResource) {

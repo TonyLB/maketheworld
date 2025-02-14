@@ -65,7 +65,7 @@ export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRe
 export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEditData(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
 
 export type StandardAuthorizationResourceData = {
-    reference?: StandardReferenceData;
+    referenceStack: StandardReferenceData[];
     grants: StandardAuthorizationData[];
 }
 
@@ -74,7 +74,7 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
         return false
     }
     return checkAll(
-        (!('reference' in arg && arg.reference && !isStandardReferenceData(arg.reference))),
+        ('referenceStack' in arg && Array.isArray(arg.referenceStack) && arg.referenceStack.every(isStandardReferenceData)),
         ('grant' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }
