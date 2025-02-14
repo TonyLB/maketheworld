@@ -1,7 +1,7 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isStandardAuthorizationResourceData, StandardAuthorizationResourceData } from "./components/dataTypes";
 import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits";
 import StandardGrant from "./components/grant";
@@ -13,13 +13,13 @@ import { treeFromWML } from "../utils";
 import { StandardReferenceData } from "../components/dataTypes";
 
 export class StandardAuthorizationResource {
-    reference?: StandardReference;
+    referenceStack: StandardReference[];
     grants: StandardAuthorizationItem[] = [];
 
-    constructor(props: { reference?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string) {
+    constructor(props: { referenceStack: StandardReference[]; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string) {
         if (isStandardAuthorizationResourceData(props)) {
-            const { reference, grants } = props
-            this.reference = reference ? new StandardReference(reference) : undefined
+            const { referenceStack = [], grants } = props
+            this.referenceStack = referenceStack ? referenceStack.map((reference) => (new StandardReference(reference))) : []
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
             return
         }
@@ -27,46 +27,53 @@ export class StandardAuthorizationResource {
             if (!('grants' in props)) {
                 throw new Error('Invalid StandardAuthorizationResource props')
             }
-            if (!(props.grants.every(grant => (grant instanceof StandardGrant || grant instanceof StandardAuthRemove || grant instanceof StandardAuthReplace)) && (!props.reference || props.reference instanceof StandardReference))) {
+            if (!(
+                props.grants.every(grant => (grant instanceof StandardGrant || grant instanceof StandardAuthRemove || grant instanceof StandardAuthReplace)) &&
+                props.referenceStack.every(reference => reference instanceof StandardReference)
+            )) {
                 throw new Error('Invalid StandardAuthorizationResource props')
             }
-            this.reference = props.reference
+            this.referenceStack = props.referenceStack
             this.grants = props.grants
             return
         }
         const schema = typeof props === 'string' ? treeFromWML(props) : props
-        const reference = schema.length === 1 ? new StandardReference(schema[0]) : undefined
-        const grants = reference ? schema[0].children.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) : schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
-        this.reference = reference
+        const extractGrants = (schema: GenericTree<SchemaTag>): { referenceStack: StandardReference[], grants: StandardAuthorizationItem[] } => {
+            if (schema.length === 0) {
+                return { referenceStack: [], grants: [] }
+            }
+            if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
+                const { referenceStack, grants } = extractGrants(schema[0].children)
+                return { referenceStack: [new StandardReference(schema[0]), ...referenceStack], grants }
+            }
+            else {
+                return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }
+            }
+        }
+        const { referenceStack, grants } = extractGrants(schema)
+        this.referenceStack = referenceStack
         this.grants = grants
     }
 
     toJSON(): StandardAuthorizationResourceData {
         return {
-            reference: this.reference?.toJSON() as StandardReferenceData | undefined,
+            referenceStack: this.referenceStack.map(reference => reference.toJSON() as StandardReferenceData),
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
 
     clone(): StandardAuthorizationResource {
         return new StandardAuthorizationResource({
-            reference: this.reference?.clone(),
+            referenceStack: this.referenceStack.map(reference => reference.clone()),
             grants: this.grants.map(grant => grant.clone())
         })
     }
 
     get schema(): GenericTree<SchemaTag> {
-        const reference = this.reference?.schema
         const grants = this.grants.map(grant => grant.schema)
-        if (reference) {
-            return [{
-                data: reference.data,
-                children: grants
-            }]
-        }
-        else {
-            return grants
-        }
+        return this.referenceStack.reduceRight<GenericTree<SchemaTag>>((previous, reference) => {
+            return [{ data: reference.schema.data, children: previous }]
+        }, grants)
     }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {
@@ -86,7 +93,7 @@ export class StandardAuthorizationResource {
                 return [...previous, grant]
             }
         }, this.grants)
-        return new StandardAuthorizationResource({ reference: this.reference, grants: newGrants })
+        return new StandardAuthorizationResource({ referenceStack: this.referenceStack, grants: newGrants })
     }
 
     diff(incoming: StandardAuthorizationResource): StandardAuthorizationResource | undefined {
@@ -132,7 +139,7 @@ export class StandardAuthorizationResource {
             }
         }, [] as StandardAuthorizationItem[])
         if (newGrants.length > 0) {
-            return new StandardAuthorizationResource({ reference: this.reference, grants: newGrants })
+            return new StandardAuthorizationResource({ referenceStack: this.referenceStack, grants: newGrants })
         }
         else {
             return undefined

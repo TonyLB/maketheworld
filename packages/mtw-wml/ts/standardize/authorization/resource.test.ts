@@ -14,11 +14,11 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ reference, grants })
-        expect(resource.reference).toEqual(reference)
+        const resource = new StandardAuthorizationResource({ referenceStack: [reference], grants })
+        expect(resource.referenceStack).toEqual([reference])
         expect(resource.grants).toEqual(grants)
         expect(resource.toJSON()).toEqual({
-            reference: reference.toJSON(),
+            referenceStack: [reference.toJSON()],
             grants: grants.map(grant => grant.toJSON())
         })
     })
@@ -158,7 +158,7 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ reference, grants })
+        const resource = new StandardAuthorizationResource({ referenceStack: [reference], grants })
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(`
             <Room key=(Room1)>
                 <Grant player=(player1) actions="action1" />
@@ -172,7 +172,7 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ grants })
+        const resource = new StandardAuthorizationResource({ referenceStack: [], grants })
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(`
             <Grant player=(player1) actions="action1" />
             <Grant player=(player2) actions="action2" />
