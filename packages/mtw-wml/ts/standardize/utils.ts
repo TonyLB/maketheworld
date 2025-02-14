@@ -24,12 +24,7 @@ export const isLegalKey = (value: string) => (value.match(/^[a-zA-Z\_][a-zA-Z0-9
 
 export const treeFromWML = (wml: string): GenericTree<SchemaTag> => {
     const schema = new Schema()
-    try {
-        schema.loadWML(wml)
-    }
-    catch {
-        throw new Error('Parse failure in StandardComponent WML argument')
-    }
+    schema.loadWML(wml)
     return schema.schema
 }
 

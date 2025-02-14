@@ -203,11 +203,12 @@ export class StandardAuthorizationCollection {
                     return [...previous, baseResource.diff(incomingResource)].filter(excludeUndefined)
                 }
                 else if (incomingResource) {
-                    return [...previous, new StandardAuthorizationResource({ referenceStack: incomingResource?.referenceStack, grants: [] }).diff(incomingResource)].filter(excludeUndefined)
+                    return [...previous, incomingResource].filter(excludeUndefined)
                 }
-                else {
-                    return [...previous, baseResource].filter(excludeUndefined)
+                else if (baseResource) {
+                    return [...previous, baseResource.diff(new StandardAuthorizationResource({ referenceStack: baseResource?.referenceStack, grants: [] }))].filter(excludeUndefined)
                 }
+                return previous
             }, [])
         return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
