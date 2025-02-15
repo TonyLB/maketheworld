@@ -80,11 +80,13 @@ export class StandardAuthorizationResource {
         return this.referenceStack.map(reference => reference.key).join('.')
     }
 
-    nestedSchema(byId: Record<string, StandardAuthorizationResource>): GenericTree<SchemaTag> {
+    nestedSchema(props: { authorizationsById: Record<string, StandardAuthorizationResource>, sortOrder: (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number }): GenericTree<SchemaTag> {
+        const { authorizationsById, sortOrder } = props
         const grants = this.grants.map(grant => grant.schema)
-        const children = Object.values(byId)
+        const children = Object.values(authorizationsById)
             .filter((value) => value.referenceStack.length === this.referenceStack.length + 1 && value.referenceStack.slice(0, -1).every((reference, index) => reference.key === this.referenceStack[index].key))
-            .map((value) => value.nestedSchema(byId))
+            .sort(sortOrder)
+            .map((value) => value.nestedSchema({ authorizationsById, sortOrder }))
             .flat(1)
 
         const finalReference = this.referenceStack.slice(-1)[0]

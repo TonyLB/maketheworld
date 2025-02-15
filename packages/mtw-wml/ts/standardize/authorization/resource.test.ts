@@ -89,7 +89,7 @@ describe('StandardAuthorizationResource class', () => {
             'Feature1': featureOne,
             'Feature2': featureTwo
         }
-        const schema = room.nestedSchema(byId)
+        const schema = room.nestedSchema({ authorizationsById: byId, sortOrder: (a, b) => (a.key.localeCompare(b.key)) })
         expect(schemaToWML(schema)).toEqual(deIndentWML(`
             <Room key=(Room1)>
                 <Grant player=(player1) actions="action1" />
