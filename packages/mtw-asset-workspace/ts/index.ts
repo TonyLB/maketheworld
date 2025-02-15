@@ -8,6 +8,7 @@ import { deepEqual } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { ExportItemContent, ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 import { excludeUndefined } from '@tonylb/mtw-wml/ts/lib/lists'
+import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
 
@@ -143,6 +144,11 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         await this.setJSON(standard)
     }
 
+    async setAuthorizationWML(source: string): Promise<void> {
+        const authorizations = new StandardAuthorizationCollection(source)
+        this.authorizations = authorizations
+    }
+
     async loadWML(): Promise<void> {
         const filePath = `${this.fileNameBase}.wml`
         
@@ -160,6 +166,26 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
         await this.setWML(contents)
         this.status.wml = 'Clean'
+    }
+
+    async loadAuthorizationWML(): Promise<void> {
+        const filePath = `${this.fileNameBase}.auth.wml`
+        
+        let contents = ''
+        try {
+            contents = await s3Client.get({ Key: filePath })
+        }
+        catch(err: any) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
+                this.authStatus.wml = 'Error'
+                return
+            }
+            throw err
+        }
+
+        const authorizations = new StandardAuthorizationCollection(contents)
+        this.authorizations = authorizations
+        this.authStatus.wml = 'Clean'
     }
 
     async loadWMLFrom(filePath: string, upload?: boolean): Promise<void> {
