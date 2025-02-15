@@ -215,14 +215,15 @@ export class StandardAuthorizationCollection {
         //
         // Recursively calculate the schema for all authorizations that are not global
         //
+        const sortOrder = this._sortOrderFactory()
         const byIdChildren = Object.values(authorizationsById)
             .filter((resource) => (resource.referenceStack.length === 1))
-            .sort(this._sortOrderFactory())
+            .sort(sortOrder)
             //
             // TODO: Pass sortOrderFactory into nestedSchema so that nested entries
             // can also be sorted correctly in schema output
             //
-            .map((resource) => (resource.nestedSchema(authorizationsById)))
+            .map((resource) => (resource.nestedSchema({ authorizationsById, sortOrder })))
             .flat(1)
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
