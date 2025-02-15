@@ -172,6 +172,35 @@ describe('AssetWorkspace', () => {
 
     })
 
+    describe('loadAuthorizationWML', () => {
+        it('should correctly parse and assign WML authorizations', async () => {
+            const wml = `
+                <Asset key=(Test)>
+                    <Room key=(Room1)>
+                        <Grant player=(Player1) actions="action1" />
+                    </Room>
+                </Asset>
+            `
+            s3ClientMock.get.mockResolvedValue(wml)
+    
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadAuthorizationWML()
+            expect(testWorkspace.authorizations?.toJSON()).toEqual({
+                key: 'Test',
+                grants: [
+                    {
+                        referenceStack: [{ tag: 'Room', key: 'Room1', exits: [] }],
+                        grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
+                    }
+                ]
+            })
+        })
+    })
+
     describe('setWML', () => {
         it('should correctly parse WML input', async () => {
             const testWorkspace = new AssetWorkspace({
@@ -209,7 +238,7 @@ describe('AssetWorkspace', () => {
                         <Room key=(a123) />
                     </Asset>
                 `)
-            }).rejects.toThrowError()
+            }).rejects.toThrow()
         })
     
     })
