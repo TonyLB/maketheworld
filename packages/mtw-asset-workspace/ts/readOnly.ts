@@ -126,6 +126,10 @@ export class ReadOnlyAssetWorkspace {
         json: 'Initial',
         wml: 'Initial'
     };
+    authStatus: AssetWorkspaceStatus = {
+        json: 'Initial',
+        wml: 'Initial'
+    };
     standard?: StandardForm;
     authorizations?: StandardAuthorizationCollection;
     _workspaceFromKey?: AddressLookup;
@@ -228,6 +232,31 @@ export class ReadOnlyAssetWorkspace {
         const lines = contents.split('\n').map((line) => (JSON.parse(line)))
         this.standard = new StandardForm(lines)
         this.status.json = 'Clean'
+    }
+
+    async loadAuthorizationJSON() {
+        if (this.address.zone === 'Archive') {
+            this.authorizations = new StandardAuthorizationCollection('')
+            this.authStatus.json = 'Clean'
+            return
+        }
+        const filePath = `${this.fileNameBase}.auth.json`
+        
+        let contents = ''
+        try {
+            contents = await s3Client.get({ Key: filePath })
+        }
+        catch(err: any) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
+                this.authorizations = new StandardAuthorizationCollection('')
+                this.authStatus.json = 'Clean'
+                return
+            }
+            throw err
+        }
+        
+        this.authorizations = new StandardAuthorizationCollection(JSON.parse(contents))
+        this.authStatus.json = 'Clean'
     }
 
     get rootNodes(): StandardAsset[] {

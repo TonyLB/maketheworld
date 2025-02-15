@@ -1,5 +1,33 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`AssetWorkspace loadAuthorizationJSON should correctly parse and assign JSON properties 1`] = `
+Object {
+  "grants": Array [
+    Object {
+      "grants": Array [
+        Object {
+          "actions": Array [
+            "action1",
+          ],
+          "player": "Player1",
+          "tag": "Grant",
+        },
+      ],
+      "referenceStack": Array [
+        Object {
+          "exits": Array [],
+          "fileName": undefined,
+          "key": "Room1",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+      ],
+    },
+  ],
+  "key": "Test",
+}
+`;
+
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
   "byId": Object {
