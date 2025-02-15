@@ -8,6 +8,7 @@ import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
 import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardAuthorizationCollectionData } from '@tonylb/mtw-wml/ts/standardize/authorization/components/dataTypes'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -121,6 +122,52 @@ describe('AssetWorkspace', () => {
             })
             await testWorkspace.loadJSON()
             expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', metaData: [], byId: {} })
+        })
+
+    })
+
+    describe('loadAuthorizationJSON', () => {
+        it('should correctly parse and assign JSON properties', async () => {
+            const json: StandardAuthorizationCollectionData = {
+                key: 'Test',
+                grants: [
+                    {
+                        referenceStack: [{ tag: 'Room', key: 'Room1' }],
+                        grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
+                    }
+                ]
+            }
+            s3ClientMock.get.mockResolvedValue(JSON.stringify(json))
+    
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadAuthorizationJSON()
+            expect(testWorkspace.authorizations?.toJSON()).toMatchSnapshot()
+        })
+
+        it('should return empty on no JSON file', async () => {
+            s3ClientMock.get.mockImplementation(() => {
+                const error = new (class NoSuchKey extends Error {
+                    Code: string;
+                    constructor(message: string) {
+                        super(message)
+                        Object.setPrototypeOf(this, NoSuchKey.prototype)
+                        this.Code = 'NoSuchKey'
+                    }
+                })('Test message')
+                throw error
+            })
+    
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadAuthorizationJSON()
+            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: '', grants: [] })
         })
 
     })
