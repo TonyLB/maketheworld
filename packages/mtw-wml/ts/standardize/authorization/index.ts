@@ -176,14 +176,53 @@ export class StandardAuthorizationCollection {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
+        //
+        // Calculate all keys in the tree of all authorizations that are not global, so that
+        // we can create resource references to cover them in later calculation
+        //
+        const allAuthorizationByIdReferenceStacks = unique(Object.values(this.byId)
+            .filter((resource) => (resource.referenceStack.length > 0))
+            .map((resource) => (
+                resource.referenceStack.map((_, index) => (resource.referenceStack.slice(0, index + 1)))
+            )))
+            .flat(1)
+        //
+        // Calculate all keys in the tree of all authorizations that are not global, so that
+        // nestedSchema can correctly reference them as it works its way toward the leaves
+        // of the tree
+        //
+        const authorizationsById = allAuthorizationByIdReferenceStacks
+            .reduce<Record<string, StandardAuthorizationResource>>((previous, referenceStack) => {
+                const key = referenceStack.map(({ key }) => (key)).join('.')
+                if (!this.byId[key]) {
+                    return {
+                        ...previous,
+                        [key]: new StandardAuthorizationResource({ referenceStack, grants: [] })
+                    }
+                }
+                return {
+                    ...previous,
+                    [key]: this.byId[key]
+                }
+            }, {})
+        //
+        // Calculate the schema for all global authorizations
+        //
         const globalChildren = Object.values(this._grants)
             .filter((resource) => (resource.referenceStack.length === 0))
             .map((resource) => (resource.schema))
             .flat(1)
-        const byIdChildren = Object.values(this._grants)
-            .filter((resource) => (resource.referenceStack.length > 0))
+        //
+        // Recursively calculate the schema for all authorizations that are not global
+        //
+        const byIdChildren = Object.values(authorizationsById)
+            .filter((resource) => (resource.referenceStack.length === 1))
             .sort(this._sortOrderFactory())
-            .map((resource) => (resource.schema))
+            //
+            // TODO: Pass sortOrderFactory into nestedSchema so that nested entries
+            // can also be sorted correctly in schema output
+            //
+            .map((resource) => (resource.nestedSchema(authorizationsById)))
             .flat(1)
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
