@@ -6,6 +6,7 @@ import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardAuthorizationCollection } from "@tonylb/mtw-wml/ts/standardize/authorization"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -126,6 +127,7 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     standard?: StandardForm;
+    authorizations?: StandardAuthorizationCollection;
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
