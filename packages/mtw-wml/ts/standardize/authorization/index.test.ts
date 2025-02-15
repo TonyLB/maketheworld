@@ -163,6 +163,20 @@ describe('StandardAuthorizationCollection', () => {
         `))
     })
 
+    it('should correctly render nested schema', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Room key=(Room1)>
+                    <Feature key=(Feature2)>
+                        <Grant player=(Player1) actions="action2" />
+                    </Feature>
+                </Room>
+            </Asset>
+        `)
+        const collection = new StandardAuthorizationCollection(testWML)
+        expect(schemaToWML([collection.schema])).toEqual(testWML)
+    })
+
     it('should clone collection', () => {
         const collection = new StandardAuthorizationCollection(`
             <Asset key=(test)>
