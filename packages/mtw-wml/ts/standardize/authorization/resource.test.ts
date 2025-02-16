@@ -23,6 +23,33 @@ describe('StandardAuthorizationResource class', () => {
         })
     })
 
+    it('should construct StandardAuthorizationResource from NDJSON', () => {
+        const resource = new StandardAuthorizationResource([{
+            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
+        }, {
+            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
+        }])
+        expect(resource.referenceStack).toEqual([new StandardReference({ key: 'Room1', tag: 'Room' })])
+        expect(resource.grants).toEqual([
+            new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
+            new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
+        ])
+    })
+
+    it('should throw error on NDJSON with differing referenceStacks', () => {
+        expect(() => {
+            new StandardAuthorizationResource([{
+                referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
+            }, {
+                referenceStack: [{ key: 'Room2', tag: 'Room' }],
+                grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
+            }])
+        }).toThrow()
+    })
+
     it('should construct resource grant from WML', () => {
         const wml = deIndentWML(`
             <Room key=(Room1)>

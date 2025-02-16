@@ -2,7 +2,7 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isStandardAuthorizationResourceData, StandardAuthorizationData, StandardAuthorizationResourceData } from "./components/dataTypes";
+import { isStandardAuthorizationData, isStandardAuthorizationResourceData, StandardAuthorizationData, StandardAuthorizationResourceData } from "./components/dataTypes";
 import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits";
 import StandardGrant from "./components/grant";
 import { standardAuthorizationFactory } from "./authorizationFactory";
@@ -10,22 +10,64 @@ import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { treeFromWML } from "../utils";
-import { StandardReferenceData } from "../components/dataTypes";
+import { StandardReferenceData, isStandardReferenceData } from "../components/dataTypes/reference";
+import { isSchemaTreeNode } from "../components/utils";
+import { deepEqual } from "../../lib/objects";
 
 type StandardAuthorizationResourceNDJSON = {
     referenceStack: StandardReferenceData[];
     grant: StandardAuthorizationData;
 }
 
+export const isStandardAuthorizationResourceNDJSON = (value: any): value is StandardAuthorizationResourceNDJSON => {
+    return typeof value === 'object' &&
+        Array.isArray(value.referenceStack) && value.referenceStack.every(isStandardReferenceData) &&
+        'grant' in value && isStandardAuthorizationData(value.grant)
+}
+
 export class StandardAuthorizationResource {
     referenceStack: StandardReference[];
     grants: StandardAuthorizationItem[] = [];
 
-    constructor(props: { referenceStack: StandardReference[]; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string) {
+    constructor(props: { referenceStack: StandardReference[]; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string | StandardAuthorizationResourceNDJSON[]) {
+        const isSchemaTree = (value: any): value is GenericTree<SchemaTag> => {
+            return Array.isArray(value) && value.every(isSchemaTreeNode)
+        }
         if (isStandardAuthorizationResourceData(props)) {
             const { referenceStack = [], grants } = props
             this.referenceStack = referenceStack ? referenceStack.map((reference) => (new StandardReference(reference))) : []
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+            return
+        }
+        else if ((typeof props === 'string') || isSchemaTree(props)) {
+            const schema = typeof props === 'string' ? treeFromWML(props) : props
+            const extractGrants = (schema: GenericTree<SchemaTag>): { referenceStack: StandardReference[], grants: StandardAuthorizationItem[] } => {
+                if (schema.length === 0) {
+                    return { referenceStack: [], grants: [] }
+                }
+                if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
+                    const { referenceStack, grants } = extractGrants(schema[0].children)
+                    return { referenceStack: [new StandardReference(schema[0]), ...referenceStack], grants }
+                }
+                else {
+                    return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }
+                }
+            }
+            const { referenceStack, grants } = extractGrants(schema)
+            this.referenceStack = referenceStack
+            this.grants = grants
+            return
+        }
+        else if (Array.isArray(props) && props.every(isStandardAuthorizationResourceNDJSON)) {
+            const { referenceStack, grants } = props.reduce<{ referenceStack?: StandardReference[]; grants: StandardAuthorizationItem[] }>((previous, { referenceStack, grant }) => {
+                const tempReferenceStack = referenceStack.map(reference => new StandardReference(reference))
+                if (previous.referenceStack && !deepEqual(previous.referenceStack.map((reference) => (reference.toJSON())), tempReferenceStack.map((reference) => (reference.toJSON())))) {
+                    throw new Error('StandardAuthorizationResource NDJSON must all be from same reference')
+                }
+                return { referenceStack: tempReferenceStack, grants: [...previous.grants, standardAuthorizationFactory(grant)].filter(excludeUndefined) }
+            }, { grants: [] })
+            this.referenceStack = referenceStack ?? []
+            this.grants = grants
             return
         }
         else if (typeof props === 'object') {
@@ -42,22 +84,8 @@ export class StandardAuthorizationResource {
             this.grants = props.grants
             return
         }
-        const schema = typeof props === 'string' ? treeFromWML(props) : props
-        const extractGrants = (schema: GenericTree<SchemaTag>): { referenceStack: StandardReference[], grants: StandardAuthorizationItem[] } => {
-            if (schema.length === 0) {
-                return { referenceStack: [], grants: [] }
-            }
-            if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
-                const { referenceStack, grants } = extractGrants(schema[0].children)
-                return { referenceStack: [new StandardReference(schema[0]), ...referenceStack], grants }
-            }
-            else {
-                return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }
-            }
-        }
-        const { referenceStack, grants } = extractGrants(schema)
-        this.referenceStack = referenceStack
-        this.grants = grants
+        this.referenceStack = []
+        this.grants = []
     }
 
     toJSON(): StandardAuthorizationResourceData {
