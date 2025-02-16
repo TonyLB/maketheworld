@@ -2,7 +2,7 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference from "../components/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isStandardAuthorizationResourceData, StandardAuthorizationResourceData } from "./components/dataTypes";
+import { isStandardAuthorizationResourceData, StandardAuthorizationData, StandardAuthorizationResourceData } from "./components/dataTypes";
 import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits";
 import StandardGrant from "./components/grant";
 import { standardAuthorizationFactory } from "./authorizationFactory";
@@ -11,6 +11,11 @@ import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { treeFromWML } from "../utils";
 import { StandardReferenceData } from "../components/dataTypes";
+
+type StandardAuthorizationResourceNDJSON = {
+    referenceStack: StandardReferenceData[];
+    grant: StandardAuthorizationData;
+}
 
 export class StandardAuthorizationResource {
     referenceStack: StandardReference[];
@@ -60,6 +65,13 @@ export class StandardAuthorizationResource {
             referenceStack: this.referenceStack.map(reference => reference.toJSON() as StandardReferenceData),
             grants: this.grants.map(grant => grant.toJSON())
         }
+    }
+
+    toNDJSON(): StandardAuthorizationResourceNDJSON[] {
+        return this.grants.map(grant => ({
+            referenceStack: this.referenceStack.map(reference => reference.toJSON() as StandardReferenceData),
+            grant: grant.toJSON()
+        }))
     }
 
     clone(): StandardAuthorizationResource {

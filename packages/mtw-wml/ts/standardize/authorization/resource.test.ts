@@ -34,6 +34,26 @@ describe('StandardAuthorizationResource class', () => {
         expect(schemaToWML(resource.schema)).toEqual(wml)
     })
 
+    it('should correct render NDJSON', () => {
+        const wml = deIndentWML(`
+            <Room key=(Room1)>
+                <Grant player=(player1) actions="action1" />
+                <Grant player=(player2) actions="action2" />
+            </Room>
+        `)
+        const resource = new StandardAuthorizationResource(wml)
+        expect(resource.toNDJSON()).toEqual([
+            {
+                referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
+            },
+            {
+                referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
+            }
+        ])
+    })
+
     it('should construct global grants from WML', () => {
         const wml = deIndentWML(`
             <Grant player=(player1) actions="action1" />
