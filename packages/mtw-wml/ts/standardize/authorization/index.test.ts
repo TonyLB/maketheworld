@@ -1,7 +1,7 @@
 import { schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardAuthorizationCollectionData } from "./components/dataTypes"
-import { StandardAuthorizationCollection } from "./index"
+import { StandardAuthorizationCollection, StandardAuthorizationCollectionNDJSON } from "./index"
 import { StandardAuthorizationResource } from "./resource"
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -37,6 +37,50 @@ describe('StandardAuthorizationCollection', () => {
         const collection = new StandardAuthorizationCollection(node)
         expect(collection.key).toEqual('TestKey')
         expect(collection._grants).toEqual([])
+    })
+
+    it('should initialize with NDJSON', () => {
+        const ndjson: StandardAuthorizationCollectionNDJSON[] = [
+            { tag: 'Asset', key: 'Test' },
+            { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
+            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
+            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
+            { referenceStack: [{ key: 'Room2', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action3'] } }
+        ]
+        const collection = new StandardAuthorizationCollection(ndjson)
+        expect(collection.toJSON()).toEqual({
+            key: 'Test',
+            grants: [
+                {
+                    referenceStack: [],
+                    grants: [{
+                        tag: 'Grant',
+                        player: 'Player1',
+                        actions: ['action0']
+                    }]
+                },
+                {
+                    referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                    grants: [{
+                        tag: 'Grant',
+                        player: 'Player1',
+                        actions: ['action1']
+                    }, {
+                        tag: 'Grant',
+                        player: 'Player2',
+                        actions: ['action2']
+                    }]
+                },
+                {
+                    referenceStack: [{ key: 'Room2', tag: 'Room', exits: [] }],
+                    grants: [{
+                        tag: 'Grant',
+                        player: 'Player1',
+                        actions: ['action3']
+                    }]
+                }
+            ]
+        })
     })
 
     it('should throw error on invalid arguments', () => {
