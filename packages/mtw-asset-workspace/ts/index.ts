@@ -250,6 +250,19 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.status.wml = 'Clean'
     }
 
+    async pushAuthorizationWML(): Promise<void> {
+        if (this.authorizations) {
+            const wml = schemaToWML([this.authorizations.schema])
+            const filePath = `${this.fileNameBase}.auth.wml`
+            await s3Client.put({
+                Key: filePath,
+                Body: wml
+            })
+            this.authStatus.wml = 'Clean'
+            this.authStatus.json = 'Dirty'
+        }
+    }
+
 }
 
 export default AssetWorkspace

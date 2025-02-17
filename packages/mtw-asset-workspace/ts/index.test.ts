@@ -301,7 +301,7 @@ describe('AssetWorkspace', () => {
 
     })
 
-    describe('putWML', () => {
+    describe('pushWML', () => {
         it('should correctly push WML content', async () => {
             const testWorkspace = new AssetWorkspace({
                 fileName: 'Test',
@@ -322,6 +322,31 @@ describe('AssetWorkspace', () => {
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.wml',
                 Body: deIndentWML(testSource)
+            })
+        })
+
+    })
+
+    describe('pushWML', () => {
+        it('should correctly push WML content', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Library'
+            })
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            const testWML = `
+                <Asset key=(test)>
+                    <Room key=(Room1)><Grant player=(Player1) actions="action1" /></Room>
+                </Asset>
+            `
+            testWorkspace.authorizations = new StandardAuthorizationCollection(testWML)
+
+            await testWorkspace.pushAuthorizationWML()
+            expect(testWorkspace.authStatus.wml).toEqual('Clean')
+            expect(testWorkspace.authStatus.json).toEqual('Dirty')
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Library/Test.auth.wml',
+                Body: deIndentWML(testWML)
             })
         })
 
