@@ -137,11 +137,10 @@ export class StandardAuthorizationCollection {
         throw new Error('Invalid arguments in StandardAuthorization constructor')
     }
 
-    get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
+    get header(): { tag: 'Asset' } & StandardBaseData {
         return {
             tag: 'Asset',
-            key: this._key,
-            universalKey: `ASSET#${this._key}`
+            key: this._key
         }
     }
 
@@ -171,6 +170,13 @@ export class StandardAuthorizationCollection {
             key: this._key,
             grants: this._grants.map((resource) => (resource.toJSON()))
         }
+    }
+
+    toNDJSON(): StandardAuthorizationCollectionNDJSON[] {
+        return [
+            this.header,
+            ...this._grants.map((resource) => (resource.toNDJSON())).flat(1)
+        ]
     }
 
     _clone(): StandardAuthorizationCollection {

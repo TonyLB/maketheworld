@@ -91,8 +91,7 @@ describe('StandardAuthorizationCollection', () => {
         const collection = new StandardAuthorizationCollection('TestKey')
         expect(collection.header).toEqual({
             tag: 'Asset',
-            key: 'TestKey',
-            universalKey: 'ASSET#TestKey'
+            key: 'TestKey'
         })
     })
 
@@ -173,6 +172,22 @@ describe('StandardAuthorizationCollection', () => {
                 }
             ]
         })
+    })
+
+    it('should return NDJSON representation', () => {
+        const collection = new StandardAuthorizationCollection(`
+            <Asset key=(test)>
+                <Grant player=(Player1) actions="action0" />
+                <Room key=(Room1)>
+                    <Grant player=(Player1) actions="action1" />
+                </Room>
+            </Asset>
+        `)
+        expect(collection.toNDJSON()).toEqual([
+            { tag: 'Asset', key: 'test' },
+            { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
+            { referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+        ])
     })
 
     it('should return schema', () => {
