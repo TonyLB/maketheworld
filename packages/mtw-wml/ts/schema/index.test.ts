@@ -307,7 +307,7 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    it('should parse asset update key', () => {
+    it('should parse content update key', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test) update>
                 <Room key=(ABC)>
@@ -720,7 +720,7 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip an asset update', () => {
+    it('should correctly round-trip a content update', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test) update>
                 <Meta key=(ABC) time="1234" />

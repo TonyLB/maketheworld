@@ -22,7 +22,7 @@ update on state.
 
 ---
 
-## Asset Update
+## Content Update
 - AssetId: `ASSET#{id}`
 - RequestId: uuid
 - schema: A WML schema with (likely) edit elements such as Replace and Remove, as well as added new

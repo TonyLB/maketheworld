@@ -40,7 +40,7 @@ export type SubscriptionClientMergeConflictMessage = {
 
 export type SubscriptionClientAssetEditedMessage = {
     source: 'mtw.wml';
-    detailType: 'Asset Update';
+    detailType: 'Content Update';
     address: AssetWorkspaceAddress;
     RequestId: string;
     AssetId: string;

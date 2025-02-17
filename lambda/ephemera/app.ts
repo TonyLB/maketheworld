@@ -130,7 +130,7 @@ export const handler = async (event: any, context: any) => {
                 await confirmGuestCharacter(event.detail.player)
                 await messageBus.flush()
                 return await extractReturnValue(messageBus)
-            case 'Asset Update':
+            case 'Content Update':
                 await cacheAsset({
                     assetId: event.detail.AssetId,
                     messageBus,
