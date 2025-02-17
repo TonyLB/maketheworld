@@ -6,7 +6,7 @@ import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardAuthorizationCollection } from "@tonylb/mtw-wml/ts/standardize/authorization"
+import { isStandardAuthorizationCollectionNDJSON, StandardAuthorizationCollection } from "@tonylb/mtw-wml/ts/standardize/authorization"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -240,7 +240,7 @@ export class ReadOnlyAssetWorkspace {
             this.authStatus.json = 'Clean'
             return
         }
-        const filePath = `${this.fileNameBase}.auth.json`
+        const filePath = `${this.fileNameBase}.auth.ndjson`
         
         let contents = ''
         try {
@@ -254,8 +254,12 @@ export class ReadOnlyAssetWorkspace {
             }
             throw err
         }
-        
-        this.authorizations = new StandardAuthorizationCollection(JSON.parse(contents))
+
+        const lines = contents.split('\n').map((line) => (JSON.parse(line)))
+        if (!lines.every(isStandardAuthorizationCollectionNDJSON)) {
+            throw new AssetWorkspaceException('Invalid authorization JSON')
+        }
+        this.authorizations = new StandardAuthorizationCollection(lines)
         this.authStatus.json = 'Clean'
     }
 
