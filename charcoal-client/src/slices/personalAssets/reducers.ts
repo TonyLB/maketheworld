@@ -149,7 +149,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
     const { event } = action.payload
-    if (event.detailType === 'Asset Update') {
+    if (event.detailType === 'Content Update') {
         const base = new StandardForm(state.base)
         const incomingSchema = new Schema()
         incomingSchema.loadWML(event.schema)

@@ -29,7 +29,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     },
     {
         source: 'mtw.wml',
-        detailType: 'Asset Update',
+        detailType: 'Cotent Update',
         detailExtract: (event) => (event.AssetId),
         transform: (event) => ({
             messageType: 'Subscription',
@@ -38,7 +38,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
             // Address information is obfuscated when sent to the client
             //
             address: { zone: 'Draft', player: '' },
-            detailType: 'Asset Update',
+            detailType: 'Content Update',
             AssetId: event.AssetId,
             RequestId: event.RequestId,
             schema: event.schema
