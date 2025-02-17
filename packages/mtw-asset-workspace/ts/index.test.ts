@@ -9,7 +9,7 @@ import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollectionData } from '@tonylb/mtw-wml/ts/standardize/authorization/components/dataTypes'
-import { StandardAuthorizationCollectionNDJSON } from '@tonylb/mtw-wml/ts/standardize/authorization'
+import { StandardAuthorizationCollection, StandardAuthorizationCollectionNDJSON } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -239,7 +239,7 @@ describe('AssetWorkspace', () => {
     
     })
 
-    describe('putJSON', () => {
+    describe('pushJSON', () => {
         it('should correctly push JSON content to player zone', async () => {
             const testWorkspace = new AssetWorkspace({
                 fileName: 'Test',
@@ -270,6 +270,32 @@ describe('AssetWorkspace', () => {
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.ndjson',
                 Body: `{"tag":"Asset","key":"Test","universalKey":"ASSET#Test"}`
+            })
+        })
+
+    })
+
+    describe('pushAuthorizationJSON', () => {
+        it('should correctly push NDJSON content', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            testWorkspace.assetId = 'ASSET#Test'
+            testWorkspace.authorizations = new StandardAuthorizationCollection(`
+                <Asset key=(test)>
+                    <Room key=(Room1)>
+                        <Grant player=(Player1) actions="action1" />
+                    </Room>
+                </Asset>
+            `)
+            testWorkspace.authStatus.json = 'Dirty'
+            await testWorkspace.pushAuthorizationJSON()
+            expect(testWorkspace.authStatus.json).toEqual('Clean')
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Personal/Test/Test.auth.ndjson',
+                Body: `{"tag":"Asset","key":"test"}\n{"referenceStack":[{"key":"Room1","tag":"Room","exits":[]}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
             })
         })
 

@@ -229,6 +229,18 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.status.json = 'Clean'
     }
 
+    async pushAuthorizationJSON(): Promise<void> {
+        const filePath = `${this.fileNameBase}.auth.ndjson`
+        const contents = this.authorizations?.toNDJSON().map((line) => (JSON.stringify(line))).join('\n') || ''
+        if (contents) {
+            await s3Client.put({
+                Key: filePath,
+                Body: contents
+            })
+            this.authStatus.json = 'Clean'
+        }
+    }
+
     async pushWML(): Promise<void> {
         const filePath = `${this.fileNameBase}.wml`
         await s3Client.put({
