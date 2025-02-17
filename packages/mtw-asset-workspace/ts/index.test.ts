@@ -9,6 +9,7 @@ import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollectionData } from '@tonylb/mtw-wml/ts/standardize/authorization/components/dataTypes'
+import { StandardAuthorizationCollectionNDJSON } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -128,16 +129,11 @@ describe('AssetWorkspace', () => {
 
     describe('loadAuthorizationJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
-            const json: StandardAuthorizationCollectionData = {
-                key: 'Test',
-                grants: [
-                    {
-                        referenceStack: [{ tag: 'Room', key: 'Room1' }],
-                        grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
-                    }
-                ]
-            }
-            s3ClientMock.get.mockResolvedValue(JSON.stringify(json))
+            const json: StandardAuthorizationCollectionNDJSON[] = [
+                { tag: 'Asset', key: 'Test' },
+                { referenceStack: [{ tag: 'Room', key: 'Room1' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+            ]
+            s3ClientMock.get.mockResolvedValue(json.map((line) => (JSON.stringify(line))).join('\n'))
     
             const testWorkspace = new AssetWorkspace({
                 fileName: 'Test',
