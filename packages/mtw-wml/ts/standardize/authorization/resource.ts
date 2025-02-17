@@ -14,7 +14,7 @@ import { StandardReferenceData, isStandardReferenceData } from "../components/da
 import { isSchemaTreeNode } from "../components/utils";
 import { deepEqual } from "../../lib/objects";
 
-type StandardAuthorizationResourceNDJSON = {
+export type StandardAuthorizationResourceNDJSON = {
     referenceStack: StandardReferenceData[];
     grant: StandardAuthorizationData;
 }

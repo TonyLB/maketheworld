@@ -14,13 +14,14 @@ import { ComponentProcessingTemplate } from "../processComponents"
 import { standardAuthorizationFactory } from "./authorizationFactory"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
-import { StandardAuthorizationResource } from "./resource"
+import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
 import { defaultComponentFromTag, SerializeNDJSONMixin } from "../baseClasses"
 import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
 import { standardComponentSortOrder } from ".."
 import { unique } from "../../list"
 import { standardComponentByTag } from "../nonEditFactory"
+import { deepEqual } from "../../lib/objects"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -41,11 +42,17 @@ export type StandardAuthorizationCollectionGrant = {
     grants: StandardAuthorizationItem[];
 }
 
+export type StandardAuthorizationCollectionNDJSON = { tag: 'Asset', key: string } | StandardAuthorizationResourceNDJSON
+
+export const isStandardAuthorizationCollectionNDJSON = (value: any): value is StandardAuthorizationCollectionNDJSON => {
+    return isStandardAuthorizationResourceNDJSON(value) || Boolean(typeof value === 'object' && value.tag === 'Asset' && isLegalKey(value.key))
+}
+
 export class StandardAuthorizationCollection {
     _key: string;
     _grants: StandardAuthorizationResource[];
 
-    constructor(args: StandardAuthorizationCollectionData | GenericTreeNode<SchemaTag> | string) {
+    constructor(args: StandardAuthorizationCollectionData | GenericTreeNode<SchemaTag> | string | StandardAuthorizationCollectionNDJSON[]) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
             this._key = args
             this._grants = []
@@ -62,6 +69,24 @@ export class StandardAuthorizationCollection {
                 }
             }, {})
             this._grants = Object.values(grantsByReference)
+            return
+        }
+        if (Array.isArray(args) && args.every(isStandardAuthorizationCollectionNDJSON)) {
+            const assetKeyRow = args.find((row): row is { tag: 'Asset', key: string } => ('tag' in row && row.tag === 'Asset'))
+            if (!assetKeyRow) {
+                throw new Error('StandardAuthorizationCollection constructor requires an Asset row')
+            }
+            this._key = assetKeyRow.key
+            this._grants = args
+                .filter(isStandardAuthorizationResourceNDJSON)
+                .reduce<StandardAuthorizationResourceNDJSON[][]>((previous, row) => {
+                    const matchingIndex = previous.findIndex(([referenceRow]) => (deepEqual(referenceRow.referenceStack, row.referenceStack)))
+                    if (matchingIndex === -1) {
+                        return [...previous, [row]]
+                    }
+                    return [...previous.slice(0, matchingIndex), [...previous[matchingIndex], row], ...previous.slice(matchingIndex + 1)]
+                }, [])
+                .map((row) => (new StandardAuthorizationResource(row)))
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {
