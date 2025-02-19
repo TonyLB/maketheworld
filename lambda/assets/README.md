@@ -79,6 +79,24 @@ recursively follows the import tree for a vertical slice of all relevant assets 
 
 ---
 
+## Subscribes to
+
+- ***WML***:
+    - Content Update
+    - Authorization Update
+
+---
+
+## Events Streamed
+
+- ***[TODO] Character Added***: When a character has been added to an asset
+- ***[TODO] Character Update***: When a character's content has been updated in an asset
+- ***[TODO] Character Removed***: When a character has been removed from an asset
+- ***[TODO] Character Assigned***: When a character receives a player-can-play grant
+- ***[TODO] Character Unassigned***: When a character loses a player-can-play grant
+
+---
+
 ## S3
 
 ---
