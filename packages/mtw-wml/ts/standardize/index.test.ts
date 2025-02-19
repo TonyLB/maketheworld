@@ -321,6 +321,29 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
+    it('should ignore authorization tags', () => {
+        const test = new StandardForm(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Grant player=(testPlayer) actions="test" />
+                    <Example key=(base)>
+                        <Description>
+                            One
+                            <br />
+                        </Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Example key=(base)><Description>One<br /></Description></Example>
+                </Room>
+            </Asset>
+        `))
+    })
+
     it('should properly nest components in a removed component', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>

@@ -201,6 +201,27 @@ describe('StandardAuthorizationCollection', () => {
         expect(schemaToWML([collection.schema])).toEqual(testWML)
     })
 
+    it('should ignore non-authorization content', () => {
+        const test = new StandardAuthorizationCollection(`
+            <Asset key=(Test)>
+                <Room key=(test)>
+                    <Grant player=(testPlayer) actions="test" />
+                    <Example key=(base)>
+                        <Description>
+                            One
+                            <br />
+                        </Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(test)><Grant player=(testPlayer) actions="test" /></Room>
+            </Asset>
+        `))
+    })
+
     it('should sort schema appropriately', () => {
         const collection = new StandardAuthorizationCollection(`
             <Asset key=(test)>
