@@ -46,6 +46,28 @@ executes the associated action (if an Action link)
 
 ---
 
+## Subscribes to
+
+- ***Asset***:
+    - Content Update
+    - Authorization Update
+    - Asset Added
+    - Asset Removed
+    - Asset Canonized
+    - Asset Decanonized
+
+---
+
+## Events Streamed
+
+- ***[TODO] Character Added***: When a character has been added to an asset
+- ***[TODO] Character Update***: When a character's content has been updated in an asset
+- ***[TODO] Character Removed***: When a character has been removed from an asset
+- ***[TODO] Character Assigned***: When a character receives a player-can-play grant
+- ***[TODO] Character Unassigned***: When a character loses a player-can-play grant
+
+---
+
 ## InternalCache
 
 This lambda uses the internalCache to implement its fetches from the database.  Many
