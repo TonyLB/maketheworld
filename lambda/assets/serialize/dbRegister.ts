@@ -6,6 +6,8 @@ import { graphStorageDB } from './graphCache'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
+import eventBridgeClient from '@tonylb/mtw-utilities/ts/eventBridge'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
@@ -14,6 +16,13 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         return
     }
     const { key } = standardForm
+    const checkBefore = await assetDB.getItem({
+        Key: {
+            AssetId: AssetKey(key),
+            DataCategory: `Meta::Asset`
+        },
+        ProjectionFields: ['AssetId']
+    })
     const updatedLibraryAssets = {
         [AssetKey(key)]: {
             AssetId: AssetKey(key),
@@ -45,7 +54,8 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
             .map(({ data }) => ({ target: AssetKey(data.from), context: '' })),
         options: { direction: 'back' }
     }])
-    await Promise.all([
+    const [prior] = await Promise.all([
+        checkBefore,
         graphUpdate.flush(),
         assetDB.putItem({
             AssetId: AssetKey(key),
@@ -56,72 +66,16 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         }),
         updateLibraryPromise
     ])
-    // }
-    // if (standardForm.tag === 'Character') {
-    //     const character = standardForm.byId[standardForm.key]
-    //     if (!(character && character.tag === 'Character')) {
-    //         return
-    //     }
-    //     const Name = schemaOutputToString(character.name.children)
-    //     const universalKey = assetWorkspace.universalKey(character.key) as EphemeraCharacterId
-    //     if (!universalKey) {
-    //         return
-    //     }
-    //     const images = [character.image]
-    //         .map((image) => (assetWorkspace.properties[image.data.key]?.fileName))
-    //         .filter((image) => (image))
-    //     const updatedCharacters = {
-    //         [universalKey]: {
-    //             CharacterId: universalKey,
-    //             Name,
-    //             fileName: '',
-    //             fileURL: images[0] || undefined,
-    //             scopedId: character.key,        
-    //         }
-    //     }
-    //     const updateLibraryPromise = address.zone === 'Personal'
-    //         ? internalCache.PlayerLibrary.set(address.player, {
-    //             Assets: {},
-    //             Characters: updatedCharacters
-    //         })
-    //         : address.zone === 'Library'
-    //             ? internalCache.Library.set({
-    //                 Assets: {},
-    //                 Characters: updatedCharacters
-    //             })
-    //             : Promise.resolve({})
-    //     const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
-    //     graphUpdate.setEdges([{
-    //         itemId: CharacterKey(character.key),
-    //         edges: standardForm.metaData
-    //             .filter(treeNodeTypeguard(isSchemaImport))
-    //             .map(({ data }) => ({ target: AssetKey(data.from), context: '' })),
-    //         options: { direction: 'back' }
-    //     }])
-    //     await Promise.all([
-    //         graphUpdate.flush(),
-    //         assetDB.putItem({
-    //             AssetId: universalKey,
-    //             DataCategory: `Meta::Character`,
-    //             address,
-    //             zone: address.zone,
-    //             Name,
-    //             images,
-    //             scopedId: character.key,
-    //             ...(address.zone === 'Personal' ? { player: address.player } : {})
-    //         }),
-    //         updateLibraryPromise
-    //     ])
-    //     if (address.zone === 'Personal') {
-    //         messageBus.send({
-    //             type: 'PlayerInfo',
-    //             player: address.player
-    //         })
-
-    //     }
-    //     if (address.zone === 'Library') {
-    //         messageBus.send({ type: 'LibraryUpdate' })
-    //     }
-    // }
+    if (!(prior && prior.AssetId)) {
+        await eventBridgeClient.send([{
+            Source: 'mtw.assets',
+            DetailType: 'Asset Added',
+            Detail: {
+                assetId: AssetKey(key),
+                zone: address.zone,
+                wml: schemaToWML([standardForm.schema])
+            }
+        }])
+    }
 
 }
