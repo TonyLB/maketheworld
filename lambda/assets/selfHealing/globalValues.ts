@@ -43,7 +43,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
 
             await eventBridgeClient.send([{
                 Source: 'mtw.assets',
-                DetailType: 'Update Canon',
+                DetailType: 'Canon Updated',
                 Detail: { assetIds: globalAssetsSorted }
             }])
         }
