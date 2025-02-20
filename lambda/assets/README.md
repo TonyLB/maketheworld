@@ -89,11 +89,12 @@ recursively follows the import tree for a vertical slice of all relevant assets 
 
 ## Events Streamed
 
-- ***[TODO] Character Added***: When a character has been added to an asset
-- ***[TODO] Character Update***: When a character's content has been updated in an asset
-- ***[TODO] Character Removed***: When a character has been removed from an asset
-- ***[TODO] Character Assigned***: When a character receives a player-can-play grant
-- ***[TODO] Character Unassigned***: When a character loses a player-can-play grant
+- ***[TODO] Asset Canonize***: Set an asset canonical
+- ***[TODO] Asset Decanonize***: Set a canonical asset non-canonical
+- ***[TODO] Asset Added***: Add a WML asset to the data manifest
+- ***[TODO] Content Updated***: Flag that a WML asset in the data manifest has had its content updated
+- ***[TODO] Authorization Updated***: Flag that a WML asset in the data manifest has had its authorizations updated
+- ***[TODO] Asset Removed***: Remove a WML asset from the data manifest
 
 ---
 
