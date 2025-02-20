@@ -22,6 +22,7 @@ import {
     isAssetLLMGenerateAPIMessage,
     isApplyEditAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
+import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
@@ -32,6 +33,7 @@ import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
@@ -137,6 +139,28 @@ export const handler = async (event, context) => {
                     toZone: event["detail-type"] === 'Canonize Asset' ? 'Canon' : 'Library'
                 })
                 await messageBus.flush()
+                //
+                // TODO: Redesign the way Canon is stored
+                //
+                const Items = await assetDB.query({
+                    IndexName: 'DataCategoryIndex',
+                    Key: {
+                        DataCategory: 'Meta::Asset'
+                    },
+                    FilterExpression: "zone = :canon",
+                    ExpressionAttributeValues: {
+                        ':canon': 'Canon'
+                    },
+                    ProjectionFields: ['AssetId', 'zone']
+                })
+                const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
+                const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
+                await eventBridgeClient.send([{
+                    Source: 'mtw.assets',
+                    DetailType: 'Canon Updated',
+                    Detail: { assetIds: globalAssetsSorted }
+                }])
+    
                 return {}
             }
             else {

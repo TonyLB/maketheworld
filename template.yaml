@@ -474,7 +474,7 @@ Resources:
               source:
                 - mtw.assets
               detail-type:
-                - Update Canon
+                - Canon Updated
         WML:
           Type: CloudWatchEvent
           Properties:
