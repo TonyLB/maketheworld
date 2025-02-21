@@ -48,9 +48,11 @@ executes the associated action (if an Action link)
 
 ## Subscribes to
 
-- ***Asset***:
+- ***WML***:
     - Content Update
     - Authorization Update
+
+- ***Asset***:
     - Asset Added
     - Asset Removed
     - Asset Canonized
@@ -60,9 +62,9 @@ executes the associated action (if an Action link)
 
 ## Events Streamed
 
-- ***[TODO] Character Added***: When a character has been added to an asset
-- ***[TODO] Character Update***: When a character's content has been updated in an asset
-- ***[TODO] Character Removed***: When a character has been removed from an asset
+- ***[TODO] Character Added***: When a character has been added to a cached asset
+- ***[TODO] Character Update***: When a character's content has been updated in a cached asset
+- ***[TODO] Character Removed***: When a character has been removed from a cached asset
 - ***[TODO] Character Assigned***: When a character receives a player-can-play grant
 - ***[TODO] Character Unassigned***: When a character loses a player-can-play grant
 
