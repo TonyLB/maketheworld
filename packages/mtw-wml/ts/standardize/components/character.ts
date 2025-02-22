@@ -6,12 +6,11 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
-    _firstImpression?: EditWrappedStandardNode<SchemaFirstImpressionTag, SchemaTag>;
     _oneCoolThing?: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>;
     _outfit?: EditWrappedStandardNode<SchemaOutfitTag, SchemaTag>;
     _pronouns?: EditWrappedStandardNode<SchemaPronounsTag, SchemaTag>;
@@ -20,7 +19,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     fromJSON(props: StandardCharacterData) {
         this._name = props.name
-        this._firstImpression = props.firstImpression
         this._oneCoolThing = props.oneCoolThing
         this._outfit = props.outfit
         this._pronouns = props.pronouns
@@ -32,7 +30,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             this._pronouns = (node.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } })
             const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
             this._name = confirmOutputChildren(node.children.find(treeNodeTypeguard(isSchemaName)))
-            this._firstImpression = node.children.find(treeNodeTypeguard(isSchemaFirstImpression))
             this._oneCoolThing = node.children.find(treeNodeTypeguard(isSchemaOneCoolThing))
             this._outfit = node.children.find(treeNodeTypeguard(isSchemaOutfit))
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
@@ -42,7 +39,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 
     get name() { return this._name }
-    get firstImpression() { return this._firstImpression }
     get oneCoolThing() { return this._oneCoolThing }
     get outfit() { return this._outfit }
     get image() { return this._image }
@@ -52,7 +48,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             tag: 'Character',
             name: this.name,
-            firstImpression: this.firstImpression,
             oneCoolThing: this.oneCoolThing,
             outfit: this.outfit,
             image: this.image,
@@ -79,7 +74,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 this.name,
                 pronounsFinalItem ? { data: { ...pronounsFinalItem, tag: 'Pronouns' as const }, children: [] } : undefined,
-                this.firstImpression,
                 this.oneCoolThing,
                 this.outfit,
                 this.image
@@ -111,7 +105,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
     get pronouns() { return this._payload.pronouns }
     get name() { return this._payload.name }
-    get firstImpression() { return this._payload.firstImpression }
     get oneCoolThing() { return this._payload.oneCoolThing }
     get outfit() { return this._payload.outfit }
     get image() { return this._payload.image }

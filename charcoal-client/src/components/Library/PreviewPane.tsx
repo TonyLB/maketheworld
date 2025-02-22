@@ -104,7 +104,7 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
     </Card>
 }
 
-const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => {
+const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, Pronouns, OneCoolThing, Outfit }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
@@ -136,11 +136,6 @@ const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { persona
             title={
                 <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div">
                     { Name }
-                </Typography>
-            }
-            subheader={
-                <Typography variant="overline" component="div" gutterBottom>
-                    { FirstImpression }
                 </Typography>
             }
         />

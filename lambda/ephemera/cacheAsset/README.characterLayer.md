@@ -39,7 +39,6 @@ perceived by this character
         address: AssetWorkspaceAddress;
         Name: string;
         Pronouns: CharacterEphemeraPronouns;
-        FirstImpression: string;
         OneCoolThing: string;
         Outfit: string;
         Color: 'blue' | 'purple' | 'green' | 'pink';

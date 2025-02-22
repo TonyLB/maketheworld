@@ -143,7 +143,6 @@ export type AssetClientPlayerCharacter = {
     scopedId?: string;
     fileName?: string;
     fileURL?: string;
-    FirstImpression?: string;
     Pronouns?: {
         subject: string;
         object: string;
@@ -285,7 +284,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 scopedId: 'string',
                                 fileName: 'string',
                                 fileURL: 'string',
-                                FirstImpression: 'string',
                                 OneCoolThing: 'string',
                                 Outfit: 'string'
                             }
@@ -334,7 +332,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 scopedId: 'string',
                                 fileName: 'string',
                                 fileURL: 'string',
-                                FirstImpression: 'string',
                                 OneCoolThing: 'string',
                                 Outfit: 'string'
                             }

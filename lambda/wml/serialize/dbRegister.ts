@@ -68,7 +68,6 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         //             address,
         //             zone: address.zone,
         //             Name: schemaOutputToString(character.name.children),
-        //             FirstImpression: character.firstImpression.data.value,
         //             OneCoolThing: character.oneCoolThing.data.value,
         //             Pronouns: character.pronouns,
         //             Outfit: character.outfit.data.value,

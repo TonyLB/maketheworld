@@ -1118,7 +1118,6 @@ describe('StandardForm', () => {
                         adjective="hers"
                         reflexive="herself"
                     />
-                    <FirstImpression>Frumpy Goth</FirstImpression>
                     <OneCoolThing>Fuchsia eyes</OneCoolThing>
                     <Outfit>
                         A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.

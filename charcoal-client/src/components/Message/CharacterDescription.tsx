@@ -25,7 +25,7 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
     const medium = useMediaQuery(theme.breakpoints.up('md'))
     const large = useMediaQuery(theme.breakpoints.up('lg'))
     const portraitSize = large ? 160 : medium ? 120 : 80
-    const { CharacterId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit } = message
+    const { CharacterId, Name, fileURL, Pronouns, OneCoolThing, Outfit } = message
 
     return <MessageComponent
             sx={{
@@ -56,9 +56,6 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
             >
                 <Typography variant='h5' align='left'>
                     { Name }
-                </Typography>
-                <Typography variant='overline' align='left'>
-                    { FirstImpression }
                 </Typography>
                 <Divider />
                 <Typography variant='body1' align='left'>
