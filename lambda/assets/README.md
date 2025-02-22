@@ -89,11 +89,9 @@ recursively follows the import tree for a vertical slice of all relevant assets 
 
 ## Events Streamed
 
-- ***[TODO] Canon Updated***: An asset has been set canonical, or a canonical asset set non-canonical
-- ***[TODO] Asset Added***: Add a WML asset to the data manifest
-- ***[TODO] Content Updated***: Flag that a WML asset in the data manifest has had its content updated
-- ***[TODO] Authorization Updated***: Flag that a WML asset in the data manifest has had its authorizations updated
-- ***[TODO] Asset Removed***: Remove a WML asset from the data manifest
+- ***Canon Updated***: An asset has been set canonical, or a canonical asset set non-canonical
+- ***Asset Added***: Add a WML asset to the data manifest
+- ***Asset Removed***: Remove a WML asset from the data manifest
 
 ---
 
