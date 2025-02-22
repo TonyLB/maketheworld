@@ -581,7 +581,6 @@ describe('schemaFromParse', () => {
                 adjective="hers"
                 reflexive="herself"
             ></Pronouns>
-            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
             <Image key=(testIcon) />
         </Character>
         `)))
@@ -609,10 +608,6 @@ describe('schemaFromParse', () => {
                         reflexive: "herself",
                         subject: "she",
                     },
-                    children: []
-                },
-                {
-                    data: { tag: 'Outfit', value: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.' },
                     children: []
                 },
                 { data: { tag: 'Image', key: 'testIcon' }, children: [] }
@@ -835,9 +830,6 @@ describe('schemaToWML', () => {
                     adjective="her"
                     reflexive="herself"
                 />
-                <Outfit>
-                    A tattered frock-coat kitbashed out of a black hoodie and dyed lace.
-                </Outfit>
                 <OneCoolThing>Fuchsia Eyes</OneCoolThing>
                 <Image key=(TESSIcon) />
                 <Import from=(base) />

@@ -104,7 +104,7 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
     </Card>
 }
 
-const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, Pronouns, OneCoolThing, Outfit }) => {
+const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, Pronouns, OneCoolThing }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
@@ -153,14 +153,6 @@ const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { persona
                     OneCoolThing &&
                     (<React.Fragment>
                         <b>One Cool Thing{ Pronouns?.object && <React.Fragment> about { Pronouns?.object }</React.Fragment>}: </b> { OneCoolThing }
-                    </React.Fragment>) 
-                }
-            </Typography>
-            <Typography variant='body1' align='left'>
-                {
-                    Outfit &&
-                    (<React.Fragment>
-                        <b>Outfit: </b> { Outfit }
                     </React.Fragment>) 
                 }
             </Typography>

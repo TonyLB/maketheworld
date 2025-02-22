@@ -122,7 +122,6 @@ export type EphemeraCharacter = {
     Name: string;
     Pronouns: SchemaPronouns;
     OneCoolThing?: string;
-    Outfit?: string;
     Color: 'blue' | 'purple' | 'green' | 'pink';
     fileURL?: string;
     Connected: boolean;

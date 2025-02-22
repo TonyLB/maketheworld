@@ -40,7 +40,6 @@ perceived by this character
         Name: string;
         Pronouns: CharacterEphemeraPronouns;
         OneCoolThing: string;
-        Outfit: string;
         Color: 'blue' | 'purple' | 'green' | 'pink';
         fileURL: string; // URL to cached icon image
         Connected: boolean;

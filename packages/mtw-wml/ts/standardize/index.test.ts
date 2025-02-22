@@ -1119,9 +1119,6 @@ describe('StandardForm', () => {
                         reflexive="herself"
                     />
                     <OneCoolThing>Fuchsia eyes</OneCoolThing>
-                    <Outfit>
-                        A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.
-                    </Outfit>
                     <Image key=(TessIcon) />
                 </Character>
                 <Image key=(TessIcon) />

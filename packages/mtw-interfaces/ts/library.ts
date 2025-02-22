@@ -21,5 +21,4 @@ export type LibraryCharacter = {
         adjective: string;
     };
     OneCoolThing?: string;
-    Outfit?: string;
 }
