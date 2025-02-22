@@ -176,7 +176,6 @@ type CharacterDescribeData = {
         adjective: string;
     };
     OneCoolThing?: string;
-    Outfit?: string;
 }
 
 export type CharacterDescription = {
@@ -279,7 +278,6 @@ export const isMessage = (message: any): message is Message => {
                     {
                         fileUrl: 'string',
                         OneCoolThing: 'string',
-                        Outfit: 'string'
                     }
                 ),
                 !message.Pronouns || checkTypes(message.Pronouns, {

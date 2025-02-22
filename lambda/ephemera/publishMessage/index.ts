@@ -273,7 +273,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 Name: payload.Name,
                 Pronouns: payload.Pronouns,
                 OneCoolThing: payload.OneCoolThing,
-                Outfit: payload.Outfit,
                 fileURL: payload.fileURL
             })
         }

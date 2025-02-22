@@ -4,7 +4,7 @@ import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaOneCoolThingTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
 export type SchemaPronouns = {
     subject: string;
@@ -20,11 +20,6 @@ export type SchemaPronounsTag = {
 
 export type SchemaOneCoolThingTag = {
     tag: 'OneCoolThing';
-    value: string;
-} & SchemaBase
-
-export type SchemaOutfitTag = {
-    tag: 'Outfit';
     value: string;
 } & SchemaBase
 
@@ -51,10 +46,6 @@ export const isSchemaPronouns = (schema: any): schema is SchemaPronounsTag => (
 
 export const isSchemaOneCoolThing = (schema: any): schema is SchemaOneCoolThingTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'OneCoolThing' } })(schema)
-)
-
-export const isSchemaOutfit = (schema: any): schema is SchemaOutfitTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'Outfit' } })(schema)
 )
 
 export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => (

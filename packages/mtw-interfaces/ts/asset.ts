@@ -151,7 +151,6 @@ export type AssetClientPlayerCharacter = {
         adjective: string;
     };
     OneCoolThing?: string;
-    Outfit?: string;
 }
 
 export type AssetClientPlayerSettings = {
@@ -285,7 +284,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 fileName: 'string',
                                 fileURL: 'string',
                                 OneCoolThing: 'string',
-                                Outfit: 'string'
                             }
                         ),
                         !message.Pronouns || checkTypes(message.Pronouns, {
@@ -333,7 +331,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 fileName: 'string',
                                 fileURL: 'string',
                                 OneCoolThing: 'string',
-                                Outfit: 'string'
                             }
                         ),
                         !message.Pronouns || checkTypes(message.Pronouns, {

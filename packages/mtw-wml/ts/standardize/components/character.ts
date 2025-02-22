@@ -6,13 +6,12 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaOneCoolThing, isSchemaPronouns, SchemaOneCoolThingTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _oneCoolThing?: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>;
-    _outfit?: EditWrappedStandardNode<SchemaOutfitTag, SchemaTag>;
     _pronouns?: EditWrappedStandardNode<SchemaPronounsTag, SchemaTag>;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
     tag = 'Character' as const
@@ -20,7 +19,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     fromJSON(props: StandardCharacterData) {
         this._name = props.name
         this._oneCoolThing = props.oneCoolThing
-        this._outfit = props.outfit
         this._pronouns = props.pronouns
         this._image = props.image
     }
@@ -31,7 +29,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
             this._name = confirmOutputChildren(node.children.find(treeNodeTypeguard(isSchemaName)))
             this._oneCoolThing = node.children.find(treeNodeTypeguard(isSchemaOneCoolThing))
-            this._outfit = node.children.find(treeNodeTypeguard(isSchemaOutfit))
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
             return
         }
@@ -40,7 +37,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     get name() { return this._name }
     get oneCoolThing() { return this._oneCoolThing }
-    get outfit() { return this._outfit }
     get image() { return this._image }
     get pronouns() { return this._pronouns}
 
@@ -49,7 +45,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             tag: 'Character',
             name: this.name,
             oneCoolThing: this.oneCoolThing,
-            outfit: this.outfit,
             image: this.image,
             pronouns: this.pronouns
         }
@@ -75,7 +70,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 this.name,
                 pronounsFinalItem ? { data: { ...pronounsFinalItem, tag: 'Pronouns' as const }, children: [] } : undefined,
                 this.oneCoolThing,
-                this.outfit,
                 this.image
             ].filter(excludeUndefined).flat(1)
         }
@@ -106,7 +100,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
     get pronouns() { return this._payload.pronouns }
     get name() { return this._payload.name }
     get oneCoolThing() { return this._payload.oneCoolThing }
-    get outfit() { return this._payload.outfit }
     get image() { return this._payload.image }
 }
 

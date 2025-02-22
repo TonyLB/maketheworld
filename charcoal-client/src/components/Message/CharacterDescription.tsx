@@ -25,7 +25,7 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
     const medium = useMediaQuery(theme.breakpoints.up('md'))
     const large = useMediaQuery(theme.breakpoints.up('lg'))
     const portraitSize = large ? 160 : medium ? 120 : 80
-    const { CharacterId, Name, fileURL, Pronouns, OneCoolThing, Outfit } = message
+    const { CharacterId, Name, fileURL, Pronouns, OneCoolThing } = message
 
     return <MessageComponent
             sx={{
@@ -71,14 +71,6 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
                         OneCoolThing &&
                         (<React.Fragment>
                             <b>One Cool Thing{ Pronouns?.object && <React.Fragment> about { Pronouns?.object }</React.Fragment>}: </b> { OneCoolThing }
-                        </React.Fragment>) 
-                    }
-                </Typography>
-                <Typography variant='body1' align='left'>
-                    {
-                        Outfit &&
-                        (<React.Fragment>
-                            <b>Outfit: </b> { Outfit }
                         </React.Fragment>) 
                     }
                 </Typography>

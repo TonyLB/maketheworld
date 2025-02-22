@@ -47,7 +47,7 @@ describe('Perception message', () => {
                 EphemeraId: 'CHARACTER#TESS',
                 DataCategory: 'Meta::Character'
             },
-            ProjectionFields: ['Name', 'Pronouns', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
+            ProjectionFields: ['Name', 'Pronouns', 'OneCoolThing', 'fileURL', 'Color']
         })
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({

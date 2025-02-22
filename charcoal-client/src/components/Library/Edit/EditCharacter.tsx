@@ -49,7 +49,7 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutp
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
+import { SchemaOneCoolThingTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -227,7 +227,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 type LiteralTagFieldProps = {
     required?: boolean;
     character: StandardCharacter;
-    tag: 'outfit' | 'oneCoolThing';
+    tag: 'oneCoolThing';
     label: string;
 }
 
@@ -235,7 +235,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const { updateStandard } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return ignoreWrapped<SchemaOutfitTag | SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
+        return ignoreWrapped<SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
     })
 
     const debouncedTagValue = useDebounce(currentTagValue, 500)
@@ -248,9 +248,6 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
                 if (base instanceof StandardCharacter) {
                     if (tag === 'oneCoolThing') {
                         base._payload._oneCoolThing = { data: { tag: 'OneCoolThing', value: debouncedTagValue }, children: [] }
-                    }
-                    else if (tag === 'outfit') {
-                        base._payload._outfit = { data: { tag: 'Outfit', value: debouncedTagValue }, children: [] }
                     }
                 }
                 return incoming
@@ -464,11 +461,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 character={character}
                 tag="oneCoolThing"
                 label="One Cool Thing"
-            />
-            <LiteralTagField
-                character={character}
-                tag="outfit"
-                label="Outfit"
             />
             {/* <EditCharacterAssetList /> */}
         </Stack>

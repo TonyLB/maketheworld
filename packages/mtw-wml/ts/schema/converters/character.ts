@@ -1,4 +1,4 @@
-import { isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaOneCoolThing, isSchemaPronouns, SchemaCharacterTag, SchemaOneCoolThingTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
@@ -16,7 +16,6 @@ const characterTemplates = {
         reflexive: { required: true, type: ParsePropertyTypes.Literal }
     },
     OneCoolThing: {},
-    Outfit: {},
     Character: {
         key: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
@@ -39,26 +38,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
         typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => {
             if (!isSchemaOneCoolThing(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: {
-                    ...initialTag,
-                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                },
-                children: []
-            }
-        }
-    },
-    Outfit: {
-        initialize: ({ parseOpen }): SchemaOutfitTag => ({
-            tag: 'Outfit',
-            value: '',
-            ...validateProperties(characterTemplates.Outfit)(parseOpen)
-        }),
-        typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => {
-            if (!isSchemaOutfit(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
@@ -112,7 +91,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
 }
 
 const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): PrintMapResult[] => (
-    (isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
+    (isSchemaOneCoolThing(tag))
         ? tagRender({
             ...args,
             tag: tag.tag,
@@ -137,7 +116,6 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
     OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
-    Outfit: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaPronouns(tag)
             ? tagRender({
