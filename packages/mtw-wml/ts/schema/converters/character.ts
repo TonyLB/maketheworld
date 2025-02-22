@@ -1,4 +1,4 @@
-import { isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
@@ -15,7 +15,6 @@ const characterTemplates = {
         adjective: { required: true, type: ParsePropertyTypes.Literal },
         reflexive: { required: true, type: ParsePropertyTypes.Literal }
     },
-    FirstImpression: {},
     OneCoolThing: {},
     Outfit: {},
     Character: {
@@ -30,26 +29,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             tag: 'Pronouns',
             ...validateProperties(characterTemplates.Pronouns)(parseOpen)
         })
-    },
-    FirstImpression: {
-        initialize: ({ parseOpen }): SchemaFirstImpressionTag => ({
-            tag: 'FirstImpression',
-            value: '',
-            ...validateProperties(characterTemplates.FirstImpression)(parseOpen)
-        }),
-        typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => {
-            if (!isSchemaFirstImpression(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: {
-                    ...initialTag,
-                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                },
-                children: []
-            }
-        }
     },
     OneCoolThing: {
         initialize: ({ parseOpen }): SchemaOneCoolThingTag => ({
@@ -133,7 +112,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
 }
 
 const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): PrintMapResult[] => (
-    (isSchemaFirstImpression(tag) || isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
+    (isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
         ? tagRender({
             ...args,
             tag: tag.tag,
@@ -157,7 +136,6 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             })
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
-    FirstImpression: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     Outfit: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (

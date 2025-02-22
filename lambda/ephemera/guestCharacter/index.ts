@@ -17,7 +17,6 @@ export const confirmGuestCharacter = async (userName: string): Promise<void> => 
         EphemeraId: `CHARACTER#${characterId}`,
         Name: name,
         OneCoolThing: 'Enthusiastic Curiosity',
-        FirstImpression: 'Friendly Tourist',
         Color: 'pink',
         Pronouns: {
             subject: 'they',

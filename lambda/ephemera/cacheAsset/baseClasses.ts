@@ -121,7 +121,6 @@ export type EphemeraCharacter = {
     address: AssetWorkspaceAddress;
     Name: string;
     Pronouns: SchemaPronouns;
-    FirstImpression: string;
     OneCoolThing?: string;
     Outfit?: string;
     Color: 'blue' | 'purple' | 'green' | 'pink';

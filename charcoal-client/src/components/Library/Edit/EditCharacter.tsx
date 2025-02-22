@@ -42,26 +42,16 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import Checkbox from '@mui/material/Checkbox'
-import { getLibrary } from '../../../slices/library'
 import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { deepEqual } from '../../../lib/objects'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
+import { SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
-import { excludeUndefined } from '../../../lib/lists'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
-import { StandardRender, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
-import StandardRenderString from '@tonylb/mtw-wml/ts/standardize/render/string'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
@@ -237,7 +227,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 type LiteralTagFieldProps = {
     required?: boolean;
     character: StandardCharacter;
-    tag: 'firstImpression' | 'outfit' | 'oneCoolThing';
+    tag: 'outfit' | 'oneCoolThing';
     label: string;
 }
 
@@ -245,7 +235,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
     const { updateStandard } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return ignoreWrapped<SchemaFirstImpressionTag | SchemaOutfitTag | SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
+        return ignoreWrapped<SchemaOutfitTag | SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
     })
 
     const debouncedTagValue = useDebounce(currentTagValue, 500)
@@ -256,10 +246,7 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, r
             update: (incoming: StandardForm) => {
                 const base = incoming.byId[character.key]
                 if (base instanceof StandardCharacter) {
-                    if (tag === 'firstImpression') {
-                        base._payload._firstImpression = { data: { tag: 'FirstImpression', value: debouncedTagValue }, children: [] }
-                    }
-                    else if (tag === 'oneCoolThing') {
+                    if (tag === 'oneCoolThing') {
                         base._payload._oneCoolThing = { data: { tag: 'OneCoolThing', value: debouncedTagValue }, children: [] }
                     }
                     else if (tag === 'outfit') {
@@ -314,71 +301,6 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     />
 
 }
-
-// type EditCharacterAssetListProps = {}
-
-// type ZonedAssets = {
-//     key: string;
-//     zone: string;
-// }
-
-// const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
-//     const { Assets: libraryAssets } = useSelector(getLibrary)
-//     const personalAssets = useSelector(getMyAssets)
-//     const allPersonalAssets = useSelector(getAll)
-//     const assetsAvailable: ZonedAssets[] = [
-//         ...personalAssets
-//             .filter(({ AssetId }) => ((`ASSET#${AssetId}` in allPersonalAssets && allPersonalAssets[`ASSET#${AssetId}`].serialized) || !(`ASSET#${AssetId}` in allPersonalAssets)))
-//             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
-//         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
-//     ]
-//     const { updateStandard, standardForm } = useLibraryAsset()
-//     const assetsImported = useMemo(() => (standardForm.metaData
-//         .filter(treeNodeTypeguard(isSchemaImport))
-//         .map(({ data }) => (data))
-//         .map(({ from }) => (from))
-//         //
-//         // Find each asset in the Library and determine its zone
-//         //
-//         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
-//         .filter((value) => (value))
-//     ), [standardForm])
-//     const dispatch = useDispatch()
-//     const onChange = useCallback((_, newAssets: (ZonedAssets | undefined)[]) => {
-//         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')) as { key: string; zone:string }[]
-//         const addAssets = saveableAssets.filter(({ key }) => (!standardForm.metaData.find(({ data }) => (isSchemaImport(data) && data.from === key))))
-//         updateStandard({ type: 'replaceMetaData', metaData: saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key, mapping: {} }, children: [] })) })
-//         if (addAssets.filter(({ zone }) => (zone === 'Personal')).length) {
-//             dispatch(addOnboardingComplete(['editCharacterAssets']))
-//         }
-//     }, [standardForm, updateStandard, dispatch])
-//     return <Autocomplete
-//         multiple
-//         id="asset-list"
-//         options={assetsAvailable}
-//         groupBy={({ zone }) => (zone)}
-//         disableCloseOnSelect
-//         getOptionLabel={(option) => ((((typeof option === 'object') && option.key) || ((typeof option === 'string') && option)) || '')}
-//         isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
-//         renderOption={(props, option, { selected }) => (
-//             <li {...props}>
-//             <Checkbox
-//                 icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-//                 checkedIcon={<CheckBoxIcon fontSize="small" />}
-//                 style={{ marginRight: 8 }}
-//                 checked={selected}
-//             />
-//             {option.key}
-//             </li>
-//         )}
-//         style={{ width: 500 }}
-//         renderInput={(params) => (
-//             <TextField {...params} label="View Non-Canon Assets" />
-//         )}
-//         value={assetsImported.filter(excludeUndefined)}
-//         onChange={onChange}
-//     />
-// }
 
 interface ImageHeaderProps {
     ItemId: `CHARACTER#${string}`;
@@ -529,12 +451,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralNameField character={character} />
-                    <LiteralTagField
-                        character={character}
-                        required
-                        tag="firstImpression"
-                        label="First Impression"
-                    />
                 </Stack>
             </Stack>
             <CharacterEditPronouns

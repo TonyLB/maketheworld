@@ -32,7 +32,6 @@ describe('Perception message', () => {
         })
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
-            FirstImpression: 'Testy',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
             fileURL: 'https://example.com/image.jpg'
         })
@@ -48,7 +47,7 @@ describe('Perception message', () => {
                 EphemeraId: 'CHARACTER#TESS',
                 DataCategory: 'Meta::Character'
             },
-            ProjectionFields: ['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
+            ProjectionFields: ['Name', 'Pronouns', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
         })
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -57,7 +56,6 @@ describe('Perception message', () => {
             targets: ['CHARACTER#TESS'],
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess', 
-            FirstImpression: 'Testy',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
             fileURL: 'https://example.com/image.jpg'
         })

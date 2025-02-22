@@ -4,7 +4,7 @@ import { splitType } from "@tonylb/mtw-utilities/ts/types"
 const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-        .map(({ AssetId, Name, scopedId, fileName, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL, Pronouns, FirstImpression, OneCoolThing, Outfit }))
+        .map(({ AssetId, Name, scopedId, fileName, fileURL, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL, Pronouns, OneCoolThing, Outfit }))
     const Assets = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
         .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
@@ -25,7 +25,7 @@ export const fetchLibrary = async (RequestId: string) => {
         ExpressionAttributeValues: {
             ':dcPrefix': 'Meta::'
         },
-        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
+        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'Pronouns', 'OneCoolThing', 'Outfit']
     })
 
     const { Characters, Assets } = convertAssetQuery(Items)

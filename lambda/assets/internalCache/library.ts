@@ -52,11 +52,11 @@ export class CacheLibraryData {
                 ExpressionAttributeValues: {
                     ':dcPrefix': 'Meta::'
                 },
-                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'images', 'Pronouns', 'OneCoolThing', 'Outfit']
             })
             this.Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-                .map(({ AssetId, Name, scopedId, fileName, images, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId, Name, scopedId, fileName, fileURL: images?.length ? images[0] : undefined, Pronouns, FirstImpression, OneCoolThing, Outfit }))
+                .map(({ AssetId, Name, scopedId, fileName, images, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId, Name, scopedId, fileName, fileURL: images?.length ? images[0] : undefined, Pronouns, OneCoolThing, Outfit }))
                 .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item as LibraryCharacter }), {} as Record<string, LibraryCharacter>)
             this.Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))

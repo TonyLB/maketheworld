@@ -17,39 +17,35 @@ describe('StandardCharacter class', () => {
                     adjective="hers"
                     reflexive="herself"
                 />
-                <FirstImpression>Ragged waif</FirstImpression>
                 <OneCoolThing>Silvery eyes</OneCoolThing>
                 <Outfit>Rags</Outfit>
             </Character>
         `)
-        const testRoom = new StandardCharacter(testSource)
-        expect(testRoom.key).toEqual('test')
-        expect(testRoom.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
-        expect(testRoom.firstImpression).toEqual({ data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] })
-        expect(testRoom.oneCoolThing).toEqual({ data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] })
-        expect(testRoom.outfit).toEqual({ data: { tag: 'Outfit', value:  'Rags' }, children: [] })
-        expect(schemaToWML([testRoom.schema])).toEqual(testSource)
+        const testCharacter = new StandardCharacter(testSource)
+        expect(testCharacter.key).toEqual('test')
+        expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
+        expect(testCharacter.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
+        expect(testCharacter.oneCoolThing).toEqual({ data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] })
+        expect(testCharacter.outfit).toEqual({ data: { tag: 'Outfit', value:  'Rags' }, children: [] })
+        expect(schemaToWML([testCharacter.schema])).toEqual(testSource)
     })
 
     it('should construct StandardCharacter from StandardCharacterData', () => {
-        const testRoomData: StandardCharacterData = {
+        const testCharacterData: StandardCharacterData = {
             key: 'test',
             tag: 'Character',
             pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
             oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
             outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
         }
-        const testRoom = new StandardCharacter(testRoomData)
-        expect(testRoom.key).toEqual('test')
-        expect(testRoom.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
-        expect(testRoom.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
-        expect(testRoom.firstImpression).toEqual({ data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] })
-        expect(testRoom.oneCoolThing).toEqual({ data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] })
-        expect(testRoom.outfit).toEqual({ data: { tag: 'Outfit', value:  'Rags' }, children: [] })
-        expect(testRoom.toJSON()).toEqual(testRoomData)
+        const testCharacter = new StandardCharacter(testCharacterData)
+        expect(testCharacter.key).toEqual('test')
+        expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
+        expect(testCharacter.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
+        expect(testCharacter.oneCoolThing).toEqual({ data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] })
+        expect(testCharacter.outfit).toEqual({ data: { tag: 'Outfit', value:  'Rags' }, children: [] })
+        expect(testCharacter.toJSON()).toEqual(testCharacterData)
     })
 
     it('should merge correctly', () => {
@@ -63,7 +59,6 @@ describe('StandardCharacter class', () => {
                     adjective="hers"
                     reflexive="herself"
                 />
-                <FirstImpression>Ragged waif</FirstImpression>
                 <OneCoolThing>Silvery eyes</OneCoolThing>
                 <Outfit>Rags</Outfit>
             </Character>`,
@@ -77,7 +72,6 @@ describe('StandardCharacter class', () => {
                     adjective="theirs"
                     reflexive="themself"
                 />
-                <FirstImpression>Ragged waif</FirstImpression>
                 <OneCoolThing>Silvery eyes</OneCoolThing>
                 <Outfit>Rags</Outfit>
             </Character>`
@@ -91,7 +85,6 @@ describe('StandardCharacter class', () => {
                     adjective="theirs"
                     reflexive="themself"
                 />
-                <FirstImpression>Ragged waif</FirstImpression>
                 <OneCoolThing>Silvery eyes</OneCoolThing>
                 <Outfit>Rags</Outfit>
             </Character>
@@ -104,7 +97,6 @@ describe('StandardCharacter class', () => {
             tag: 'Character',
             pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
             oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
             outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
         })
@@ -117,7 +109,6 @@ describe('StandardCharacter class', () => {
             tag: 'Character',
             pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
             oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
             outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
         })
@@ -126,7 +117,6 @@ describe('StandardCharacter class', () => {
             tag: 'Character',
             pronouns: { data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-            firstImpression: { data: { tag: 'FirstImpression', value: 'Ragged waif' }, children: [] },
             oneCoolThing: { data: { tag: 'OneCoolThing', value: 'Silvery eyes' }, children: [] },
             outfit: { data: { tag: 'Outfit', value:  'Rags' }, children: [] }
         })

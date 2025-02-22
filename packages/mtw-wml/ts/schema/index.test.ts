@@ -573,7 +573,6 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
             <Name>Tess</Name>
-            <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Pronouns
                 subject="she"
@@ -600,7 +599,6 @@ describe('schemaFromParse', () => {
             },
             children: [
                 { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] },
-                { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
                 { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
                 {
                     data: {
@@ -837,7 +835,6 @@ describe('schemaToWML', () => {
                     adjective="her"
                     reflexive="herself"
                 />
-                <FirstImpression>Frumpy Goth</FirstImpression>
                 <Outfit>
                     A tattered frock-coat kitbashed out of a black hoodie and dyed lace.
                 </Outfit>

@@ -168,7 +168,6 @@ type CharacterDescribeData = {
     CharacterId: EphemeraCharacterId;
     Name: string;
     fileURL?: string;
-    FirstImpression?: string;
     Pronouns?: {
         subject: string;
         object: string;
@@ -279,7 +278,6 @@ export const isMessage = (message: any): message is Message => {
                     },
                     {
                         fileUrl: 'string',
-                        FirstImpression: 'string',
                         OneCoolThing: 'string',
                         Outfit: 'string'
                     }

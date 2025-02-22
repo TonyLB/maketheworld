@@ -272,7 +272,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CharacterId: payload.CharacterId,
                 Name: payload.Name,
                 Pronouns: payload.Pronouns,
-                FirstImpression: payload.FirstImpression,
                 OneCoolThing: payload.OneCoolThing,
                 Outfit: payload.Outfit,
                 fileURL: payload.fileURL
