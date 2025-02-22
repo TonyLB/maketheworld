@@ -313,10 +313,12 @@ describe('messages selectors', () => {
 
         it('should return recently visited rooms', () => {
             expect(getRecentlyVisited(1)(testState)).toEqual([{
+                tag: 'Room',
                 ephemeraId: 'TEST',
-                name: 'Test3',
+                name: 'Test1',
                 assets: [{ fromAssetId: 'ASSET#test', key: 'key1' }, { fromAssetId: 'ASSET#testTwo', key: 'key1' }]
             }, {
+                tag: 'Room',
                 ephemeraId: 'TEST4',
                 name: 'Test4',
                 assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
@@ -325,6 +327,7 @@ describe('messages selectors', () => {
 
         it('should filter out messages before the given time', () => {
             expect(getRecentlyVisited(4)(testState)).toEqual([{
+                tag: 'Room',
                 ephemeraId: 'TEST4',
                 name: 'Test4',
                 assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
