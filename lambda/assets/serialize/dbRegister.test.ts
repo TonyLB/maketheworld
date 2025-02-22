@@ -2,6 +2,9 @@ import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({
+    send: jest.fn()
+}))
 
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
