@@ -1,5 +1,6 @@
 import { GenericTree, GenericTreeNodeFiltered } from "../genericTree";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
+import { PrintMapResult, PrintMode } from "./printMap";
 import { isSchemaString } from "./renderTree";
 import { SchemaTagType } from "./tagType";
 
@@ -25,10 +26,16 @@ export type LiteralTagFactoryOutput<D extends SchemaTagType> = {
 // tag as a child input.
 //
 export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFactoryOutput<D> => {
+    const typeGuard = (value: any): value is SchemaLiteralTag<D> => (
+        checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag } })(value)
+    )
+    const tagRenderLiteral = (tag: any): PrintMapResult[] => (
+        (typeGuard(tag))
+            ? [{ printMode: PrintMode.naive, output: '' }]
+            : [{ printMode: PrintMode.naive, output: '' }]
+    )    
     return {
-        typeGuard: (value: any): value is SchemaLiteralTag<D> => (
-            checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag } })(value)
-        ),
+        typeGuard,
         converter: {
             initialize: ({ parseOpen }: { parseOpen: any}): SchemaLiteralTag<D> => {
                 if (!(parseOpen && typeof parseOpen === 'object' && 'properties' in parseOpen && Array.isArray(parseOpen.properties))) {
