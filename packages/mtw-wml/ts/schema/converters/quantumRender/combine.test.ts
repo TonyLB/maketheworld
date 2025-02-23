@@ -1,4 +1,4 @@
-import { PrintMode } from '../baseClasses'
+import { PrintMode } from '@tonylb/mtw-base/ts/schema/printMap'
 import combine, { wordWrapCombine } from './combine'
 
 describe('quantumRender combine', () => {

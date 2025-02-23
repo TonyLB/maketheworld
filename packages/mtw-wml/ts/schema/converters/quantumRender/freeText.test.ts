@@ -1,6 +1,7 @@
 import { schemaDescriptionToWML } from './freeText'
 import { printSchemaTag as schemaToWML } from '../..'
-import { PrintMode, SchemaTagPrintItem } from '../baseClasses'
+import { SchemaTagPrintItem } from '../baseClasses'
+import { PrintMode } from '@tonylb/mtw-base/ts/schema/printMap'
 
 describe('description schemaToWML', () => {
     it('should properly render a non-breaking line', () => {

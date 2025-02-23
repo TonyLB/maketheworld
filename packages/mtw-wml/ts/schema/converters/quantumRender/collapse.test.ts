@@ -1,4 +1,4 @@
-import { PrintMode } from '../baseClasses'
+import { PrintMode } from '@tonylb/mtw-base/ts/schema/printMap'
 import collapse from './collapse'
 
 describe('quantumRender collapse', () => {
