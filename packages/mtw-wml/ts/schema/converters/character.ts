@@ -6,6 +6,7 @@ import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 
 const characterTemplates = {
     Pronouns: {
@@ -22,6 +23,8 @@ const characterTemplates = {
     }
 } as const
 
+const { converter } = literalTagFactory('OneCoolThing')
+
 export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: {
         initialize: ({ parseOpen }): SchemaPronounsTag => ({
@@ -29,26 +32,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Pronouns)(parseOpen)
         })
     },
-    OneCoolThing: {
-        initialize: ({ parseOpen }): SchemaOneCoolThingTag => ({
-            tag: 'OneCoolThing',
-            value: '',
-            ...validateProperties(characterTemplates.OneCoolThing)(parseOpen)
-        }),
-        typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => {
-            if (!isSchemaOneCoolThing(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: {
-                    ...initialTag,
-                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                },
-                children: []
-            }
-        }
-    },
+    OneCoolThing: converter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
             const properties = validateProperties(characterTemplates.Character)(parseOpen)
