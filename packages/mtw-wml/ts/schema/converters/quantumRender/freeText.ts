@@ -1,9 +1,10 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { PrintMapEntry, PrintMapResult, SchemaTagPrintItem, SchemaToWMLOptions } from "../baseClasses"
+import { PrintMapEntry, SchemaTagPrintItem, SchemaToWMLOptions } from "../baseClasses"
 import { optionsFactory } from "../utils"
 import collapse from "./collapse"
 import { wordWrapCombine } from "./combine"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 
 export const maxLineLength = (padding: number, lines: string) => (lines.split('\n').reduce<number>((previous, line, index) => (Math.max(previous, line.length + ((index === 0) ? padding : 0))), 0))
 

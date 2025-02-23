@@ -1,7 +1,7 @@
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { PrintMapResult, PrintMode } from "./baseClasses"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { PrintMapResult, PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 export const indentSpacing = (indent: number): string => {
     return '    '.repeat(indent >= 0 ? indent : 0)

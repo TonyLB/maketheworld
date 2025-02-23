@@ -1,6 +1,6 @@
 import { tagRenderContents } from './tagRender'
 import { printSchemaTag } from '..'
-import { PrintMode } from './baseClasses'
+import { PrintMode } from '@tonylb/mtw-base/ts/schema/printMap'
 
 describe('tagRenderContents', () => {
     it('should nest items in non-description context separately', () => {

@@ -1,6 +1,6 @@
 import { isLegalParseConditionContextTag } from "../../simpleParser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
+import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
 import { areAdjacent, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
 import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
@@ -8,6 +8,7 @@ import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { separateLinesCombine, wordWrapCombine } from "./quantumRender/combine"
 import collapse from "./quantumRender/collapse"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { PrintMapResult, PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 type TagRenderProperty = {
     key?: string;

@@ -1,4 +1,4 @@
-import { PrintMapResult, PrintMode } from "../baseClasses";
+import { PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap";
 import { lineLengthAfterIndent } from "../printUtils";
 
 //

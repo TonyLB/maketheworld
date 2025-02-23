@@ -1,4 +1,4 @@
-import { PrintMode } from "./baseClasses"
+import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { isNestedPrint, optimalLineResults } from "./printUtils"
 
 describe('nestingLevel utilities', () => {

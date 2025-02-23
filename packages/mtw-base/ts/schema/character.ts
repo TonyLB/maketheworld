@@ -3,6 +3,7 @@ import { SchemaNameTag } from "./example";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
+import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
 
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaOneCoolThingTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
@@ -18,10 +19,7 @@ export type SchemaPronounsTag = {
     tag: 'Pronouns';
 } & SchemaPronouns & SchemaBase
 
-export type SchemaOneCoolThingTag = {
-    tag: 'OneCoolThing';
-    value: string;
-} & SchemaBase
+export type SchemaOneCoolThingTag = SchemaLiteralTag<'OneCoolThing'>
 
 export type SchemaCharacterTag = {
     tag: 'Character';
@@ -44,9 +42,8 @@ export const isSchemaPronouns = (schema: any): schema is SchemaPronounsTag => (
     })(schema)
 )
 
-export const isSchemaOneCoolThing = (schema: any): schema is SchemaOneCoolThingTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag: 'OneCoolThing' } })(schema)
-)
+const { typeGuard } = literalTagFactory<'OneCoolThing'>('OneCoolThing')
+export const isSchemaOneCoolThing = typeGuard
 
 export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => (
     checkTypes({
