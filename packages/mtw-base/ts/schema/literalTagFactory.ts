@@ -30,11 +30,33 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
     const typeGuard = (value: any): value is SchemaLiteralTag<D> => (
         checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag } })(value)
     )
-    const tagRenderLiteral = ({ tag }: { tag: { data: any }, options: { indent: number } }): PrintMapResult[] => (
-        (typeGuard(tag.data))
-            ? [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>` }]
-            : [{ printMode: PrintMode.naive, output: '' }]
-    )    
+    const tagRenderLiteral = ({ tag, options }: { tag: { data: any }, options: { indent: number } }): PrintMapResult[] => {
+        if (!typeGuard(tag.data)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        const naive = `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>`
+        if (naive.length + Math.min(10, options.indent * 4) > 80) {
+            const prettyPrintedLines = tag.data.value.split('\n').join(' ').split(' ').reduce<string[]>((previous, word) => {
+                if (previous.length === 0) {
+                    return [word]
+                }
+                const lastLine = previous[previous.length - 1]
+                if (lastLine.length + word.length + 1 > 80 - (options.indent * 4)) {
+                    return [...previous, word]
+                }
+                previous[previous.length - 1] = `${lastLine} ${word}`
+                return previous
+            }, [])
+            return [
+                { printMode: PrintMode.nested, output: `<${tag.data.tag}>` },
+                ...prettyPrintedLines.map((line) => ({ printMode: PrintMode.nested, output: `    ${line}` })),
+                { printMode: PrintMode.nested, output: `</${tag.data.tag}>` }
+            ]
+        }
+        else {
+            return [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>` }]
+        }
+    }
     return {
         typeGuard,
         converter: {
