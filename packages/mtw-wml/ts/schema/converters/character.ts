@@ -1,4 +1,4 @@
-import { isSchemaOneCoolThing, isSchemaPronouns, SchemaCharacterTag, SchemaOneCoolThingTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaPronouns, SchemaCharacterTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -6,7 +6,7 @@ import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
-import { PrintMapResult, PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const characterTemplates = {
     Pronouns: {
@@ -23,7 +23,7 @@ const characterTemplates = {
     }
 } as const
 
-const { converter } = literalTagFactory('OneCoolThing')
+const { converter, printMap } = literalTagFactory('OneCoolThing')
 
 export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: {
@@ -74,17 +74,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     }
 }
 
-const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): PrintMapResult[] => (
-    (isSchemaOneCoolThing(tag))
-        ? tagRender({
-            ...args,
-            tag: tag.tag,
-            properties: [],
-            node: { data: tag, children: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }] }
-        })
-        : [{ printMode: PrintMode.naive, output: '' }]
-)
-
 export const characterPrintMap: Record<string, PrintMapEntry> = {
     Character: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaCharacter(tag)
@@ -99,7 +88,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             })
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
-    OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
+    OneCoolThing: printMap,
     Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaPronouns(tag)
             ? tagRender({

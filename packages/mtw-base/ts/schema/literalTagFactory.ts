@@ -15,7 +15,8 @@ export type LiteralTagFactoryOutput<D extends SchemaTagType> = {
         initialize: ({ parseOpen }: { parseOpen: any}) => SchemaLiteralTag<D>;
         typeCheckContents: (value: any) => boolean;
         finalize: (initialTag: any, children: GenericTree<any>) => GenericTreeNodeFiltered<SchemaLiteralTag<D>, never>;
-    }
+    },
+    printMap: (args: { tag: any, options: { indent: number } }) => PrintMapResult[];
 }
 
 //
@@ -27,11 +28,11 @@ export type LiteralTagFactoryOutput<D extends SchemaTagType> = {
 //
 export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFactoryOutput<D> => {
     const typeGuard = (value: any): value is SchemaLiteralTag<D> => (
-        checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag } })(value)
+        checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag } })(value)
     )
-    const tagRenderLiteral = (tag: any): PrintMapResult[] => (
-        (typeGuard(tag))
-            ? [{ printMode: PrintMode.naive, output: '' }]
+    const tagRenderLiteral = ({ tag }: { tag: { data: any }, options: { indent: number } }): PrintMapResult[] => (
+        (typeGuard(tag.data))
+            ? [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>` }]
             : [{ printMode: PrintMode.naive, output: '' }]
     )    
     return {
@@ -60,6 +61,7 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
                     children: []
                 }
             }    
-        }
+        },
+        printMap: tagRenderLiteral
     }
 }
