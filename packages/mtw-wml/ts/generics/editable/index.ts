@@ -1,22 +1,51 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 
-export type StandardEditableFactoryProps<T> = {
-    typeguard: (x: any) => x is T;
-    payloadFactory: () => T;
+export interface StandardEditable<DataType> {
+    //
+    // TODO: This interface should match the merge/diff/whatever methods in the StandardComponent
+    // and StandardAuthorization interfaces.
+    //
 }
 
-export interface StandardEditable<T> {
+export type StandardEditableFactoryProps<DataType, FinalType extends StandardEditable<DataType>> = {
+    typeguard: (value: any) => value is DataType;
+    payloadFactory: (props: StandardEditableData<DataType>) => FinalType | undefined;
 }
 
-export type StandardEditableFactoryReturn<T> = {
-    factory: () => StandardEditable<T> | undefined;
-    typeguard: (x: any) => x is StandardEditableData<T>;
+export type StandardEditableFactoryReturn<DataType, FinalType> = {
+    factory: (props: StandardEditableData<DataType>) => StandardEditable<FinalType> | undefined;
+    typeguard: (x: any) => x is StandardEditableData<DataType>;
 }
 
-export const standardEditableFactory = <T>(props: StandardEditableFactoryProps<T>): StandardEditableFactoryReturn<T> => {
+export const standardEditableFactory = <DataType, FinalType extends StandardEditable<DataType>>(props: StandardEditableFactoryProps<DataType, FinalType>): StandardEditableFactoryReturn<DataType, FinalType> => {
     return {
-        factory: () => undefined,
-        typeguard: (x: any): x is StandardEditableData<T> => {
+        factory: (factoryProps: StandardEditableData<DataType>) => {
+            //
+            // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
+            // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
+            //
+            const isRemove = (value: any): value is { tag: 'Remove'; match: DataType } => {
+                return typeof value === 'object' && value !== null && value.tag === 'Remove' && props.typeguard(value.match)
+            }
+            const isReplace = (value: any): value is { tag: 'Replace'; match: DataType; payload: DataType } => {
+                return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
+            }
+            if (props.typeguard(factoryProps)) {
+                return props.payloadFactory(factoryProps)
+            }
+            if (isRemove(factoryProps)) {
+                //
+                // TODO: Add generated remove-class here
+                //
+            }
+            if (isReplace(factoryProps)) {
+                //
+                // TODO: Add generated replace-class here
+                //
+            }
+            return undefined
+        },
+        typeguard: (x: any): x is StandardEditableData<DataType> => {
             if (props.typeguard(x)) {
                 return true
             }
