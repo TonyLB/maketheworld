@@ -2,6 +2,7 @@ import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 
 export type StandardEditableFactoryProps<T> = {
     typeguard: (x: any) => x is T;
+    payloadFactory: () => T;
 }
 
 export interface StandardEditable<T> {
