@@ -1,27 +1,45 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
-import { StandardEditable, standardEditableFactory, StandardEditableFactoryProps } from './index';
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index';
 
 interface TestData {
     id: number;
     name: string;
 }
 
-interface TestEditable extends StandardEditable<TestData> {
-    data: TestData;
-}
-
 const testTypeguard = (value: any): value is TestData => {
     return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string';
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData>): TestEditable | undefined => {
+const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEditablePayload<TestData> | undefined => {
+    class testClass implements StandardEditablePayload<TestData> {
+        data: TestData;
+        schema = [];
+        constructor(data: TestData) {
+            this.data = data;
+        }
+        clone() {
+            return new testClass(this.data);
+        }
+        toJSON() {
+            return { ...this.data };
+        }
+        merge(incoming: StandardEditablePayload<TestData>) {
+            return undefined;
+        }
+        diff(incoming: StandardEditablePayload<TestData>) {
+            return undefined;
+        }
+        get plain() {
+            return this;
+        }
+    }
     if (testTypeguard(props)) {
-        return { data: props };
+        return new testClass(props);
     }
     return undefined;
 }
 
-const factoryProps: StandardEditableFactoryProps<TestData, TestEditable> = {
+const factoryProps: StandardEditableFactoryProps<TestData> = {
     typeguard: testTypeguard,
     payloadFactory: testPayloadFactory
 };
@@ -32,7 +50,7 @@ describe('standardEditableFactory', () => {
     it('should create a valid TestEditable object when given valid data', () => {
         const data: TestData = { id: 1, name: 'Test' };
         const result = factory(data);
-        expect(result).toEqual({ data });
+        expect(result?.toJSON()).toEqual(data);
     });
 
     it('should return undefined when given invalid data', () => {
