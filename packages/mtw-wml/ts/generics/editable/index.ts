@@ -10,6 +10,10 @@ export interface StandardEditable<DataType> {
     diff: (incoming: StandardEditable<DataType>) => StandardEditable<DataType> | undefined;
 }
 
+export interface StandardEditableWrapper<DataType> extends StandardEditable<DataType> {
+    plain: StandardEditable<DataType>;
+}
+
 export type StandardEditableFactoryProps<DataType, FinalType extends StandardEditable<DataType>> = {
     typeguard: (value: any) => value is DataType;
     payloadFactory: (props: StandardEditableData<DataType>) => FinalType | undefined;
