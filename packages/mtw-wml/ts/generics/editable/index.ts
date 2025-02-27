@@ -1,10 +1,13 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 
 export interface StandardEditable<DataType> {
-    //
-    // TODO: This interface should match the merge/diff/whatever methods in the StandardComponent
-    // and StandardAuthorization interfaces.
-    //
+    clone: () => StandardEditable<DataType>;
+    toJSON: () => StandardEditableData<DataType>;
+    schema: GenericTree<SchemaTag>;
+    merge: (incoming: StandardEditable<DataType>) => StandardEditable<DataType> | undefined;
+    diff: (incoming: StandardEditable<DataType>) => StandardEditable<DataType> | undefined;
 }
 
 export type StandardEditableFactoryProps<DataType, FinalType extends StandardEditable<DataType>> = {
@@ -31,7 +34,7 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
                 return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
             }
             if (props.typeguard(factoryProps)) {
-                return props.payloadFactory(factoryProps)
+                return props.payloadFactory(factoryProps) as StandardEditable<FinalType> | undefined
             }
             if (isRemove(factoryProps)) {
                 //
