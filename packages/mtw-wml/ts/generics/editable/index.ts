@@ -28,7 +28,7 @@ export type StandardEditableFactoryProps<DataType> = {
 
 export type StandardEditableFactoryReturn<DataType, FinalType extends StandardEditablePayload<DataType>> = {
     contentClass: new (data: DataType | StandardEditablePayload<DataType>) => StandardEditableWrapper<DataType, FinalType>;
-    // removeClass: new (match: DataType) => StandardEditableWrapper<DataType, FinalType>;
+    removeClass: new (match: DataType) => StandardEditableWrapper<DataType, FinalType>;
     // replaceClass: new (match: DataType, payload: DataType) => StandardEditableWrapper<DataType, FinalType>;
     factory: (props: StandardEditableData<DataType>) => StandardEditableWrapper<DataType, FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<DataType>;
@@ -152,7 +152,10 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
             return { tag: 'Remove' as const, match: this.match.toJSON() }
         }
         override get schema() {
-            return []
+            return [{
+                data: { tag: 'Remove' as const },
+                children: this.match.schema
+            }]
         }
         override merge(incoming: StandardEditableWrapper<DataType, FinalType>) {
             if (!(incoming instanceof GeneratedRemoveClass)) {
@@ -175,6 +178,7 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
     }
     return {
         contentClass: GeneratedContentClass,
+        removeClass: GeneratedRemoveClass,
         factory: (factoryProps: StandardEditableData<DataType> | StandardEditablePayload<DataType>) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
@@ -194,9 +198,12 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
                 return undefined
             }
             if (isRemove(factoryProps)) {
-                //
-                // TODO: Add generated remove-class here
-                //
+                const removePayload = factoryProps.match
+                const payload = props.payloadFactory(removePayload)
+                if (payload) {
+                    return new GeneratedRemoveClass(payload as FinalType)
+                }
+                return undefined
             }
             if (isReplace(factoryProps)) {
                 //
