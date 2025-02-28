@@ -79,10 +79,10 @@ describe('standardEditableFactory', () => {
         expect(typeguard(data)).toBe(true);
     });
 
-    it('should return undefined for Remove tag without implementation', () => {
+    it('should return remove class when given valid remove data', () => {
         const data = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
         const result = factory(data);
-        expect(result).toBeUndefined();
+        expect(result?.toJSON()).toEqual(data);
     });
 
     it('should return undefined for Replace tag without implementation', () => {
