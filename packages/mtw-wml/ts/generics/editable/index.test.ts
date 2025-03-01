@@ -15,22 +15,25 @@ const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEdit
         data: TestData;
         schema = [];
         constructor(data: TestData) {
-            this.data = data;
+            this.data = data
         }
         clone() {
-            return new testClass(this.data);
+            return new testClass(this.data)
         }
         toJSON() {
-            return { ...this.data };
+            return { ...this.data }
         }
         merge(incoming: StandardEditablePayload<TestData>) {
-            return undefined;
+            return new testClass({ id: this.data.id, name: `${this.data.name} ${incoming.data.name}` })
         }
         diff(incoming: StandardEditablePayload<TestData>) {
-            return undefined;
+            return undefined
         }
         get plain() {
-            return this;
+            return this
+        }
+        get payload() {
+            return this.data
         }
     }
     if (testTypeguard(props)) {
@@ -90,4 +93,13 @@ describe('standardEditableFactory', () => {
         const result = factory(data);
         expect(result).toBeUndefined();
     });
+
+    it('should correctly merge two content tags', () => {
+        const data1 = { id: 1, name: 'Test' };
+        const data2 = { id: 2, name: 'Test2' };
+        const editable1 = factory(data1);
+        const editable2 = factory(data2);
+        const merged = editable1?.merge(editable2!);
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test Test2' });
+    })
 });

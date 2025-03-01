@@ -8,6 +8,7 @@ export interface StandardEditablePayload<DataType> {
     schema: GenericTree<SchemaTag>;
     merge: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
+    data: DataType;
 }
 
 export interface StandardEditableWrapper<DataType, PayloadType extends StandardEditablePayload<DataType>> {
