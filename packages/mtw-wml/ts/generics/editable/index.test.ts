@@ -1,5 +1,6 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
 import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index';
+import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize';
 
 interface TestData {
     id: number;
@@ -22,11 +23,46 @@ class testClass implements StandardEditablePayload<TestData> {
     toJSON() {
         return { ...this.data }
     }
-    merge(incoming: StandardEditablePayload<TestData>) {
-        if (incoming instanceof testClass) {
-            return new testClass({ id: this.data.id, name: `${this.data.name} ${incoming.data.name}` })
+    merge(incoming: { remove?: StandardEditablePayload<TestData>; add?: StandardEditablePayload<TestData>; }) {
+        const { remove, add } = incoming
+        const afterRemove = ((): { remove?: string; add?: string } => {
+            if (remove instanceof testClass) {
+                const { name } = this.data
+                const { name: removeName } = remove.data
+                if (name === removeName) {
+                    return {}
+                }
+                else {
+                    if (name.length > removeName.length) {
+                        if (name.endsWith(removeName)) {
+                            return { add: name.slice(0, name.length - removeName.length) }
+                        }
+                    }
+                    else {
+                        if (removeName.startsWith(name)) {
+                            return { remove: removeName.slice(name.length) }
+                        }
+                    }
+                    throw new MergeConflictError('Remove conflict')
+                }
+            }
+            return { add: this.data.name }
+        })()
+        const afterAdd = ((): { remove?: string; add?: string } => {
+            if (add instanceof testClass) {
+                const { add: name } = afterRemove
+                const { name: addName } = add.data
+                return { ...afterRemove, add: `${name}${addName}` }
+            }
+            return afterRemove
+        })()
+        if (afterAdd?.remove) {
+            return { remove: new testClass({ id: this.data.id, name: afterAdd.remove }) }
         }
-        return undefined
+        else if (afterAdd?.add) {
+            return { add: new testClass({ id: this.data.id, name: afterAdd.add }) }
+        }
+        return {}
     }
     diff(incoming: StandardEditablePayload<TestData>) {
         return undefined
@@ -106,7 +142,7 @@ describe('standardEditableFactory', () => {
         expect(editable2).toBeDefined();
         if (editable2) {
             const merged = editable1?.merge(editable2);
-            expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test Test2' });
+            expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTest2' });
         }
     })
 

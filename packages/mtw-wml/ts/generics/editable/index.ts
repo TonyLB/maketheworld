@@ -8,9 +8,11 @@ export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
     toJSON: () => DataType;
     schema: GenericTree<SchemaTag>;
-    merge: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
+    merge: (incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
+
+type StandardEditablePayloadDelta<DataType> = { remove?: StandardEditablePayload<DataType>; add?: StandardEditablePayload<DataType> }
 
 type PayloadDataType<Payload extends StandardEditablePayload<any>> = Payload extends StandardEditablePayload<infer D> ? D : never;
 
@@ -80,9 +82,12 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (!(incoming instanceof GeneratedContentClass)) {
                 throw new Error('Invalid incoming class')
             }
-            const result = this.payload.merge(incoming.payload)
-            if (result) {
-                return new GeneratedContentClass(result as FinalType)
+            const { remove, add } = this.payload.merge({ add: incoming.payload })
+            if (remove) {
+                return new GeneratedRemoveClass(remove as FinalType)
+            }
+            else if (add) {
+                return new GeneratedContentClass(add as FinalType)
             }
             return undefined
         }
