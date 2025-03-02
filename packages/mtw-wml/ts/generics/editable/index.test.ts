@@ -43,8 +43,8 @@ class testClass implements StandardEditablePayload<TestData> {
                             return { remove: removeName.slice(name.length) }
                         }
                     }
-                    throw new MergeConflictError('Remove conflict')
                 }
+                throw new MergeConflictError('Remove conflict')
             }
             return { add: this.data.name }
         })()
@@ -153,5 +153,14 @@ describe('standardEditableFactory', () => {
         const editable2 = factory(data2);
         const merged = editable1?.merge(editable2!);
         expect(merged?.toJSON()).toBeUndefined();
+    })
+
+    it('should correctly merge partial remove into a content tag', () => {
+        const data1 = { id: 1, name: 'TestOne' };
+        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } };
+        const editable1 = factory(data1);
+        const editable2 = factory(data2);
+        const merged = editable1?.merge(editable2!);
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test' });
     })
 });
