@@ -1,5 +1,5 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
-import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index';
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper, StandardEditablePayloadDelta } from './index';
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize';
 
 interface TestData {
@@ -9,6 +9,25 @@ interface TestData {
 
 const testTypeguard = (value: any): value is TestData => {
     return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string';
+}
+
+const subtractTestData = (base: TestData, incoming: TestData): { remove?: TestData; add?: TestData } => {
+    if (base.name === incoming.name) {
+        return {}
+    }
+    else {
+        if (base.name.length > incoming.name.length) {
+            if (base.name.endsWith(incoming.name)) {
+                return { add: { id: base.id, name: base.name.slice(0, base.name.length - incoming.name.length) } }
+            }
+        }
+        else {
+            if (incoming.name.startsWith(base.name)) {
+                return { remove: { id: base.id, name: incoming.name.slice(base.name.length) } }
+            }
+        }
+    }
+    throw new MergeConflictError()
 }
 
 class testClass implements StandardEditablePayload<TestData> {
@@ -23,46 +42,43 @@ class testClass implements StandardEditablePayload<TestData> {
     toJSON() {
         return { ...this.data }
     }
+    addDelta(base, incoming): StandardEditablePayloadDelta<TestData> {
+        const { add: baseAdd, remove: baseRemove } = base
+        const { add: incomingAdd, remove: incomingRemove } = incoming
+        if (baseRemove && incomingAdd) {
+            const cancelledDelta = subtractTestData(baseRemove, incomingAdd)
+            return this.addDelta(
+                { add: baseAdd, remove: cancelledDelta.add },
+                { add: cancelledDelta.remove, remove: incomingRemove }
+            )
+        }
+        if (baseAdd && incomingRemove) {
+            const cancelledDelta = subtractTestData(baseAdd, incomingRemove)
+            return this.addDelta(
+                { add: cancelledDelta.add, remove: baseRemove },
+                { add: incomingAdd, remove: cancelledDelta.remove }
+            )
+        }
+        if (baseRemove && incomingRemove) {
+            return {
+                add: baseAdd,
+                remove: new testClass({ id: this.data.id, name: `${incomingRemove.name}${baseRemove.name}` })
+            }
+        }
+        if (baseAdd && incomingAdd) {
+            return {
+                add: new testClass({ id: this.data.id, name: `${baseAdd.name}${incomingAdd.name}` }),
+                remove: baseRemove
+            }
+        }
+        return {
+            add: baseAdd ?? incomingAdd,
+            remove: baseRemove ?? incomingRemove
+        }
+    }
     merge(incoming: { remove?: StandardEditablePayload<TestData>; add?: StandardEditablePayload<TestData>; }) {
         const { remove, add } = incoming
-        const afterRemove = ((): { remove?: string; add?: string } => {
-            if (remove instanceof testClass) {
-                const { name } = this.data
-                const { name: removeName } = remove.data
-                if (name === removeName) {
-                    return {}
-                }
-                else {
-                    if (name.length > removeName.length) {
-                        if (name.endsWith(removeName)) {
-                            return { add: name.slice(0, name.length - removeName.length) }
-                        }
-                    }
-                    else {
-                        if (removeName.startsWith(name)) {
-                            return { remove: removeName.slice(name.length) }
-                        }
-                    }
-                }
-                throw new MergeConflictError('Remove conflict')
-            }
-            return { add: this.data.name }
-        })()
-        const afterAdd = ((): { remove?: string; add?: string } => {
-            if (add instanceof testClass) {
-                const { add: name } = afterRemove
-                const { name: addName } = add.data
-                return { ...afterRemove, add: `${name}${addName}` }
-            }
-            return afterRemove
-        })()
-        if (afterAdd?.remove) {
-            return { remove: new testClass({ id: this.data.id, name: afterAdd.remove }) }
-        }
-        else if (afterAdd?.add) {
-            return { add: new testClass({ id: this.data.id, name: afterAdd.add }) }
-        }
-        return {}
+        return this.addDelta({ add: this.toJSON(), remove: undefined }, { add: add?.toJSON(), remove: remove?.toJSON() })
     }
     diff(incoming: StandardEditablePayload<TestData>) {
         return undefined
