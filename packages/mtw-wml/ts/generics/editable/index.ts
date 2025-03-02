@@ -1,6 +1,8 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { deepEqual } from '../../lib/objects';
+import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -10,13 +12,13 @@ export interface StandardEditablePayload<DataType> {
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
-export interface StandardEditableWrapper<DataType, PayloadType extends StandardEditablePayload<DataType>> {
-    clone: () => StandardEditableWrapper<DataType, PayloadType>;
-    toJSON: () => StandardEditableData<DataType>;
+export interface StandardEditableWrapper<PayloadType extends StandardEditablePayload<any>> {
+    clone: () => StandardEditableWrapper<PayloadType>;
+    toJSON: () => StandardEditableData<ReturnType<PayloadType["toJSON"]>>;
     schema: GenericTree<SchemaTag>;
-    merge: (incoming: StandardEditableWrapper<DataType, PayloadType>) => StandardEditableWrapper<DataType, PayloadType> | undefined;
-    diff: (incoming: StandardEditableWrapper<DataType, PayloadType>) => StandardEditableWrapper<DataType, PayloadType> | undefined;
-    plain: PayloadType;
+    merge: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
+    diff: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
+    plain: PayloadType | undefined;
 }
 
 export type StandardEditableFactoryProps<DataType> = {
@@ -26,47 +28,18 @@ export type StandardEditableFactoryProps<DataType> = {
     // remove: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
-export type StandardEditableFactoryReturn<DataType, FinalType extends StandardEditablePayload<DataType>> = {
-    contentClass: new (data: DataType | StandardEditablePayload<DataType>) => StandardEditableWrapper<DataType, FinalType>;
-    removeClass: new (match: DataType) => StandardEditableWrapper<DataType, FinalType>;
+export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
+    contentClass: new (data: ReturnType<FinalType["toJSON"]> | FinalType) => StandardEditableWrapper<FinalType>;
+    removeClass: new (match: ReturnType<FinalType["toJSON"]> | FinalType) => StandardEditableWrapper<FinalType>;
     // replaceClass: new (match: DataType, payload: DataType) => StandardEditableWrapper<DataType, FinalType>;
-    factory: (props: StandardEditableData<DataType>) => StandardEditableWrapper<DataType, FinalType> | undefined;
-    typeguard: (x: any) => x is StandardEditableData<DataType>;
+    factory: (props: StandardEditableData<ReturnType<FinalType["toJSON"]>>) => StandardEditableWrapper<FinalType> | undefined;
+    typeguard: (x: any) => x is StandardEditableData<ReturnType<FinalType["toJSON"]>>;
 }
 
-export const standardEditableFactory = <DataType, FinalType extends StandardEditablePayload<DataType>>(props: StandardEditableFactoryProps<DataType>): StandardEditableFactoryReturn<DataType, FinalType> => {
-    class StandardEditableClassAbstract implements StandardEditableWrapper<DataType, FinalType> {
-        constructor() {}
-        clone(): StandardEditableWrapper<DataType, FinalType> {
-            throw new Error('Method not implemented.')
-        }
-        toJSON(): StandardEditableData<DataType> {
-            throw new Error('Method not implemented.')
-        }
-        get schema(): GenericTree<SchemaTag> { return [] }
-        merge(incoming: StandardEditableWrapper<DataType, FinalType>): StandardEditableWrapper<DataType, FinalType> | undefined {
-            throw new Error('Method not implemented.')
-        }
-        diff(incoming: StandardEditableWrapper<DataType, FinalType>): StandardEditableWrapper<DataType, FinalType> | undefined {
-            throw new Error('Method not implemented.')
-        }
-        get plain(): FinalType {
-            throw new Error('Method not implemented.')
-        }
-    }
-
-    //
-    // Make abstract classes for all three types, so that we can use them to discriminate the incoming
-    // class types inside class methods without creating circular dependencies.
-    //
-    class ContentClassAbstract extends StandardEditableClassAbstract {}
-    class RemoveClassAbstract extends StandardEditableClassAbstract {}
-    class ReplaceClassAbstract extends StandardEditableClassAbstract {}
-
-    class GeneratedContentClass extends ContentClassAbstract {
+export const standardEditableFactory = <FinalType extends StandardEditablePayload<any>>(props: StandardEditableFactoryProps<ReturnType<FinalType["toJSON"]>>): StandardEditableFactoryReturn<FinalType> => {
+    class GeneratedContentClass implements StandardEditableWrapper<FinalType> {
         payload: FinalType;
-        constructor(payload: DataType | StandardEditablePayload<DataType>) {
-            super()
+        constructor(payload: ReturnType<FinalType["toJSON"]> | FinalType) {
             if (props.typeguard(payload)) {
                 const result = props.payloadFactory(payload)
                 if (result) {
@@ -75,40 +48,43 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
                 }
             }
             else {
-                if (payload instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
+                if (payload as any instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
                     this.payload = payload as FinalType
                     return
                 }
             }
             throw new Error('Invalid payload')
         }
-        override clone() {
+        clone() {
             const result = this.payload.toJSON()
             if (props.typeguard(result)) {
                 return new GeneratedContentClass(result)
             }
             throw new Error('Invalid payload')
         }
-        override toJSON() {
+        toJSON() {
             return this.payload.toJSON()
         }
-        override get schema() {
+        get schema() {
             return this.payload.schema
         }
-        override merge(incoming: StandardEditableWrapper<DataType, FinalType>) {
-            //
-            // TODO: Add merge functionality to Remove class
-            //
+        merge(incoming: StandardEditableWrapper<FinalType>) {
+            if (incoming instanceof GeneratedRemoveClass) {
+                if (deepEqual(incoming.match.toJSON(), this.payload.toJSON())) {
+                    return undefined
+                }
+                throw new MergeConflictError()
+            }
             if (!(incoming instanceof GeneratedContentClass)) {
-                return undefined
+                throw new Error('Invalid incoming class')
             }
             const result = this.payload.merge(incoming.payload)
             if (result) {
-                return new GeneratedContentClass(result)
+                return new GeneratedContentClass(result as FinalType)
             }
             return undefined
         }
-        override diff(incoming: StandardEditableWrapper<DataType, FinalType>): StandardEditableWrapper<DataType, FinalType> | undefined {
+        diff(incoming: StandardEditableWrapper<FinalType>): StandardEditableWrapper<FinalType> | undefined {
             //
             // TODO: Add diff functionality to Remove class
             //
@@ -121,43 +97,43 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
             }
             return undefined
         }
-        override get plain() {
+        get plain() {
             return this.payload
         }
     }
 
-    class GeneratedRemoveClass extends RemoveClassAbstract {
-        match: FinalType;
-        constructor(payload: DataType | StandardEditablePayload<DataType>) {
-            super()
+    class GeneratedRemoveClass implements StandardEditableWrapper<FinalType> {
+        matchData: FinalType;
+        constructor(payload: ReturnType<FinalType["toJSON"]> | FinalType) {
             if (props.typeguard(payload)) {
                 const result = props.payloadFactory(payload)
                 if (result) {
-                    this.match = result as FinalType
+                    this.matchData = result as FinalType
                     return
                 }
             }
             else {
-                if (payload instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
-                    this.match = payload as FinalType
+                if (payload as any instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
+                    this.matchData = payload as FinalType
                     return
                 }
             }
             throw new Error('Invalid payload')
         }
-        override clone() {
+        get match() { return this.matchData }
+        clone() {
             return new GeneratedRemoveClass(this.match)
         }
-        override toJSON() {
+        toJSON() {
             return { tag: 'Remove' as const, match: this.match.toJSON() }
         }
-        override get schema() {
+        get schema() {
             return [{
                 data: { tag: 'Remove' as const },
                 children: this.match.schema
             }]
         }
-        override merge(incoming: StandardEditableWrapper<DataType, FinalType>) {
+        merge(incoming: StandardEditableWrapper<FinalType>) {
             if (!(incoming instanceof GeneratedRemoveClass)) {
                 return undefined
             }
@@ -166,7 +142,7 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
             }
             return incoming
         }
-        override diff(incoming: StandardEditableWrapper<DataType, FinalType>) {
+        diff(incoming: StandardEditableWrapper<FinalType>) {
             if (!(incoming instanceof GeneratedRemoveClass)) {
                 return undefined
             }
@@ -174,20 +150,24 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
                 return undefined
             }
             return incoming
+        }
+        get plain() {
+            return undefined
         }
     }
+
     return {
         contentClass: GeneratedContentClass,
         removeClass: GeneratedRemoveClass,
-        factory: (factoryProps: StandardEditableData<DataType> | StandardEditablePayload<DataType>) => {
+        factory: (factoryProps: StandardEditableData<ReturnType<FinalType["toJSON"]>> | FinalType) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
             // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
             //
-            const isRemove = (value: any): value is { tag: 'Remove'; match: DataType } => {
+            const isRemove = (value: any): value is { tag: 'Remove'; match: ReturnType<FinalType["toJSON"]> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Remove' && props.typeguard(value.match)
             }
-            const isReplace = (value: any): value is { tag: 'Replace'; match: DataType; payload: DataType } => {
+            const isReplace = (value: any): value is { tag: 'Replace'; match: ReturnType<FinalType["toJSON"]>; payload: ReturnType<FinalType["toJSON"]> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
             }
             if (props.typeguard(factoryProps)) {
@@ -212,7 +192,7 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
             }
             return undefined
         },
-        typeguard: (x: any): x is StandardEditableData<DataType> => {
+        typeguard: (x: any): x is ReturnType<FinalType["toJSON"]> => {
             if (props.typeguard(x)) {
                 return true
             }
