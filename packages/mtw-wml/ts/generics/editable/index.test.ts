@@ -10,32 +10,36 @@ const testTypeguard = (value: any): value is TestData => {
     return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string';
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEditablePayload<TestData> | undefined => {
-    class testClass implements StandardEditablePayload<TestData> {
-        data: TestData;
-        schema = [];
-        constructor(data: TestData) {
-            this.data = data
-        }
-        clone() {
-            return new testClass(this.data)
-        }
-        toJSON() {
-            return { ...this.data }
-        }
-        merge(incoming: StandardEditablePayload<TestData>) {
+class testClass implements StandardEditablePayload<TestData> {
+    data: TestData;
+    schema = [];
+    constructor(data: TestData) {
+        this.data = data
+    }
+    clone() {
+        return new testClass(this.data)
+    }
+    toJSON() {
+        return { ...this.data }
+    }
+    merge(incoming: StandardEditablePayload<TestData>) {
+        if (incoming instanceof testClass) {
             return new testClass({ id: this.data.id, name: `${this.data.name} ${incoming.data.name}` })
         }
-        diff(incoming: StandardEditablePayload<TestData>) {
-            return undefined
-        }
-        get plain() {
-            return this
-        }
-        get payload() {
-            return this.data
-        }
+        return undefined
     }
+    diff(incoming: StandardEditablePayload<TestData>) {
+        return undefined
+    }
+    get plain() {
+        return this
+    }
+    get payload() {
+        return this.data
+    }
+}
+
+const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEditablePayload<TestData> | undefined => {
     if (testTypeguard(props)) {
         return new testClass(props);
     }
@@ -99,7 +103,19 @@ describe('standardEditableFactory', () => {
         const data2 = { id: 2, name: 'Test2' };
         const editable1 = factory(data1);
         const editable2 = factory(data2);
+        expect(editable2).toBeDefined();
+        if (editable2) {
+            const merged = editable1?.merge(editable2);
+            expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test Test2' });
+        }
+    })
+
+    it('should correctly merge a remove into a content tag', () => {
+        const data1 = { id: 1, name: 'Test' };
+        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+        const editable1 = factory(data1);
+        const editable2 = factory(data2);
         const merged = editable1?.merge(editable2!);
-        expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test Test2' });
+        expect(merged?.toJSON()).toBeUndefined();
     })
 });
