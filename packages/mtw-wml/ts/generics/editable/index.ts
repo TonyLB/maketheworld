@@ -1,8 +1,6 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { deepEqual } from '../../lib/objects';
-import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -73,16 +71,14 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             return this.payload.schema
         }
         merge(incoming: StandardEditableWrapper<FinalType>) {
+            let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
             if (incoming instanceof GeneratedRemoveClass) {
-                if (deepEqual(incoming.match.toJSON(), this.payload.toJSON())) {
-                    return undefined
-                }
-                throw new MergeConflictError()
+                delta = { remove: incoming.match }
             }
-            if (!(incoming instanceof GeneratedContentClass)) {
-                throw new Error('Invalid incoming class')
+            if (incoming instanceof GeneratedContentClass) {
+                delta = { add: incoming.payload }
             }
-            const { remove, add } = this.payload.merge({ add: incoming.payload })
+            const { remove, add } = this.payload.merge(delta)
             if (remove) {
                 return new GeneratedRemoveClass(remove as FinalType)
             }
