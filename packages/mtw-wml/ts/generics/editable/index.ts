@@ -12,9 +12,11 @@ export interface StandardEditablePayload<DataType> {
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
+type PayloadDataType<Payload extends StandardEditablePayload<any>> = Payload extends StandardEditablePayload<infer D> ? D : never;
+
 export interface StandardEditableWrapper<PayloadType extends StandardEditablePayload<any>> {
     clone: () => StandardEditableWrapper<PayloadType>;
-    toJSON: () => StandardEditableData<ReturnType<PayloadType["toJSON"]>>;
+    toJSON: () => StandardEditableData<PayloadDataType<PayloadType>>;
     schema: GenericTree<SchemaTag>;
     merge: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
     diff: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
@@ -29,17 +31,17 @@ export type StandardEditableFactoryProps<DataType> = {
 }
 
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
-    contentClass: new (data: ReturnType<FinalType["toJSON"]> | FinalType) => StandardEditableWrapper<FinalType>;
-    removeClass: new (match: ReturnType<FinalType["toJSON"]> | FinalType) => StandardEditableWrapper<FinalType>;
+    contentClass: new (data: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
+    removeClass: new (match: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     // replaceClass: new (match: DataType, payload: DataType) => StandardEditableWrapper<DataType, FinalType>;
-    factory: (props: StandardEditableData<ReturnType<FinalType["toJSON"]>>) => StandardEditableWrapper<FinalType> | undefined;
-    typeguard: (x: any) => x is StandardEditableData<ReturnType<FinalType["toJSON"]>>;
+    factory: (props: StandardEditableData<PayloadDataType<FinalType>>) => StandardEditableWrapper<FinalType> | undefined;
+    typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
 }
 
-export const standardEditableFactory = <FinalType extends StandardEditablePayload<any>>(props: StandardEditableFactoryProps<ReturnType<FinalType["toJSON"]>>): StandardEditableFactoryReturn<FinalType> => {
+export const standardEditableFactory = <FinalType extends StandardEditablePayload<any>>(props: StandardEditableFactoryProps<PayloadDataType<FinalType>>): StandardEditableFactoryReturn<FinalType> => {
     class GeneratedContentClass implements StandardEditableWrapper<FinalType> {
         payload: FinalType;
-        constructor(payload: ReturnType<FinalType["toJSON"]> | FinalType) {
+        constructor(payload: PayloadDataType<FinalType> | FinalType) {
             if (props.typeguard(payload)) {
                 const result = props.payloadFactory(payload)
                 if (result) {
@@ -104,7 +106,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
 
     class GeneratedRemoveClass implements StandardEditableWrapper<FinalType> {
         matchData: FinalType;
-        constructor(payload: ReturnType<FinalType["toJSON"]> | FinalType) {
+        constructor(payload: PayloadDataType<FinalType> | FinalType) {
             if (props.typeguard(payload)) {
                 const result = props.payloadFactory(payload)
                 if (result) {
@@ -159,15 +161,15 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
     return {
         contentClass: GeneratedContentClass,
         removeClass: GeneratedRemoveClass,
-        factory: (factoryProps: StandardEditableData<ReturnType<FinalType["toJSON"]>> | FinalType) => {
+        factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
             // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
             //
-            const isRemove = (value: any): value is { tag: 'Remove'; match: ReturnType<FinalType["toJSON"]> } => {
+            const isRemove = (value: any): value is { tag: 'Remove'; match: PayloadDataType<FinalType> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Remove' && props.typeguard(value.match)
             }
-            const isReplace = (value: any): value is { tag: 'Replace'; match: ReturnType<FinalType["toJSON"]>; payload: ReturnType<FinalType["toJSON"]> } => {
+            const isReplace = (value: any): value is { tag: 'Replace'; match: PayloadDataType<FinalType>; payload: PayloadDataType<FinalType> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
             }
             if (props.typeguard(factoryProps)) {
@@ -192,7 +194,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             return undefined
         },
-        typeguard: (x: any): x is ReturnType<FinalType["toJSON"]> => {
+        typeguard: (x: any): x is PayloadDataType<FinalType> => {
             if (props.typeguard(x)) {
                 return true
             }
