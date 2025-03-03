@@ -15,7 +15,7 @@ class testClass implements StandardEditablePayload<TestData> {
     data: TestData;
     schema = [];
     constructor(data: TestData) {
-        this.data = data
+        this.data = data as TestData
     }
     clone() {
         return new testClass(this.data)
@@ -44,53 +44,15 @@ class testClass implements StandardEditablePayload<TestData> {
         }
         throw new MergeConflictError()
     }
-    addDelta(base, incoming): StandardEditablePayloadDelta<TestData> {
-        const { add: baseAdd, remove: baseRemove } = base
-        const { add: incomingAdd, remove: incomingRemove } = incoming
-        if (baseRemove && incomingAdd) {
-            const cancelledDelta = this.subtract(baseRemove, incomingAdd)
-            return this.addDelta(
-                { add: baseAdd, remove: cancelledDelta.add },
-                { add: cancelledDelta.remove, remove: incomingRemove }
-            )
-        }
-        if (baseAdd && incomingRemove) {
-            const cancelledDelta = this.subtract(baseAdd, incomingRemove)
-            return this.addDelta(
-                { add: cancelledDelta.add, remove: baseRemove },
-                { add: incomingAdd, remove: cancelledDelta.remove }
-            )
-        }
-        if (baseRemove && incomingRemove) {
-            return {
-                add: baseAdd,
-                remove: new testClass(this.add(incomingRemove, baseRemove))
-            }
-        }
-        if (baseAdd && incomingAdd) {
-            return {
-                add: new testClass(this.add(baseAdd, incomingAdd)),
-                remove: baseRemove
-            }
-        }
-        return {
-            add: baseAdd ?? incomingAdd,
-            remove: baseRemove ?? incomingRemove
-        }
-    }
-    merge(incoming: { remove?: StandardEditablePayload<TestData>; add?: StandardEditablePayload<TestData>; }) {
-        const { remove, add } = incoming
-        return this.addDelta({ add: this.toJSON(), remove: undefined }, { add: add?.toJSON(), remove: remove?.toJSON() })
-    }
     diff(incoming: StandardEditablePayload<TestData>) {
         return undefined
     }
-    get plain() {
-        return this
-    }
-    get payload() {
-        return this.data
-    }
+    // get plain() {
+    //     return this
+    // }
+    // get payload() {
+    //     return this.data
+    // }
 }
 
 const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEditablePayload<TestData> | undefined => {
@@ -102,7 +64,8 @@ const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEdit
 
 const factoryProps: StandardEditableFactoryProps<TestData> = {
     typeguard: testTypeguard,
-    payloadFactory: testPayloadFactory
+    payloadFactory: testPayloadFactory,
+    payload: testClass
 };
 
 const { factory, typeguard } = standardEditableFactory(factoryProps);

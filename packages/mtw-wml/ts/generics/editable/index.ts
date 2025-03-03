@@ -8,8 +8,6 @@ export interface StandardEditablePayload<DataType> {
     schema: GenericTree<SchemaTag>;
     add: (base: DataType, incoming: DataType) => DataType;
     subtract: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
-    addDelta: (base: StandardEditablePayloadDelta<DataType>, incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
-    merge: (incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
@@ -30,6 +28,7 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
 export type StandardEditableFactoryProps<DataType> = {
     typeguard: (value: any) => value is DataType;
     payloadFactory: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
+    payload: new (props: DataType) => StandardEditablePayload<DataType>;
     // add: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
     // remove: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
@@ -54,11 +53,12 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 }
             }
             else {
-                if (payload as any instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
-                    this.payload = payload as FinalType
+                if (payload instanceof props.payload) {
+                    this.payload = payload
                     return
                 }
             }
+            console.log(`Invalid payload: ${JSON.stringify(payload)}`)
             throw new Error('Invalid payload')
         }
         clone() {
@@ -75,6 +75,41 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             return this.payload.schema
         }
         merge(incoming: StandardEditableWrapper<FinalType>) {
+            const addDelta = (base: StandardEditablePayloadDelta<PayloadDataType<FinalType>>, incoming: StandardEditablePayloadDelta<PayloadDataType<FinalType>>): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
+                const { add: baseAdd, remove: baseRemove } = base
+                const { add: incomingAdd, remove: incomingRemove } = incoming
+                if (baseRemove && incomingAdd) {
+                    const cancelledDelta = this.payload.subtract(baseRemove, incomingAdd)
+                    return addDelta(
+                        { add: baseAdd, remove: cancelledDelta.add },
+                        { add: cancelledDelta.remove, remove: incomingRemove }
+                    )
+                }
+                if (baseAdd && incomingRemove) {
+                    const cancelledDelta = this.payload.subtract(baseAdd, incomingRemove)
+                    return addDelta(
+                        { add: cancelledDelta.add, remove: baseRemove },
+                        { add: incomingAdd, remove: cancelledDelta.remove }
+                    )
+                }
+                if (baseRemove && incomingRemove) {
+                    return {
+                        add: baseAdd,
+                        remove: new props.payload(this.payload.add(incomingRemove, baseRemove))
+                    }
+                }
+                if (baseAdd && incomingAdd) {
+                    return {
+                        add: new props.payload(this.payload.add(baseAdd, incomingAdd)),
+                        remove: baseRemove
+                    }
+                }
+                return {
+                    add: baseAdd ?? incomingAdd,
+                    remove: baseRemove ?? incomingRemove
+                }
+            }        
+        
             let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
             if (incoming instanceof GeneratedRemoveClass) {
                 delta = { remove: incoming.match }
@@ -82,7 +117,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload }
             }
-            const { remove, add } = this.payload.merge(delta)
+            const { remove, add } = addDelta({ add: this.toJSON() }, delta)
             if (remove) {
                 return new GeneratedRemoveClass(remove as FinalType)
             }
@@ -120,8 +155,8 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 }
             }
             else {
-                if (payload as any instanceof Object && 'clone' in payload && 'toJSON' in payload && 'schema' in payload && 'merge' in payload && 'diff' in payload) {
-                    this.matchData = payload as FinalType
+                if (payload instanceof props.payload) {
+                    this.matchData = payload
                     return
                 }
             }
