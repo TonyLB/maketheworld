@@ -11,25 +11,6 @@ const testTypeguard = (value: any): value is TestData => {
     return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string';
 }
 
-const subtractTestData = (base: TestData, incoming: TestData): { remove?: TestData; add?: TestData } => {
-    if (base.name === incoming.name) {
-        return {}
-    }
-    else {
-        if (base.name.length > incoming.name.length) {
-            if (base.name.endsWith(incoming.name)) {
-                return { add: { id: base.id, name: base.name.slice(0, base.name.length - incoming.name.length) } }
-            }
-        }
-        else {
-            if (incoming.name.startsWith(base.name)) {
-                return { remove: { id: base.id, name: incoming.name.slice(base.name.length) } }
-            }
-        }
-    }
-    throw new MergeConflictError()
-}
-
 class testClass implements StandardEditablePayload<TestData> {
     data: TestData;
     schema = [];
@@ -45,18 +26,36 @@ class testClass implements StandardEditablePayload<TestData> {
     add(base, incoming) {
         return { id: this.data.id, name: `${base.name}${incoming.name}` }
     }
+    subtract(base, incoming) {
+        if (base.name === incoming.name) {
+            return {}
+        }
+        else {
+            if (base.name.length > incoming.name.length) {
+                if (base.name.endsWith(incoming.name)) {
+                    return { add: { id: base.id, name: base.name.slice(0, base.name.length - incoming.name.length) } }
+                }
+            }
+            else {
+                if (incoming.name.startsWith(base.name)) {
+                    return { remove: { id: base.id, name: incoming.name.slice(base.name.length) } }
+                }
+            }
+        }
+        throw new MergeConflictError()
+    }
     addDelta(base, incoming): StandardEditablePayloadDelta<TestData> {
         const { add: baseAdd, remove: baseRemove } = base
         const { add: incomingAdd, remove: incomingRemove } = incoming
         if (baseRemove && incomingAdd) {
-            const cancelledDelta = subtractTestData(baseRemove, incomingAdd)
+            const cancelledDelta = this.subtract(baseRemove, incomingAdd)
             return this.addDelta(
                 { add: baseAdd, remove: cancelledDelta.add },
                 { add: cancelledDelta.remove, remove: incomingRemove }
             )
         }
         if (baseAdd && incomingRemove) {
-            const cancelledDelta = subtractTestData(baseAdd, incomingRemove)
+            const cancelledDelta = this.subtract(baseAdd, incomingRemove)
             return this.addDelta(
                 { add: cancelledDelta.add, remove: baseRemove },
                 { add: incomingAdd, remove: cancelledDelta.remove }
