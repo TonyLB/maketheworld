@@ -42,6 +42,9 @@ class testClass implements StandardEditablePayload<TestData> {
     toJSON() {
         return { ...this.data }
     }
+    add(base, incoming) {
+        return { id: this.data.id, name: `${base.name}${incoming.name}` }
+    }
     addDelta(base, incoming): StandardEditablePayloadDelta<TestData> {
         const { add: baseAdd, remove: baseRemove } = base
         const { add: incomingAdd, remove: incomingRemove } = incoming
@@ -62,12 +65,12 @@ class testClass implements StandardEditablePayload<TestData> {
         if (baseRemove && incomingRemove) {
             return {
                 add: baseAdd,
-                remove: new testClass({ id: this.data.id, name: `${incomingRemove.name}${baseRemove.name}` })
+                remove: new testClass(this.add(incomingRemove, baseRemove))
             }
         }
         if (baseAdd && incomingAdd) {
             return {
-                add: new testClass({ id: this.data.id, name: `${baseAdd.name}${incomingAdd.name}` }),
+                add: new testClass(this.add(baseAdd, incomingAdd)),
                 remove: baseRemove
             }
         }
