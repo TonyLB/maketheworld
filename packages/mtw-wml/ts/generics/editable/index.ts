@@ -6,6 +6,7 @@ export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
     toJSON: () => DataType;
     schema: GenericTree<SchemaTag>;
+    add: (base: DataType, incoming: DataType) => DataType;
     addDelta: (base: StandardEditablePayloadDelta<DataType>, incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     merge: (incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
