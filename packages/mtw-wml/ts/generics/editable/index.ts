@@ -7,12 +7,14 @@ export interface StandardEditablePayload<DataType> {
     toJSON: () => DataType;
     schema: GenericTree<SchemaTag>;
     add: (base: DataType, incoming: DataType) => DataType;
+    subtract: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
     addDelta: (base: StandardEditablePayloadDelta<DataType>, incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     merge: (incoming: StandardEditablePayloadDelta<DataType>) => StandardEditablePayloadDelta<DataType>;
     diff: (incoming: StandardEditablePayload<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
 export type StandardEditablePayloadDelta<DataType> = { remove?: StandardEditablePayload<DataType>; add?: StandardEditablePayload<DataType> }
+export type StandardEditableDataDelta<DataType> = { remove?: DataType; add?: DataType }
 
 type PayloadDataType<Payload extends StandardEditablePayload<any>> = Payload extends StandardEditablePayload<infer D> ? D : never;
 
