@@ -92,24 +92,9 @@ const diffDelta = <FinalType extends StandardEditablePayload<any>>(
     incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
 ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
-    const { add: incomingAdd, remove: incomingRemove } = incoming
-    const addedDelta = baseAdd
-        ? incomingAdd
-            ? diff(baseAdd, incomingAdd)
-            : { add: baseAdd }
-        : incomingAdd
-            ? { add: incomingAdd }
-            : {}
-    const removedDelta = baseRemove
-        ? incomingRemove
-            ? diff(baseRemove, incomingRemove)
-            : { remove: baseRemove }
-        : incomingRemove
-            ? { remove: incomingRemove }
-            : {}
     return addDelta(add, subtract)(
-        addedDelta,
-        removedDelta
+        { add: baseRemove, remove: baseAdd },
+        incoming
     )
 }        
 
