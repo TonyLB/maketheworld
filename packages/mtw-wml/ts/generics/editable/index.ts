@@ -37,7 +37,7 @@ export type StandardEditableFactoryProps<DataType> = {
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
     contentClass: new (data: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     removeClass: new (match: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
-    // replaceClass: new (match: DataType, payload: DataType) => StandardEditableWrapper<DataType, FinalType>;
+    replaceClass: new (match: PayloadDataType<FinalType> | FinalType, payload: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     factory: (props: StandardEditableData<PayloadDataType<FinalType>>) => StandardEditableWrapper<FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
 }
@@ -139,6 +139,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload.toJSON() }
             }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
+            }
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
@@ -164,6 +167,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             const { remove, add } = diffDelta(this.payload.add, this.payload.subtract, this.payload.diff)({ add: this.payload.toJSON() }, delta)
             if (remove) {
+                if (add) {
+                    return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
+                }
                 return new GeneratedRemoveClass(remove as FinalType)
             }
             else if (add) {
@@ -215,6 +221,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload.toJSON() }
             }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
+            }
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
@@ -240,6 +249,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             const { remove, add } = diffDelta(this.match.add, this.match.subtract, this.match.diff)({ remove: this.match.toJSON() }, delta)
             if (remove) {
+                if (add) {
+                    return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
+                }
                 return new GeneratedRemoveClass(remove as FinalType)
             }
             else if (add) {
@@ -248,13 +260,102 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             return undefined
         }
         get plain() {
+            return this.match
+        }
+    }
+
+    class GeneratedReplaceClass implements StandardEditableWrapper<FinalType> {
+        matchData: FinalType;
+        payloadData: FinalType;
+        constructor(match: PayloadDataType<FinalType> | FinalType, payload: PayloadDataType<FinalType> | FinalType) {
+            if (props.typeguard(match) && props.typeguard(payload)) {
+                const matchResult = props.payloadFactory(match)
+                const payloadResult = props.payloadFactory(payload)
+                if (matchResult && payloadResult) {
+                    this.matchData = matchResult as FinalType
+                    this.payloadData = payloadResult as FinalType
+                    return
+                }
+            }
+            if (payload instanceof props.payload && match instanceof props.payload) {
+                this.matchData = match
+                this.payloadData = payload
+                return
+            }
+            throw new Error('Invalid payload')
+        }
+        get match() { return this.matchData }
+        get payload() { return this.payloadData }
+        clone() {
+            return new GeneratedReplaceClass(this.match, this.payload)
+        }
+        toJSON() {
+            return { tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() }
+        }
+        get schema() {
+            return [{
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
+                    { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
+                ]
+            }]
+        }
+        merge(incoming: StandardEditableWrapper<FinalType>) {
+            let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
+            if (incoming instanceof GeneratedRemoveClass) {
+                delta = { remove: incoming.match.toJSON() }
+            }
+            if (incoming instanceof GeneratedContentClass) {
+                delta = { add: incoming.payload.toJSON() }
+            }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
+            }
+            if (deepEqual(delta, {})) {
+                console.log(`merge finds no arguments`)
+            }
+            const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
+            if (remove) {
+                if (add) {
+                    return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
+                }
+                return new GeneratedRemoveClass(remove as FinalType)
+            }
+            else if (add) {
+                return new GeneratedContentClass(add as FinalType)
+            }
             return undefined
+        }
+        diff(incoming: StandardEditableWrapper<FinalType>) {
+            let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
+            if (incoming instanceof GeneratedRemoveClass) {
+                delta = { remove: incoming.match.toJSON() }
+            }
+            if (incoming instanceof GeneratedContentClass) {
+                delta = { add: incoming.payload.toJSON() }
+            }
+            if (deepEqual(delta, {})) {
+                console.log(`merge finds no arguments`)
+            }
+            const { remove, add } = diffDelta(this.match.add, this.match.subtract, this.match.diff)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
+            if (remove) {
+                return new GeneratedRemoveClass(remove as FinalType)
+            }
+            else if (add) {
+                return new GeneratedContentClass(add as FinalType)
+            }
+            return undefined
+        }
+        get plain() {
+            return this.payload
         }
     }
 
     return {
         contentClass: GeneratedContentClass,
         removeClass: GeneratedRemoveClass,
+        replaceClass: GeneratedReplaceClass,
         factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
@@ -282,9 +383,14 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 return undefined
             }
             if (isReplace(factoryProps)) {
-                //
-                // TODO: Add generated replace-class here
-                //
+                const matchPayload = factoryProps.match
+                const payloadPayload = factoryProps.payload
+                const match = props.payloadFactory(matchPayload)
+                const payload = props.payloadFactory(payloadPayload)
+                if (match && payload) {
+                    return new GeneratedReplaceClass(match as FinalType, payload as FinalType)
+                }
+                return undefined
             }
             return undefined
         },

@@ -116,10 +116,10 @@ describe('standardEditableFactory', () => {
         expect(result?.toJSON()).toEqual(data);
     });
 
-    it('should return undefined for Replace tag without implementation', () => {
-        const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 2, name: 'Test2' } };
+    it('should return replace class when given valid replace data', () => {
+        const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } };
         const result = factory(data);
-        expect(result).toBeUndefined();
+        expect(result?.toJSON()).toEqual(data);
     });
 
     it('should correctly merge two content tags', () => {
@@ -150,6 +150,24 @@ describe('standardEditableFactory', () => {
         const editable2 = factory(data2);
         const merged = editable1?.merge(editable2!);
         expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test' });
+    })
+
+    it('should correctly merge a complete replace into a content tag', () => {
+        const data1 = { id: 1, name: 'Test' };
+        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } };
+        const editable1 = factory(data1);
+        const editable2 = factory(data2);
+        const merged = editable1?.merge(editable2!);
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' });
+    })
+
+    it('should correctly merge a partial replace into a content tag', () => {
+        const data1 = { id: 1, name: 'TestOne' };
+        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } };
+        const editable1 = factory(data1);
+        const editable2 = factory(data2);
+        const merged = editable1?.merge(editable2!);
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' });
     })
 
     it('should correctly diff two content tags', () => {
