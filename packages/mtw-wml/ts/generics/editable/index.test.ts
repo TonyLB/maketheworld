@@ -24,7 +24,7 @@ class testClass implements StandardEditablePayload<TestData> {
         return { ...this.data }
     }
     add(base, incoming) {
-        return { id: this.data.id, name: `${base.name}${incoming.name}` }
+        return { id: base.id, name: `${base.name}${incoming.name}` }
     }
     subtract(base, incoming) {
         if (base.name === incoming.name) {

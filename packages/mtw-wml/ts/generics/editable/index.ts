@@ -1,6 +1,7 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { deepEqual } from '../../lib/objects';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -41,6 +42,47 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
 }
 
+const addDelta = <FinalType extends StandardEditablePayload<any>>(
+        add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
+        subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => StandardEditableDataDelta<PayloadDataType<FinalType>>
+    ) => (
+        base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
+        incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
+    ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
+    const { add: baseAdd, remove: baseRemove } = base
+    const { add: incomingAdd, remove: incomingRemove } = incoming
+    if (baseRemove && incomingAdd) {
+        const cancelledDelta = subtract(baseRemove, incomingAdd)
+        return addDelta(add, subtract)(
+            { add: baseAdd, remove: cancelledDelta.add },
+            { add: cancelledDelta.remove, remove: incomingRemove }
+        )
+    }
+    if (baseAdd && incomingRemove) {
+        const cancelledDelta = subtract(baseAdd, incomingRemove)
+        return addDelta(add, subtract)(
+            { add: cancelledDelta.add, remove: baseRemove },
+            { add: incomingAdd, remove: cancelledDelta.remove }
+        )
+    }
+    if (baseRemove && incomingRemove) {
+        return {
+            add: baseAdd,
+            remove: add(incomingRemove, baseRemove)
+        }
+    }
+    if (baseAdd && incomingAdd) {
+        return {
+            add: add(baseAdd, incomingAdd),
+            remove: baseRemove
+        }
+    }
+    return {
+        add: baseAdd ?? incomingAdd,
+        remove: baseRemove ?? incomingRemove
+    }
+}        
+
 export const standardEditableFactory = <FinalType extends StandardEditablePayload<any>>(props: StandardEditableFactoryProps<PayloadDataType<FinalType>>): StandardEditableFactoryReturn<FinalType> => {
     class GeneratedContentClass implements StandardEditableWrapper<FinalType> {
         payload: FinalType;
@@ -75,49 +117,17 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             return this.payload.schema
         }
         merge(incoming: StandardEditableWrapper<FinalType>) {
-            const addDelta = (base: StandardEditablePayloadDelta<PayloadDataType<FinalType>>, incoming: StandardEditablePayloadDelta<PayloadDataType<FinalType>>): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
-                const { add: baseAdd, remove: baseRemove } = base
-                const { add: incomingAdd, remove: incomingRemove } = incoming
-                if (baseRemove && incomingAdd) {
-                    const cancelledDelta = this.payload.subtract(baseRemove, incomingAdd)
-                    return addDelta(
-                        { add: baseAdd, remove: cancelledDelta.add },
-                        { add: cancelledDelta.remove, remove: incomingRemove }
-                    )
-                }
-                if (baseAdd && incomingRemove) {
-                    const cancelledDelta = this.payload.subtract(baseAdd, incomingRemove)
-                    return addDelta(
-                        { add: cancelledDelta.add, remove: baseRemove },
-                        { add: incomingAdd, remove: cancelledDelta.remove }
-                    )
-                }
-                if (baseRemove && incomingRemove) {
-                    return {
-                        add: baseAdd,
-                        remove: new props.payload(this.payload.add(incomingRemove, baseRemove))
-                    }
-                }
-                if (baseAdd && incomingAdd) {
-                    return {
-                        add: new props.payload(this.payload.add(baseAdd, incomingAdd)),
-                        remove: baseRemove
-                    }
-                }
-                return {
-                    add: baseAdd ?? incomingAdd,
-                    remove: baseRemove ?? incomingRemove
-                }
-            }        
-        
             let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
             if (incoming instanceof GeneratedRemoveClass) {
-                delta = { remove: incoming.match }
+                delta = { remove: incoming.match.toJSON() }
             }
             if (incoming instanceof GeneratedContentClass) {
-                delta = { add: incoming.payload }
+                delta = { add: incoming.payload.toJSON() }
             }
-            const { remove, add } = addDelta({ add: this.toJSON() }, delta)
+            if (deepEqual(delta, {})) {
+                console.log(`merge finds no arguments`)
+            }
+            const { remove, add } = addDelta(this.payload.add, this.payload.subtract)({ add: this.payload.toJSON() }, delta)
             if (remove) {
                 return new GeneratedRemoveClass(remove as FinalType)
             }
@@ -176,13 +186,24 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }]
         }
         merge(incoming: StandardEditableWrapper<FinalType>) {
-            if (!(incoming instanceof GeneratedRemoveClass)) {
-                return undefined
+            let delta: StandardEditablePayloadDelta<PayloadDataType<FinalType>> = {}
+            if (incoming instanceof GeneratedRemoveClass) {
+                delta = { remove: incoming.match.toJSON() }
             }
-            if (incoming.match === this.match) {
-                return undefined
+            if (incoming instanceof GeneratedContentClass) {
+                delta = { add: incoming.payload.toJSON() }
             }
-            return incoming
+            if (deepEqual(delta, {})) {
+                console.log(`merge finds no arguments`)
+            }
+            const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON() }, delta)
+            if (remove) {
+                return new GeneratedRemoveClass(remove as FinalType)
+            }
+            else if (add) {
+                return new GeneratedContentClass(add as FinalType)
+            }
+            return undefined
         }
         diff(incoming: StandardEditableWrapper<FinalType>) {
             if (!(incoming instanceof GeneratedRemoveClass)) {
