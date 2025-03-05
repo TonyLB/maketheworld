@@ -131,6 +131,12 @@ describe('standardEditableFactory', () => {
         expect(result?.toJSON()).toEqual(data)
     })
 
+    it('should return remove class when given valid remove schema tag', () => {
+        const data = { data: { tag: 'Remove' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual({ tag: 'Remove', match: { id: 0, name: 'Test'} })
+    })
+
     it('should return replace class when given valid replace data', () => {
         const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } }
         const result = factory(data)
