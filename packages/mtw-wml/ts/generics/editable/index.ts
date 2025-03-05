@@ -3,6 +3,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-bas
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { deepEqual } from '../../lib/objects';
 import { isSchemaTreeNode } from '../../standardize/components/utils';
+import { isSchemaRemove } from '@tonylb/mtw-base/ts/schema/edit';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -372,12 +373,29 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             const isReplace = (value: any): value is { tag: 'Replace'; match: PayloadDataType<FinalType>; payload: PayloadDataType<FinalType> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
             }
-            if ((props.typeguard(factoryProps)) || (isSchemaTreeNode(factoryProps))) {
+            if (props.typeguard(factoryProps)) {
                 const payload = props.payloadFactory(factoryProps)
                 if (payload) {
                     return new GeneratedContentClass(payload as FinalType)
                 }
                 return undefined
+            }
+            if (isSchemaTreeNode(factoryProps)) {
+                if (treeNodeTypeguard(isSchemaRemove)(factoryProps)) {
+                    const matchPayload = factoryProps.children[0]
+                    const payload = props.payloadFactory(matchPayload)
+                    if (payload) {
+                        return new GeneratedRemoveClass(payload as FinalType)
+                    }
+                    return undefined
+                }
+                else {
+                    const payload = props.payloadFactory(factoryProps)
+                    if (payload) {
+                        return new GeneratedContentClass(payload as FinalType)
+                    }
+                    return undefined
+                }
             }
             if (isRemove(factoryProps)) {
                 const removePayload = factoryProps.match
