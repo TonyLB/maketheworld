@@ -1,7 +1,8 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { deepEqual } from '../../lib/objects';
+import { isSchemaTreeNode } from '../../standardize/components/utils';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -28,17 +29,15 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
 
 export type StandardEditableFactoryProps<DataType> = {
     typeguard: (value: any) => value is DataType;
-    payloadFactory: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
+    payloadFactory: (props: StandardEditableData<DataType> | GenericTreeNode<SchemaTag>) => StandardEditablePayload<DataType> | undefined;
     payload: new (props: DataType) => StandardEditablePayload<DataType>;
-    // add: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
-    // remove: (props: StandardEditableData<DataType>) => StandardEditablePayload<DataType> | undefined;
 }
 
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
     contentClass: new (data: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     removeClass: new (match: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     replaceClass: new (match: PayloadDataType<FinalType> | FinalType, payload: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
-    factory: (props: StandardEditableData<PayloadDataType<FinalType>>) => StandardEditableWrapper<FinalType> | undefined;
+    factory: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTreeNode<SchemaTag>) => StandardEditableWrapper<FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
 }
 
@@ -109,9 +108,15 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                     return
                 }
             }
-            else {
-                if (payload instanceof props.payload) {
-                    this.payload = payload
+            if (payload instanceof props.payload) {
+                this.payload = payload
+                return
+            }
+            if (isSchemaTreeNode(payload)) {
+                console.log(`scema payload: ${JSON.stringify(payload)}`)
+                const result = props.payloadFactory(payload)
+                if (result) {
+                    this.payload = result as FinalType                    
                     return
                 }
             }
@@ -356,7 +361,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
         contentClass: GeneratedContentClass,
         removeClass: GeneratedRemoveClass,
         replaceClass: GeneratedReplaceClass,
-        factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType) => {
+        factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTreeNode<SchemaTag>) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
             // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
@@ -367,7 +372,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             const isReplace = (value: any): value is { tag: 'Replace'; match: PayloadDataType<FinalType>; payload: PayloadDataType<FinalType> } => {
                 return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
             }
-            if (props.typeguard(factoryProps)) {
+            if ((props.typeguard(factoryProps)) || (isSchemaTreeNode(factoryProps))) {
                 const payload = props.payloadFactory(factoryProps)
                 if (payload) {
                     return new GeneratedContentClass(payload as FinalType)
