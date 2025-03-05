@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-bas
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { deepEqual } from '../../lib/objects';
 import { isSchemaTreeNode } from '../../standardize/components/utils';
-import { isSchemaRemove } from '@tonylb/mtw-base/ts/schema/edit';
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -386,6 +386,18 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                     const payload = props.payloadFactory(matchPayload)
                     if (payload) {
                         return new GeneratedRemoveClass(payload as FinalType)
+                    }
+                    return undefined
+                }
+                else if (treeNodeTypeguard(isSchemaReplace)(factoryProps)) {
+                    const matchPayload = factoryProps.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0]
+                    const payloadPayload = factoryProps.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                    if (matchPayload && payloadPayload) {
+                        const match = props.payloadFactory(matchPayload)
+                        const payload = props.payloadFactory(payloadPayload)
+                        if (match && payload) {
+                            return new GeneratedReplaceClass(match as FinalType, payload as FinalType)
+                        }
                     }
                     return undefined
                 }
