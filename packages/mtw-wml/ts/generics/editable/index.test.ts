@@ -143,6 +143,18 @@ describe('standardEditableFactory', () => {
         expect(result?.toJSON()).toEqual(data)
     })
 
+    it('should return replace class when given valid replace schema tag', () => {
+        const data = {
+            data: { tag: 'Replace' },
+            children: [
+                { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
+                { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'TestTwo' }, children: [] }] }
+            ]
+        }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual({ tag: 'Replace', match: { id: 0, name: 'Test'}, payload: { id: 0, name: 'TestTwo' } })
+    })
+
     it('should correctly merge two content tags', () => {
         const data1 = { id: 1, name: 'Test' }
         const data2 = { id: 2, name: 'Test2' }
