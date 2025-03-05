@@ -1,19 +1,23 @@
-import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
-import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper, StandardEditablePayloadDelta } from './index';
-import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize';
+import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper, StandardEditablePayloadDelta } from './index'
+import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
+import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { isSchemaTreeNode } from '../../standardize/components/utils'
+import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 
 interface TestData {
-    id: number;
-    name: string;
+    id: number
+    name: string
 }
 
 const testTypeguard = (value: any): value is TestData => {
-    return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string';
+    return typeof value === 'object' && value !== null && typeof value.id === 'number' && typeof value.name === 'string'
 }
 
 class testClass implements StandardEditablePayload<TestData> {
-    data: TestData;
-    schema = [];
+    data: TestData
+    schema = []
     constructor(data: TestData) {
         this.data = data as TestData
     }
@@ -62,141 +66,152 @@ class testClass implements StandardEditablePayload<TestData> {
     }
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData>): StandardEditablePayload<TestData> | undefined => {
+const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTreeNode<SchemaTag>): StandardEditablePayload<TestData> | undefined => {
     if (testTypeguard(props)) {
-        return new testClass(props);
+        return new testClass(props)
     }
-    return undefined;
+    console.log(`props: ${JSON.stringify(props)}`)
+    if (isSchemaTreeNode(props) && treeNodeTypeguard(isSchemaString)(props)) {
+        console.log(`Creating testClass from schema tag: ${props.data.value}`)
+        return new testClass({ id: 0, name: props.data.value })
+    }
+    return undefined
 }
 
 const factoryProps: StandardEditableFactoryProps<TestData> = {
     typeguard: testTypeguard,
     payloadFactory: testPayloadFactory,
     payload: testClass
-};
+}
 
-const { factory, typeguard } = standardEditableFactory(factoryProps);
+const { factory, typeguard } = standardEditableFactory(factoryProps)
 
 describe('standardEditableFactory', () => {
     it('should create a valid TestEditable object when given valid data', () => {
-        const data: TestData = { id: 1, name: 'Test' };
-        const result = factory(data);
-        expect(result?.toJSON()).toEqual(data);
-    });
+        const data: TestData = { id: 1, name: 'Test' }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual(data)
+    })
+
+    it('should create a valid TestEditable object when given schema tag', () => {
+        const data: GenericTreeNode<SchemaTag> = { data: { tag: 'String', value: 'Test' }, children: [] }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
+    })
 
     it('should return undefined when given invalid data', () => {
-        const data = { id: 'invalid', name: 'Test' };
-        const result = factory(data as any);
-        expect(result).toBeUndefined();
-    });
+        const data = { id: 'invalid', name: 'Test' }
+        const result = factory(data as any)
+        expect(result).toBeUndefined()
+    })
 
     it('should correctly identify valid StandardEditableData', () => {
-        const data: TestData = { id: 1, name: 'Test' };
-        expect(typeguard(data)).toBe(true);
-    });
+        const data: TestData = { id: 1, name: 'Test' }
+        expect(typeguard(data)).toBe(true)
+    })
 
     it('should correctly identify invalid StandardEditableData', () => {
-        const data = { id: 'invalid', name: 'Test' };
-        expect(typeguard(data)).toBe(false);
-    });
+        const data = { id: 'invalid', name: 'Test' }
+        expect(typeguard(data)).toBe(false)
+    })
 
     it('should correctly identify Remove tag with valid match', () => {
-        const data = { tag: 'Remove', match: { id: 1, name: 'Test' } };
-        expect(typeguard(data)).toBe(true);
-    });
+        const data = { tag: 'Remove', match: { id: 1, name: 'Test' } }
+        expect(typeguard(data)).toBe(true)
+    })
 
     it('should correctly identify Replace tag with valid match and payload', () => {
-        const data = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 2, name: 'Test2' } };
-        expect(typeguard(data)).toBe(true);
-    });
+        const data = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 2, name: 'Test2' } }
+        expect(typeguard(data)).toBe(true)
+    })
 
     it('should return remove class when given valid remove data', () => {
-        const data = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
-        const result = factory(data);
-        expect(result?.toJSON()).toEqual(data);
-    });
+        const data = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual(data)
+    })
 
     it('should return replace class when given valid replace data', () => {
-        const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } };
-        const result = factory(data);
-        expect(result?.toJSON()).toEqual(data);
-    });
+        const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } }
+        const result = factory(data)
+        expect(result?.toJSON()).toEqual(data)
+    })
 
     it('should correctly merge two content tags', () => {
-        const data1 = { id: 1, name: 'Test' };
-        const data2 = { id: 2, name: 'Test2' };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        expect(editable2).toBeDefined();
+        const data1 = { id: 1, name: 'Test' }
+        const data2 = { id: 2, name: 'Test2' }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        expect(editable2).toBeDefined()
         if (editable2) {
-            const merged = editable1?.merge(editable2);
-            expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTest2' });
+            const merged = editable1?.merge(editable2)
+            expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTest2' })
         }
     })
 
     it('should correctly merge a remove into a content tag', () => {
-        const data1 = { id: 1, name: 'Test' };
-        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const merged = editable1?.merge(editable2!);
-        expect(merged?.toJSON()).toBeUndefined();
+        const data1 = { id: 1, name: 'Test' }
+        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const merged = editable1?.merge(editable2!)
+        expect(merged?.toJSON()).toBeUndefined()
     })
 
     it('should correctly merge partial remove into a content tag', () => {
-        const data1 = { id: 1, name: 'TestOne' };
-        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const merged = editable1?.merge(editable2!);
-        expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test' });
+        const data1 = { id: 1, name: 'TestOne' }
+        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const merged = editable1?.merge(editable2!)
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test' })
     })
 
     it('should correctly merge a complete replace into a content tag', () => {
-        const data1 = { id: 1, name: 'Test' };
-        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const merged = editable1?.merge(editable2!);
-        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' });
+        const data1 = { id: 1, name: 'Test' }
+        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const merged = editable1?.merge(editable2!)
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' })
     })
 
     it('should correctly merge a partial replace into a content tag', () => {
-        const data1 = { id: 1, name: 'TestOne' };
-        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const merged = editable1?.merge(editable2!);
-        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' });
+        const data1 = { id: 1, name: 'TestOne' }
+        const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const merged = editable1?.merge(editable2!)
+        expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' })
     })
 
     it('should correctly diff two content tags', () => {
-        const data1 = { id: 1, name: 'Test' };
-        const data2 = { id: 2, name: 'Test2' };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        expect(editable2).toBeDefined();
+        const data1 = { id: 1, name: 'Test' }
+        const data2 = { id: 2, name: 'Test2' }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        expect(editable2).toBeDefined()
         if (editable2) {
-            const diff = editable1?.diff(editable2);
-            expect(diff?.toJSON()).toEqual({ id: 1, name: '2' });
+            const diff = editable1?.diff(editable2)
+            expect(diff?.toJSON()).toEqual({ id: 1, name: '2' })
         }
     })
 
     it('should correctly diff a remove into a content tag', () => {
-        const data1 = { id: 1, name: 'Test' };
-        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const diff = editable1?.diff(editable2!);
-        expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'TestTest' } });
+        const data1 = { id: 1, name: 'Test' }
+        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const diff = editable1?.diff(editable2!)
+        expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'TestTest' } })
     })
 
     it('should correct diff content into a remove tag', () => {
-        const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
-        const data2 = { id: 1, name: 'Test' };
-        const editable1 = factory(data1);
-        const editable2 = factory(data2);
-        const diff = editable1?.diff(editable2!);
-        expect(diff?.toJSON()).toEqual({ id: 1, name: 'TestTest' });
+        const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+        const data2 = { id: 1, name: 'Test' }
+        const editable1 = factory(data1)
+        const editable2 = factory(data2)
+        const diff = editable1?.diff(editable2!)
+        expect(diff?.toJSON()).toEqual({ id: 1, name: 'TestTest' })
     })
 })
