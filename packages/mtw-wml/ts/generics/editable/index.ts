@@ -65,23 +65,11 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
             { add: incomingAdd, remove: cancelledDelta.remove }
         )
     }
-    if (baseRemove && incomingRemove) {
-        return {
-            add: baseAdd,
-            remove: add(incomingRemove, baseRemove)
-        }
-    }
-    if (baseAdd && incomingAdd) {
-        return {
-            add: add(baseAdd, incomingAdd),
-            remove: baseRemove
-        }
-    }
     return {
-        add: baseAdd ?? incomingAdd,
-        remove: baseRemove ?? incomingRemove
+        add: baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd,
+        remove: baseRemove && incomingRemove ? add(incomingRemove, baseRemove) : baseRemove ?? incomingRemove
     }
-}        
+}
 
 const diffDelta = <FinalType extends StandardEditablePayload<any>>(
     add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
@@ -153,6 +141,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             const { remove, add } = addDelta(this.payload.add, this.payload.subtract)({ add: this.payload.toJSON() }, delta)
             if (remove) {
+                if (add) {
+                    return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
+                }
                 return new GeneratedRemoveClass(remove as FinalType)
             }
             else if (add) {
@@ -235,6 +226,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON() }, delta)
             if (remove) {
+                if (add) {
+                    return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
+                }
                 return new GeneratedRemoveClass(remove as FinalType)
             }
             else if (add) {
@@ -249,6 +243,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload.toJSON() }
+            }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
             }
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
@@ -322,6 +319,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 console.log(`merge finds no arguments`)
             }
             const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
+            console.log(`add: ${JSON.stringify(add)}, remove: ${JSON.stringify(remove)}`)
             if (remove) {
                 if (add) {
                     return new GeneratedReplaceClass(remove as FinalType, add as FinalType)

@@ -31,6 +31,7 @@ class testClass implements StandardEditablePayload<TestData> {
         return { id: base.id, name: `${base.name}${incoming.name}` }
     }
     subtract(base, incoming) {
+        console.log(`subtracting ${incoming.name} from ${base.name}`)
         if (base.name === incoming.name) {
             return {}
         }
