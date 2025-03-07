@@ -44,7 +44,8 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
 
 const addDelta = <FinalType extends StandardEditablePayload<any>>(
         add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
-        subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>
+        subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>,
+        diff: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>
     ) => (
         base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
         incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
@@ -54,32 +55,22 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
     console.log(`add: ${JSON.stringify(baseAdd)}, remove: ${JSON.stringify(baseRemove)}, incomingAdd: ${JSON.stringify(incomingAdd)}, incomingRemove: ${JSON.stringify(incomingRemove)}`)
     if (baseAdd && incomingRemove) {
         //
-        // We try subtract, because if the incomingRemove is not a subset of the baseAdd, then we can't cancel
-        // out the incomingRemove and will instead add it to the output remove.
+        // In this case, we need to cancel out any of the baseAdd that is being removed by the incomingRemove.
+        // We also need to throw any MergeConflicts taht subtract might generate: If the baseAdd cannot
+        // be reconciled with the incomingRemove, that is a failure state.
         //
-        try {
-            const cancelledDelta = subtract(baseAdd, incomingRemove)
-            return addDelta(add, subtract)(
-                { add: cancelledDelta.add, remove: baseRemove },
-                { add: incomingAdd, remove: cancelledDelta.remove }
-            )
-        }
-        catch (err) {}
+        const cancelledDelta = subtract(baseAdd, incomingRemove)
+        return addDelta(add, subtract, diff)(
+            { add: cancelledDelta.add, remove: baseRemove },
+            { add: incomingAdd, remove: cancelledDelta.remove }
+        )
+
     }
-    if (baseRemove && incomingAdd) {
-        try {
-            const cancelledDelta = subtract(baseRemove, incomingAdd, { fromStart: true })
-            return addDelta(add, subtract)(
-                { add: baseAdd, remove: cancelledDelta.add },
-                { add: cancelledDelta.remove, remove: incomingRemove }
-            )
-        }
-        catch (err) {}
-    }
-    return {
-        add: baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd,
-        remove: baseRemove && incomingRemove ? add(incomingRemove, baseRemove) : baseRemove ?? incomingRemove
-    }
+    const cancelledRemove = baseRemove && incomingRemove ? add(incomingRemove, baseRemove) : baseRemove ?? incomingRemove
+    const cancelledAdd = baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd
+    return (cancelledAdd && cancelledRemove)
+        ? diff(cancelledRemove, cancelledAdd)
+        : { add: cancelledAdd, remove: cancelledRemove }
 }
 
 const diffDelta = <FinalType extends StandardEditablePayload<any>>(
@@ -91,7 +82,7 @@ const diffDelta = <FinalType extends StandardEditablePayload<any>>(
     incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
 ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
-    return addDelta(add, subtract)(
+    return addDelta(add, subtract, diff)(
         { add: baseRemove, remove: baseAdd },
         incoming
     )
@@ -150,7 +141,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
-            const { remove, add } = addDelta(this.payload.add, this.payload.subtract)({ add: this.payload.toJSON() }, delta)
+            const { remove, add } = addDelta(this.payload.add, this.payload.subtract, this.payload.diff)({ add: this.payload.toJSON() }, delta)
             if (remove) {
                 if (add) {
                     return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
@@ -235,7 +226,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
-            const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON() }, delta)
+            const { remove, add } = addDelta(this.match.add, this.match.subtract, this.match.diff)({ remove: this.match.toJSON() }, delta)
             if (remove) {
                 if (add) {
                     return new GeneratedReplaceClass(remove as FinalType, add as FinalType)
@@ -329,7 +320,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
-            const { remove, add } = addDelta(this.match.add, this.match.subtract)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
+            const { remove, add } = addDelta(this.match.add, this.match.subtract, this.match.diff)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
             console.log(`add: ${JSON.stringify(add)}, remove: ${JSON.stringify(remove)}`)
             if (remove) {
                 if (add) {

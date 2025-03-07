@@ -278,7 +278,7 @@ describe('standardEditableFactory', () => {
 
         it('should correctly merge remove into a shorter replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
-            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'OutputFinal' } }
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } }
             const editable1 = factory(data1)
             const editable2 = factory(data2)
             const merged = editable1?.merge(editable2!)
