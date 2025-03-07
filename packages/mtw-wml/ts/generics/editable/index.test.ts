@@ -30,22 +30,31 @@ class testClass implements StandardEditablePayload<TestData> {
     add(base, incoming) {
         return { id: base.id, name: `${base.name}${incoming.name}` }
     }
-    subtract(base, incoming) {
+    subtract(base, incoming, options: { fromStart?: boolean } = {}) {
+        console.log(`subtracting ${incoming.name} from ${base.name}`)
         if (base.name === incoming.name) {
+            console.log(`returning empty object`)
             return {}
         }
         else {
             if (base.name.length > incoming.name.length) {
-                if (base.name.endsWith(incoming.name)) {
+                if (options.fromStart && base.name.startsWith(incoming.name)) {
+                    return { id: base.id, name: base.name.slice(incoming.name.length) }
+                }
+                else if (base.name.endsWith(incoming.name)) {
                     return { add: { id: base.id, name: base.name.slice(0, base.name.length - incoming.name.length) } }
                 }
             }
             else {
-                if (incoming.name.endsWith(base.name)) {
-                    return { remove: { id: base.id, name: incoming.name.slice(0, incoming.name.length - base.name.length) } }
+                if (options.fromStart && incoming.name.startsWith(base.name)) {
+                    return { add: { id: base.id, name: incoming.name.slice(base.name.length) } }
+                }
+                else if (incoming.name.endsWith(base.name)) {
+                    return { remove: { id: base.id, name: incoming.name.slice(0, (incoming.name.length - base.name.length)) } }
                 }
             }
         }
+        console.log(`throwing merge conflict error`)
         throw new MergeConflictError()
     }
     diff(base, incoming) {
