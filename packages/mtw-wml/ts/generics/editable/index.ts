@@ -10,7 +10,7 @@ export interface StandardEditablePayload<DataType> {
     toJSON: () => DataType;
     schema: GenericTree<SchemaTag>;
     add: (base: DataType, incoming: DataType) => DataType;
-    subtract: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
+    subtract: (base: DataType, incoming: DataType, options?: { fromStart?: boolean }) => StandardEditableDataDelta<DataType>;
     diff: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
 }
 
@@ -44,26 +44,37 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
 
 const addDelta = <FinalType extends StandardEditablePayload<any>>(
         add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
-        subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => StandardEditableDataDelta<PayloadDataType<FinalType>>
+        subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>
     ) => (
         base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
         incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
     ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
     const { add: incomingAdd, remove: incomingRemove } = incoming
-    if (baseRemove && incomingAdd) {
-        const cancelledDelta = subtract(baseRemove, incomingAdd)
-        return addDelta(add, subtract)(
-            { add: baseAdd, remove: cancelledDelta.add },
-            { add: cancelledDelta.remove, remove: incomingRemove }
-        )
-    }
+    console.log(`add: ${JSON.stringify(baseAdd)}, remove: ${JSON.stringify(baseRemove)}, incomingAdd: ${JSON.stringify(incomingAdd)}, incomingRemove: ${JSON.stringify(incomingRemove)}`)
     if (baseAdd && incomingRemove) {
-        const cancelledDelta = subtract(baseAdd, incomingRemove)
-        return addDelta(add, subtract)(
-            { add: cancelledDelta.add, remove: baseRemove },
-            { add: incomingAdd, remove: cancelledDelta.remove }
-        )
+        //
+        // We try subtract, because if the incomingRemove is not a subset of the baseAdd, then we can't cancel
+        // out the incomingRemove and will instead add it to the output remove.
+        //
+        try {
+            const cancelledDelta = subtract(baseAdd, incomingRemove)
+            return addDelta(add, subtract)(
+                { add: cancelledDelta.add, remove: baseRemove },
+                { add: incomingAdd, remove: cancelledDelta.remove }
+            )
+        }
+        catch (err) {}
+    }
+    if (baseRemove && incomingAdd) {
+        try {
+            const cancelledDelta = subtract(baseRemove, incomingAdd, { fromStart: true })
+            return addDelta(add, subtract)(
+                { add: baseAdd, remove: cancelledDelta.add },
+                { add: cancelledDelta.remove, remove: incomingRemove }
+            )
+        }
+        catch (err) {}
     }
     return {
         add: baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd,
