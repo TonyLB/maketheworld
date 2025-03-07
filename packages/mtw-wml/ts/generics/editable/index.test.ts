@@ -204,6 +204,14 @@ describe('standardEditableFactory', () => {
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } })
         })
 
+        it('should throw a merge conflict error when merging remove into conflicting content', () => {
+            const data1 = { id: 1, name: 'TestOne' }
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestTwo' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
+        })
+
         it('should correctly merge remove into a remove tag', () => {
             const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
@@ -238,6 +246,14 @@ describe('standardEditableFactory', () => {
             const editable2 = factory(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } })
+        })
+
+        it('should throw a merge conflict error when merging replace into conflicting content', () => {
+            const data1 = { id: 1, name: 'TestOne' }
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'TestTwo' }, payload: { id: 1, name: 'Output' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
 
         it('should correctly merge a replace into a remove tag', () => {
@@ -285,6 +301,14 @@ describe('standardEditableFactory', () => {
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'FinalTest' } })
         })
 
+        it('should throw a merge conflict error when merging remove into conflicting replace tag', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Conflict' } }
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
+        })
+
         it('should correctly merge replace into a replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Two' }, payload: { id: 1, name: 'Three' } }
@@ -292,6 +316,14 @@ describe('standardEditableFactory', () => {
             const editable2 = factory(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Three' } })
+        })
+
+        it('should throw a merge conflict error when merging conflicting replace tags', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Three' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
     })
 
