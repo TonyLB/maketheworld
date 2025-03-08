@@ -52,7 +52,6 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
     ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
     const { add: incomingAdd, remove: incomingRemove } = incoming
-    console.log(`add: ${JSON.stringify(baseAdd)}, remove: ${JSON.stringify(baseRemove)}, incomingAdd: ${JSON.stringify(incomingAdd)}, incomingRemove: ${JSON.stringify(incomingRemove)}`)
     if (baseAdd && incomingRemove) {
         //
         // In this case, we need to cancel out any of the baseAdd that is being removed by the incomingRemove.
@@ -104,7 +103,6 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 return
             }
             if (isSchemaTreeNode(payload)) {
-                console.log(`scema payload: ${JSON.stringify(payload)}`)
                 const result = props.payloadFactory(payload)
                 if (result) {
                     this.payload = result as FinalType                    
@@ -324,7 +322,6 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 console.log(`merge finds no arguments`)
             }
             const { remove, add } = addDelta(this.match.add, this.match.subtract, this.match.diff)({ remove: this.match.toJSON(), add: this.payload.toJSON() }, delta)
-            console.log(`add: ${JSON.stringify(add)}, remove: ${JSON.stringify(remove)}`)
             if (remove) {
                 if (add) {
                     return new GeneratedReplaceClass(remove as FinalType, add as FinalType)

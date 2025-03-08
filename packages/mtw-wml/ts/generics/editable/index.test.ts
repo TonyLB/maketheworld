@@ -31,9 +31,7 @@ class testClass implements StandardEditablePayload<TestData> {
         return { id: base.id, name: `${base.name}${incoming.name}` }
     }
     subtract(base, incoming, options: { fromStart?: boolean } = {}) {
-        console.log(`subtracting ${incoming.name} from ${base.name}`)
         if (base.name === incoming.name) {
-            console.log(`returning empty object`)
             return {}
         }
         else {
@@ -79,9 +77,7 @@ const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTreeN
     if (testTypeguard(props)) {
         return new testClass(props)
     }
-    console.log(`props: ${JSON.stringify(props)}`)
     if (isSchemaTreeNode(props) && treeNodeTypeguard(isSchemaString)(props)) {
-        console.log(`Creating testClass from schema tag: ${props.data.value}`)
         return new testClass({ id: 0, name: props.data.value })
     }
     return undefined
