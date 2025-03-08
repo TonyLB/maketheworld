@@ -327,33 +327,118 @@ describe('standardEditableFactory', () => {
         })
     })
 
-    it('should correctly diff two content tags', () => {
-        const data1 = { id: 1, name: 'Test' }
-        const data2 = { id: 2, name: 'Test2' }
-        const editable1 = factory(data1)
-        const editable2 = factory(data2)
-        expect(editable2).toBeDefined()
-        if (editable2) {
-            const diff = editable1?.diff(editable2)
-            expect(diff?.toJSON()).toEqual({ id: 1, name: '2' })
-        }
+    describe('diff', () => {
+        it('should correctly diff two content tags', () => {
+            const data1 = { id: 1, name: 'Test' }
+            const data2 = { id: 2, name: 'TestTest2' }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            expect(editable2).toBeDefined()
+            if (editable2) {
+                const diffed = editable1?.diff(editable2)
+                expect(diffed?.toJSON()).toEqual({ id: 1, name: 'Test2' })
+            }
+        })
+    
+        it('should correctly diff remove from a longer content tag', () => {
+            const data1 = { id: 1, name: 'TestOne' }
+            const data2 = { id: 1, name: 'Test' }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'One' } })
+        })
+
+        it('should correctly diff remove from a shorter content tag', () => {
+            const data1 = { id: 1, name: 'One' }
+            const data2 = { tag: 'Remove', match: { id: 1, name: 'Test' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } })
+        })
+
+        it('should correctly diff remove from a remove tag', () => {
+            const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } })
+        })
+
+        it('should correctly diff a replace from a matching content tag', () => {
+            const data1 = { id: 1, name: 'Test' }
+            const data2 = { id: 1, name: 'Final' }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } })
+        })
+    
+        it('should correctly diff a replace from a longer content tag', () => {
+            const data1 = { id: 1, name: 'TestOne' }
+            const data2 = { id: 1, name: 'TestTwo' }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } })
+        })
+
+        it('should correctly diff a replace from a shorter content tag', () => {
+            const data1 = { id: 1, name: 'One' }
+            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } })
+        })
+
+        it('should correctly diff a replace from a chained remove tag', () => {
+            const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
+            const data2 = { tag: 'Replace', match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } })
+        })
+
+        it('should correctly diff content from a replace tag', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
+            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ id: 1, name: 'Two' })
+        })
+
+        it('should correctly diff remove from a matching replace tag', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
+            const data2 = { tag: 'Remove', match: { id: 1, name: 'Test' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'Output' } })
+        })
+
+        it('should correctly diff remove from a longer replace tag', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'FinalOutput' } }
+            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'Output' } })
+        })
+
+        it('should correctly diff remove from a shorter replace tag', () => {
+            const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
+            const data2 = { tag: 'Remove', match: { id: 1, name: 'FinalTest' } }
+            const editable1 = factory(data1)
+            const editable2 = factory(data2)
+            const merged = editable1?.diff(editable2!)
+            expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } })
+        })
+
     })
 
-    it('should correctly diff a remove into a content tag', () => {
-        const data1 = { id: 1, name: 'Test' }
-        const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
-        const editable1 = factory(data1)
-        const editable2 = factory(data2)
-        const diff = editable1?.diff(editable2!)
-        expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'TestTest' } })
-    })
-
-    it('should correct diff content into a remove tag', () => {
-        const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
-        const data2 = { id: 1, name: 'Test' }
-        const editable1 = factory(data1)
-        const editable2 = factory(data2)
-        const diff = editable1?.diff(editable2!)
-        expect(diff?.toJSON()).toEqual({ id: 1, name: 'TestTest' })
-    })
 })
