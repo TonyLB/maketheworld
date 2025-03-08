@@ -161,6 +161,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload.toJSON() }
             }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
+            }
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
             }
@@ -340,6 +343,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             if (incoming instanceof GeneratedContentClass) {
                 delta = { add: incoming.payload.toJSON() }
+            }
+            if (incoming instanceof GeneratedReplaceClass) {
+                delta = { remove: incoming.match.toJSON(), add: incoming.payload.toJSON() }
             }
             if (deepEqual(delta, {})) {
                 console.log(`merge finds no arguments`)
