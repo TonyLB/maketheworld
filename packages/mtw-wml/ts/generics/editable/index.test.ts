@@ -6,6 +6,7 @@ import { isSchemaTreeNode } from '../../standardize/components/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { treeFromWML } from '../../standardize/utils'
+import { schemaToWML } from '../../schema'
 
 interface TestData {
     id: number
@@ -18,7 +19,9 @@ const testTypeguard = (value: any): value is TestData => {
 
 class testClass implements StandardEditablePayload<TestData> {
     data: TestData
-    schema = []
+    get schema() {
+        return [{ data: { tag: 'String' as const, value: this.data.name }, children: [] }]
+    }
     constructor(data: TestData) {
         this.data = data as TestData
     }
@@ -164,6 +167,24 @@ describe('standardEditableFactory', () => {
         }
         const result = factory(data)
         expect(result?.toJSON()).toEqual({ tag: 'Replace', match: { id: 0, name: 'Test'}, payload: { id: 0, name: 'TestTwo' } })
+    })
+
+    it('should round-trip content from WML', () => {
+        const data = 'Test'
+        const editable = factory(data)
+        expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
+    })
+
+    it('should round-trip remove from WML', () => {
+        const data = '<Remove>Test</Remove>'
+        const editable = factory(data)
+        expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
+    })
+
+    it('should round-trip replace from WML', () => {
+        const data = '<Replace>Test</Replace><With>Final</With>'
+        const editable = factory(data)
+        expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
     })
 
     describe('merge', () => {
