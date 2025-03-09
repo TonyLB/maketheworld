@@ -1,11 +1,10 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper, StandardEditablePayloadDelta } from './index'
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps } from './index'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
-import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaTreeNode } from '../../standardize/components/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { treeFromWML } from '../../standardize/utils'
 import { schemaToWML } from '../../schema'
 
 interface TestData {
@@ -77,12 +76,12 @@ class testClass implements StandardEditablePayload<TestData> {
     }
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTreeNode<SchemaTag>): StandardEditablePayload<TestData> | undefined => {
+const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTree<SchemaTag>): StandardEditablePayload<TestData> | undefined => {
     if (testTypeguard(props)) {
         return new testClass(props)
     }
-    if (isSchemaTreeNode(props) && treeNodeTypeguard(isSchemaString)(props)) {
-        return new testClass({ id: 0, name: props.data.value })
+    if ((Array.isArray(props) && props.every(isSchemaTreeNode)) && treeNodeTypeguard(isSchemaString)(props[0])) {
+        return new testClass({ id: 0, name: props[0].data.value })
     }
     return undefined
 }
@@ -103,7 +102,7 @@ describe('standardEditableFactory', () => {
     })
 
     it('should create a valid TestEditable object when given schema tag', () => {
-        const data: GenericTreeNode<SchemaTag> = { data: { tag: 'String', value: 'Test' }, children: [] }
+        const data: GenericTree<SchemaTag> = [{ data: { tag: 'String', value: 'Test' }, children: [] }]
         const result = factory(data)
         expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
     })
@@ -146,7 +145,7 @@ describe('standardEditableFactory', () => {
     })
 
     it('should return remove class when given valid remove schema tag', () => {
-        const data = { data: { tag: 'Remove' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }
+        const data = [{ data: { tag: 'Remove' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }]
         const result = factory(data)
         expect(result?.toJSON()).toEqual({ tag: 'Remove', match: { id: 0, name: 'Test'} })
     })
@@ -158,13 +157,13 @@ describe('standardEditableFactory', () => {
     })
 
     it('should return replace class when given valid replace schema tag', () => {
-        const data = {
+        const data = [{
             data: { tag: 'Replace' },
             children: [
                 { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
                 { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'TestTwo' }, children: [] }] }
             ]
-        }
+        }]
         const result = factory(data)
         expect(result?.toJSON()).toEqual({ tag: 'Replace', match: { id: 0, name: 'Test'}, payload: { id: 0, name: 'TestTwo' } })
     })

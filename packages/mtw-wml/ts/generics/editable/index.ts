@@ -4,7 +4,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { deepEqual } from '../../lib/objects';
 import { isSchemaTreeNode } from '../../standardize/components/utils';
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit';
-import { nodeFromWML } from '../../standardize/utils';
+import { nodeFromWML, treeFromWML } from '../../standardize/utils';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -31,7 +31,7 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
 
 export type StandardEditableFactoryProps<DataType> = {
     typeguard: (value: any) => value is DataType;
-    payloadFactory: (props: StandardEditableData<DataType> | GenericTreeNode<SchemaTag>) => StandardEditablePayload<DataType> | undefined;
+    payloadFactory: (props: StandardEditableData<DataType> | GenericTree<SchemaTag>) => StandardEditablePayload<DataType> | undefined;
     payload: new (props: DataType) => StandardEditablePayload<DataType>;
 }
 
@@ -39,7 +39,7 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
     contentClass: new (data: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     removeClass: new (match: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     replaceClass: new (match: PayloadDataType<FinalType> | FinalType, payload: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
-    factory: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTreeNode<SchemaTag>) => StandardEditableWrapper<FinalType> | undefined;
+    factory: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag>) => StandardEditableWrapper<FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
 }
 
@@ -366,7 +366,7 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
         contentClass: GeneratedContentClass,
         removeClass: GeneratedRemoveClass,
         replaceClass: GeneratedReplaceClass,
-        factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTreeNode<SchemaTag> | string) => {
+        factory: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => {
             //
             // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
             // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
@@ -384,22 +384,22 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 }
                 return undefined
             }
-            if (isSchemaTreeNode(factoryProps) || typeof factoryProps === 'string') {
-                const schema = typeof factoryProps === 'string' ? nodeFromWML(factoryProps) : factoryProps
-                if (treeNodeTypeguard(isSchemaRemove)(schema)) {
-                    const matchPayload = schema.children[0]
-                    const payload = props.payloadFactory(matchPayload)
+            if ((Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) || typeof factoryProps === 'string') {
+                const schema = typeof factoryProps === 'string' ? treeFromWML(factoryProps) : factoryProps
+                const firstElement = schema[0]
+                if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                    const payload = props.payloadFactory(firstElement.children)
                     if (payload) {
                         return new GeneratedRemoveClass(payload as FinalType)
                     }
                     return undefined
                 }
-                else if (treeNodeTypeguard(isSchemaReplace)(schema)) {
-                    const matchPayload = schema.children.find(treeNodeTypeguard(isSchemaReplaceMatch))?.children?.[0]
-                    const payloadPayload = schema.children.find(treeNodeTypeguard(isSchemaReplacePayload))?.children?.[0]
+                else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                    const matchPayload = firstElement.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+                    const payloadPayload = firstElement.children.find(treeNodeTypeguard(isSchemaReplacePayload))
                     if (matchPayload && payloadPayload) {
-                        const match = props.payloadFactory(matchPayload)
-                        const payload = props.payloadFactory(payloadPayload)
+                        const match = props.payloadFactory(matchPayload.children)
+                        const payload = props.payloadFactory(payloadPayload.children)
                         if (match && payload) {
                             return new GeneratedReplaceClass(match as FinalType, payload as FinalType)
                         }
