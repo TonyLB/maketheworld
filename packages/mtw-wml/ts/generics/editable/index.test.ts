@@ -5,6 +5,7 @@ import { GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericT
 import { isSchemaTreeNode } from '../../standardize/components/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { treeFromWML } from '../../standardize/utils'
 
 interface TestData {
     id: number
@@ -101,6 +102,11 @@ describe('standardEditableFactory', () => {
     it('should create a valid TestEditable object when given schema tag', () => {
         const data: GenericTreeNode<SchemaTag> = { data: { tag: 'String', value: 'Test' }, children: [] }
         const result = factory(data)
+        expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
+    })
+
+    it('should create a valid TestEditableobject when given WML', () => {
+        const result = factory('Test')
         expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
     })
 
