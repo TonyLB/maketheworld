@@ -166,6 +166,12 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                 }
         }
     }
+    if (currentText) {
+        accumulator.push({
+            type: ParseTypes.Text,
+            text: currentText.trim()
+        })
+    }
     return accumulator
 }
 

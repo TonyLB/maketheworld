@@ -713,6 +713,11 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly rount-trip a top-level render item', () => {
+        const testWML = 'Test'
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
     it('should correctly round-trip a content update', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test) update>

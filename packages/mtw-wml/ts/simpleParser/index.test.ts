@@ -19,6 +19,12 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
+    it('should correctly parse a top-level render tag', () => {
+        const testTokens = tokenizer(new SourceStream('Test'))
+        expect(parse(testTokens)).toEqual([
+            { type: ParseTypes.Text, text: 'Test' }
+        ])
+    })
     it('should ignore whitespace outside tags', () => {
         const testTokens = tokenizer(new SourceStream('    <Asset key=(Test)></Asset>\n    '))
         expect(parse(testTokens)).toEqual([

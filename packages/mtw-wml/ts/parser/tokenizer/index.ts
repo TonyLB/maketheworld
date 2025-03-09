@@ -140,6 +140,9 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }
         }
     }
+    if (currentDescription) {
+        returnValue.push(currentDescription)
+    }
     return returnValue
 }
 
