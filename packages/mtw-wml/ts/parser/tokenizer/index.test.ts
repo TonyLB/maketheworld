@@ -12,6 +12,10 @@ describe('tokenizer', () => {
         const testStream = new SourceStream('')
         expect(tokenizer(testStream)).toEqual([])
     })
+    it('should tokenize render text', () => {
+        const testStream = new SourceStream('Test')
+        expect(tokenizer(testStream)).toEqual([{ type: 'Description', value: 'Test', startIdx: 0, endIdx: 4 }])
+    })
     it('should tokenize a single self-closing tag', () => {
         const testStream = new SourceStream('<Room key=(ABC) />')
         expect(tokenizer(testStream)).toMatchSnapshot()
