@@ -13,6 +13,8 @@ import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit"
 import { isRenderTree, isRenderTreeNode, RenderTree, RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 import { SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
+import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 
 type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
@@ -21,6 +23,324 @@ export enum StandardRenderSimpleCompareDirection {
     Back = 'back'
 }
 
+class StandardRenderSimpleBase implements StandardEditablePayload<StandardRenderSimpleElement[]> {
+    data: StandardRenderSimpleElement[]
+    get schema() {
+        return this.data.map(element => element.toJSON())
+    }
+    constructor(data: StandardRenderSimpleElement[]) {
+        this.data = data
+    }
+    clone() {
+        return new StandardRenderSimpleBase(this.data.map(element => element.clone()))
+    }
+    toJSON: () => StandardRenderSimpleElement[] = () => this.data
+
+    add(base: StandardRenderSimpleElement[], incoming: StandardRenderSimpleElement[]): StandardRenderSimpleElement[]  {
+        return [...base, ...incoming].reduce<StandardRenderSimpleElement[]>((previous, renderElement) => {
+            if (previous.length === 0) {
+                return [renderElement]
+            }
+            else {
+                const lastElement = previous[previous.length - 1]
+                
+                //
+                // Aggregate Conditional tags that can be combined
+                //
+                if (lastElement instanceof StandardRenderConditional && renderElement instanceof StandardRenderConditional) {
+                    const minimumLength = Math.min(lastElement._statements.length, renderElement._statements.length)
+                    //
+                    // Statements are incompatible if they have different conditions
+                    //
+                    const statementsCompatible = lastElement._statements.slice(0, minimumLength).every((statement, index) => {
+                        return statement.if === renderElement._statements[index].if
+                    })
+                    //
+                    // Fallthroughs are incompatible if they would conflict with a non-fallthrough element in a longer statement
+                    // list in the other conditional
+                    //
+                    const fallthroughCompatible = !(
+                        (lastElement._statements.length > minimumLength && renderElement._fallthrough) ||
+                        (renderElement._statements.length > minimumLength && lastElement._fallthrough)
+                    )
+                    if (statementsCompatible && fallthroughCompatible) {
+                        //
+                        // Zip together the statements, leaving undefined entries in pairings of a longer statement list with a shorter
+                        //
+                        const zippedStatements: { previous?: RenderConditionalStatement, incoming?: RenderConditionalStatement }[] =
+                            lastElement._statements.length > renderElement._statements.length
+                                ? lastElement._statements.map((statement, index) => ({ previous: statement, incoming: renderElement._statements[index] }))
+                                : renderElement._statements.map((statement, index) => ({ previous: lastElement._statements[index], incoming: statement }))
+                        const mergedStatements = zippedStatements.map(({ previous, incoming }) => {
+                            if (previous && incoming) {
+                                return { if: previous.if, payload: previous.payload.merge(incoming.payload) }
+                            }
+                            else if (previous) {
+                                return { if: previous.if, payload: previous.payload }
+                            }
+                            else if (incoming) {
+                                return { if: incoming.if, payload: incoming.payload }
+                            }
+                            else {
+                                throw new Error('Invalid conditional merge state')
+                            }
+                        })
+                        const mergedConditional = new StandardRenderConditional()
+                        mergedConditional._statements = mergedStatements
+                        if (lastElement._fallthrough || renderElement._fallthrough) {
+                            mergedConditional._fallthrough = lastElement._fallthrough && renderElement._fallthrough
+                                ? { payload: lastElement._fallthrough.payload.merge(renderElement._fallthrough.payload) }
+                                : lastElement._fallthrough || renderElement._fallthrough
+                        }
+                        return [...previous.slice(0, -1), mergedConditional]
+                    }
+                    else {
+                        return [...previous, renderElement]
+                    }
+                }
+
+                //
+                // Combine adjacent Space tags
+                //
+                if (lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderSpace) {
+                    return previous
+                }
+
+                //
+                // Check if both elements are either line breaks or spaces, combine to a single line break
+                //
+                if ((lastElement instanceof StandardRenderLineBreak || lastElement instanceof StandardRenderSpace) &&
+                    (renderElement instanceof StandardRenderLineBreak || renderElement instanceof StandardRenderSpace)) {
+                    return [...previous.slice(0, -1), new StandardRenderLineBreak({ data: { tag: 'br' }, children: [] })]
+                }
+
+                //
+                // Trim whitespace from strings adjoining line breaks
+                //
+                if (lastElement instanceof StandardRenderLineBreak && renderElement instanceof StandardRenderString) {
+                    return [...previous, new StandardRenderString(renderElement.plainString.trimStart())]
+                }
+                if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderLineBreak) {
+                    return [...previous.slice(0, -1), new StandardRenderString(lastElement.plainString.trimEnd()), renderElement]
+                }
+
+                //
+                // Check if both elements are strings, join them with a maximum of one space between
+                //
+                if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderString) {
+                    const whiteSpaceBetween = lastElement.plainString.endsWith(' ') || renderElement.plainString.startsWith(' ')
+                    return [...previous.slice(0, -1), new StandardRenderString(`${lastElement.plainString.trimEnd()}${whiteSpaceBetween ? ' ' : ''}${renderElement.plainString.trimStart()}`)]
+                }
+
+                //
+                // Check if the previous two are a string followed by a Space tag, and the current element is a string, join them all with a single space
+                //
+                if (previous.length > 1) {
+                    const previousToLast = previous[previous.length - 2]
+                    if (previousToLast instanceof StandardRenderString && lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderString) {
+                        return [...previous.slice(0, -2), new StandardRenderString(`${previousToLast.plainString.trimEnd()} ${renderElement.plainString.trimStart()}`)]
+                    }
+                }
+                return [...previous, renderElement]
+            }
+        }, [])
+    }
+
+    subtract(base: StandardRenderSimpleElement[], incoming: StandardRenderSimpleElement[]): { add?: StandardRenderSimpleElement[], remove?: StandardRenderSimpleElement[] } {
+        //
+        // Function to compare individual elements of the render tree
+        //
+        const compareElements = (base: StandardRenderElement, incoming: StandardRenderElement): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: StandardRenderElement } => {
+            //
+            // Compare two StandardRenderString elements
+            //
+            if (base instanceof StandardRenderString && incoming instanceof StandardRenderString) {
+                if (base.plainString.endsWith(incoming.plainString)) {
+                    const baseFirstStringRemainder = base.plainString.slice(0, base.plainString.length - incoming.plainString.length)
+                    if (!baseFirstStringRemainder) {
+                        return { outcome: 'Equal' }
+                    }
+                    else {
+                        return { outcome: 'Base Longer', remainder: new StandardRenderString(baseFirstStringRemainder) }
+                    }
+                }
+                //
+                // If the incoming string ends with the base string
+                //
+                else if (incoming.plainString.endsWith(base.plainString)) {
+                    const incomingFirstStringRemainder = incoming.plainString.slice(0, incoming.plainString.length - base.plainString.length)
+                    if (!incomingFirstStringRemainder) {
+                        return { outcome: 'Equal' }
+                    }
+                    else {
+                        return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incomingFirstStringRemainder) }
+                    }
+                }
+                if (base.plainString === incoming.plainString) {
+                    return { outcome: 'Equal' }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
+            //
+            // Compare a StandardRenderString with a StandardRenderSpace
+            //
+            else if (base instanceof StandardRenderString && incoming instanceof StandardRenderSpace) {
+                if (base.plainString.endsWith(' ')) {
+                    return { outcome: 'Base Longer', remainder: new StandardRenderString(base.plainString.slice(0, -1)) }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
+            //
+            // Compare a StandardRenderSpace with a StandardRenderString
+            //
+            else if (base instanceof StandardRenderSpace && incoming instanceof StandardRenderString) {
+                if (incoming.plainString.startsWith(' ')) {
+                    return { outcome: 'Incoming Longer', remainder: new StandardRenderString(incoming.plainString.slice(1)) }
+                }
+                else {
+                    return { outcome: 'Conflict' }
+                }
+            }
+            //
+            // Compare other types of elements
+            //
+            else {
+                return deepEqual(base.toJSON(), incoming.toJSON()) ? { outcome: 'Equal' } : { outcome: 'Conflict' }
+            }
+        }
+
+        //
+        // Compare the end of the base and incoming objects, to see if one is a subset of the other.
+        //
+        while(base.length > 0 && incoming.length > 0) {
+            const baseElement = base[base.length - 1]
+            const incomingElement = incoming[incoming.length - 1]
+            const { outcome, remainder } = compareElements(baseElement, incomingElement)
+            //
+            // Handle the case where the base and incoming elements are equal
+            //
+            if (outcome === 'Equal') {
+                base = base.slice(0, -1)
+                incoming = incoming.slice(0, -1)
+            }
+            //
+            // Handle the case where the base element is longer than the incoming element
+            //
+            else if (outcome === 'Base Longer') {
+                base = [...base.slice(0, -1), remainder as StandardRenderSimpleElement] 
+                incoming = incoming.slice(0, -1)
+            }
+            //
+            // Handle the case where the incoming element is longer than the base element
+            //
+            else if (outcome === 'Incoming Longer') {
+                base = base.slice(0, -1)
+                incoming = [...incoming.slice(0, -1), remainder as StandardRenderSimpleElement] 
+            }
+            //
+            // Handle the case where there is a conflict between the base and incoming elements
+            //
+            else if (outcome === 'Conflict') {
+                break
+            }
+
+        }
+
+        //
+        // Determine the final outcome based on the remaining elements
+        //
+        if (base.length === 0 && incoming.length === 0) {
+            return {}
+        }
+        else if (base.length === 0) {
+            return { remove: incoming }
+        }
+        else if (incoming.length === 0) {
+            return { add: base }
+        }
+        else {
+            throw new MergeConflictError('Conflict during subtract operation')
+        }
+    }
+
+    diff(base: StandardRenderSimpleElement[], incoming: StandardRenderSimpleElement[]): { add?: StandardRenderSimpleElement[], remove?: StandardRenderSimpleElement[] } {
+        const firstDifferentIndex = base.findIndex((element, index) => {
+            return !(
+                index < incoming.length &&
+                deepEqual(element.toJSON(), incoming[index].toJSON())
+            )
+        })
+        if (firstDifferentIndex === -1) {
+            const remainingTargetElements = incoming.slice(base.length)
+            if (remainingTargetElements.length === 0) {
+                return {}
+            }
+            else {
+                return { add: remainingTargetElements }
+            }
+        }
+        const remainingBaseElements = base.slice(firstDifferentIndex)
+        const remainingTargetElements = incoming.slice(firstDifferentIndex)
+        if (remainingTargetElements.length === 0) {
+            return { remove: remainingBaseElements }
+        }
+        else {
+            return { add: remainingTargetElements, remove: remainingBaseElements }
+        }
+    }
+}
+
+const factory = (props: StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag>): StandardEditablePayload<StandardRenderSimpleElement[]> | undefined => {
+    if (isRenderTree(props)) {
+        return new StandardRenderSimpleBase(props
+            .map<StandardRenderSimpleElement | undefined>(node => {
+                if (typeof node === 'string' || isSchemaString(node.data)) {
+                    return new StandardRenderString(node)
+                }
+                else if (isSchemaLineBreak(node.data)) {
+                    return new StandardRenderLineBreak(node)
+                }
+                else if (isSchemaLink(node.data)) {
+                    return new StandardRenderLink(node)
+                }
+                else if (isSchemaSpacer(node.data)) {
+                    return new StandardRenderSpace(node)
+                }
+                else if (isSchemaCondition(node.data)) {
+                    return new StandardRenderConditional(node)
+                }
+                else {
+                    return undefined
+                }
+            })
+            .filter(excludeUndefined)
+        )
+    }
+
+}
+
+const {} = standardEditableFactory({
+    typeguard: (value: any): value is StandardRenderSimpleElement[] => (
+        Array.isArray(value) &&
+        value.every((element): element is StandardRenderSimpleElement => (
+            element instanceof StandardRenderString ||
+            element instanceof StandardRenderLineBreak ||
+            element instanceof StandardRenderLink ||
+            element instanceof StandardRenderSpace ||
+            element instanceof StandardRenderConditional
+        ))
+    ),
+    payloadFactory: factory,
+    payload: StandardRenderSimpleBase
+})
+
+//
+// TODO: Refactor StandardRenderSimple to extend StandardEditablePayload
+//
 export class StandardRenderSimple {
     _elements: StandardRenderSimpleElement[];
 
@@ -502,6 +822,10 @@ export class StandardRenderConditional extends StandardRenderAbstract implements
                 }] : [])
             ]
         }
+    }
+
+    override clone(): StandardRenderConditional {
+        return new StandardRenderConditional(this.toJSON())
     }
 }
 

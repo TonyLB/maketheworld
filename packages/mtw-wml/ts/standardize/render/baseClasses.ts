@@ -6,10 +6,12 @@ export interface StandardRenderElement {
     plainString: string;
     toJSON(): GenericTreeNode<SchemaOutputTag>;
     toNDJSON(): RenderTreeNode;
+    clone(): StandardRenderElement;
 }
 
 export class StandardRenderAbstract implements StandardRenderElement {
     get plainString(): string { return '' }
     toJSON(): GenericTreeNode<SchemaOutputTag> { return { data: { tag: 'String' as const, value: '' }, children: [] } }
     toNDJSON(): RenderTreeNode { return '' }
+    clone(): StandardRenderElement { return new StandardRenderAbstract() }
 }
