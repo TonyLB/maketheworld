@@ -33,6 +33,9 @@ export type StandardEditableFactoryProps<DataType> = {
     typeguard: (value: any) => value is DataType;
     payloadFactory: (props: StandardEditableData<DataType> | GenericTree<SchemaTag>) => StandardEditablePayload<DataType> | undefined;
     payload: new (props: DataType) => StandardEditablePayload<DataType>;
+    add: (base: DataType, incoming: DataType) => DataType;
+    subtract: (base: DataType, incoming: DataType, options?: { fromStart?: boolean }) => StandardEditableDataDelta<DataType>;
+    diff: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
 }
 
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
@@ -41,6 +44,8 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
     replaceClass: new (match: PayloadDataType<FinalType> | FinalType, payload: PayloadDataType<FinalType> | FinalType) => StandardEditableWrapper<FinalType>;
     factory: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag>) => StandardEditableWrapper<FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
+    merge: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
+    diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
 }
 
 const addDelta = <FinalType extends StandardEditablePayload<any>>(
@@ -50,7 +55,7 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
     ) => (
         base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
         incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
-    ): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
+    ): StandardEditableDataDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
     const { add: incomingAdd, remove: incomingRemove } = incoming
     if (baseAdd && incomingRemove) {
@@ -80,7 +85,7 @@ const diffDelta = <FinalType extends StandardEditablePayload<any>>(
 ) => (
     base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
     incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
-): StandardEditablePayloadDelta<PayloadDataType<FinalType>> => {
+): StandardEditableDataDelta<PayloadDataType<FinalType>> => {
     const { add: baseAdd, remove: baseRemove } = base
     return addDelta(add, subtract, diff)(
         { add: baseRemove, remove: baseAdd },
@@ -447,6 +452,12 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
                 }
             }
             return false
-        }        
+        },
+        merge: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => {
+            return addDelta(props.add, props.subtract, props.diff)(base, incoming)
+        },
+        diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => {
+            return diffDelta(props.add, props.subtract, props.diff)(base, incoming)
+        }
     }
 }
