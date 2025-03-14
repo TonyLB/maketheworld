@@ -1,5 +1,5 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps } from './index'
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaTreeNode } from '../../standardize/components/utils'
@@ -30,10 +30,26 @@ class testClass implements StandardEditablePayload<TestData> {
     toJSON() {
         return { ...this.data }
     }
-    add(base, incoming) {
-        return { id: base.id, name: `${base.name}${incoming.name}` }
+}
+
+const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTree<SchemaTag>): testClass | undefined => {
+    if (testTypeguard(props)) {
+        return new testClass(props)
     }
-    subtract(base, incoming, options: { fromStart?: boolean } = {}) {
+    if ((Array.isArray(props) && props.every(isSchemaTreeNode)) && treeNodeTypeguard(isSchemaString)(props[0])) {
+        return new testClass({ id: 0, name: props[0].data.value })
+    }
+    return undefined
+}
+
+const factoryProps: StandardEditableFactoryProps<TestData, testClass> = {
+    typeguard: testTypeguard,
+    payloadFactory: testPayloadFactory,
+    payload: testClass,
+    add: (base, incoming) => {
+        return { id: base.id, name: `${base.name}${incoming.name}` }
+    },
+    subtract: (base, incoming, options: { fromStart?: boolean } = {}) => {
         if (base.name === incoming.name) {
             return {}
         }
@@ -57,8 +73,8 @@ class testClass implements StandardEditablePayload<TestData> {
         }
         console.log(`throwing merge conflict error`)
         throw new MergeConflictError()
-    }
-    diff(base, incoming) {
+    },
+    diff: (base, incoming) => {
         let firstDifferingIndex = 0
         while(firstDifferingIndex < base.name.length && firstDifferingIndex < incoming.name.length && base.name[firstDifferingIndex] === incoming.name[firstDifferingIndex]) {
             firstDifferingIndex++
@@ -76,23 +92,96 @@ class testClass implements StandardEditablePayload<TestData> {
     }
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTree<SchemaTag>): StandardEditablePayload<TestData> | undefined => {
-    if (testTypeguard(props)) {
-        return new testClass(props)
+const { constructorDelta: factory, typeguard, merge, diff } = standardEditableFactory(factoryProps)
+
+const fromDelta = (delta: { add?: TestData, remove?: TestData }): TestContentClass | TestRemoveClass | undefined => {
+    const { add, remove } = delta
+    if (add) {
+        return new TestContentClass(new testClass(add))
     }
-    if ((Array.isArray(props) && props.every(isSchemaTreeNode)) && treeNodeTypeguard(isSchemaString)(props[0])) {
-        return new testClass({ id: 0, name: props[0].data.value })
+    if (remove) {
+        return new TestRemoveClass(new testClass(remove))
     }
     return undefined
 }
 
-const factoryProps: StandardEditableFactoryProps<TestData> = {
-    typeguard: testTypeguard,
-    payloadFactory: testPayloadFactory,
+class TestContentClass implements StandardEditableWrapper<testClass> {
     payload: testClass
+    constructor(data: testClass) {
+        this.payload = data
+    }
+    get schema() {
+        return this.payload.schema
+    }
+    get _delta() {
+        return { add: this.payload.toJSON() }
+    }
+    clone() {
+        return new TestContentClass(this.payload)
+    }
+    toJSON: () => StandardEditableData<{ id: number; name: string }> = () => this.payload.toJSON()
+    get plain() { return this.payload }
+    merge(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
 }
 
-const { factory, typeguard } = standardEditableFactory(factoryProps)
+class TestRemoveClass implements StandardEditableWrapper<testClass> {
+    match: testClass
+    constructor(match: testClass) {
+        this.match = match
+    }
+    get schema() {
+        return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'String' as const, value: this.match.data.name }, children: [] }] }]
+    }
+    get _delta() {
+        return { remove: this.match.toJSON() }
+    }
+    clone() {
+        return new TestRemoveClass(this.match)
+    }
+    toJSON: () => StandardEditableData<{ id: number; name: string }> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
+    get plain() { return this.match }
+    merge(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
+}
+
+class TestReplaceClass implements StandardEditableWrapper<testClass> {
+    match: testClass
+    payload: testClass
+    constructor(match: testClass, payload: testClass) {
+        this.match = match
+        this.payload = payload
+    }
+    get schema() {
+        return [{ data: { tag: 'Replace' as const }, children: [
+            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
+            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
+        ] }]
+    }
+    get _delta() {
+        return { remove: this.match.toJSON() }
+    }
+    clone() {
+        return new TestReplaceClass(this.match, this.payload)
+    }
+    toJSON: () => StandardEditableData<{ id: number; name: string }> = () => ({ tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() })
+    get plain() { return this.payload }
+    merge(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
+}
+
 
 describe('standardEditableFactory', () => {
     it('should create a valid TestEditable object when given valid data', () => {
