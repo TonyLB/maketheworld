@@ -40,7 +40,7 @@ export type StandardEditableFactoryProps<DataType, FinalType extends StandardEdi
 }
 
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
-    constructorDelta: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag>) => StandardEditableDataDelta<FinalType> | undefined;
+    constructorDelta: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => StandardEditableDataDelta<FinalType> | undefined;
     typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
     merge: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
     diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
@@ -366,9 +366,14 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
     // }
 
     return {
-        constructorDelta: (factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => {
+        constructorDelta: (constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => {
             //
-            // First check whether the incoming argument to the factory is a StandardEditableData of the appropriate
+            // First, check whether the props are a string that needs to be parsed into a schema tree.
+            //
+            const factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
+
+            //
+            // Next check whether the incoming argument to the factory is a StandardEditableData of the appropriate
             // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
             //
             const isRemove = (value: any): value is { tag: 'Remove'; match: PayloadDataType<FinalType> } => {

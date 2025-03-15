@@ -94,9 +94,12 @@ const factoryProps: StandardEditableFactoryProps<TestData, testClass> = {
 
 const { constructorDelta: factory, typeguard, merge, diff } = standardEditableFactory(factoryProps)
 
-const fromDelta = (delta: { add?: TestData, remove?: TestData }): TestContentClass | TestRemoveClass | undefined => {
+const fromDelta = (delta: { add?: TestData, remove?: TestData }): TestContentClass | TestRemoveClass | TestReplaceClass | undefined => {
     const { add, remove } = delta
     if (add) {
+        if (remove) {
+            return new TestReplaceClass(new testClass(remove), new testClass(add))
+        }
         return new TestContentClass(new testClass(add))
     }
     if (remove) {
@@ -107,8 +110,17 @@ const fromDelta = (delta: { add?: TestData, remove?: TestData }): TestContentCla
 
 class TestContentClass implements StandardEditableWrapper<testClass> {
     payload: testClass
-    constructor(data: testClass) {
-        this.payload = data
+    constructor(data: testClass | StandardEditableData<TestData> | GenericTree<SchemaTag> | string) {
+        if (data instanceof testClass) {
+            this.payload = data
+            return
+        }
+        const delta = factory(data)
+        if (delta && delta.add && !delta.remove) {
+            this.payload = delta.add
+            return
+        }
+        throw new Error('Invalid data in TestContentClass')
     }
     get schema() {
         return this.payload.schema
@@ -131,8 +143,17 @@ class TestContentClass implements StandardEditableWrapper<testClass> {
 
 class TestRemoveClass implements StandardEditableWrapper<testClass> {
     match: testClass
-    constructor(match: testClass) {
-        this.match = match
+    constructor(data: testClass | StandardEditableData<TestData> | GenericTree<SchemaTag> | string) {
+        if (data instanceof testClass) {
+            this.match = data
+            return
+        }
+        const delta = factory(data)
+        if (delta && !delta.add && delta.remove) {
+            this.match = delta.remove
+            return
+        }
+        throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
         return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'String' as const, value: this.match.data.name }, children: [] }] }]
@@ -156,9 +177,19 @@ class TestRemoveClass implements StandardEditableWrapper<testClass> {
 class TestReplaceClass implements StandardEditableWrapper<testClass> {
     match: testClass
     payload: testClass
-    constructor(match: testClass, payload: testClass) {
-        this.match = match
-        this.payload = payload
+    constructor(...args: [StandardEditableData<TestData> | GenericTree<SchemaTag> | string] | [testClass, testClass]) {
+        if (args.length === 2) {
+            this.match = args[0]
+            this.payload = args[1]
+            return
+        }
+        const delta = factory(args[0])
+        if (delta && delta.add && delta.remove) {
+            this.match = delta.remove
+            this.payload = delta.add
+            return
+        }
+        throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
         return [{ data: { tag: 'Replace' as const }, children: [
@@ -167,7 +198,7 @@ class TestReplaceClass implements StandardEditableWrapper<testClass> {
         ] }]
     }
     get _delta() {
-        return { remove: this.match.toJSON() }
+        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
     }
     clone() {
         return new TestReplaceClass(this.match, this.payload)
@@ -186,25 +217,24 @@ class TestReplaceClass implements StandardEditableWrapper<testClass> {
 describe('standardEditableFactory', () => {
     it('should create a valid TestEditable object when given valid data', () => {
         const data: TestData = { id: 1, name: 'Test' }
-        const result = factory(data)
+        const result = new TestContentClass(data)
         expect(result?.toJSON()).toEqual(data)
     })
 
     it('should create a valid TestEditable object when given schema tag', () => {
         const data: GenericTree<SchemaTag> = [{ data: { tag: 'String', value: 'Test' }, children: [] }]
-        const result = factory(data)
+        const result = new TestContentClass(data)
         expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
     })
 
     it('should create a valid TestEditableobject when given WML', () => {
-        const result = factory('Test')
+        const result = new TestContentClass('Test')
         expect(result?.toJSON()).toEqual({ id: 0, name: 'Test' })
     })
 
-    it('should return undefined when given invalid data', () => {
+    it('should throw exception when given invalid data', () => {
         const data = { id: 'invalid', name: 'Test' }
-        const result = factory(data as any)
-        expect(result).toBeUndefined()
+        expect(() => (new TestContentClass(data as any))).toThrow()
     })
 
     it('should correctly identify valid StandardEditableData', () => {
@@ -229,49 +259,49 @@ describe('standardEditableFactory', () => {
 
     it('should return remove class when given valid remove data', () => {
         const data = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
-        const result = factory(data)
+        const result = new TestRemoveClass(data)
         expect(result?.toJSON()).toEqual(data)
     })
 
     it('should return remove class when given valid remove schema tag', () => {
-        const data = [{ data: { tag: 'Remove' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }]
-        const result = factory(data)
+        const data = [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'String' as const, value: 'Test' }, children: [] }] }]
+        const result = new TestRemoveClass(data)
         expect(result?.toJSON()).toEqual({ tag: 'Remove', match: { id: 0, name: 'Test'} })
     })
 
     it('should return replace class when given valid replace data', () => {
         const data = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } }
-        const result = factory(data)
+        const result = new TestReplaceClass(data)
         expect(result?.toJSON()).toEqual(data)
     })
 
     it('should return replace class when given valid replace schema tag', () => {
-        const data = [{
+        const data: GenericTree<SchemaTag> = [{
             data: { tag: 'Replace' },
             children: [
                 { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] },
                 { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'TestTwo' }, children: [] }] }
             ]
         }]
-        const result = factory(data)
+        const result = new TestReplaceClass(data)
         expect(result?.toJSON()).toEqual({ tag: 'Replace', match: { id: 0, name: 'Test'}, payload: { id: 0, name: 'TestTwo' } })
     })
 
     it('should round-trip content from WML', () => {
         const data = 'Test'
-        const editable = factory(data)
+        const editable = new TestContentClass(data)
         expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
     })
 
     it('should round-trip remove from WML', () => {
         const data = '<Remove>Test</Remove>'
-        const editable = factory(data)
+        const editable = new TestRemoveClass(data)
         expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
     })
 
     it('should round-trip replace from WML', () => {
         const data = '<Replace>Test</Replace><With>Final</With>'
-        const editable = factory(data)
+        const editable = new TestReplaceClass(data)
         expect(schemaToWML(editable?.schema ?? [])).toEqual(data)
     })
 
@@ -279,8 +309,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge two content tags', () => {
             const data1 = { id: 1, name: 'Test' }
             const data2 = { id: 2, name: 'Test2' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestContentClass(data2)
             expect(editable2).toBeDefined()
             if (editable2) {
                 const merged = editable1?.merge(editable2)
@@ -291,8 +321,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge a remove into a matching content tag', () => {
             const data1 = { id: 1, name: 'Test' }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toBeUndefined()
         })
@@ -300,8 +330,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge remove into a longer content tag', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ id: 1, name: 'Test' })
         })
@@ -309,8 +339,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge remove into a shorter content tag', () => {
             const data1 = { id: 1, name: 'One' }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } })
         })
@@ -318,16 +348,16 @@ describe('standardEditableFactory', () => {
         it('should throw a merge conflict error when merging remove into conflicting content', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
 
         it('should correctly merge remove into a remove tag', () => {
             const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestRemoveClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'TestOne' } })
         })
@@ -335,8 +365,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge a replace into a matching content tag', () => {
             const data1 = { id: 1, name: 'Test' }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'TestTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' })
         })
@@ -344,8 +374,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge a replace into a longer content tag', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ id: 1, name: 'TestTwo' })
         })
@@ -353,8 +383,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge a replace into a shorter content tag', () => {
             const data1 = { id: 1, name: 'One' }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } })
         })
@@ -362,16 +392,16 @@ describe('standardEditableFactory', () => {
         it('should throw a merge conflict error when merging replace into conflicting content', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'TestTwo' }, payload: { id: 1, name: 'Output' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
 
         it('should correctly merge a replace into a remove tag', () => {
             const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestRemoveClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } })
         })
@@ -379,8 +409,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge content into a replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
             const data2 = { id: 1, name: 'Two' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestContentClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } })
         })
@@ -388,8 +418,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge remove into a matching replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Output' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } })
         })
@@ -397,8 +427,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge remove into a longer replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'FinalOutput' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Output' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } })
         })
@@ -406,8 +436,8 @@ describe('standardEditableFactory', () => {
         it('should correctly merge remove into a shorter replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'FinalTest' } })
         })
@@ -415,16 +445,16 @@ describe('standardEditableFactory', () => {
         it('should throw a merge conflict error when merging remove into conflicting replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Conflict' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
 
         it('should correctly merge replace into a replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Two' }, payload: { id: 1, name: 'Three' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.merge(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Three' } })
         })
@@ -432,8 +462,8 @@ describe('standardEditableFactory', () => {
         it('should throw a merge conflict error when merging conflicting replace tags', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } }
             const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Three' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             expect(() => editable1?.merge(editable2!)).toThrow(MergeConflictError)
         })
     })
@@ -442,8 +472,8 @@ describe('standardEditableFactory', () => {
         it('should correctly diff two content tags', () => {
             const data1 = { id: 1, name: 'Test' }
             const data2 = { id: 2, name: 'TestTest2' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestContentClass(data2)
             expect(editable2).toBeDefined()
             if (editable2) {
                 const diffed = editable1?.diff(editable2)
@@ -454,17 +484,17 @@ describe('standardEditableFactory', () => {
         it('should correctly diff remove from a longer content tag', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { id: 1, name: 'Test' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestContentClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'One' } })
         })
 
         it('should correctly diff remove from a shorter content tag', () => {
             const data1 = { id: 1, name: 'One' }
-            const data2 = { tag: 'Remove', match: { id: 1, name: 'Test' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } })
         })
@@ -472,8 +502,8 @@ describe('standardEditableFactory', () => {
         it('should correctly diff remove from a remove tag', () => {
             const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
             const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestRemoveClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } })
         })
@@ -481,8 +511,8 @@ describe('standardEditableFactory', () => {
         it('should correctly diff a replace from a matching content tag', () => {
             const data1 = { id: 1, name: 'Test' }
             const data2 = { id: 1, name: 'Final' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestContentClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } })
         })
@@ -490,62 +520,62 @@ describe('standardEditableFactory', () => {
         it('should correctly diff a replace from a longer content tag', () => {
             const data1 = { id: 1, name: 'TestOne' }
             const data2 = { id: 1, name: 'TestTwo' }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestContentClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'One' }, payload: { id: 1, name: 'Two' } })
         })
 
         it('should correctly diff a replace from a shorter content tag', () => {
             const data1 = { id: 1, name: 'One' }
-            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = new TestContentClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } })
         })
 
         it('should correctly diff a replace from a chained remove tag', () => {
             const data1 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } }
-            const data2 = { tag: 'Replace', match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'TestOne' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = new TestRemoveClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } })
         })
 
         it('should correctly diff content from a replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
-            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'OutputTwo' } }
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ id: 1, name: 'Two' })
         })
 
         it('should correctly diff remove from a matching replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
-            const data2 = { tag: 'Remove', match: { id: 1, name: 'Test' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } }
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'Output' } })
         })
 
         it('should correctly diff remove from a longer replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'FinalOutput' } }
-            const data2 = { tag: 'Replace', match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Final' } }
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestReplaceClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'Output' } })
         })
 
         it('should correctly diff remove from a shorter replace tag', () => {
             const data1 = { tag: 'Replace' as const, match: { id: 1, name: 'Test' }, payload: { id: 1, name: 'Output' } }
-            const data2 = { tag: 'Remove', match: { id: 1, name: 'FinalTest' } }
-            const editable1 = factory(data1)
-            const editable2 = factory(data2)
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'FinalTest' } }
+            const editable1 = new TestReplaceClass(data1)
+            const editable2 = new TestRemoveClass(data2)
             const merged = editable1?.diff(editable2!)
             expect(merged?.toJSON()).toEqual({ tag: 'Remove' as const, match: { id: 1, name: 'FinalOutput' } })
         })
