@@ -145,10 +145,10 @@ class TestRemoveClass implements StandardEditableWrapper<testClass> {
     }
     toJSON: () => StandardEditableData<{ id: number; name: string }> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
     get plain() { return this.match }
-    merge(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+    merge(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
         return fromDelta(merge(this._delta, other._delta))
     }
-    diff(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+    diff(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
 }
@@ -174,10 +174,10 @@ class TestReplaceClass implements StandardEditableWrapper<testClass> {
     }
     toJSON: () => StandardEditableData<{ id: number; name: string }> = () => ({ tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() })
     get plain() { return this.payload }
-    merge(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+    merge(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
         return fromDelta(merge(this._delta, other._delta))
     }
-    diff(other: TestContentClass | TestRemoveClass | TestReplaceClass): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
+    diff(other: StandardEditableWrapper<testClass>): TestContentClass | TestRemoveClass | TestReplaceClass | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
 }
