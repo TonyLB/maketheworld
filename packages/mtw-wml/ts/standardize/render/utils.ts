@@ -1,6 +1,7 @@
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 export const stripUIFields = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
     tree.map((node) => (
