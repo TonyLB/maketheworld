@@ -16,14 +16,14 @@ import { SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 
-type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
+export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace | StandardRenderConditional
 
 export enum StandardRenderSimpleCompareDirection {
     Forward = 'forward',
     Back = 'back'
 }
 
-class StandardRenderSimpleBase implements StandardEditablePayload<StandardRenderSimpleElement[]> {
+export class StandardRenderSimpleBase implements StandardEditablePayload<StandardRenderSimpleElement[]> {
     data: StandardRenderSimpleElement[]
     get schema() {
         return this.data.map(element => element.toJSON())
@@ -607,7 +607,7 @@ const fromDelta = (delta: { add?: StandardRenderSimpleElement[], remove?: Standa
     return undefined
 }
 
-class StandardRenderSimple implements StandardEditableWrapper<StandardRenderSimpleBase> {
+export class StandardRenderSimple implements StandardEditableWrapper<StandardRenderSimpleBase> {
     payload: StandardRenderSimpleBase
     constructor(data: StandardRenderSimpleBase | StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardRenderSimpleBase) {
@@ -640,7 +640,7 @@ class StandardRenderSimple implements StandardEditableWrapper<StandardRenderSimp
     }
 }
 
-class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimpleBase> {
+export class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimpleBase> {
     match: StandardRenderSimpleBase
     constructor(data: StandardRenderSimpleBase | StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardRenderSimpleBase) {
@@ -673,7 +673,7 @@ class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimp
     }
 }
 
-class StandardRenderReplace implements StandardEditableWrapper<StandardRenderSimpleBase> {
+export class StandardRenderReplace implements StandardEditableWrapper<StandardRenderSimpleBase> {
     match: StandardRenderSimpleBase
     payload: StandardRenderSimpleBase
     constructor(...args: [StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string] | [StandardRenderSimpleBase, StandardRenderSimpleBase]) {
