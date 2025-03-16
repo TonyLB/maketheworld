@@ -35,7 +35,11 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
             data: { tag: 'Link' as const, to: this._to, text: this._text },
             children: []
         }
-    }    
+    }
+
+    override clone() {
+        return new StandardRenderLink(this.toJSON())
+    }
 }
 
 export default StandardRenderLink

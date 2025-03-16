@@ -25,6 +25,10 @@ export class StandardRenderLineBreak extends StandardRenderAbstract implements S
     override toNDJSON() {
         return '\n'
     }
+
+    override clone() {
+        return new StandardRenderLineBreak(this.toJSON())
+    }
 }
 
 export default StandardRenderLineBreak

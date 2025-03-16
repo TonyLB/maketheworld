@@ -24,7 +24,11 @@ export class StandardRenderSpace extends StandardRenderAbstract implements Stand
 
     override toNDJSON() {
         return this.toJSON()
-    }    
+    }
+    
+    override clone() {
+        return new StandardRenderSpace(this.toJSON())
+    }
 }
 
 export default StandardRenderSpace

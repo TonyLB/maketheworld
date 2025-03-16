@@ -39,6 +39,10 @@ export class StandardRenderString extends StandardRenderAbstract implements Stan
     override toNDJSON() {
         return this._text
     }
+
+    override clone() {
+        return new StandardRenderString(this.toJSON())
+    }
 }
 
 export default StandardRenderString
