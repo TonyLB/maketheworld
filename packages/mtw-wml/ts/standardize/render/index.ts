@@ -565,57 +565,58 @@ const standardRenderSubtract = (base: RenderTree, incoming: RenderTree): { add?:
     }
 }
 
+const standardRenderDiff = (base: RenderTree, incoming: RenderTree): { add?: RenderTree, remove?: RenderTree } => {
+    const firstDifferentIndex = base.findIndex((element, index) => {
+        return !(
+            index < incoming.length &&
+            deepEqual(element, incoming[index])
+        )
+    })
+    if (firstDifferentIndex === -1) {
+        const remainingTargetElements = incoming.slice(base.length)
+        if (remainingTargetElements.length === 0) {
+            return {}
+        }
+        else {
+            return { add: remainingTargetElements }
+        }
+    }
+    const remainingBaseElements = base.slice(firstDifferentIndex)
+    const remainingTargetElements = incoming.slice(firstDifferentIndex)
+    if (remainingTargetElements.length === 0) {
+        return { remove: remainingBaseElements }
+    }
+    else {
+        return { add: remainingTargetElements, remove: remainingBaseElements }
+    }
+}
+
 export const { constructorDelta: factory, merge, diff } = standardEditableFactory({
     typeguard: isRenderTree,
     payloadFactory: payloadFactory,
     payload: StandardRenderSimpleBase,
     add: standardRenderAdd,
     subtract: standardRenderSubtract,
-
-    diff: (base: StandardRenderSimpleElement[], incoming: StandardRenderSimpleElement[]): { add?: StandardRenderSimpleElement[], remove?: StandardRenderSimpleElement[] } => {
-        const firstDifferentIndex = base.findIndex((element, index) => {
-            return !(
-                index < incoming.length &&
-                deepEqual(element.toJSON(), incoming[index].toJSON())
-            )
-        })
-        if (firstDifferentIndex === -1) {
-            const remainingTargetElements = incoming.slice(base.length)
-            if (remainingTargetElements.length === 0) {
-                return {}
-            }
-            else {
-                return { add: remainingTargetElements }
-            }
-        }
-        const remainingBaseElements = base.slice(firstDifferentIndex)
-        const remainingTargetElements = incoming.slice(firstDifferentIndex)
-        if (remainingTargetElements.length === 0) {
-            return { remove: remainingBaseElements }
-        }
-        else {
-            return { add: remainingTargetElements, remove: remainingBaseElements }
-        }
-    }
+    diff: standardRenderDiff
 })
 
-const fromDelta = (delta: { add?: StandardRenderSimpleElement[], remove?: StandardRenderSimpleElement[] }): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined => {
+const fromDelta = (delta: { add?: RenderTree, remove?: RenderTree }): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined => {
     const { add, remove } = delta
     if (add) {
         if (remove) {
             return new StandardRenderReplace(new StandardRenderSimpleBase(remove), new StandardRenderSimpleBase(add))
         }
-        return new StandardRenderSimple(add)
+        return new StandardRenderSimple(new StandardRenderSimpleBase(add))
     }
     if (remove) {
-        return new StandardRenderRemove(remove)
+        return new StandardRenderRemove(new StandardRenderSimpleBase(remove))
     }
     return undefined
 }
 
 export class StandardRenderSimple implements StandardEditableWrapper<StandardRenderSimpleBase> {
     payload: StandardRenderSimpleBase
-    constructor(data: StandardRenderSimpleBase | StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardRenderSimpleBase | StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardRenderSimpleBase) {
             this.payload = data
             return
@@ -630,13 +631,13 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
     get schema() {
         return this.payload.schema
     }
-    get _delta(): StandardEditableDataDelta<StandardRenderSimpleElement[]> {
+    get _delta(): StandardEditableDataDelta<RenderTree> {
         return { add: this.payload.toJSON() }
     }
     clone() {
         return new StandardRenderSimple(this.payload)
     }
-    toJSON: () => StandardEditableData<StandardRenderSimpleElement[]> = () => this.payload.toJSON()
+    toJSON: () => StandardEditableData<RenderTree> = () => this.payload.toJSON()
     get plain() { return this.payload }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -648,7 +649,7 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
 
 export class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimpleBase> {
     match: StandardRenderSimpleBase
-    constructor(data: StandardRenderSimpleBase | StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardRenderSimpleBase | StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardRenderSimpleBase) {
             this.match = data
             return
@@ -663,13 +664,13 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
     get schema() {
         return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
     }
-    get _delta(): StandardEditableDataDelta<StandardRenderSimpleElement[]> {
+    get _delta(): StandardEditableDataDelta<RenderTree> {
         return { remove: this.match.toJSON() }
     }
     clone() {
         return new StandardRenderRemove(this.match)
     }
-    toJSON: () => StandardEditableData<StandardRenderSimpleElement[]> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
+    toJSON: () => StandardEditableData<RenderTree> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
     get plain() { return this.match }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -682,7 +683,7 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
 export class StandardRenderReplace implements StandardEditableWrapper<StandardRenderSimpleBase> {
     match: StandardRenderSimpleBase
     payload: StandardRenderSimpleBase
-    constructor(...args: [StandardEditableData<StandardRenderSimpleElement[]> | GenericTree<SchemaTag> | string] | [StandardRenderSimpleBase, StandardRenderSimpleBase]) {
+    constructor(...args: [StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string] | [StandardRenderSimpleBase, StandardRenderSimpleBase]) {
         if (args.length === 2) {
             this.match = args[0]
             this.payload = args[1]
@@ -702,13 +703,13 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
             { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
         ] }]
     }
-    get _delta(): StandardEditableDataDelta<StandardRenderSimpleElement[]> {
+    get _delta(): StandardEditableDataDelta<RenderTree> {
         return { remove: this.match.toJSON(), add: this.payload.toJSON() }
     }
     clone() {
         return new StandardRenderReplace(this.match, this.payload)
     }
-    toJSON: () => StandardEditableData<StandardRenderSimpleElement[]> = () => ({ tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() })
+    toJSON: () => StandardEditableData<RenderTree> = () => ({ tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() })
     get plain() { return this.payload }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
