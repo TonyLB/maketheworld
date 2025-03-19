@@ -1,6 +1,7 @@
 import { GenericTree } from "./genericTree";
 import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "./schema";
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "./schema/condition";
+import { isSchemaRemove, isSchemaReplace } from "./schema/edit";
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "./schema/renderTree";
 import { excludeUndefined } from "./utils/lists";
 
@@ -24,6 +25,14 @@ export const isRenderTreeNode = (node: any): node is RenderTreeNode => {
 
 export const isRenderTree = (node: any): node is RenderTree => {
     return Array.isArray(node) && node.every(isRenderTreeNode)
+}
+
+export const isSimpleRenderTreeNode = (node: any): node is RenderTreeNode => {
+    return isRenderTreeNode(node) && !(typeof node === "object" && (isSchemaRemove(node.data) || isSchemaReplace(node.data)))
+}
+
+export const isSimpleRenderTree = (node: any): node is RenderTree => {
+    return Array.isArray(node) && node.every(isSimpleRenderTreeNode)
 }
 
 export const renderTreeToSchema = (tree: RenderTree): GenericTree<SchemaOutputTag> => {
@@ -58,4 +67,22 @@ export const schemaToRenderTree = (tree: GenericTree<SchemaTag>): RenderTree => 
         }
     })
     .filter(excludeUndefined)
+}
+
+export const renderTreeToString = (tree: RenderTree): string => {
+    return tree.map((node) => {
+        if (typeof node === "string") {
+            return node
+        }
+        if (isSchemaLink(node.data)) {
+            return renderTreeToSchema(node.children)
+        }
+        if (isSchemaSpacer(node.data)) {
+            return " "
+        }
+        if (isSchemaLineBreak(node.data)) {
+            return "\n"
+        }
+        return ''
+    }).join("")
 }
