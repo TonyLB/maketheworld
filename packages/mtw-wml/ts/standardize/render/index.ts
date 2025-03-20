@@ -340,6 +340,20 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
                     return [...previous.slice(0, -1), ` ${renderElement.trimStart()}`]
                 }
             }
+            if (typeof lastElement === 'object' && typeof renderElement === 'object') {
+                if (lastElement.data.tag === 'br' && renderElement.data.tag === 'br') {
+                    return previous
+                }
+                if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'Space') {
+                    return previous
+                }
+                if (lastElement.data.tag === 'br' && renderElement.data.tag === 'Space') {
+                    return previous
+                }
+                if (lastElement.data.tag === 'Space' && renderElement.data.tag === 'br') {
+                    return [...previous.slice(0, -1), renderElement]
+                }
+            }
             return [...previous, renderElement]
 
             // //
@@ -582,7 +596,7 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
     clone() {
         return new StandardRenderSimple(this.payload)
     }
-    toJSON: () => StandardEditableData<RenderTree> = () => this.payload.toJSON()
+    toJSON: () => RenderTree = () => this.payload.toJSON()
     get plain() { return this.payload }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -600,7 +614,6 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
             return
         }
         const delta = factory(data)
-        console.log(`data Delta: ${JSON.stringify(delta, null, 4)}`)
         if (delta && !delta.add && delta.remove) {
             this.match = delta.remove
             return
@@ -616,7 +629,7 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
     clone() {
         return new StandardRenderRemove(this.match)
     }
-    toJSON: () => StandardEditableData<RenderTree> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
+    toJSON: () => RenderTree = () => ([{ data: { tag: 'Remove' as const }, children: this.match.toJSON() }])
     get plain() { return this.match }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -655,7 +668,11 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
     clone() {
         return new StandardRenderReplace(this.match, this.payload)
     }
-    toJSON: () => StandardEditableData<RenderTree> = () => ({ tag: 'Replace' as const, match: this.match.toJSON(), payload: this.payload.toJSON() })
+    toJSON: () => RenderTree = () => ([{ data: { tag: 'Replace' as const }, children: [
+            { data: { tag: 'ReplaceMatch' as const }, children: this.match.toJSON() },
+            { data: { tag: 'ReplacePayload' as const }, children: this.payload.toJSON() }    
+        ]
+    }])
     get plain() { return this.payload }
     merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -789,8 +806,12 @@ export class StandardRender {
         return renderTreeToString(this._payload.plain.toJSON())
     }
 
-    toJSON(): GenericTree<SchemaOutputTag> {
+    get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
+    }
+
+    toJSON(): RenderTree {
+        return this._payload.toJSON()
     }
 
     toNDJSON(): RenderTree {

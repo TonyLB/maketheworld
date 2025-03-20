@@ -35,7 +35,7 @@ describe('StandardRenderSimple', () => {
             Another Example<Space />
         `)
         const render = new StandardRenderSimple(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should merge whitespace to a single space', () => {
@@ -88,7 +88,7 @@ describe('StandardRenderSimple', () => {
                 const diff = base.diff(target)
                 expect(diff?.toJSON()).toEqual([{
                     data: { tag: 'Remove' },
-                    children: [{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }]
+                    children: [{ data: { tag: 'br' }, children: [] }, 'Test 2']
                 }])
             })
 
@@ -96,7 +96,7 @@ describe('StandardRenderSimple', () => {
                 const base = new StandardRenderSimple(['Test'])
                 const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const diff = base.diff(target)
-                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
+                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, 'Test 2'])
             })
 
             it('should return a StandardRender with replace elements when base and target have different elements', () => {
@@ -106,8 +106,8 @@ describe('StandardRenderSimple', () => {
                 expect(diff?.toJSON()).toEqual([{
                     data: { tag: 'Replace' },
                     children: [
-                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }] },
-                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'Example' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Example 2' }, children: [] }] }
+                        { data: { tag: 'ReplaceMatch' }, children: ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] },
+                        { data: { tag: 'ReplacePayload' }, children: ['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'] }
                     ]
                 }])
             })
@@ -130,14 +130,14 @@ describe('StandardRender', () => {
             </Else>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should create an instance from incoming remove', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should create an instance from incoming replace', () => {
@@ -151,7 +151,7 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should merge simple incoming schema', () => {
@@ -170,7 +170,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature1)>Link</Link>
             <If {true}>
@@ -193,7 +193,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove><Link to=(Feature1)>Link</Link></Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('Example')
+        expect(schemaToWML(merged.schema)).toEqual('Example')
     })
 
     it('should create remainder remove when incoming schema is longer', () => {
@@ -203,7 +203,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('<Remove>Example</Remove>')
+        expect(schemaToWML(merged.schema)).toEqual('<Remove>Example</Remove>')
     })
 
     it('should correctly interpret a Space prefix in a remove schema matching mid-string space', () => {
@@ -230,7 +230,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature2)>Link</Link>
         `))
@@ -252,7 +252,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With><Link to=(Feature2)>Link</Link></With>
         `))
     })
@@ -266,7 +266,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>
                 <Link to=(Feature1)>Link</Link>
             </Replace>
@@ -284,7 +284,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Another Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Remove>ExampleAnother Example</Remove>
         `))
     })
@@ -303,7 +303,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>ExampleAnother Example</Replace><With>Yet Another Example</With>
         `))
     })
@@ -333,7 +333,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>
                 Example
             </Replace>
@@ -358,7 +358,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With>Another</With>
         `))
     })
@@ -377,7 +377,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Yet Another Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Remove>Yet Example</Remove>
         `))
     })
@@ -403,7 +403,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With>Yet Another Example</With>
         `))
     })
@@ -440,7 +440,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('')
+        expect(schemaToWML(merged.schema)).toEqual('')
     })
 
     it('should mapContents on simple payload', () => {
