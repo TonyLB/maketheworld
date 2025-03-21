@@ -304,7 +304,7 @@ const payloadFactory = (props: RenderTree | GenericTree<SchemaTag>): StandardRen
 }
 
 const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree => {
-    return [...base, ...incoming].reduce<RenderTree>((previous, renderElement) => {
+    return [...base, ...incoming].map((element) => ((typeof element === 'object' && element.data.tag === 'String') ? element.data.value : element)).reduce<RenderTree>((previous, renderElement) => {
         if (previous.length === 0) {
             return [renderElement]
         }
@@ -408,6 +408,12 @@ const standardRenderSubtract = (base: RenderTree, incoming: RenderTree): { add?:
     // Function to compare individual elements of the render tree
     //
     const compareElements = (base: RenderTreeNode, incoming: RenderTreeNode): { outcome: 'Base Longer' | 'Incoming Longer' | 'Equal' | 'Conflict', remainder?: RenderTreeNode } => {
+        if (typeof base === 'object' && base.data.tag === 'String') {
+            return compareElements(base.data.value, incoming)
+        }
+        if (typeof incoming === 'object' && incoming.data.tag === 'String') {
+            return compareElements(base, incoming.data.value)
+        }
         //
         // Compare two StandardRenderString elements
         //
@@ -818,8 +824,12 @@ export class StandardRender {
         return this._payload.schema
     }
 
-    merge(incoming: StandardRender): StandardRender {
-        return new StandardRender(this._payload.merge(incoming._payload))
+    merge(incoming: StandardRender): StandardRender | undefined {
+        const merged = this._payload.merge(incoming._payload)
+        if (merged) {
+            return new StandardRender(this._payload.merge(incoming._payload))
+        }
+        return undefined
     }
     diff(incoming: StandardRender | undefined): StandardRender | undefined {
         if (incoming) {
