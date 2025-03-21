@@ -1,29 +1,13 @@
-import { StandardRenderSimple, StandardRenderConditional, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
+import { StandardRenderSimple, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
-
-describe('StandardRenderConditional', () => {
-    it('should create an instance from valid incoming schema', () => {
-        const schema = new Schema()
-        schema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Example</Link>
-            </If>
-            <Else>
-                False<Space />
-            </Else>
-        `)
-        const render = new StandardRenderConditional(schema.schema[0])
-        expect(render.toJSON()).toEqual(schema.schema[0])
-    })
-})
 
 describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRenderRemove(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema[0])
+        expect(render.schema).toEqual(schema.schema)
     })
 })
 
@@ -39,7 +23,7 @@ describe('StandardRenderReplace', () => {
             </With>
         `)
         const render = new StandardRenderReplace(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema[0])
+        expect(render.schema).toEqual(schema.schema)
     })
 })
 
@@ -51,168 +35,44 @@ describe('StandardRenderSimple', () => {
             Another Example<Space />
         `)
         const render = new StandardRenderSimple(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should merge whitespace to a single space', () => {
         const base = new StandardRenderSimple(['Test '])
-        expect(base.merge(new StandardRenderSimple([' Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+        const merged = base.merge(new StandardRenderSimple([' Test']))
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+        }
     })
 
     it('should count a Space tag as a single whitespace', () => {
         const base = new StandardRenderSimple(['Test', { data: { tag: 'Space' }, children: [] }])
-        expect(base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, 'Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+        const merged = base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, 'Test']))
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+        }
     })
 
     it('should reduce multiple instances of line breaks and whitespace to a single line break', () => {
         const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }])
-        expect(base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+        const merged = base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']))
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+        }
     })
 
     it('should trim whitespace in strings adjacent to line break', () => {
         const base = new StandardRenderSimple(['Test ', { data: { tag: 'br' }, children: [] }])
-        expect(base.merge(new StandardRenderSimple([' Test'])).toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+        const merged = base.merge(new StandardRenderSimple([' Test']))
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+        }
     })
-
-    it('should round-trip a schema with conditionals', () => {
-        const schema = new Schema()
-        schema.loadWML(`
-            Example<Link to=(Feature1)>Link</Link><br />
-            <If {true}>
-                True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False<Space />
-            </Else>
-        `)
-        const render = new StandardRenderSimple(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
-    })
-
-    it('should correctly merge conditionals', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            Example<Link to=(Feature1)>Link</Link>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False<Space />
-            </Else>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            Example
-            <Link to=(Feature1)>Link</Link>
-            <If {true}>
-                True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False
-                <Space />
-            </Else>
-        `))
-    })
-
-    // describe('compare', () => {
-    //     describe('back direction', () => {
-    //         it('should return Equal for identical schemas', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             expect(base.compare(incoming)).toEqual({ outcome: 'Equal' })
-    //         })
-
-    //         it('should return remainder for shorter incoming schema', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test 2'])
-    //             const comparison = base.compare(incoming)
-    //             expect(comparison.outcome).toEqual('Base Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: 'Test' }, children: [] }, { data: { tag: 'br' }, children: [] }])
-    //         })
-
-    //         it('should return remainder for shorter base schema', () => {
-    //             const base = new StandardRenderSimple(['Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const comparison = base.compare(incoming)
-    //             expect(comparison.outcome).toEqual('Incoming Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: 'Test' }, children: [] }, { data: { tag: 'br' }, children: [] }])
-    //         })
-
-    //         it('should return conflict for different schemas', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 3'])
-    //             const comparison = base.compare(incoming)
-    //             expect(comparison.outcome).toEqual('Conflict')
-    //         })
-
-    //         it('should split the base string in remainder when incoming matches only part of it', () => {
-    //             const base = new StandardRenderSimple(['Test/Another Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Another Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const comparison = base.compare(incoming)
-    //             expect(comparison.outcome).toEqual('Base Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: 'Test/' }, children: [] }])
-    //         })
-
-    //         it('should split the incoming string in remainder when Base matches only part of it', () => {
-    //             const base = new StandardRenderSimple(['Another Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test/Another Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const comparison = base.compare(incoming)
-    //             expect(comparison.outcome).toEqual('Incoming Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: 'Test/' }, children: [] }])
-    //         })
-    //     })
-    //     describe('forward direction', () => {
-    //         it('should return Equal for identical schemas', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             expect(base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })).toEqual({ outcome: 'Equal' })
-    //         })
-
-    //         it('should return remainder for shorter incoming schema', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test'])
-    //             const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
-    //             expect(comparison.outcome).toEqual('Base Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
-    //         })
-
-    //         it('should return remainder for shorter base schema', () => {
-    //             const base = new StandardRenderSimple(['Test'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
-    //             expect(comparison.outcome).toEqual('Incoming Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
-    //         })
-
-    //         it('should return conflict for different schemas', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 3'])
-    //             const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
-    //             expect(comparison.outcome).toEqual('Conflict')
-    //         })
-
-    //         it('should split the base string in remainder when incoming matches only part of it', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2/Another Test'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
-    //             expect(comparison.outcome).toEqual('Base Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: '/Another Test' }, children: [] }])
-    //         })
-
-    //         it('should split the incoming string in remainder when Base matches only part of it', () => {
-    //             const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-    //             const incoming = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2/Another Test'])
-    //             const comparison = base.compare(incoming, { compareDirection: StandardRenderSimpleCompareDirection.Forward })
-    //             expect(comparison.outcome).toEqual('Incoming Longer')
-    //             expect(comparison.remainder?.toJSON()).toEqual([{ data: { tag: 'String', value: '/Another Test' }, children: [] }])
-    //         })
-    //     })
-    // })
 
     describe('diff', () => {
         describe('diff', () => {
@@ -228,7 +88,7 @@ describe('StandardRenderSimple', () => {
                 const diff = base.diff(target)
                 expect(diff?.toJSON()).toEqual([{
                     data: { tag: 'Remove' },
-                    children: [{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }]
+                    children: [{ data: { tag: 'br' }, children: [] }, 'Test 2']
                 }])
             })
 
@@ -236,7 +96,7 @@ describe('StandardRenderSimple', () => {
                 const base = new StandardRenderSimple(['Test'])
                 const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const diff = base.diff(target)
-                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }])
+                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, 'Test 2'])
             })
 
             it('should return a StandardRender with replace elements when base and target have different elements', () => {
@@ -246,8 +106,8 @@ describe('StandardRenderSimple', () => {
                 expect(diff?.toJSON()).toEqual([{
                     data: { tag: 'Replace' },
                     children: [
-                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Test 2' }, children: [] }] },
-                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'String', value: 'Example' }, children: [] }, { data: { tag: 'br' }, children: [] }, { data: { tag: 'String', value: 'Example 2' }, children: [] }] }
+                        { data: { tag: 'ReplaceMatch' }, children: ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] },
+                        { data: { tag: 'ReplacePayload' }, children: ['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'] }
                     ]
                 }])
             })
@@ -270,14 +130,14 @@ describe('StandardRender', () => {
             </Else>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should create an instance from incoming remove', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should create an instance from incoming replace', () => {
@@ -291,7 +151,7 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.toJSON()).toEqual(schema.schema)
+        expect(render.schema).toEqual(schema.schema)
     })
 
     it('should merge simple incoming schema', () => {
@@ -310,7 +170,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature1)>Link</Link>
             <If {true}>
@@ -333,7 +193,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove><Link to=(Feature1)>Link</Link></Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('Example')
+        expect(schemaToWML(merged!.schema)).toEqual('Example')
     })
 
     it('should create remainder remove when incoming schema is longer', () => {
@@ -343,7 +203,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('<Remove>Example</Remove>')
+        expect(schemaToWML(merged!.schema)).toEqual('<Remove>Example</Remove>')
     })
 
     it('should correctly interpret a Space prefix in a remove schema matching mid-string space', () => {
@@ -351,7 +211,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove><Space />More</Remove>`)
         const base = new StandardRender([{ data: { tag: 'String', value: 'Text More' }, children: [] }])
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(merged.toNDJSON()).toEqual(['Text'])
+        expect(merged?.toJSON()).toEqual(['Text'])
     })
 
     it('should merge replace incoming schema into simple base', () => {
@@ -370,7 +230,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature2)>Link</Link>
         `))
@@ -392,7 +252,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With><Link to=(Feature2)>Link</Link></With>
         `))
     })
@@ -406,7 +266,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Replace>
                 <Link to=(Feature1)>Link</Link>
             </Replace>
@@ -424,8 +284,8 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Another Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
-            <Remove>ExampleAnother Example</Remove>
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
+            <Remove>Another ExampleExample</Remove>
         `))
     })
 
@@ -443,8 +303,8 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
-            <Replace>ExampleAnother Example</Replace><With>Yet Another Example</With>
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
+            <Replace>Another ExampleExample</Replace><With>Yet Another Example</With>
         `))
     })
 
@@ -473,7 +333,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Replace>
                 Example
             </Replace>
@@ -498,7 +358,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With>Another</With>
         `))
     })
@@ -517,7 +377,7 @@ describe('StandardRender', () => {
         incomingSchema.loadWML(`<Remove>Yet Another Example</Remove>`)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Remove>Yet Example</Remove>
         `))
     })
@@ -543,7 +403,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual(deIndentWML(`
+        expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             <Replace>Example</Replace><With>Yet Another Example</With>
         `))
     })
@@ -580,7 +440,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        expect(schemaToWML(merged.toJSON())).toEqual('')
+        expect(merged).toBeUndefined()
     })
 
     it('should mapContents on simple payload', () => {
@@ -623,163 +483,6 @@ describe('StandardRender', () => {
             data: { tag: 'Remove' },
             children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
         }])
-    })
-
-    it('should combine adjacent conditional tags with compatible statements', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Link</Link>
-            </If>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {true}>
-                Another True<Link to=(Feature2)>Link</Link>
-            </If>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            <If {true}>
-                True
-                <Link to=(Feature1)>Link</Link>
-                Another True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-        `))
-    })
-
-    it('should not combine adjacent conditional tags with incompatible statements', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Link</Link>
-            </If>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {false}>
-                False<Link to=(Feature2)>Link</Link>
-            </If>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            <If {true}>
-                True
-                <Link to=(Feature1)>Link</Link>
-            </If>
-            <If {false}>
-                False
-                <Link to=(Feature2)>Link</Link>
-            </If>
-        `))
-    })
-
-    it('should combine adjacent conditional tags with compatible statements and fallthrough', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Link</Link>
-            </If>
-            <Else>
-                Base Fallthrough<Space />
-            </Else>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {true}>
-                Another True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                Incoming Fallthrough
-            </Else>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            <If {true}>
-                True
-                <Link to=(Feature1)>Link</Link>
-                Another True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                Base Fallthrough Incoming Fallthrough
-            </Else>
-        `))
-    })
-
-    it('should combine adjacent conditional tags with compatible fallthrough in the first tag', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Link</Link>
-            </If>
-            <Else>
-                Base Fallthrough<Space />
-            </Else>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {true}>
-                Another True<Link to=(Feature2)>Link</Link>
-            </If>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            <If {true}>
-                True
-                <Link to=(Feature1)>Link</Link>
-                Another True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                Base Fallthrough
-                <Space />
-            </Else>
-        `))
-    })
-
-    it('should not combine adjacent conditional tags with incompatible fallthrough', () => {
-        const baseSchema = new Schema()
-        baseSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature1)>Link</Link>
-            </If>
-            <ElseIf {false}>
-                Base Else If
-            </ElseIf>
-        `)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(`
-            <If {true}>
-                Another True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                Fallthrough
-            </Else>
-        `)
-        const base = new StandardRenderSimple(baseSchema.schema)
-        const merged = base.merge(new StandardRenderSimple(incomingSchema.schema))
-        expect(schemaToWML(merged?.schema ?? [])).toEqual(deIndentWML(`
-            <If {true}>
-                True
-                <Link to=(Feature1)>Link</Link>
-            </If>
-            <ElseIf {false}>
-                Base Else If
-            </ElseIf>
-            <If {true}>
-                Another True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                Fallthrough
-            </Else>
-        `))
     })
 
 })

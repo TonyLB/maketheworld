@@ -32,7 +32,7 @@ class testClass implements StandardEditablePayload<TestData> {
     }
 }
 
-const testPayloadFactory = (props: StandardEditableData<TestData> | GenericTree<SchemaTag>): testClass | undefined => {
+const testPayloadFactory = (props: TestData | GenericTree<SchemaTag>): testClass | undefined => {
     if (testTypeguard(props)) {
         return new testClass(props)
     }

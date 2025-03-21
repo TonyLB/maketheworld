@@ -32,7 +32,7 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
 
 export type StandardEditableFactoryProps<DataType, FinalType extends StandardEditablePayload<DataType>> = {
     typeguard: (value: any) => value is DataType;
-    payloadFactory: (props: StandardEditableData<DataType> | GenericTree<SchemaTag>) => FinalType | undefined;
+    payloadFactory: (props: DataType | GenericTree<SchemaTag>) => FinalType | undefined;
     payload: new (props: DataType) => FinalType;
     add: (base: DataType, incoming: DataType) => DataType;
     subtract: (base: DataType, incoming: DataType, options?: { fromStart?: boolean }) => StandardEditableDataDelta<DataType>;
