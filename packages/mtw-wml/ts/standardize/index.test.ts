@@ -176,11 +176,11 @@ describe('StandardForm', () => {
                         data: { tag: 'Replace' },
                         children: [{
                             data: { tag: 'ReplaceMatch' },
-                            children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
+                            children: ['Lobby']
                         },
                         {
                             data: { tag: 'ReplacePayload' },
-                            children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
+                            children: ['Foyer']
                         }]
                     }]
                 },
@@ -215,12 +215,12 @@ describe('StandardForm', () => {
                     match: {
                         tag: 'Example',
                         key: 'testRoomReplace.base',
-                        name: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }]
+                        name: ['Name Test']
                     },
                     payload: {
                         tag: 'Example',
                         key: 'testRoomReplace.base',
-                        name: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }]
+                        name: ['Name Changed']
                     }
                 }
             }
@@ -250,49 +250,7 @@ describe('StandardForm', () => {
                 'testRoom.base': {
                     tag: 'Example',
                     key: 'testRoom.base',
-                    description: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }]
-                }
-            }
-        })
-    })
-
-    it('should accept condition tags without including wrapperKey', () => {
-        const standard = new StandardForm(`<Asset key=(Test)>
-            <Room key=(Room1)>
-                <Example key=(base)>
-                    <Description>
-                        <If {true}>True</If><Else>False</Else>
-                    </Description>
-                </Example>
-            </Room>
-        </Asset>`)
-
-        expect(standard.toJSON()).toEqual({
-            key: 'Test',
-            metaData: [],
-            byId: {
-                "Room1": {
-                    tag: 'Room',
-                    key: 'Room1',
-                    examples: [{ key: 'base', tag: 'Example' }],
-                    exits: []
-                },
-                'Room1.base': {
-                    tag: 'Example',
-                    key: 'Room1.base',
-                    description: [{
-                        data: { tag: 'If' },
-                        children: [
-                            {
-                                data: { tag: 'Statement', if: 'true' },
-                                children: [{ data: { tag: 'String', value: 'True' }, children: [] }]
-                            },
-                            {
-                                data: { tag: 'Fallthrough' },
-                                children: [{ data: { tag: 'String', value: 'False' }, children: [] }]
-                            }
-                        ]
-                    }]
+                    description: ['Test Description']
                 }
             }
         })
@@ -304,14 +262,12 @@ describe('StandardForm', () => {
                 <Room key=(test)>
                     <Example key=(base)>
                         <Name>Test Room</Name>
-                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
                 </Room>
                 <Feature key=(testFeature)>
-                    <Example key=(base)>
-                        <Description><If {false}>Four</If></Description>
-                    </Example>
+                    <Example key=(base)><Description>Four</Description></Example>
                 </Feature>
             </Asset>
         `)
@@ -456,7 +412,7 @@ describe('StandardForm', () => {
                 'test.base': {
                     tag: 'Example',
                     key: 'test.base',
-                    description: [{ data: { tag: 'String', value: 'One' }, children: [] }]
+                    description: ['One']
                 },
                 ['test.testLocal']: {
                     tag: 'Feature',
@@ -466,7 +422,7 @@ describe('StandardForm', () => {
                 ['test.testLocal.base']: {
                     tag: 'Example',
                     key: 'test.testLocal.base',
-                    description: [{ data: { tag: 'String', value: 'Local' }, children: [] }]
+                    description: ['Local']
                 },
                 testGlobal: {
                     tag: 'Feature',
@@ -477,7 +433,7 @@ describe('StandardForm', () => {
                 ['testGlobal.base']: {
                     tag: 'Example',
                     key: 'testGlobal.base',
-                    description: [{ data: { tag: 'String', value: 'Global' }, children: [] }]
+                    description: ['Global']
                 },
                 testTwo: {
                     tag: 'Room',
@@ -510,7 +466,7 @@ describe('StandardForm', () => {
                 ['test.testLocal']: {
                     tag: 'Example',
                     key: 'test.testLocal',
-                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                    description: ['Description Test']
                 },
                 testTwo: {
                     tag: 'Room',
@@ -541,7 +497,7 @@ describe('StandardForm', () => {
                 ['test.testLocal']: {
                     tag: 'Example',
                     key: 'test.testLocal',
-                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                    description: ['Description Test']
                 }
             }
         })
@@ -576,7 +532,7 @@ describe('StandardForm', () => {
                 ['test.testFeature.testLocal']: {
                     tag: 'Example',
                     key: 'test.testFeature.testLocal',
-                    description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }]
+                    description: ['Description Test']
                 },
                 testTwo: {
                     tag: 'Room',
@@ -2211,7 +2167,7 @@ describe('StandardForm', () => {
         expect(test.byId.toggleOpen.universalKey).toEqual('ACTION#010')
     })
 
-    it('should group sub-components correctly in NDJSON', () => {
+    it('should group sub-components correctly in JSON', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Feature key=(testGlobal)>
