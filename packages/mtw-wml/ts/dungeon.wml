@@ -51,12 +51,12 @@
     <Room key=(chamber)>
         <Feature key=(orc)>
         </Feature>
-        <Feeature key=(pie)>
+        <Feature key=(pie)>
         </Feature>
         <Example key=(base)>
             A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a
-            <Link key=(pie)>pie</Link>. Standing before the table is an angry 
-            <Link key=(orc)>orc</Link>.
+            <Link to=(pie)>pie</Link>. Standing before the table is an angry 
+            <Link to=(orc)>orc</Link>.
         </Example>
     </Room>
     <Variable key=(passageCleared) default={false} />

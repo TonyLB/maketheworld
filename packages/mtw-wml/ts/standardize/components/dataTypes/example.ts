@@ -6,9 +6,9 @@ import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 
 export type StandardExampleData = {
     tag: 'Example';
-    name?: GenericTree<SchemaOutputTag>;
-    summary?: GenericTree<SchemaOutputTag>;
-    description?: GenericTree<SchemaOutputTag>;
+    name?: RenderTree;
+    summary?: RenderTree;
+    description?: RenderTree;
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
