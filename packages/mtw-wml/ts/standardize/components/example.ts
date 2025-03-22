@@ -15,6 +15,7 @@ import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/exam
 import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
+import { renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -119,9 +120,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...linkReferenceKeys([this.name, this.summary, this.description].filter(excludeUndefined).flat(1))
+            ...linkReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
                 .map((key) => ({ referenceType: 'Link' as const, key })),
-            ...dependencyReferenceKeys([this.name, this.summary, this.description].filter(excludeUndefined).flat(1))
+            ...dependencyReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
                 .map((key) => ({ referenceType: 'Dependency' as const, key }))
         ]
     }
