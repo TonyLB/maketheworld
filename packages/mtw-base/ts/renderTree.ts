@@ -45,8 +45,11 @@ export const renderTreeToSchema = (tree: RenderTree): GenericTree<SchemaOutputTa
     })
 }
 
-export const schemaToRenderTree = (tree: GenericTree<SchemaTag>): RenderTree => {
+export const schemaToRenderTree = (tree: GenericTree<SchemaTag> | RenderTree): RenderTree => {
     return tree.map<RenderTreeNode | undefined>(node => {
+        if (typeof node === "string") {
+            return node
+        }
         if (isSchemaString(node.data)) {
             return node.data.value
         }

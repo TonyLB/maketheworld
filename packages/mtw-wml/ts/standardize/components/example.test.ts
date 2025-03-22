@@ -4,8 +4,17 @@ import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
-import { mergeTest } from "./utils/testing"
 import { StandardReplace, StandardRemove } from "./edits"
+
+const mergeTest = (base: string, incoming: string): string => {
+    const baseStandard = new StandardExample(deIndentWML(base))
+    const incomingStandard = new StandardExample(deIndentWML(incoming))
+    const mergedStandard = baseStandard.merge(incomingStandard)
+    if (!mergedStandard) {
+        throw new Error('Failure in mergeTest utility')
+    }
+    return schemaToWML([mergedStandard.schema])
+}
 
 describe('StandardExample class', () => {
 
@@ -19,9 +28,9 @@ describe('StandardExample class', () => {
         `)
         const testExample = new StandardExample(testSource)
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual([{ data: { tag: 'String', value: 'Name Test' }, children: [] }])
-        expect(testExample.summary).toEqual([{ data: { tag: 'String', value: 'Summary Test' }, children: [] }])
-        expect(testExample.description).toEqual([{ data: { tag: 'String', value: 'Description Test' }, children: [] }])
+        expect(testExample.name).toEqual(['Name Test'])
+        expect(testExample.summary).toEqual(['Summary Test'])
+        expect(testExample.description).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
     })
 
@@ -37,9 +46,9 @@ describe('StandardExample class', () => {
         schema.loadWML(testSource)
         const testExample = new StandardExample(schema.schema[0])
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual([{ data: { tag: 'String', value: 'Name Test' }, children: [] }])
-        expect(testExample.summary).toEqual([{ data: { tag: 'String', value: 'Summary Test' }, children: [] }])
-        expect(testExample.description).toEqual([{ data: { tag: 'String', value: 'Description Test' }, children: [] }])
+        expect(testExample.name).toEqual(['Name Test'])
+        expect(testExample.summary).toEqual(['Summary Test'])
+        expect(testExample.description).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
     })
 
@@ -47,15 +56,15 @@ describe('StandardExample class', () => {
         const testExampleData: StandardExampleData = {
             key: 'test',
             tag: 'Example',
-            name: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }],
-            summary: [{ data: { tag: 'String', value: 'Summary Test' }, children: [] }],
-            description: [{ data: { tag: 'String', value: 'Description Test' }, children: [] }],
+            name: ['Name Test'],
+            summary: ['Summary Test'],
+            description: ['Description Test'],
         }
         const testExample = new StandardExample(testExampleData)
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual([{ data: { tag: 'String', value: 'Name Test' }, children: [] }])
-        expect(testExample.summary).toEqual([{ data: { tag: 'String', value: 'Summary Test' }, children: [] }])
-        expect(testExample.description).toEqual([{ data: { tag: 'String', value: 'Description Test' }, children: [] }])
+        expect(testExample.name).toEqual(['Name Test'])
+        expect(testExample.summary).toEqual(['Summary Test'])
+        expect(testExample.description).toEqual(['Description Test'])
         expect(testExample.toJSON()).toEqual(testExampleData)
     })
 
@@ -66,7 +75,6 @@ describe('StandardExample class', () => {
                 <Summary>Summary Text</Summary>
                 <Description>A plain lobby.</Description>
             </Example>`,
-            StandardExample,
             `<Example key=(testExample)>
                 <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
                 <Summary><Remove><Space />Text</Remove></Summary>
@@ -113,7 +121,7 @@ describe('StandardExample class', () => {
         `))
     })
 
-    it('should return condensed RenderSchema on NDJSON', () => {
+    it('should return condensed RenderSchema on JSON', () => {
         const test = new StandardExample(`
             <Example key=(testExample)>
                 <Name>Lobby<If {active}><Space />(lit)</If></Name>
@@ -121,7 +129,7 @@ describe('StandardExample class', () => {
                 <Description>A plain lobby.</Description>
             </Example>
         `)
-        expect(test.toNDJSON()).toEqual({
+        expect(test.toJSON()).toEqual({
             key: 'testExample',
             tag: 'Example',
             name: ['Lobby', { data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: 'active' }, children: [{ data: { tag: 'Space' }, children: [] }, '(lit)'] }] }],
@@ -155,11 +163,11 @@ describe('StandardExample class', () => {
             name: ['Name Test'],
             summary: ['Summary Test'],
         })
-        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+        expect(testExample.diff(testExample2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Example',
             description: [{ data: { tag: 'Remove' }, children: ['Description Test'] }],
-        }))
+        })
     })
 
     it('should correct diff adding a field', () => {
@@ -176,11 +184,11 @@ describe('StandardExample class', () => {
             summary: ['Summary Test'],
             description: ['Description Test'],
         })
-        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+        expect(testExample.diff(testExample2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Example',
             description: ['Description Test'],
-        }))
+        })
     })
 
     it('should correctly diff changing a field', () => {
@@ -198,7 +206,7 @@ describe('StandardExample class', () => {
             summary: ['Summary Test'],
             description: ['Description', { data: { tag: 'Space' }, children: [] }, 'Changed'],
         })
-        expect(testExample.diff(testExample2)).toEqual(new StandardExample({
+        expect(testExample.diff(testExample2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Example',
             description: [{
@@ -208,6 +216,6 @@ describe('StandardExample class', () => {
                     { data: { tag: 'ReplacePayload' }, children: ['Changed'] }
                 ]
             }],
-        }))
+        })
     })
 })

@@ -35,14 +35,20 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
 export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: StandardRender | undefined, data: D): EditWrappedStandardNode<D, SchemaOutputTag> | undefined => {
     if (!render) { return undefined }
     const payload = render._payload
-    render
-        ? (payload instanceof StandardRenderRemove
-            ? { data: { tag: 'Remove' as const }, children: [{ data, children: payload.schema }] }
-            : payload instanceof StandardRenderReplace
-                ? payload.schema[0]
-                : payload.schema.length
-                    ? { data, children: payload.schema }
-                    : undefined
-            ) as EditWrappedStandardNode<D, SchemaOutputTag> | undefined
-        : undefined
+    if (payload instanceof StandardRenderRemove) {
+        return { data: { tag: 'Remove' as const }, children: [{ data, children: payload.match.schema }] }
+    }
+    if (payload instanceof StandardRenderReplace) {
+        return {
+            data: { tag: 'Replace' as const },
+            children: [
+                { data: { tag: 'ReplaceMatch' as const }, children: [{ data, children: payload.match.schema }] },
+                { data: { tag: 'ReplacePayload' as const }, children: [{ data, children: payload.payload.schema }] }
+            ]
+        }
+    }
+    if (payload.schema.length) {
+        return { data, children: payload.schema }
+    }
+    return undefined
 }
