@@ -362,6 +362,7 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
             this.match = delta.remove
             return
         }
+        console.log(`Invalid data: ${JSON.stringify(data)}`)
         throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
@@ -581,7 +582,7 @@ export class StandardRender {
             const reversedDelta = this._payload._delta
             if (reversedDelta) {
                 if (reversedDelta.add) {
-                    return new StandardRender(new StandardRenderRemove(reversedDelta.add))
+                    return new StandardRender(new StandardRenderRemove(new StandardRenderSimpleBase(reversedDelta.add)))
                 }
                 if (reversedDelta.remove) {
                     return new StandardRender(new StandardRenderSimple(reversedDelta.remove))
