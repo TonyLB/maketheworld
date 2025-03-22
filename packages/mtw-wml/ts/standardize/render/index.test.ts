@@ -36,6 +36,7 @@ describe('StandardRenderSimple', () => {
         `)
         const render = new StandardRenderSimple(schema.schema)
         expect(render.schema).toEqual(schema.schema)
+        expect(render.toJSON()).toEqual(['Example', { data: { tag: 'Link', to: 'Feature1', text: 'Link' }, children: ['Link'] }, { data: { tag: 'br' }, children: [] }, 'Another Example', { data: { tag: 'Space' }, children: [] }])
     })
 
     it('should merge whitespace to a single space', () => {
@@ -451,7 +452,7 @@ describe('StandardRender', () => {
         `)
         const render = new StandardRender(schema.schema)
         expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual(
-            ['String', 'Link', 'br', 'String', 'Space'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
+            ['String', 'Link', 'br', 'String', 'Space']
         )
     })
 
@@ -469,8 +470,8 @@ describe('StandardRender', () => {
         expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
             data: { tag: 'Replace' },
             children: [
-                { data: { tag: 'ReplaceMatch' }, children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] })) },
-                { data: { tag: 'ReplacePayload' }, children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] })) }
+                { data: { tag: 'ReplaceMatch' }, children: ['String', 'Link'] },
+                { data: { tag: 'ReplacePayload' }, children: ['String', 'Link'] }
             ]
         }])
     })
@@ -481,7 +482,7 @@ describe('StandardRender', () => {
         const render = new StandardRender(schema.schema)
         expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
             data: { tag: 'Remove' },
-            children: ['String', 'Link'].map((tag) => ({ data: { tag: 'String', value: tag }, children: [] }))
+            children: ['String', 'Link']
         }])
     })
 

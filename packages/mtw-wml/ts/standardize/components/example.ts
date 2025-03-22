@@ -100,13 +100,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     }
 
     schema(key: string): GenericTreeNode<SchemaTag> {
+        const children = [
+            rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
+            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }),
+            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' })
+        ].filter(excludeUndefined)
         return {
             data: { tag: 'Example', key },
-            children: [
-                rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
-                rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }),
-                rebuildSchemaFromStandardRender(this._description, { tag: 'Description' })
-            ].filter(excludeUndefined)
+            children
         }
     }
 
