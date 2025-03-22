@@ -730,37 +730,19 @@ Object {
   },
   "VORTEX.base": Object {
     "description": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-        },
-      },
+      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
       Object {
         "children": Array [],
         "data": Object {
           "tag": "br",
         },
       },
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-        },
-      },
+      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
     "fileName": undefined,
     "key": "VORTEX.base",
     "name": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Cave entrance",
-        },
-      },
+      "Cave entrance",
     ],
     "summary": undefined,
     "tag": "Example",
@@ -825,48 +807,24 @@ Object {
   },
   "cave.base": Object {
     "description": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
-        },
-      },
+      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
     "fileName": undefined,
     "key": "cave.base",
     "name": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Shallow cave",
-        },
-      },
+      "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
   },
   "cave.passageCleared": Object {
     "description": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
-        },
-      },
+      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
     "fileName": undefined,
     "key": "cave.passageCleared",
     "name": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Shallow cave",
-        },
-      },
+      "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
@@ -999,24 +957,12 @@ Object {
   },
   "curvingPassage.base": Object {
     "description": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-        },
-      },
+      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
     "fileName": undefined,
     "key": "curvingPassage.base",
     "name": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "String",
-          "value": "Curving Passage",
-        },
-      },
+      "Curving Passage",
     ],
     "summary": undefined,
     "tag": "Example",
