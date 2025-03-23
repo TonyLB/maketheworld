@@ -451,7 +451,7 @@ describe('StandardRender', () => {
             Another Example<Space />
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual(
+        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual(
             ['String', 'Link', 'br', 'String', 'Space']
         )
     })
@@ -467,7 +467,7 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
+        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual([{
             data: { tag: 'Replace' },
             children: [
                 { data: { tag: 'ReplaceMatch' }, children: ['String', 'Link'] },
@@ -480,7 +480,7 @@ describe('StandardRender', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRender(schema.schema)
-        expect(render.mapContents((tree) => tree.map((node) => ({ data: { tag: 'String', value: node.data.tag }, children: [] }))).toJSON()).toEqual([{
+        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual([{
             data: { tag: 'Remove' },
             children: ['String', 'Link']
         }])

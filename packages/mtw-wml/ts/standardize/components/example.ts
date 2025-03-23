@@ -15,7 +15,7 @@ import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/exam
 import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
-import { renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
+import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -66,36 +66,18 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Example',
-            name: this._name?.toJSON().length === 0
-                ? undefined
-                : stripUI
-                    ? this._name?.mapContents(stripUIFields).toJSON()
-                    : this._name?.toJSON(),
-            summary: this._summary?.toJSON().length === 0
-                ? undefined
-                : stripUI
-                    ? this._summary?.mapContents(stripUIFields).toJSON()
-                    : this._summary?.toJSON(),
-            description: this._description?.toJSON().length === 0
-                ? undefined
-                : stripUI
-                    ? this._description?.mapContents(stripUIFields).toJSON()
-                    : this._description?.toJSON()
+            name: this._name?.toJSON(),
+            summary: this._summary?.toJSON(),
+            description: this._description?.toJSON()
         }
     }
 
     toNDJSON(options?: StandardToJSONOptions): Omit<StandardExampleNDJSONData, 'key' | 'universalKey'> {
         return {
             tag: 'Example',
-            name: this._name?.toNDJSON().length === 0
-                ? undefined
-                : this._name?.mapContents(stripUIFields).toNDJSON(),
-            summary: this._summary?.toNDJSON().length === 0
-                ? undefined
-                : this._summary?.mapContents(stripUIFields).toNDJSON(),
-            description: this._description?.toNDJSON().length === 0
-                ? undefined
-                : this._description?.mapContents(stripUIFields).toNDJSON()
+            name: this._name?.toJSON(),
+            summary: this._summary?.toJSON(),
+            description: this._description?.toJSON()
         }
     }
 
@@ -131,13 +113,13 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardExamplePayload(this)
         if (returnValue._name) {
-            returnValue._name = returnValue._name.mapContents(callback)
+            returnValue._name = returnValue._name.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
         if (returnValue._summary) {
-            returnValue._summary = returnValue._summary.mapContents(callback)
+            returnValue._summary = returnValue._summary.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
         if (returnValue._description) {
-            returnValue._description = returnValue._description.mapContents(callback)
+            returnValue._description = returnValue._description.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
         return returnValue as this
     }
