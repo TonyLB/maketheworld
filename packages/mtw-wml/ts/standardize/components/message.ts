@@ -16,6 +16,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMessage } from "@tonylb/mtw-base/ts/schema/components"
+import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;
@@ -55,7 +56,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             tag: 'Message',
             description: stripUI
-                ? rebuildSchemaFromStandardRender(this._description?.mapContents(stripUIFields), { tag: 'Description' as const })
+                ? rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const })
                 : this.description,
             rooms: this.rooms
         }
@@ -90,7 +91,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardMessagePayload(this)
         if (returnValue._description) {
-            returnValue._description = returnValue._description.mapContents(callback)
+            returnValue._description = returnValue._description.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
         returnValue._rooms = callback(returnValue._rooms)
         return returnValue as this

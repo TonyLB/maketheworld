@@ -591,12 +591,12 @@ export class StandardRender {
             return undefined
         }
     }
-    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRender {
+    mapContents(callback: (incoming: RenderTree) => RenderTree): StandardRender {
         if (this._payload instanceof StandardRenderSimple) {
             return new StandardRender(callback(this._payload.schema))
         }
         if (this._payload instanceof StandardRenderRemove) {
-            return new StandardRender(new StandardRenderRemove(callback(this._payload.match.schema)))
+            return new StandardRender(new StandardRenderRemove(new StandardRenderSimpleBase(callback(this._payload.match.schema))))
         }
         if (this._payload instanceof StandardRenderReplace) {
             return new StandardRender(new StandardRenderReplace((new StandardRenderSimple(callback(this._payload.match.schema))).payload, (new StandardRenderSimple(callback(this._payload.payload.schema))).payload))
