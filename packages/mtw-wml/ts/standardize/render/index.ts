@@ -2,17 +2,13 @@ import StandardRenderString from "./string"
 import StandardRenderLineBreak from "./lineBreak"
 import StandardRenderLink from "./link"
 import StandardRenderSpace from "./space"
-import { StandardRenderAbstract, StandardRenderElement } from "./baseClasses"
 import { excludeUndefined } from "../../lib/lists"
-import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { deepEqual } from "../../lib/objects"
-import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
-import { isRenderTree, isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { SchemaConditionTag } from "@tonylb/mtw-base/ts/schema/condition"
+import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 
@@ -94,49 +90,6 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
             }
             return [...previous, renderElement]
 
-            // //
-            // // Combine adjacent Space tags
-            // //
-            // if (lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderSpace) {
-            //     return previous
-            // }
-
-            // //
-            // // Check if both elements are either line breaks or spaces, combine to a single line break
-            // //
-            // if ((lastElement instanceof StandardRenderLineBreak || lastElement instanceof StandardRenderSpace) &&
-            //     (renderElement instanceof StandardRenderLineBreak || renderElement instanceof StandardRenderSpace)) {
-            //     return [...previous.slice(0, -1), new StandardRenderLineBreak({ data: { tag: 'br' }, children: [] })]
-            // }
-
-            // //
-            // // Trim whitespace from strings adjoining line breaks
-            // //
-            // if (lastElement instanceof StandardRenderLineBreak && renderElement instanceof StandardRenderString) {
-            //     return [...previous, new StandardRenderString(renderElement.plainString.trimStart())]
-            // }
-            // if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderLineBreak) {
-            //     return [...previous.slice(0, -1), new StandardRenderString(lastElement.plainString.trimEnd()), renderElement]
-            // }
-
-            // //
-            // // Check if both elements are strings, join them with a maximum of one space between
-            // //
-            // if (lastElement instanceof StandardRenderString && renderElement instanceof StandardRenderString) {
-            //     const whiteSpaceBetween = lastElement.plainString.endsWith(' ') || renderElement.plainString.startsWith(' ')
-            //     return [...previous.slice(0, -1), new StandardRenderString(`${lastElement.plainString.trimEnd()}${whiteSpaceBetween ? ' ' : ''}${renderElement.plainString.trimStart()}`)]
-            // }
-
-            // //
-            // // Check if the previous two are a string followed by a Space tag, and the current element is a string, join them all with a single space
-            // //
-            // if (previous.length > 1) {
-            //     const previousToLast = previous[previous.length - 2]
-            //     if (previousToLast instanceof StandardRenderString && lastElement instanceof StandardRenderSpace && renderElement instanceof StandardRenderString) {
-            //         return [...previous.slice(0, -2), new StandardRenderString(`${previousToLast.plainString.trimEnd()} ${renderElement.plainString.trimStart()}`)]
-            //     }
-            // }
-            // return [...previous, renderElement]
         }
     }, [])
 }
@@ -426,97 +379,6 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
         return fromDelta(diff(this._delta, other._delta))
     }
 }
-
-type RenderConditionalStatement = {
-    if: string
-    dependencies?: string[];
-    payload: StandardRenderSimple
-}
-
-type RenderConditionalFallthrough = {
-    payload: StandardRenderSimple
-}
-
-// export class StandardRenderConditional extends StandardRenderAbstract implements StandardRenderElement {
-//     _statements: RenderConditionalStatement[]
-//     _fallthrough: RenderConditionalFallthrough | undefined
-
-//     constructor(arg?: any) {
-//         super()
-//         if (typeof arg === 'undefined') {
-//             this._statements = []
-//             return
-//         }
-//         if (!(isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaCondition(arg.data))) {
-//             throw new Error('Invalid argument to StandardRenderConditional constructor')
-//         }
-//         this._statements = arg.children
-//             .map<RenderConditionalStatement | undefined>(node => {
-//                 if (!(typeof node === 'string') && isSchemaConditionStatement(node.data)) {
-//                     return {
-//                         if: node.data.if,
-//                         dependencies: node.data.dependencies,
-//                         payload: new StandardRenderSimple(node.children as GenericTree<SchemaTag>)
-//                     }
-//                 }
-//                 return undefined
-//             })
-//             .filter(excludeUndefined)
-//         this._fallthrough = arg.children
-//             .map<RenderConditionalFallthrough | undefined>(node => {
-//                 if (!(typeof node === 'string') && isSchemaConditionFallthrough(node.data)) {
-//                     return {
-//                         payload: new StandardRenderSimple(node.children as GenericTree<SchemaTag>)
-//                     }
-//                 }
-//                 return undefined
-//             })
-//             .find(excludeUndefined)
-//         if (this._statements.length === 0) {
-//             throw new Error('Invalid argument to StandardRenderConditional constructor')
-//         }
-//     }
-
-//     override get plainString(): string {
-//         return this._fallthrough ? this._fallthrough.payload.plain.data.map(element => element.plainString).join('') : ''
-//     }
-
-//     override toJSON(): GenericTreeNodeFiltered<SchemaConditionTag, SchemaOutputTag> {
-//         return {
-//             data: { tag: 'If' as const },
-//             children: [
-//                 ...this._statements.map(({ if: condition, dependencies, payload }) => ({
-//                     data: { tag: 'Statement' as const, if: condition, dependencies },
-//                     children: payload.schema
-//                 })),
-//                 ...(this._fallthrough ? [{
-//                     data: { tag: 'Fallthrough' as const },
-//                     children: this._fallthrough.payload.schema
-//                 }] : [])
-//             ]
-//         }        
-//     }
-
-//     override toNDJSON(): RenderTreeNode {
-//         return {
-//             data: { tag: 'If' as const },
-//             children: [
-//                 ...this._statements.map(({ if: condition, dependencies, payload }) => ({
-//                     data: { tag: 'Statement' as const, if: condition, dependencies },
-//                     children: payload.schema
-//                 })),
-//                 ...(this._fallthrough ? [{
-//                     data: { tag: 'Fallthrough' as const },
-//                     children: this._fallthrough.payload.schema
-//                 }] : [])
-//             ]
-//         }
-//     }
-
-//     override clone(): StandardRenderConditional {
-//         return new StandardRenderConditional(this.toJSON())
-//     }
-// }
 
 export class StandardRender {
     _payload: StandardRenderSimple | StandardRenderRemove | StandardRenderReplace;
