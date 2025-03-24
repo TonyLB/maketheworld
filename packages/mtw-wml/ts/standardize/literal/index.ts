@@ -4,6 +4,8 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaString } from "../../schema/baseClasses"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
+import { treeFromWML } from "../utils"
+import { isSchemaTreeNode } from "../components/utils"
 
 //
 // StandardLiteralSimpleBase holds the contents for a simple StandardLiteral
@@ -93,7 +95,7 @@ const standardLiteralDiff = (base: string, incoming: string): { add?: string, re
     }
 }
 
-export const { constructorDelta: factory, merge, diff } = standardEditableFactory({
+export const { constructorDelta: factory, typeguard: isStandardLiteralData, merge, diff } = standardEditableFactory({
     typeguard: (value: any): value is string => (typeof value === 'string'),
     payloadFactory: payloadFactory,
     payload: StandardLiteralSimpleBase,
@@ -224,4 +226,82 @@ export class StandardLiteralReplace implements StandardEditableWrapper<StandardL
     diff(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
+}
+
+export class StandardLiteral {
+    _payload: StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace;
+    
+    constructor(arg: any) {
+        if (arg instanceof StandardLiteralSimple || arg instanceof StandardLiteralRemove || arg instanceof StandardLiteralReplace) {
+            this._payload = arg
+            return
+        }
+        const delta = factory(arg)
+        if (!delta) {
+            throw new Error('Invalid argument to StandardLiteral constructor')
+        }
+        if (delta.add) {
+            if (delta.remove) {
+                this._payload = new StandardLiteralReplace(arg)
+                return
+            }
+            this._payload = new StandardLiteralSimple(arg)
+            return
+        }
+        if (delta.remove) {
+            this._payload = new StandardLiteralRemove(arg)
+            return
+        }
+        throw new Error('Invalid argument to StandardLiteral constructor')
+    }
+
+    get schema(): GenericTree<SchemaTag> {
+        return this._payload.schema
+    }
+
+    toJSON(): StandardEditableData<string> {
+        return this._payload.toJSON()
+    }
+
+    merge(incoming: StandardLiteral): StandardLiteral | undefined {
+        const merged = this._payload.merge(incoming._payload)
+        if (merged) {
+            return new StandardLiteral(this._payload.merge(incoming._payload))
+        }
+        return undefined
+    }
+    diff(incoming: StandardLiteral | undefined): StandardLiteral | undefined {
+        if (incoming) {
+            const diff = this._payload.diff(incoming._payload)
+            if (diff) {
+                return new StandardLiteral(diff)
+            }
+            return undefined
+        }
+        else {
+            const reversedDelta = this._payload._delta
+            if (reversedDelta) {
+                if (reversedDelta.add) {
+                    return new StandardLiteral(new StandardLiteralRemove(new StandardLiteralSimpleBase(reversedDelta.add)))
+                }
+                if (reversedDelta.remove) {
+                    return new StandardLiteral(new StandardLiteralSimple(reversedDelta.remove))
+                }
+            }
+            return undefined
+        }
+    }
+    mapContents(callback: (incoming: string) => string): StandardLiteral {
+        if (this._payload instanceof StandardLiteralSimple) {
+            return new StandardLiteral(callback(this._payload.payload.data))
+        }
+        if (this._payload instanceof StandardLiteralRemove) {
+            return new StandardLiteral(new StandardLiteralRemove(new StandardLiteralSimpleBase(callback(this._payload.match.data))))
+        }
+        if (this._payload instanceof StandardLiteralReplace) {
+            return new StandardLiteral(new StandardLiteralReplace((new StandardLiteralSimple(callback(this._payload.match.data))).payload, (new StandardLiteralSimple(callback(this._payload.payload.data))).payload))
+        }
+        throw new Error('Invalid StandardLiteral payload')
+    }
+
 }
