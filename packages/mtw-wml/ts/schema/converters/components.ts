@@ -9,6 +9,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaMapContents, isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 
 const componentTemplates = {
     Exit: {
@@ -48,6 +49,8 @@ const componentTemplates = {
     }
 } as const
 
+const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTagFactory('ShortName')
+
 export const componentConverters: Record<string, ConverterMapEntry> = {
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
@@ -73,22 +76,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    ShortName: {
-        initialize: ({ parseOpen }): SchemaShortNameTag => ({
-            tag: 'ShortName',
-            ...validateProperties(componentTemplates.ShortName)(parseOpen)
-        }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaShortNameTag, SchemaTag> => {
-            if (!isSchemaShortName(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
+    ShortName: shortNameConverter,
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
             const { x, y, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
@@ -205,14 +193,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     //         node: { data, children }
     //     })
     // ),
-    ShortName: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-        tagRender({
-            ...args,
-            tag: 'ShortName',
-            properties: [],
-            node: { data, children }
-        })
-    ),
+    ShortName: shortNamePrintMap,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields

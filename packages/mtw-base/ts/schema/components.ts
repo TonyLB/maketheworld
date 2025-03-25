@@ -1,5 +1,6 @@
 import { SchemaBase, SchemaImportableBase } from "./baseClasses"
 import checkTypes, { CheckTypes } from "../utils/checkTypes"
+import { literalTagFactory } from "./literalTagFactory";
 
 export type SchemaShortNameTag = {
     tag: 'ShortName';
@@ -51,9 +52,8 @@ export type SchemaMomentTag = {
     key: string;
 } & SchemaImportableBase
 
-export const isSchemaShortName = (schema: any): schema is SchemaShortNameTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'ShortName' } })(schema)
-)
+const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
+export const isSchemaShortName = typeGuard
 
 export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
     checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING }, values: { tag: 'Exit' } })(schema)

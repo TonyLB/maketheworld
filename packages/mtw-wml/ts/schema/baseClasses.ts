@@ -1,4 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { SchemaLiteralTag } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaActionTag  | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
@@ -218,9 +219,7 @@ export type SchemaExampleTag = {
     key: string;
 } & SchemaImportableBase
 
-export type SchemaShortNameTag = {
-    tag: 'ShortName';
-} & SchemaBase
+export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
 export type SchemaRoomTag = {
     tag: 'Room';
@@ -342,7 +341,6 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaRemoveTag
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
-export const isSchemaShortName = (value: SchemaTag): value is SchemaShortNameTag => (value.tag === 'ShortName')
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
 export const isSchemaSummary = (value: SchemaTag): value is SchemaSummaryTag => (value.tag === 'Summary')
 export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => (value.tag === 'Replace')
