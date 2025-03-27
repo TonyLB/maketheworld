@@ -7,6 +7,7 @@ import { isSchemaTreeNode } from "./utils";
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
+import { StandardLiteral } from "../literal";
 
 export interface ComponentInterface {
     key: string;
@@ -27,7 +28,7 @@ export interface HasDescription {
 }
 
 export interface HasShortName {
-    shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
+    shortName?: StandardLiteral;
 }
 
 export interface HasFileAssociation {

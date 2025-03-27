@@ -1,10 +1,8 @@
 import { SchemaBase, SchemaImportableBase } from "./baseClasses"
 import checkTypes, { CheckTypes } from "../utils/checkTypes"
-import { literalTagFactory } from "./literalTagFactory";
+import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
 
-export type SchemaShortNameTag = {
-    tag: 'ShortName';
-} & SchemaBase
+export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
 export type SchemaExitTag = {
     tag: 'Exit';
