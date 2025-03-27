@@ -13,8 +13,9 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, Schema
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
-export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaOneCoolThingTag => (
-    isSchemaOneCoolThing(item)
+export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaOneCoolThingTag | SchemaShortNameTag => (
+    isSchemaOneCoolThing(item) ||
+    isSchemaShortName(item)
 )
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
     isSchemaName(item) || isSchemaPronouns(item) || isSchemaOneCoolThing(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaMeta(item)
