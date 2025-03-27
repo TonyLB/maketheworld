@@ -1,12 +1,11 @@
 import { GenericTree, GenericTreeNodeFiltered } from "../genericTree";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { PrintMapResult, PrintMode } from "./printMap";
-import { isSchemaString } from "./renderTree";
+import { isSchemaString, SchemaStringTag } from "./renderTree";
 import { SchemaTagType } from "./tagType";
 
 export type SchemaLiteralTag<D extends SchemaTagType> = {
     tag: D;
-    value: string;
 }
 
 export type LiteralTagFactoryOutput<D extends SchemaTagType> = {
@@ -28,15 +27,16 @@ export type LiteralTagFactoryOutput<D extends SchemaTagType> = {
 //
 export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFactoryOutput<D> => {
     const typeGuard = (value: any): value is SchemaLiteralTag<D> => (
-        checkTypes({ required: { tag: CheckTypes.STRING, value: CheckTypes.STRING }, values: { tag } })(value)
+        checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag } })(value)
     )
-    const tagRenderLiteral = ({ tag, options }: { tag: { data: any }, options: { indent: number } }): PrintMapResult[] => {
+    const tagRenderLiteral = ({ tag, options }: { tag: { data: any, children: any }, options: { indent: number } }): PrintMapResult[] => {
         if (!typeGuard(tag.data)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
-        const naive = `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>`
+        const textValue = tag.children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
+        const naive = `<${tag.data.tag}>${textValue}</${tag.data.tag}>`
         if (naive.length + Math.min(10, options.indent * 4) > 80) {
-            const prettyPrintedLines = tag.data.value.split('\n').join(' ').split(' ').reduce<string[]>((previous, word) => {
+            const prettyPrintedLines = textValue.split('\n').join(' ').split(' ').reduce<string[]>((previous, word) => {
                 if (previous.length === 0) {
                     return [word]
                 }
@@ -54,7 +54,7 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
             ]
         }
         else {
-            return [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${tag.data.value}</${tag.data.tag}>` }]
+            return [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${textValue}</${tag.data.tag}>` }]
         }
     }
     return {
@@ -68,19 +68,13 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
                 if (unmatchedKey) {
                     throw new Error(`Property '${unmatchedKey.key}' is not allowed in '${tag}' items.`)
                 }            
-                return {
-                    tag,
-                    value: ''
-                }
+                return { tag }
             },
             typeCheckContents: isSchemaString,
-            finalize: (initialTag: any, children: GenericTree<any>): GenericTreeNodeFiltered<SchemaLiteralTag<D>, never> => {
+            finalize: (initialTag: any, children: GenericTree<any>): GenericTreeNodeFiltered<SchemaLiteralTag<D>, SchemaStringTag> => {
                 return {
-                    data: {
-                        tag,
-                        value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                    },
-                    children: []
+                    data: { tag },
+                    children
                 }
             }    
         },

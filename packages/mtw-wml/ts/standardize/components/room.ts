@@ -81,7 +81,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Room',
-            shortName: this._shortName ? nestStandardLiteralTag<SchemaShortNameTag>(this._shortName, 'ShortName' as const) : undefined,
+            shortName: this.shortName ? nestStandardLiteralTag<SchemaShortNameTag>(this.shortName, 'ShortName' as const) : undefined,
             exits: stripUI ? stripUIFields(this.exits) : this.exits,
             ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
@@ -92,7 +92,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.schema)).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (nestStandardLiteralTag<SchemaShortNameTag>(shortName, 'ShortName'))).flat(1),
                 ...this.features.map((reference) => (reference.schema)),
                 ...this.examples.map((reference) => (reference.schema)),
                 ...this.exits
