@@ -92,7 +92,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (nestStandardLiteralTag<SchemaShortNameTag>(shortName, 'ShortName'))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map((reference) => (reference.schema)),
                 ...this.examples.map((reference) => (reference.schema)),
                 ...this.exits

@@ -24,6 +24,7 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
     clone: () => StandardEditableWrapper<PayloadType>;
     toJSON: () => StandardEditableData<PayloadDataType<PayloadType>>;
     schema: GenericTree<SchemaTag>;
+    nestedSchema: (tag: SchemaTag) => GenericTree<SchemaTag>;
     merge: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
     diff: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
     plain: PayloadType | undefined;

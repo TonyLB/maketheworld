@@ -125,6 +125,9 @@ class TestContentClass implements StandardEditableWrapper<testClass> {
     get schema() {
         return this.payload.schema
     }
+    nestedSchema() {
+        return this.payload.schema
+    }
     get _delta() {
         return { add: this.payload.toJSON() }
     }
@@ -156,6 +159,9 @@ class TestRemoveClass implements StandardEditableWrapper<testClass> {
         throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
+        return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'String' as const, value: this.match.data.name }, children: [] }] }]
+    }
+    nestedSchema() {
         return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'String' as const, value: this.match.data.name }, children: [] }] }]
     }
     get _delta() {
@@ -192,6 +198,12 @@ class TestReplaceClass implements StandardEditableWrapper<testClass> {
         throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
+        return [{ data: { tag: 'Replace' as const }, children: [
+            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
+            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
+        ] }]
+    }
+    nestedSchema() {
         return [{ data: { tag: 'Replace' as const }, children: [
             { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
             { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }

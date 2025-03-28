@@ -287,6 +287,9 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
     get schema() {
         return this.payload.schema
     }
+    nestedSchema(tag) {
+        return [{ data: tag, children: this.schema }]
+    }
     get _delta(): StandardEditableDataDelta<RenderTree> {
         return { add: this.payload.toJSON() }
     }
@@ -320,6 +323,12 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
     }
     get schema() {
         return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
+    }
+    nestedSchema(tag) {
+        return [{
+            data: { tag: 'Remove' as const },
+            children: [{ data: tag, children: this.match.schema }]
+        }]
     }
     get _delta(): StandardEditableDataDelta<RenderTree> {
         return { remove: this.match.toJSON() }
@@ -359,6 +368,21 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
             { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
             { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
         ] }]
+    }
+    nestedSchema(tag) {
+        return [{
+            data: { tag: 'Replace' as const },
+            children: [
+                {
+                    data: { tag: 'ReplaceMatch' as const },
+                    children: [{ data: tag, children: this.match.schema }]
+                },
+                {
+                    data: { tag: 'ReplacePayload' as const },
+                    children: [{ data: tag, children: this.payload.schema }]
+                }
+            ]
+        }]
     }
     get _delta(): StandardEditableDataDelta<RenderTree> {
         return { remove: this.match.toJSON(), add: this.payload.toJSON() }
@@ -415,6 +439,10 @@ export class StandardRender {
 
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
+    }
+
+    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+        return this._payload.nestedSchema(tag)
     }
 
     toJSON(): RenderTree {
