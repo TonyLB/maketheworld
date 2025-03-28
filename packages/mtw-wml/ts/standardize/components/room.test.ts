@@ -20,7 +20,7 @@ describe('StandardRoom class', () => {
         const testRoom = new StandardRoom(testSource)
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
-        expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
+        expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -39,7 +39,7 @@ describe('StandardRoom class', () => {
         const testRoom = new StandardRoom(schema.schema[0])
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
-        expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
+        expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -61,14 +61,14 @@ describe('StandardRoom class', () => {
         const testRoomData: StandardRoomData = {
             key: 'test',
             tag: 'Room',
-            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] },
+            shortName: 'ShortName Test',
             exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
         const testRoom = new StandardRoom(testRoomData)
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
-        expect(testRoom.shortName).toEqual({ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }] })
+        expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })

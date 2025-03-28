@@ -8,7 +8,7 @@ describe('literalTagFactory - printMap', () => {
 
     it('should return naive print mode for short content', () => {
         const result = printMap({
-            tag: { data: { tag, value: 'short content' } },
+            tag: { data: { tag }, children: [{ data: { tag: 'String', value: 'short content' }, children: [] }] },
             options: { indent: 0 }
         })
 
@@ -20,7 +20,7 @@ describe('literalTagFactory - printMap', () => {
     it('should return nested print mode for long content', () => {
         const longContent = 'This is a very long content that should be pretty printed because it exceeds the 80 characters limit when considering indentation.'
         const result = printMap({
-            tag: { data: { tag, value: longContent } },
+            tag: { data: { tag }, children: [{ data: { tag: 'String', value: longContent }, children: [] }] },
             options: { indent: 0 }
         })
 
@@ -34,7 +34,7 @@ describe('literalTagFactory - printMap', () => {
 
     it('should handle indentation correctly', () => {
         const result = printMap({
-            tag: { data: { tag, value: 'indented content' } },
+            tag: { data: { tag }, children: [{ data: { tag: 'String', value: 'indented content' }, children: [] }] },
             options: { indent: 2 }
         })
 
@@ -46,7 +46,7 @@ describe('literalTagFactory - printMap', () => {
     it('should word-wrap differently when indented', () => {
         const longContent = 'This is a very long content that should be pretty printed because it exceeds the 80 characters limit when considering indentation.'
         const result = printMap({
-            tag: { data: { tag, value: longContent } },
+            tag: { data: { tag }, children: [{ data: { tag: 'String', value: longContent }, children: [] }] },
             options: { indent: 3 }
         })
 
@@ -60,7 +60,7 @@ describe('literalTagFactory - printMap', () => {
 
     it('should return empty output for invalid tag data', () => {
         const result = printMap({
-            tag: { data: { tag: 'InvalidTag', value: 'content' } },
+            tag: { data: { tag: 'InvalidTag' }, children: [{ data: { tag: 'String', value: 'content' }, children: [] }] },
             options: { indent: 0 }
         })
 

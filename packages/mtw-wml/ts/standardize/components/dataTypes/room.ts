@@ -5,10 +5,11 @@ import { checkAll, checkTypes } from "./typeguards";
 import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardRemoveData } from ".";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardRoomData = {
     tag: 'Room';
-    shortName?: EditWrappedStandardNode<SchemaShortNameTag, SchemaOutputTag>;
+    shortName?: StandardEditableData<string>;
     exits: GenericTree<SchemaTag>;
     features?: (StandardReferenceData | StandardRemoveData)[];
     examples?: (StandardReferenceData | StandardRemoveData)[];

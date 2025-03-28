@@ -61,7 +61,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             const exitTagTree = tagTree
                 .filter({ match: 'Exit' })
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
-            this._shortName = new StandardLiteral(shortNameItem)
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._exits = defaultSelected(exitTagTree.tree)
             this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(editableReferenceFactory)
             this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
@@ -81,7 +81,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Room',
-            shortName: this._shortName ? nestStandardLiteralTag<SchemaShortNameTag>(this._shortName, 'ShortName' as const) : undefined,
+            shortName: this?.shortName?.toJSON(),
             exits: stripUI ? stripUIFields(this.exits) : this.exits,
             ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
@@ -92,7 +92,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.schema)).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (nestStandardLiteralTag<SchemaShortNameTag>(shortName, 'ShortName'))).flat(1),
                 ...this.features.map((reference) => (reference.schema)),
                 ...this.examples.map((reference) => (reference.schema)),
                 ...this.exits
