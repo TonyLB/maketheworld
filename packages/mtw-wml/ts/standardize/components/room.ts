@@ -42,7 +42,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardRoomData) {
         const { shortName } = props
-        this._shortName = new StandardLiteral(shortName)
+        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
         this._exits = props.exits
         this._features = props.features?.map((reference) => (new StandardReference(reference))) ?? []
         this._examples = props.examples?.map((reference) => (new StandardReference(reference))) ?? []

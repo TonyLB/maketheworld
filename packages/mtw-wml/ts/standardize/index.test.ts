@@ -1592,11 +1592,9 @@ describe('StandardForm', () => {
                     key: 'testRoomOne',
                     exits: [],
                     shortName: {
-                        data: { tag: 'Replace' },
-                        children: [
-                            { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }] },
-                            { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestReplace' }, children: [] }] }] }
-                        ]
+                        tag: 'Replace',
+                        match: 'Test',
+                        payload: 'Replace'
                     }
                 }
             },
