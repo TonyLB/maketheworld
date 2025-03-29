@@ -598,7 +598,7 @@ describe('schemaFromParse', () => {
             },
             children: [
                 { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] },
-                { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
+                { data: { tag: 'OneCoolThing' }, children: [{ data: { tag: 'String', value: 'Fuchsia eyes' }, children: [] }] },
                 {
                     data: {
                         tag: "Pronouns",    

@@ -1605,7 +1605,7 @@ describe('StandardForm', () => {
             <Asset key=(Test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>Test</ShortName></Replace>
-                    <With><ShortName>TestReplace</ShortName></With>
+                    <With><ShortName>Replace</ShortName></With>
                 </Room>
             </Asset>
         `))
