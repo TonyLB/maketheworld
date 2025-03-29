@@ -9,12 +9,9 @@ import {
     isCustomIfWrapper,
     isCustomLineBreak
 } from "../baseClasses"
-import StandardRenderString from "@tonylb/mtw-wml/ts/standardize/render/string"
-import StandardRenderLineBreak from "@tonylb/mtw-wml/ts/standardize/render/lineBreak"
-import StandardRenderSpace from "@tonylb/mtw-wml/ts/standardize/render/space"
-import StandardRenderLink from "@tonylb/mtw-wml/ts/standardize/render/link"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardAction from "@tonylb/mtw-wml/ts/standardize/components/action"
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 const descendantsTranslate = (render: StandardRender, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     const payload = render._payload
@@ -22,22 +19,22 @@ const descendantsTranslate = (render: StandardRender, options: { standard: Stand
         return []
 
     }
-    const returnValue = payload._elements.reduce<CustomParagraphContents[]>((previous, simpleRenderElement) => {
-        if (simpleRenderElement instanceof StandardRenderString) {
-            return [...previous, { text: simpleRenderElement.plainString }]
+    const returnValue = payload.toJSON().reduce<CustomParagraphContents[]>((previous, simpleRenderElement) => {
+        if (typeof simpleRenderElement === 'string') {
+            return [...previous, { text: simpleRenderElement }]
         }
-        if (simpleRenderElement instanceof StandardRenderLineBreak) {
+        if (isSchemaLineBreak(simpleRenderElement.data)) {
             return [...previous, { type: 'lineBreak' }]
         }
-        if (simpleRenderElement instanceof StandardRenderSpace) {
+        if (isSchemaSpacer(simpleRenderElement.data)) {
             return [...previous, { text: ' ' }]
         }
-        if (simpleRenderElement instanceof StandardRenderLink) {
-            const linkTarget = options.standard.byId[simpleRenderElement._to]
+        if (isSchemaLink(simpleRenderElement.data)) {
+            const linkTarget = options.standard.byId[simpleRenderElement.data.to]
             return [...previous, {
                 type: linkTarget instanceof StandardFeature ? 'featureLink' : linkTarget instanceof StandardAction ? 'actionLink' : 'knowledgeLink',
-                to: simpleRenderElement._to,
-                children: [{ text: simpleRenderElement._text || '' }]
+                to: simpleRenderElement.data.to,
+                children: [{ text: simpleRenderElement.children.filter((child) => typeof child === 'string').join('') }]
             } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement]
         }
         throw new Error('Invalid render element')

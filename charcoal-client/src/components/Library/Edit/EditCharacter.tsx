@@ -224,47 +224,6 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
     </Box>
 }
 
-type LiteralTagFieldProps = {
-    required?: boolean;
-    character: StandardCharacter;
-    tag: 'oneCoolThing';
-    label: string;
-}
-
-const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ character, required, tag, label }) => {
-    const { updateStandard } = useLibraryAsset()
-
-    const [currentTagValue, setCurrentTagValue] = useState(() => {
-        return ignoreWrapped<SchemaOneCoolThingTag, SchemaTag>(character[tag])?.data?.value || ''
-    })
-
-    const debouncedTagValue = useDebounce(currentTagValue, 500)
-
-    useEffect(() => {
-        updateStandard({
-            type: 'update',
-            update: (incoming: StandardForm) => {
-                const base = incoming.byId[character.key]
-                if (base instanceof StandardCharacter) {
-                    if (tag === 'oneCoolThing') {
-                        base._payload._oneCoolThing = { data: { tag: 'OneCoolThing', value: debouncedTagValue }, children: [] }
-                    }
-                }
-                return incoming
-            }
-        })
-    }, [character.key, tag, updateStandard, debouncedTagValue])
-
-    return <TextField
-        required={required}
-        id={`${tag.toLowerCase()}-field`}
-        label={label}
-        value={currentTagValue}
-        onChange={(event) => { setCurrentTagValue(event.target.value) }}
-    />
-
-}
-
 const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useLibraryAsset()
 
@@ -456,11 +415,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 // onChange={setCurrentPronouns}
                 onChange={() => {}}
                 {...currentPronouns}
-            />
-            <LiteralTagField
-                character={character}
-                tag="oneCoolThing"
-                label="One Cool Thing"
             />
             {/* <EditCharacterAssetList /> */}
         </Stack>
