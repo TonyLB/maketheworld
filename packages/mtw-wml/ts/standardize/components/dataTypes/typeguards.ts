@@ -1,11 +1,12 @@
 import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaTreeNode } from "../utils"
+import { isStandardLiteralData } from "../../literal"
 
 export const checkAll = (...items: boolean[]): boolean => (
     items.reduce<boolean>((previous, item) => (previous && item), true)
 )
 
-type CheckType = 'node' | 'tree' | 'renderTree' | 'string' | 'number' | 'boolean'
+type CheckType = 'node' | 'tree' | 'renderTree' | 'literal'| 'string' | 'number' | 'boolean'
 
 export const checkTypes = (item: any, requiredList: Record<string, CheckType>, optionalList?: Record<string, CheckType>): boolean => {
     const checkSingleType = (value: any, type: CheckType): boolean => {
@@ -22,6 +23,8 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
                     return false
                 }
                 return value.every(isRenderTreeNode)
+            case 'literal':
+                return isStandardLiteralData(value)
             default:
                 return typeof(value) === type
         }

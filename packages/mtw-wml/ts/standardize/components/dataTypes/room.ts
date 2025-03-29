@@ -1,9 +1,8 @@
 import { StandardReferenceData } from "./reference";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
+import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
-import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardRemoveData } from ".";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
@@ -27,7 +26,7 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
             exits: 'tree'
         },
         {
-            shortName: 'node',
+            shortName: 'literal',
         })
     )
 }

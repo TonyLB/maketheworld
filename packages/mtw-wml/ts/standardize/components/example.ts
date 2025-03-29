@@ -44,13 +44,13 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             const summaryItem = tagTree.filter({ match: 'Summary' }).prune({ match: 'Summary' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             const descriptionItem = tagTree.filter({ match: 'Description' }).prune({ match: 'Description' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            if (nameItem) {
+            if (nameItem.length) {
                 this._name = new StandardRender(nameItem)
             }
-            if (summaryItem) {
+            if (summaryItem.length) {
                 this._summary = new StandardRender(summaryItem)
             }
-            if (descriptionItem) {
+            if (descriptionItem.length) {
                 this._description = new StandardRender(descriptionItem)
             }
             return
