@@ -7,7 +7,7 @@ describe('descendantsToRender', () => {
     it('should return an empty StandardRender from empty paragraph', () => {
         const standard = new StandardForm('<Asset key=(base) />')
         const items: Descendant[] = [{ type: 'paragraph', children: [{ text: '' }]}]
-        expect(descendantsToRender(standard)(items)).toEqual(new StandardRender([]))
+        expect(descendantsToRender(standard)(items).toJSON()).toEqual([])
     })
 
     it('should return a text description', () => {
@@ -26,11 +26,11 @@ describe('descendantsToRender', () => {
                 text: ' and more text.'
             }]
         }]
-        expect(descendantsToRender(standard)(items)).toEqual(new StandardRender([
-            { data: { tag: 'String', value: 'This is a test ' }, children: [] },
+        expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+            'This is a test ',
             { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [] },
-            { data: { tag: 'String', value: ' and more text.' }, children: [] }
-        ]))
+            ' and more text.'
+        ])
     })
 
     it('should replace paragraph breaks with LineBreak tags', () => {
@@ -43,11 +43,11 @@ describe('descendantsToRender', () => {
             type: 'paragraph',
             children: [{ text: 'With two paragraphs.' }]
         }]
-        expect(descendantsToRender(standard)(items)).toEqual(new StandardRender([
-            { data: { tag: 'String', value: 'This is a test.' }, children: [] },
+        expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+            'This is a test.',
             { data: { tag: 'br' }, children: [] },
-            { data: { tag: 'String', value: 'With two paragraphs.' }, children: [] }
-        ]))
+            'With two paragraphs.'
+        ])
     })
 
     it('should replace space at end of last line (only) with Space tag', () => {
@@ -68,13 +68,13 @@ describe('descendantsToRender', () => {
                 { text: ' ' }
             ]
         }]
-        expect(descendantsToRender(standard)(items)).toEqual(new StandardRender([
-            { data: { tag: 'String', value: 'This is a test.' }, children: [] },
+        expect(descendantsToRender(standard)(items).toJSON()).toEqual([
+            'This is a test.',
             { data: { tag: 'br' }, children: [] },
-            { data: { tag: 'String', value: 'With ' }, children: [] },
+            'With ',
             { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },
-            { data: { tag: 'String', value: ' ' }, children: [] }
-        ]))
+            ' '
+        ])
     })
 
 })
