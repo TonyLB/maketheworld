@@ -45,7 +45,7 @@ describe('ComponentRender cache handler', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 tag: 'Room',
-                shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }] },
+                shortName: 'TestRoom',
                 exits: [],
                 key: 'testRoom',
                 stateMapping: {},
@@ -58,7 +58,7 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(descriptionOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+            ShortName: ['TestRoom'],
             Name: ['Example Name'],
             Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
@@ -71,7 +71,7 @@ describe('ComponentRender cache handler', () => {
         const summaryOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne', { header: true })
         expect(summaryOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+            ShortName: ['TestRoom'],
             Name: ['Example Name'],
             Summary: ['Summary'],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],

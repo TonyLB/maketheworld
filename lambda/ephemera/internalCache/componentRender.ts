@@ -347,7 +347,7 @@ export class ComponentRenderData {
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1)
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as ComponentMetaItem<StandardRoom>[]
             const exampleMap = await this._examples([EphemeraId])
             const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
             const [roomCharacterList, exits, rest] = (await Promise.all([
@@ -355,6 +355,7 @@ export class ComponentRenderData {
                 evaluateSchemaPromise(assetData, 'exits' as any),
                 mapEvaluatedSchemaOutputPromise<StandardRoom, RoomDescribeData>({ shortName: 'ShortName' }, [])
             ]))
+            const shortName = assetData[0].shortName
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
@@ -362,7 +363,7 @@ export class ComponentRenderData {
                     Characters: roomCharacterList.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
                     assets,
                     Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
-                    ...rest,
+                    ShortName: typeof shortName === 'string' ? [shortName] : [],
                     Name: naiveFirstExample.toNDJSON().name ?? [],
                     ...((getOptions && ('header' in getOptions) && getOptions.header)
                         ? { Summary: naiveFirstExample.toNDJSON().summary ?? [], Description: [] }
