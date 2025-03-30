@@ -13,6 +13,7 @@ import { isSchemaEdit } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isStandardExample } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraExampleId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraComputedId(EphemeraId) ||
@@ -51,36 +52,22 @@ const keysToDependencies = (keyMapping: Record<string, EphemeraId>) => (keys: st
     }).flat(1)
 }
 
-const extractDependenciesFromTaggedContent = (values: GenericTree<SchemaTag>, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
+const extractDependenciesFromTaggedContent = (values: RenderTree, keyMapping: Record<string, EphemeraId>): EphemeraDependency[] => {
     const returnValue = values.reduce<EphemeraDependency[]>((previous, item) => {
-        if (treeNodeTypeguard(isSchemaEdit)(item)) {
+        if (typeof item === 'string') {
+            return previous
+        }
+        const { data } = item
+        if (isSchemaLink(data)) {
             return [
-                ...previous,
-                ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+                ...previous.filter(({ target }) => (target !== data.to)),
+                ...keysToDependencies(keyMapping)([data.to])
             ]
         }
-        if (treeNodeTypeguard(isSchemaCondition)(item)) {
-            return [
-                ...previous,
-                ...extractDependenciesFromTaggedContent(item.children, keyMapping)
-            ]
-        }
-        if (treeNodeTypeguard(isSchemaConditionStatement)(item)) {
-            return [
-                ...previous,
-                ...[
-                    ...keysToDependencies(keyMapping)(item.data.dependencies ?? []),
-                    ...extractDependenciesFromTaggedContent(item.children, keyMapping)
-                ].filter((target) => (!previous.includes(target)))
-            ]
-        }
-        if (treeNodeTypeguard(isSchemaLink)(item)) {
-            return [
-                ...previous.filter(({ target }) => (target !== item.data.to)),
-                ...keysToDependencies(keyMapping)([item.data.to])
-            ]
-        }
-        return previous
+        return [
+            ...previous,
+            ...extractDependenciesFromTaggedContent(item.children, keyMapping)
+        ]
     }, [])
     return returnValue
 }
