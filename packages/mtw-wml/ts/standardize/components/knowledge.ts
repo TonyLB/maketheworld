@@ -101,7 +101,7 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         }
         const { hasDiff } = options ?? {}
         const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !examplesDiff.length) {
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
         const base = new StandardKnowledge(this.key).withImport(this.import).withExport(this.export) as StandardKnowledge

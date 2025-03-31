@@ -226,7 +226,7 @@ export const editableReferenceFactory = (node: GenericTreeNode<SchemaTag>): Stan
         }
         const base = new StandardReference(baseSchema)
         const incoming = new StandardReference(incomingSchema)
-        if (deepEqual(base.toNDJSON(), incoming.toNDJSON())) {
+        if (deepEqual(base.toJSON(), incoming.toJSON())) {
             return base
         }
         return new StandardReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))

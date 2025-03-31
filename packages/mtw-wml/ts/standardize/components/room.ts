@@ -182,7 +182,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         const { hasDiff } = options ?? {}
         const featuresDiff = diffStandardReferenceList({ base: this.features, incoming: incoming.features, hasDiff, parentKey: this.key })
         const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !featuresDiff.length && !examplesDiff.length) {
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
         const base = new StandardRoom(this.key).withImport(this.import).withExport(this.export) as StandardRoom
