@@ -29,17 +29,16 @@ describe('ExamplesData', () => {
         expect(output).toEqual({
             'ROOM#TestOne': [{
                 assetId: 'TestAsset',
-                examples: [
-                    new StandardExample({
-                        tag: 'Example',
-                        key: 'example1',
-                        universalKey: 'Base',
-                        name: ['Example Name'],
-                        description: ['Example Description'],
-                        summary: ['Example Summary']
-                    })
-                ]
+                examples: [expect.any(StandardExample)]
             }]
+        })
+        expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual({
+            tag: 'Example',
+            key: 'example1',
+            universalKey: 'Base',
+            name: ['Example Name'],
+            description: ['Example Description'],
+            summary: ['Example Summary']
         })
         expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.query).toHaveBeenCalledWith({
@@ -126,9 +125,10 @@ describe('ExamplesData', () => {
         expect(output).toEqual({
             'ROOM#TestOne': [{
                 assetId: 'TestAsset',
-                examples: [example]
+                examples: [expect.any(StandardExample)]
             }]
         })
+        expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual(example.toJSON())
         expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
     })
 })
