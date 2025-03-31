@@ -364,10 +364,10 @@ export class ComponentRenderData {
                     assets,
                     Exits: exits.map(({ data, children }) => (isSchemaExit(data) ? [{ Name: schemaOutputToString(treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), RoomId: data.to as EphemeraRoomId, Visibility: 'Public' as const }] : [])).flat(1),
                     ShortName: typeof shortName === 'string' ? [shortName] : [],
-                    Name: naiveFirstExample.toNDJSON().name ?? [],
+                    Name: naiveFirstExample.name ?? [],
                     ...((getOptions && ('header' in getOptions) && getOptions.header)
-                        ? { Summary: naiveFirstExample.toNDJSON().summary ?? [], Description: [] }
-                        : { Description: naiveFirstExample.toNDJSON().description ?? [], Summary: [] }
+                        ? { Summary: naiveFirstExample.summary ?? [], Description: [] }
+                        : { Description: naiveFirstExample.description ?? [], Summary: [] }
                     )
                 }
             }
@@ -384,8 +384,8 @@ export class ComponentRenderData {
                 description: {
                     ...(isEphemeraFeatureId(EphemeraId) ? { FeatureId: EphemeraId } : { KnowledgeId: EphemeraId }),
                     assets,
-                    Name: naiveFirstExample.toNDJSON().name ?? [],
-                    Description: naiveFirstExample.toNDJSON().description ?? []
+                    Name: naiveFirstExample.name ?? [],
+                    Description: naiveFirstExample.description ?? []
                 }
             }
         }
