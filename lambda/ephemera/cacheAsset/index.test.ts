@@ -129,7 +129,7 @@ describe('cacheAsset', () => {
                 <Room key=(ABC)>
                     <Example key=(base)>
                         <Name>
-                            Vortex<If {active}>(lit)</If>
+                            Vortex (lit)
                         </Name>
                         <Description>The lights are on</Description>
                     </Example>
@@ -226,18 +226,12 @@ describe('cacheAsset', () => {
         )
         expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
         expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
             ['ROOM#DEF']: [{
                 key: 'ABC.base',
                 tag: 'Example',
                 universalKey: 'EXAMPLE#MNO',
-                name: [
-                    'Vortex',
-                    { 
-                        data: { tag: 'If' },
-                        children: [{ data: { tag: 'Statement', if: 'active', dependencies: ['active'] }, children: ['(lit)'] }]
-                    }
-                ],
+                name: ['Vortex (lit)'],
                 description: ['The lights are on']
             }],
             ['KNOWLEDGE#GHI']: [{
@@ -343,7 +337,7 @@ describe('cacheAsset', () => {
         )
         expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
         expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
             ['ROOM#ABC']: [{
                 key: 'room1.base',
                 tag: 'Example',
@@ -441,7 +435,7 @@ describe('cacheAsset', () => {
         )
         expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
         expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toNDJSON())) })))).toEqual({
+        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
             ['ROOM#ABC']: [{
                 key: 'ABC.base',
                 tag: 'Example',

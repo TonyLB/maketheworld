@@ -39,6 +39,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
+import { stripUIFields } from '@tonylb/mtw-wml/ts/standardize/render/utils'
 
 export const pushEphemera = async({
     EphemeraId,
@@ -143,6 +144,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                     }
                     return previous
                 }, {})
+                const { universalKey, ...jsonItem } = item.toJSON()
                 //
                 // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
                 //
@@ -157,11 +159,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                     return previous
                 }, {})
                 return {
-                    ...(
-                        item instanceof StandardExample 
-                            ? item.toNDJSON({ stripUniversalKey: true, stripUIFields: true })
-                            : item.toJSON({ stripUniversalKey: true, stripUIFields: true })
-                    ),
+                    ...jsonItem,
                     keyMapping,
                     stateMapping,
                     ...(item instanceof StandardMap
@@ -183,6 +181,10 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
                                 return [{ data, children }]
                             })
                         }
+                        : {}
+                    ),
+                    ...(item instanceof StandardRoom
+                        ? { exits: stripUIFields(item.exits) }
                         : {}
                     )
                 }
