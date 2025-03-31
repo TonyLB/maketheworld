@@ -149,7 +149,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (!(incoming instanceof StandardExample)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON())) {
+        if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
         const base = new StandardExample(this.key).withImport(this.import).withExport(this.export) as StandardExample
@@ -183,15 +183,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
         return new StandardExample(super.withExport(exportData) as StandardExample)
-    }
-
-    override toNDJSON(options?: StandardToJSONOptions): StandardExampleNDJSONData {
-        return {
-            ...this._key.toJSON(options),
-            ...this._payload.toNDJSON(options),
-            ...(this.import ? { from: this.import.toJSON() } : {}),
-            ...(this.export ? { exportAs: this.export.toJSON() } : {})
-        }
     }
 
 }

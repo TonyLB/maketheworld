@@ -42,7 +42,6 @@ export interface StandardComponent {
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
-    toNDJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(byId: Record<string, StandardComponent>, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;

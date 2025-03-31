@@ -108,10 +108,6 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             } as D
         }
 
-        toNDJSON(options?: StandardToJSONOptions): D {
-            return this.toJSON(options)
-        }
-
         get schema(): GenericTreeNode<SchemaTag> {
             return this._payload.schema(this.key)
         }

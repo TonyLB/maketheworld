@@ -61,13 +61,6 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    toNDJSON(): Omit<StandardMomentData & SerializeNDJSONMixin, 'key' | 'universalKey'> {
-        return {
-            tag: 'Moment',
-            messages: this.messages.map((reference) => (reference.toNDJSON() as StandardReferenceData))
-        }
-    }
-
     schema(key: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key },
@@ -128,7 +121,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         }
         const { hasDiff } = options ?? {}
         const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages, hasDiff, parentKey: this.key })
-        if (deepEqual(this.toNDJSON(), incoming.toNDJSON()) && !messagesDiff.length) {
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
             return undefined
         }
         const base = new StandardMoment(this.key).withImport(this.import).withExport(this.export) as StandardMoment

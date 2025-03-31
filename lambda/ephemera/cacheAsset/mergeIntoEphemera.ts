@@ -134,12 +134,12 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
 
         const transactItems = Object.values(mergedExamples).map(({ itemA, itemB }) => {
             if (itemA && itemB) {
-                if (deepEqual(itemA.toNDJSON(), itemB.toNDJSON())) {
+                if (deepEqual(itemA.toJSON(), itemB.toJSON())) {
                     return undefined
                 }
-                const name = itemB._payload._name?.toNDJSON()
-                const description = itemB._payload._description?.toNDJSON()
-                const summary = itemB._payload._summary?.toNDJSON()
+                const name = itemB._payload._name?.toJSON()
+                const description = itemB._payload._description?.toJSON()
+                const summary = itemB._payload._summary?.toJSON()
                 return {
                     Put: {
                         EphemeraId: componentId,
@@ -157,9 +157,9 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
                 }
             }
             if (itemB) {
-                const name = itemB._payload._name?.toNDJSON()
-                const description = itemB._payload._description?.toNDJSON()
-                const summary = itemB._payload._summary?.toNDJSON()
+                const name = itemB._payload._name?.toJSON()
+                const description = itemB._payload._description?.toJSON()
+                const summary = itemB._payload._summary?.toJSON()
                 return {
                     Put: {
                         EphemeraId: componentId,
