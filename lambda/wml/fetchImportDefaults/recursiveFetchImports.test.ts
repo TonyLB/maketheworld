@@ -30,9 +30,9 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset key=(testFinal)>
                     <Room key=(testNonImport)>
-                        <Description>
-                            DescriptionOne
-                        </Description>
+                        <Example key=(base)>
+                            <Description>DescriptionOne</Description>
+                        </Example>
                         <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room key=(testNonImportStub)>
@@ -51,18 +51,18 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset key=(testFinal)>
                     <Room key=(testNonImport)>
-                        <Description>
-                            DescriptionOne
-                        </Description>
+                        <Example key=(base)>
+                            <Description>DescriptionOne</Description>
+                        </Example>
                         <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room key=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
                     </Room>
                     <Room key=(testImportOne)>
-                        <Description>
-                            Two
-                        </Description>
+                        <Example key=(base)>
+                            <Description>Two</Description>
+                        </Example>
                         <Exit to=(testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room key=(testImportStubOne) />
@@ -76,7 +76,7 @@ describe('recursiveFetchImports', () => {
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testNonImport'], stubKeys: []  })).toEqual(deIndentWML(`
             <Asset key=(testFinal)>
                 <Room key=(testNonImport)>
-                    <Description>DescriptionOne</Description>
+                    <Example key=(base)><Description>DescriptionOne</Description></Example>
                     <Exit to=(testNonImportStub)>test exit</Exit>
                 </Room>
                 <Room key=(testNonImportStub)><ShortName>StubOne</ShortName></Room>
@@ -89,9 +89,11 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset key=(testFinal)>
                     <Room key=(testImportOne)>
-                        <Description>
-                            Two
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                Two
+                            </Description>
+                        </Example>
                         <Exit to=(testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room key=(testImportStubOne) />
@@ -109,9 +111,9 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset key=(testImportAsset)>
                     <Room key=(testImportOne)>
-                        <Description>
-                            One
-                        </Description>
+                        <Example key=(base)>
+                            <Description>One</Description>
+                        </Example>
                     </Room>
                     <Room key=(testImportStubOne)>
                         <ShortName>StubTwo</ShortName>
@@ -128,7 +130,7 @@ describe('recursiveFetchImports', () => {
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(testImportOne)>
-                        <Description>OneTwo</Description>
+                        <Example key=(base)><Description>OneTwo</Description></Example>
                         <Exit to=(testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room key=(testImportStubOne)><ShortName>StubTwo</ShortName></Room>
@@ -152,9 +154,11 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`<Asset key=(testImportAsset)>
                 <Room key=(testImportFoo)>
                     <ShortName>StubFoo</ShortName>
-                    <Description>
-                        Foo
-                    </Description>
+                    <Example key=(base)>
+                        <Description>
+                            Foo
+                        </Description>
+                    </Example>
                 </Room>
             </Asset>`)
         ])
@@ -180,9 +184,11 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset key=(testImportAssetOne)>
                     <Room key=(basic)>
-                        <Description>
-                            Asset One
-                        </Description>
+                        <Example key=(base)>
+                            <Description>
+                                Asset One
+                            </Description>
+                        </Example>
                         <Exit to=(Stub1)>test exit one</Exit>
                     </Room>
                     <Room key=(Stub1) />
@@ -208,7 +214,7 @@ describe('recursiveFetchImports', () => {
                     <Room key=(Stub1)><ShortName>Asset Two</ShortName></Room>
                     <Room key=(Stub2)><ShortName>AssetTwoStub</ShortName></Room>
                     <Room key=(testImport)>
-                        <Description>Asset One</Description>
+                        <Example key=(base)><Description>Asset One</Description></Example>
                         <Exit to=(Stub2)>test exit two</Exit>
                         <Exit to=(Stub1)>test exit one</Exit>
                     </Room>
@@ -226,10 +232,14 @@ describe('recursiveFetchImports', () => {
             </Asset>`),
             new StandardForm(`<Asset key=(testImport)>
                 <Feature key=(testFeature)>
-                    <Description>Feature test</Description>
+                    <Example key=(base)>
+                        <Description>Feature test</Description>
+                    </Example>
                 </Feature>
                 <Room key=(testRoomWithFeatures)>
-                    <Description><Link to=(testFeature)>Test</Link></Description>
+                    <Example key=(base)>
+                        <Description><Link to=(testFeature)>Test</Link></Description>
+                    </Example>
                 </Room>
             </Asset>`)
         ])
@@ -237,7 +247,9 @@ describe('recursiveFetchImports', () => {
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(testRoomWithFeatures)>
-                        <Description><Link to=(featureImport)>Test</Link></Description>
+                        <Example key=(base)>
+                            <Description><Link to=(featureImport)>Test</Link></Description>
+                        </Example>
                     </Room>
                     <Feature key=(featureImport) />
                 </Asset>
