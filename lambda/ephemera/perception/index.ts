@@ -14,7 +14,7 @@ import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/compon
 import { isSchemaLink, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 type EphemeraCharacterDescription = {
-    [K in 'Name' | 'Pronouns' | 'OneCoolThing' | 'fileURL' | 'Color']: EphemeraCharacter[K];
+    [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
 }
 
 export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
@@ -136,7 +136,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         EphemeraId: ephemeraId,
                         DataCategory: 'Meta::Character'
                     },
-                    ProjectionFields: ['Name', 'Pronouns', 'OneCoolThing', 'fileURL', 'Color']
+                    ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color']
                 })) || {
                     Name: 'Unknown',
                     Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' },

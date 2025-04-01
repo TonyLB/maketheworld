@@ -121,7 +121,6 @@ export type EphemeraCharacter = {
     address: AssetWorkspaceAddress;
     Name: string;
     Pronouns: SchemaPronouns;
-    OneCoolThing?: string;
     Color: 'blue' | 'purple' | 'green' | 'pink';
     fileURL?: string;
     Connected: boolean;

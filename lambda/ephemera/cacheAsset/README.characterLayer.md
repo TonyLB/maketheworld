@@ -39,7 +39,6 @@ perceived by this character
         address: AssetWorkspaceAddress;
         Name: string;
         Pronouns: CharacterEphemeraPronouns;
-        OneCoolThing: string;
         Color: 'blue' | 'purple' | 'green' | 'pink';
         fileURL: string; // URL to cached icon image
         Connected: boolean;

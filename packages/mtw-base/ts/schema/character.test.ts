@@ -1,4 +1,4 @@
-import { isSchemaPronouns, isSchemaOneCoolThing, isSchemaCharacter } from './character'
+import { isSchemaPronouns, isSchemaCharacter } from './character'
 
 describe('character tags', () => {
     describe('isSchemaPronouns', () => {
@@ -10,18 +10,6 @@ describe('character tags', () => {
         it('should return false for invalid SchemaPronounsTag', () => {
             const schema = { tag: 'Invalid', subject: 'he', object: 'him', possessive: 'his', adjective: 'his', reflexive: 'himself' }
             expect(isSchemaPronouns(schema)).toBe(false)
-        })
-    })
-
-    describe('isSchemaOneCoolThing', () => {
-        it('should return true for valid SchemaOneCoolThingTag', () => {
-            const schema = { tag: 'OneCoolThing', value: 'Can juggle' }
-            expect(isSchemaOneCoolThing(schema)).toBe(true)
-        })
-
-        it('should return false for invalid SchemaOneCoolThingTag', () => {
-            const schema = { tag: 'Invalid', value: 'Can juggle' }
-            expect(isSchemaOneCoolThing(schema)).toBe(false)
         })
     })
 

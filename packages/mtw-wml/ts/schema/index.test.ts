@@ -573,7 +573,6 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
             <Name>Tess</Name>
-            <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Pronouns
                 subject="she"
                 object="her"
@@ -598,7 +597,6 @@ describe('schemaFromParse', () => {
             },
             children: [
                 { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] },
-                { data: { tag: 'OneCoolThing' }, children: [{ data: { tag: 'String', value: 'Fuchsia eyes' }, children: [] }] },
                 {
                     data: {
                         tag: "Pronouns",    
@@ -835,7 +833,6 @@ describe('schemaToWML', () => {
                     adjective="her"
                     reflexive="herself"
                 />
-                <OneCoolThing>Fuchsia Eyes</OneCoolThing>
                 <Image key=(TESSIcon) />
                 <Import from=(base) />
             </Character>

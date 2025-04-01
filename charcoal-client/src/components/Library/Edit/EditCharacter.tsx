@@ -49,7 +49,7 @@ import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutp
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SchemaOneCoolThingTag, SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
+import { SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'

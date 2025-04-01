@@ -16,7 +16,6 @@ const confirmGuestCharacter = async ({ characterId, name }: { characterId?: stri
     //     key: characterId,
     //     EphemeraId: `CHARACTER#${characterId}`,
     //     Name: name,
-    //     OneCoolThing: 'Enthusiastic Curiosity',
     //     Color: 'pink',
     //     Pronouns: {
     //         subject: 'they',

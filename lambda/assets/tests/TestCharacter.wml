@@ -1,6 +1,5 @@
 <Character key=(TESS) fileName="Tess" player="TonyLB">
     <Name>Tess</Name>
-    <OneCoolThing>Fuchsia eyes</OneCoolThing>
     <Pronouns
         subject="she"
         object="her"
