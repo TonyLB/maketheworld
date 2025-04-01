@@ -95,6 +95,15 @@ const standardRenderAdd = (base: RenderTree, incoming: RenderTree): RenderTree =
 }
 
 const standardRenderSubtract = (base: RenderTree, incoming: RenderTree): { add?: RenderTree, remove?: RenderTree } => {
+    if (base.length === 0) {
+        if (incoming.length === 0) {
+            return {}
+        }
+        return { remove: incoming }
+    }
+    if (incoming.length === 0) {
+        return { add: base }
+    }
     //
     // Function to compare individual elements of the render tree
     //
@@ -167,58 +176,38 @@ const standardRenderSubtract = (base: RenderTree, incoming: RenderTree): { add?:
         }
     }
 
+    const baseElement = base[base.length - 1]
+    const incomingElement = incoming[incoming.length - 1]
+    const { outcome, remainder } = compareElements(baseElement, incomingElement)
     //
-    // Compare the end of the base and incoming objects, to see if one is a subset of the other.
+    // Handle the case where the base and incoming elements are equal
     //
-    while(base.length > 0 && incoming.length > 0) {
-        const baseElement = base[base.length - 1]
-        const incomingElement = incoming[incoming.length - 1]
-        const { outcome, remainder } = compareElements(baseElement, incomingElement)
-        //
-        // Handle the case where the base and incoming elements are equal
-        //
-        if (outcome === 'Equal') {
-            base = base.slice(0, -1)
-            incoming = incoming.slice(0, -1)
-        }
-        //
-        // Handle the case where the base element is longer than the incoming element
-        //
-        else if (outcome === 'Base Longer') {
-            base = [...base.slice(0, -1), remainder].filter(excludeUndefined)
-            incoming = incoming.slice(0, -1)
-        }
-        //
-        // Handle the case where the incoming element is longer than the base element
-        //
-        else if (outcome === 'Incoming Longer') {
-            base = base.slice(0, -1)
-            incoming = [...incoming.slice(0, -1), remainder].filter(excludeUndefined)
-        }
-        //
-        // Handle the case where there is a conflict between the base and incoming elements
-        //
-        else if (outcome === 'Conflict') {
-            break
-        }
+    if (outcome === 'Equal') {
+        return standardRenderSubtract(base.slice(0, -1), incoming.slice(0, -1))
+    }
+    //
+    // Handle the case where the base element is longer than the incoming element
+    //
+    else if (outcome === 'Base Longer') {
+        return standardRenderSubtract(
+            [...base.slice(0, -1), remainder].filter(excludeUndefined),
+            incoming.slice(0, -1)
+        )
+    }
+    //
+    // Handle the case where the incoming element is longer than the base element
+    //
+    else if (outcome === 'Incoming Longer') {
+        return standardRenderSubtract(
+            base.slice(0, -1),
+            [...incoming.slice(0, -1), remainder].filter(excludeUndefined)
+        )
+    }
+    //
+    // Handle the case where there is a conflict between the base and incoming elements
+    //
+    throw new MergeConflictError('Conflict during subtract operation')
 
-    }
-
-    //
-    // Determine the final outcome based on the remaining elements
-    //
-    if (base.length === 0 && incoming.length === 0) {
-        return {}
-    }
-    else if (base.length === 0) {
-        return { remove: incoming }
-    }
-    else if (incoming.length === 0) {
-        return { add: base }
-    }
-    else {
-        throw new MergeConflictError('Conflict during subtract operation')
-    }
 }
 
 const standardRenderDiff = (base: RenderTree, incoming: RenderTree): { add?: RenderTree, remove?: RenderTree } => {
