@@ -211,29 +211,63 @@ const standardRenderSubtract = (base: RenderTree, incoming: RenderTree): { add?:
 }
 
 const standardRenderDiff = (base: RenderTree, incoming: RenderTree): { add?: RenderTree, remove?: RenderTree } => {
-    const firstDifferentIndex = base.findIndex((element, index) => {
-        return !(
-            index < incoming.length &&
-            deepEqual(element, incoming[index])
-        )
-    })
-    if (firstDifferentIndex === -1) {
-        const remainingTargetElements = incoming.slice(base.length)
-        if (remainingTargetElements.length === 0) {
+    if (base.length === 0) {
+        if (incoming.length === 0) {
             return {}
         }
-        else {
-            return { add: remainingTargetElements }
+        return { add: incoming }
+    }
+    if (incoming.length === 0) {
+        return { remove: base }
+    }
+    const baseElement = base[0]
+    const incomingElement = incoming[0]
+    if (typeof baseElement === 'string') {
+        if (typeof incomingElement === 'string') {
+            const firstDifferingIndex = baseElement.split('').findIndex((char, index) => (index >= incomingElement.length || char !== incomingElement[index]))
+            if (firstDifferingIndex === -1) {
+                if (baseElement.length === incomingElement.length) {
+                    return standardRenderDiff(base.slice(1), incoming.slice(1))
+                }
+                else {
+                    return standardRenderDiff(base.slice(1), [incomingElement.slice(firstDifferingIndex), ...incoming.slice(1)])
+                }
+            }
+            else {
+                if (firstDifferingIndex >= incomingElement.length) {
+                    return standardRenderDiff([baseElement.slice(firstDifferingIndex), ...base.slice(1)], incoming.slice(1))
+                }
+                else {
+                    const baseRemainder = baseElement.slice(firstDifferingIndex)
+                    const incomingRemainder = incomingElement.slice(firstDifferingIndex)
+                    return {
+                        remove: [baseRemainder, ...base.slice(1)],
+                        add: [incomingRemainder, ...incoming.slice(1)]
+                    }
+                }
+            }
+        }
+        if (incomingElement.data.tag === 'Space') {
+            if (baseElement.startsWith(' ')) {
+                return standardRenderDiff([baseElement.slice(1), ...base.slice(1)], incoming.slice(1))
+            }
+            else {
+                return { remove: base, add: incoming }
+            }
         }
     }
-    const remainingBaseElements = base.slice(firstDifferentIndex)
-    const remainingTargetElements = incoming.slice(firstDifferentIndex)
-    if (remainingTargetElements.length === 0) {
-        return { remove: remainingBaseElements }
+    else if (typeof incomingElement === 'string' && baseElement.data.tag === 'Space') {
+        if (incomingElement.startsWith(' ')) {
+            return standardRenderDiff(base.slice(1), [incomingElement.slice(1), ...incoming.slice(1)])
+        }
+        else {
+            return { remove: base, add: incoming }
+        }
     }
-    else {
-        return { add: remainingTargetElements, remove: remainingBaseElements }
+    else if (deepEqual(baseElement, incomingElement)) {
+        return standardRenderDiff(base.slice(1), incoming.slice(1))
     }
+    return { remove: base, add: incoming }
 }
 
 export const { constructorDelta: factory, merge, diff } = standardEditableFactory({
