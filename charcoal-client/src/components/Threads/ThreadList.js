@@ -33,7 +33,6 @@ ThreadList.propTypes = {
         characters: PropTypes.arrayOf(PropTypes.shape({
             Name: PropTypes.string,
             Pronouns: PropTypes.string,
-            OneCoolThing: PropTypes.string,
             color: PropTypes.shape({
                 primary: PropTypes.string,
                 light: PropTypes.string

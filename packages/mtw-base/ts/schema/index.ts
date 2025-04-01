@@ -1,6 +1,6 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { isSchemaGrant, SchemaGrantTag } from "./authorization"
-import { isSchemaOneCoolThing, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaOneCoolThingTag, SchemaPronounsTag } from "./character"
+import { isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaPronounsTag } from "./character"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag } from "./components"
 import { isSchemaAction, isSchemaComputed, isSchemaVariable, SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "./computation"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaSelected, SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "./condition"
@@ -13,12 +13,11 @@ import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, Schema
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
-export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaOneCoolThingTag | SchemaShortNameTag => (
-    isSchemaOneCoolThing(item) ||
+export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag => (
     isSchemaShortName(item)
 )
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
-    isSchemaName(item) || isSchemaPronouns(item) || isSchemaOneCoolThing(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaMeta(item)
+    isSchemaName(item) || isSchemaPronouns(item) || isSchemaImage(item) || isSchemaImport(item) || isSchemaMeta(item)
 )
 
 export type SchemaTaggedMessageIncomingContents = SchemaEditTag | SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaReplaceTag
@@ -44,7 +43,6 @@ export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoom
 export type SchemaTag = SchemaAssetTag |
     SchemaStoryTag |
     SchemaPronounsTag |
-    SchemaOneCoolThingTag |
     SchemaCharacterTag |
     SchemaImageTag |
     SchemaVariableTag |
@@ -94,7 +92,6 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaShortNameTag |
     SchemaNameTag |
     SchemaExampleTag |
-    SchemaOneCoolThingTag |
     SchemaMessageTag |
     SchemaMomentTag |
     SchemaEditTag
@@ -106,7 +103,7 @@ export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'If', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'OneCoolThing', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
+    ['Asset', 'Story', 'If', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
 )
 
 export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaActionTag | SchemaComputedTag | SchemaVariableTag => (
@@ -133,7 +130,6 @@ export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is S
 export const isSchemaTag = (value: any): value is SchemaTag => {
     return isSchemaAsset(value) ||
         isSchemaPronouns(value) ||
-        isSchemaOneCoolThing(value) ||
         isSchemaCharacter(value) ||
         isSchemaImage(value) ||
         isSchemaVariable(value) ||

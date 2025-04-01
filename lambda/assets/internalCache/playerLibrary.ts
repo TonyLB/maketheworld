@@ -55,13 +55,13 @@ export class CachePlayerLibraryData {
                     ExpressionAttributeValues: {
                         ':dcPrefix': 'Meta::'
                     },
-                    ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'Pronouns', 'OneCoolThing', 'scopedId']
+                    ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'Pronouns', 'scopedId']
                 }),
                 assetWorkspace.forceDefault().then(() => (assetWorkspace.presignedURL()))
             ])
             const Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-                .map(({ AssetId, Name, scopedId, fileName, fileURL, Pronouns, OneCoolThing }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL, Pronouns, OneCoolThing }))
+                .map(({ AssetId, Name, scopedId, fileName, fileURL, Pronouns }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL, Pronouns }))
                 .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item }), {} as Record<string, LibraryCharacter>)
             const Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))

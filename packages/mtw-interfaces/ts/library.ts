@@ -20,5 +20,4 @@ export type LibraryCharacter = {
         possessive: string;
         adjective: string;
     };
-    OneCoolThing?: string;
 }

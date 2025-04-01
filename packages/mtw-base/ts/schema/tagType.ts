@@ -1,7 +1,6 @@
 export type SchemaTagType = 
     'Asset' |
     'Pronouns' |
-    'OneCoolThing' |
     'Character' |
     'Image' |
     'Variable' |
@@ -40,7 +39,6 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
     typeof value === 'string' && [
         'Asset',
         'Pronouns',
-        'OneCoolThing',
         'Character',
         'Image',
         'Variable',

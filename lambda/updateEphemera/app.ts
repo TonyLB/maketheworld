@@ -32,12 +32,11 @@ export const handler = async (event) => {
                         EphemeraId: `CHARACTER#${retrievedGuestId}`,
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['assets', 'Color', 'Name', 'OneCoolThing', 'player', 'pronouns', 'RoomId'],
+                    updateKeys: ['assets', 'Color', 'Name', 'player', 'pronouns', 'RoomId'],
                     updateReducer: (draft) => {
                         draft.assets = event.Assets.map(({ AssetId }) => (AssetId))
                         draft.Color = 'pink'
                         draft.Name = event.guestName
-                        draft.OneCoolThing = 'Enthusiastic Curiosity'
                         draft.player = event.player
                         draft.pronouns = {
                             subject: 'they',

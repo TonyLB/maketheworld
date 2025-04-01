@@ -6,19 +6,17 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaOneCoolThing, isSchemaPronouns, SchemaOneCoolThingTag, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
+import { isSchemaPronouns, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
-    _oneCoolThing?: EditWrappedStandardNode<SchemaOneCoolThingTag, SchemaTag>;
     _pronouns?: EditWrappedStandardNode<SchemaPronounsTag, SchemaTag>;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
     tag = 'Character' as const
 
     fromJSON(props: StandardCharacterData) {
         this._name = props.name
-        this._oneCoolThing = props.oneCoolThing
         this._pronouns = props.pronouns
         this._image = props.image
     }
@@ -28,7 +26,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             this._pronouns = (node.children.find(treeNodeTypeguard(isSchemaPronouns)) ?? { children: [], data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' } })
             const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
             this._name = confirmOutputChildren(node.children.find(treeNodeTypeguard(isSchemaName)))
-            this._oneCoolThing = node.children.find(treeNodeTypeguard(isSchemaOneCoolThing))
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
             return
         }
@@ -36,7 +33,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 
     get name() { return this._name }
-    get oneCoolThing() { return this._oneCoolThing }
     get image() { return this._image }
     get pronouns() { return this._pronouns}
 
@@ -44,7 +40,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             tag: 'Character',
             name: this.name,
-            oneCoolThing: this.oneCoolThing,
             image: this.image,
             pronouns: this.pronouns
         }
@@ -69,7 +64,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 this.name,
                 pronounsFinalItem ? { data: { ...pronounsFinalItem, tag: 'Pronouns' as const }, children: [] } : undefined,
-                this.oneCoolThing,
                 this.image
             ].filter(excludeUndefined).flat(1)
         }
@@ -99,7 +93,6 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
     get pronouns() { return this._payload.pronouns }
     get name() { return this._payload.name }
-    get oneCoolThing() { return this._payload.oneCoolThing }
     get image() { return this._payload.image }
 }
 

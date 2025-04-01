@@ -1074,7 +1074,6 @@ describe('StandardForm', () => {
                         adjective="hers"
                         reflexive="herself"
                     />
-                    <OneCoolThing>Fuchsia eyes</OneCoolThing>
                     <Image key=(TessIcon) />
                 </Character>
                 <Image key=(TessIcon) />

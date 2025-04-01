@@ -16,14 +16,11 @@ const characterTemplates = {
         adjective: { required: true, type: ParsePropertyTypes.Literal },
         reflexive: { required: true, type: ParsePropertyTypes.Literal }
     },
-    OneCoolThing: {},
     Character: {
         key: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
     }
 } as const
-
-const { converter, printMap } = literalTagFactory('OneCoolThing')
 
 export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: {
@@ -32,7 +29,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Pronouns)(parseOpen)
         })
     },
-    OneCoolThing: converter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
             const properties = validateProperties(characterTemplates.Character)(parseOpen)
@@ -88,7 +84,6 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             })
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
-    OneCoolThing: printMap,
     Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaPronouns(tag)
             ? tagRender({
