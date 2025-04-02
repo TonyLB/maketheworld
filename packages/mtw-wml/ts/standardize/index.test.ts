@@ -1067,13 +1067,6 @@ describe('StandardForm', () => {
             <Asset key=(test)>
                 <Character key=(Tess)>
                     <Name>Tess</Name>
-                    <Pronouns
-                        subject="she"
-                        object="her"
-                        possessive="her"
-                        adjective="hers"
-                        reflexive="herself"
-                    />
                     <Image key=(TessIcon) />
                 </Character>
                 <Image key=(TessIcon) />

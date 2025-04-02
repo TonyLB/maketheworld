@@ -8,20 +8,10 @@ import { StandardReplace } from "./edits"
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
         const testSource = deIndentWML(`
-            <Character key=(test)>
-                <ShortName>Tess</ShortName>
-                <Pronouns
-                    subject="she"
-                    object="her"
-                    possessive="her"
-                    adjective="hers"
-                    reflexive="herself"
-                />
-            </Character>
+            <Character key=(test)><ShortName>Tess</ShortName></Character>
         `)
         const testCharacter = new StandardCharacter(testSource)
         expect(testCharacter.key).toEqual('test')
-        expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
         expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
         expect(schemaToWML([testCharacter.schema])).toEqual(testSource)
     })
@@ -30,12 +20,10 @@ describe('StandardCharacter class', () => {
         const testCharacterData: StandardCharacterData = {
             key: 'test',
             tag: 'Character',
-            pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             shortName: 'Tess',
         }
         const testCharacter = new StandardCharacter(testCharacterData)
         expect(testCharacter.key).toEqual('test')
-        expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
         expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
         expect(testCharacter.toJSON()).toEqual(testCharacterData)
     })
@@ -44,36 +32,13 @@ describe('StandardCharacter class', () => {
         expect(mergeTest(
             `<Character key=(test)>
                 <Name>Tess</Name>
-                <Pronouns
-                    subject="she"
-                    object="her"
-                    possessive="her"
-                    adjective="hers"
-                    reflexive="herself"
-                />
             </Character>`,
             StandardCharacter,
             `<Character key=(test)>
                 <Name>Tess</Name>
-                <Pronouns
-                    subject="they"
-                    object="them"
-                    possessive="their"
-                    adjective="theirs"
-                    reflexive="themself"
-                />
             </Character>`
         )).toEqual(deIndentWML(`
-            <Character key=(test)>
-                <Name>Tess</Name>
-                <Pronouns
-                    subject="they"
-                    object="them"
-                    possessive="their"
-                    adjective="theirs"
-                    reflexive="themself"
-                />
-            </Character>
+            <Character key=(test)><Name>Tess</Name></Character>
         `))
     })
 
@@ -81,7 +46,6 @@ describe('StandardCharacter class', () => {
         const testCharacter = new StandardCharacter({
             key: 'test',
             tag: 'Character',
-            pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
         })
         expect(testCharacter.diff(testCharacter)).toBeUndefined()
@@ -91,14 +55,12 @@ describe('StandardCharacter class', () => {
         const testCharacter = new StandardCharacter({
             key: 'test',
             tag: 'Character',
-            pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
             name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
         })
         const testCharacter2 = new StandardCharacter({
             key: 'test',
             tag: 'Character',
-            pronouns: { data: { tag: 'Pronouns', subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }, children: [] },
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tessa' }, children: [] }] },
         })
         expect(testCharacter.diff(testCharacter2)?.toJSON()).toEqual(new StandardReplace(testCharacter, testCharacter2).toJSON())
     })
