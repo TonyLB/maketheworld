@@ -24,7 +24,6 @@ export type SchemaPronounsTag = {
 export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
-    Pronouns: SchemaPronouns;
     update?: boolean;
 } & SchemaBase
 

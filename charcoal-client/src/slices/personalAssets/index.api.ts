@@ -302,27 +302,9 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
             data: {
                 tag: 'Character',
                 key: id.split('#')[1],
-                Pronouns: {
-                    subject: 'they',
-                    object: 'them',
-                    possessive: 'theirs',
-                    adjective: 'their',
-                    reflexive: 'themself'
-                }
             },
             children: [
                 { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Unknown' }, children: [] }] },
-                {
-                    data: {
-                        tag: 'Pronouns',
-                        subject: 'they',
-                        object: 'them',
-                        possessive: 'theirs',
-                        adjective: 'their',
-                        reflexive: 'themself'
-                    },
-                    children: []
-                },
             ]
         }]
     }

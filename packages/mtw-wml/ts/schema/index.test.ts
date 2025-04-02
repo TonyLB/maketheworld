@@ -573,13 +573,6 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS)>
             <Name>Tess</Name>
-            <Pronouns
-                subject="she"
-                object="her"
-                possessive="her"
-                adjective="hers"
-                reflexive="herself"
-            ></Pronouns>
             <Image key=(testIcon) />
         </Character>
         `)))
@@ -587,27 +580,9 @@ describe('schemaFromParse', () => {
             data: {
                 tag: "Character",
                 key: "TESS",
-                Pronouns: {
-                    adjective: "hers",
-                    object: "her",
-                    possessive: "her",
-                    reflexive: "herself",
-                    subject: "she",
-                }
             },
             children: [
                 { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] },
-                {
-                    data: {
-                        tag: "Pronouns",    
-                        adjective: "hers",
-                        object: "her",
-                        possessive: "her",
-                        reflexive: "herself",
-                        subject: "she",
-                    },
-                    children: []
-                },
                 { data: { tag: 'Image', key: 'testIcon' }, children: [] }
             ]
         }])
@@ -622,13 +597,6 @@ describe('schemaFromParse', () => {
             data: {
                 tag: "Character",
                 key: "TESS",
-                Pronouns: {
-                    adjective: "",
-                    object: "",
-                    possessive: "",
-                    reflexive: "",
-                    subject: "",
-                },
                 update: true
             },
             children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] }]
@@ -826,13 +794,6 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Character key=(TESS)>
                 <Name>Tess</Name>
-                <Pronouns
-                    subject="she"
-                    object="her"
-                    possessive="hers"
-                    adjective="her"
-                    reflexive="herself"
-                />
                 <Image key=(TESSIcon) />
                 <Import from=(base) />
             </Character>

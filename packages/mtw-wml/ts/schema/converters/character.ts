@@ -32,41 +32,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
             const properties = validateProperties(characterTemplates.Character)(parseOpen)
-            const Pronouns = properties.update
-                ? {
-                    subject: '',
-                    object: '',
-                    possessive: '',
-                    adjective: '',
-                    reflexive: ''
-                }
-                : {
-                    subject: 'they',
-                    object: 'them',
-                    possessive: 'their',
-                    adjective: 'theirs',
-                    reflexive: 'themself'
-                }
             return {
                 tag: 'Character',
-                Pronouns,
                 ...properties
             }
         },
         typeCheckContents: isSchemaCharacterContents,
-        finalize: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag> => {
-            if (!isSchemaCharacter(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.map(({ data }) => (data)).filter(isSchemaPronouns)].slice(-1)[0]
-            return {
-                data: {
-                    ...initialTag,
-                    Pronouns
-                },
-                children: contents
-            }
-        }
     }
 }
 
