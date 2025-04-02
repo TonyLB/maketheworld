@@ -9,7 +9,7 @@ describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
         const testSource = deIndentWML(`
             <Character key=(test)>
-                <Name>Tess</Name>
+                <ShortName>Tess</ShortName>
                 <Pronouns
                     subject="she"
                     object="her"
@@ -22,7 +22,7 @@ describe('StandardCharacter class', () => {
         const testCharacter = new StandardCharacter(testSource)
         expect(testCharacter.key).toEqual('test')
         expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
-        expect(testCharacter.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
+        expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
         expect(schemaToWML([testCharacter.schema])).toEqual(testSource)
     })
 
@@ -31,12 +31,12 @@ describe('StandardCharacter class', () => {
             key: 'test',
             tag: 'Character',
             pronouns: { data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] },
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+            shortName: 'Tess',
         }
         const testCharacter = new StandardCharacter(testCharacterData)
         expect(testCharacter.key).toEqual('test')
         expect(testCharacter.pronouns).toEqual({ data: { tag: 'Pronouns', subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }, children: [] })
-        expect(testCharacter.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] })
+        expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
         expect(testCharacter.toJSON()).toEqual(testCharacterData)
     })
 
