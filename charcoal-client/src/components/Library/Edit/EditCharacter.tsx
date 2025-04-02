@@ -29,7 +29,6 @@ import {
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
-    getAll,
     getStatus,
     setIntent,
     setLoadedImage,
@@ -42,187 +41,16 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { getMyAssets, getMyCharacterByKey } from '../../../slices/player'
+import { getMyCharacterByKey } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SchemaPronouns, SchemaPronounsTag } from '@tonylb/mtw-base/ts/schema/character'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-
-type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
-    selectValue: string;
-    onSelectChange: (selectValue: string) => void;
-    onChange: (pronouns: Omit<SchemaPronounsTag, 'tag'>) => void;
-}
-
-const standardPronouns: Record<string, Omit<SchemaPronounsTag, 'tag'>> = {
-    'he/him': {
-        subject: 'he',
-        object: 'him',
-        reflexive: 'himself',
-        possessive: 'his',
-        adjective: 'his'
-    },
-    'she/her': {
-        subject: 'she',
-        object: 'her',
-        reflexive: 'herself',
-        possessive: 'hers',
-        adjective: 'her'
-    },
-    'it': {
-        subject: 'it',
-        object: 'it',
-        reflexive: 'itself',
-        possessive: 'its',
-        adjective: 'its'
-    },
-    'they/them': {
-        subject: 'they',
-        object: 'them',
-        reflexive: 'themself',
-        possessive: 'theirs',
-        adjective: 'their'
-    },
-    'ze/zir': {
-        subject: 'ze',
-        object: 'zir',
-        reflexive: 'zirself',
-        possessive: 'zirs',
-        adjective: 'zir'
-    },
-    'xe/xem': {
-        subject: 'xe',
-        object: 'xem',
-        reflexive: 'xirself',
-        possessive: 'xirs',
-        adjective: 'xir'
-    },
-    'sie/hir': {
-        subject: 'sie',
-        object: 'hir',
-        reflexive: 'hirself',
-        possessive: 'hirs',
-        adjective: 'hir'
-    }
-}
-
-const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
-    selectValue,
-    onSelectChange,
-    onChange,
-    ...pronouns
-}) => {
-    const pronounMenuItems = useMemo(() => (
-        [
-            ...(Object.keys(standardPronouns).map((value) => (
-                <MenuItem key={`pronoun-${value}`} value={value}>{ value }</MenuItem>
-            ))),
-            <MenuItem key='pronoun-custom' value='custom'>custom</MenuItem>
-        ]
-    ), [])
-    const onChangeFactory = (tag: keyof SchemaPronouns) => (event: { target: { value: string }}) => {
-        onChange({ ...pronouns, [tag]: event.target.value })
-    }
-    return <Box sx={{ paddingTop: '1em' }}>
-        <Box
-            sx={{
-                position: 'relative',
-                border: '1px solid grey',
-                borderRadius: '5px',
-                padding: '1em',
-                paddingTop: '1.75em'
-            }}
-        >
-            <FormControl sx={{
-                position: 'absolute',
-                top: '-1.75em',
-                left: '0.25em',
-                overflow: 'visible',
-                m: 1,
-                maxWidth: 120,
-                alignContent: 'center',
-                justifyContent: 'center',
-                zIndex: '1',
-                backgroundColor: 'white'
-            }} size="small">
-                <InputLabel id="pronoun-select">Pronouns</InputLabel>
-                <Select
-                    labelId="pronoun-select"
-                    id="pronoun-select"
-                    value={selectValue}
-                    label="Pronouns"
-                    onChange={(event) => { onSelectChange(event.target.value) }}
-                >
-                    { pronounMenuItems }
-                </Select>
-            </FormControl>
-            <Grid container spacing={2}>
-                <Grid item xs={8} sm={6} md={4}>
-                    <TextField
-                        required
-                        id="pronoun-subject"
-                        label="Subject"
-                        value={pronouns.subject}
-                        size="small"
-                        disabled={selectValue !== 'custom'}
-                        onChange={onChangeFactory('subject')}
-                    />
-                </Grid>
-                <Grid item xs={8} sm={6} md={4}>
-                    <TextField
-                        required
-                        id="pronoun-object"
-                        label="Object"
-                        value={pronouns.object}
-                        size="small"
-                        disabled={selectValue !== 'custom'}
-                        onChange={onChangeFactory('object')}
-                    />
-                </Grid>
-                <Grid item xs={8} sm={6} md={4}>
-                    <TextField
-                        required
-                        id="pronoun-reflexive"
-                        label="Reflexive"
-                        value={pronouns.reflexive}
-                        size="small"
-                        disabled={selectValue !== 'custom'}
-                        onChange={onChangeFactory('reflexive')}
-                    />
-                </Grid>
-                <Grid item xs={8} sm={6} md={4}>
-                    <TextField
-                        required
-                        id="pronoun-possessive"
-                        label="Possessive"
-                        value={pronouns.possessive}
-                        size="small"
-                        disabled={selectValue !== 'custom'}
-                        onChange={onChangeFactory('possessive')}
-                    />
-                </Grid>
-                <Grid item xs={8} sm={6} md={4}>
-                    <TextField
-                        required
-                        id="pronoun-adjective"
-                        label="Adjective"
-                        value={pronouns.adjective}
-                        size="small"
-                        disabled={selectValue !== 'custom'}
-                        onChange={onChangeFactory('adjective')}
-                    />
-                </Grid>
-
-            </Grid>
-        </Box>
-    </Box>
-}
 
 const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useLibraryAsset()
@@ -309,33 +137,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         return undefined
     }, [standardForm])
 
-    const currentPronouns = useMemo<Omit<SchemaPronounsTag, 'tag'>>(() => {
-        const { tag, ...rest } = ignoreWrapped<SchemaPronounsTag, SchemaTag>(character?.pronouns)?.data ?? { subject: 'they', object: 'them', possessive: 'theirs', adjective: 'their', reflexive: 'themself' }
-        return rest
-    }, [character])
-    const selectValue = useMemo(() => {
-        const stringified = JSON.stringify(currentPronouns, Object.keys(currentPronouns).sort())
-        return (Object.entries(standardPronouns)
-            .find(([_, standard]) => {
-                return Boolean(JSON.stringify(standard, Object.keys(currentPronouns).sort()) === stringified)
-            })
-            ?.[0]) || 'custom'
-    }, [currentPronouns])
-    const onSelectChangeHandler = useCallback((value) => {
-        if (character && ((value !== 'custom') && standardPronouns[value])) {
-            updateStandard({
-                type: 'update',
-                update: (incoming: StandardForm) => {
-                    const base = incoming.byId[character.key]
-                    if (base instanceof StandardCharacter) {
-                        base._payload._pronouns = { data: { tag: 'Pronouns', ...standardPronouns[value] }, children: [] }
-                    }
-                    return incoming
-                }
-            })
-        }
-    }, [character, updateStandard])
-
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
         if (character?.key) {
@@ -409,13 +210,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     <LiteralNameField character={character} />
                 </Stack>
             </Stack>
-            <CharacterEditPronouns
-                selectValue={selectValue}
-                onSelectChange={onSelectChangeHandler}
-                // onChange={setCurrentPronouns}
-                onChange={() => {}}
-                {...currentPronouns}
-            />
             {/* <EditCharacterAssetList /> */}
         </Stack>
     </Box>
