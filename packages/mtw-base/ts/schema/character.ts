@@ -4,8 +4,10 @@ import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
+import { SchemaShortNameTag } from "./components";
+import { SchemaRemoveTag, SchemaReplaceTag } from "./edit";
 
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
 export type SchemaPronouns = {
     subject: string;
