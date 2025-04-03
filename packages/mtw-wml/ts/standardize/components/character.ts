@@ -14,12 +14,14 @@ import SchemaTagTree from "../../tagTree/schema"
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _shortName?: StandardLiteral;
+    _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
     tag = 'Character' as const
 
     fromJSON(props: StandardCharacterData) {
-        const { shortName } = props
+        const { shortName, pronouns } = props
         this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._pronouns = pronouns ? new StandardLiteral(pronouns) : undefined
         this._name = props.name
         this._image = props.image
     }
@@ -32,6 +34,11 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            const pronounsItem = tagTree
+                .filter({ match: 'Pronouns' })
+                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                .tree
+            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem) : undefined
             const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
             this._name = confirmOutputChildren(node.children.find(treeNodeTypeguard(isSchemaName)))
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
@@ -41,6 +48,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 
     get shortName() { return this._shortName }
+    get pronouns() { return this._pronouns}
     get name() { return this._name }
     get image() { return this._image }
 
@@ -48,6 +56,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             tag: 'Character',
             shortName: this?.shortName?.toJSON(),
+            pronouns: this?.pronouns?.toJSON(),
             name: this.name,
             image: this.image,
         }
@@ -58,6 +67,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             data: { tag: 'Character', key },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),
                 this.name,
                 this.image
             ].filter(excludeUndefined).flat(1)
@@ -87,6 +97,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
     get shortName() { return this._payload.shortName }
+    get pronouns() { return this._payload.pronouns }
     get name() { return this._payload.name }
     get image() { return this._payload.image }
 }

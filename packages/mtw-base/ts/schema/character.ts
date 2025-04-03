@@ -17,32 +17,16 @@ export type SchemaCharacterTag = {
     update?: boolean;
 } & SchemaBase
 
-export const isSchemaPronouns = (schema: any): schema is SchemaPronounsTag => (
-    checkTypes({
-        required: {
-            tag: CheckTypes.STRING,
-            subject: CheckTypes.STRING,
-            object: CheckTypes.STRING,
-            possessive: CheckTypes.STRING,
-            adjective: CheckTypes.STRING,
-            reflexive: CheckTypes.STRING
-        },
-        values: { tag: 'Pronouns' }
-    })(schema)
-)
+export const { typeGuard: isSchemaPronouns } = literalTagFactory('Pronouns')
 
 export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => (
     checkTypes({
         required: {
             tag: CheckTypes.STRING,
-            key: CheckTypes.STRING,
-            Pronouns: CheckTypes.OBJECT
+            key: CheckTypes.STRING
         },
         values: {
-            tag: 'Character',
-            Pronouns: (value: any): boolean => (
-                checkTypes({ required: { subject: CheckTypes.STRING, object: CheckTypes.STRING, possessive: CheckTypes.STRING, adjective: CheckTypes.STRING, reflexive: CheckTypes.STRING } })(value)
-            )
+            tag: 'Character'
         }
     })(schema)
 )

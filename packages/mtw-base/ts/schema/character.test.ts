@@ -15,17 +15,17 @@ describe('character tags', () => {
 
     describe('isSchemaCharacter', () => {
         it('should return true for valid SchemaCharacterTag', () => {
-            const schema = { tag: 'Character', key: 'char1', Pronouns: 'he/him' }
+            const schema = { tag: 'Character', key: 'char1' }
             expect(isSchemaCharacter(schema)).toBe(true)
         })
 
         it('should return false for invalid SchemaCharacterTag', () => {
-            const schema = { tag: 'Invalid', key: 'char1', Pronouns: 'he/him' }
+            const schema = { tag: 'Invalid', key: 'char1' }
             expect(isSchemaCharacter(schema)).toBe(false)
         })
 
         it('should return false for SchemaCharacterTag missing key', () => {
-            const schema = { tag: 'Character', Pronouns: 'he/him' }
+            const schema = { tag: 'Character' }
             expect(isSchemaCharacter(schema)).toBe(false)
         })
     })
