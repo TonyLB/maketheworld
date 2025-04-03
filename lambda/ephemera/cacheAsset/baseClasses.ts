@@ -25,7 +25,6 @@ import { splitType } from "@tonylb/mtw-utilities/ts/types";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { StateItemId } from "../internalCache/baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { SchemaPronouns } from "@tonylb/mtw-base/ts/schema/character";
 
 type WrappedSchemaOutputTag = SchemaOutputTag | { tag: 'Remove' } | { tag: 'Replace' } | { tag: 'ReplaceMatch' } | { tag: 'ReplacePayload' }
 
@@ -120,7 +119,7 @@ export type EphemeraCharacter = {
     key: string;
     address: AssetWorkspaceAddress;
     Name: string;
-    Pronouns: SchemaPronouns;
+    Pronouns?: string;
     Color: 'blue' | 'purple' | 'green' | 'pink';
     fileURL?: string;
     Connected: boolean;

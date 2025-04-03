@@ -32,7 +32,7 @@ describe('fetchPlayerEphemera', () => {
             Color: 'purple',
             HomeId: 'ROOM#VORTEX',
             assets: [],
-            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
+            Pronouns: 'they/them'
         })
         internalCacheMock.Global.get.mockResolvedValue('XYZ')
         await fetchPlayerEphemera({

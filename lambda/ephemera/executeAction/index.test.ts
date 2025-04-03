@@ -23,7 +23,7 @@ const exponentialBackoffMock = exponentialBackoffWrapper as jest.Mock
 describe('ExecuteActionMessage', () => {
     const testCharacterMeta: CharacterMetaItem = {
         Name: 'Tess',
-        Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+        Pronouns: 'she/her',
         Color: 'purple',
         EphemeraId: 'CHARACTER#Somebody',
         RoomId: 'ROOM#VORTEX',

@@ -1,7 +1,6 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomStackItem } from '../moveCharacter';
-import { SchemaPronouns } from '@tonylb/mtw-base/ts/schema/character';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
@@ -12,7 +11,7 @@ export type CharacterMetaItem = {
     fileURL?: string;
     HomeId: EphemeraRoomId;
     assets: string[];
-    Pronouns: SchemaPronouns;
+    Pronouns?: string;
     player?: string;
 }
 
@@ -35,7 +34,7 @@ export class CacheCharacterMetaData {
                         DataCategory: 'Meta::Character'
                     },
                     ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'RoomStack', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns', 'player']
-                }) || { EphemeraId: 'CHARACTER#', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+                }) || { EphemeraId: 'CHARACTER#', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: 'they/them' }
             if (options?.check && !(characterData.EphemeraId.split('#').slice(1)[0])) {
                 return undefined
             }

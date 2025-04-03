@@ -17,13 +17,7 @@ export const confirmGuestCharacter = async (userName: string): Promise<void> => 
         EphemeraId: `CHARACTER#${characterId}`,
         Name: name,
         Color: 'pink',
-        Pronouns: {
-            subject: 'they',
-            object: 'them',
-            possessive: 'their',
-            adjective: 'theirs',
-            reflexive: 'themself'
-        },
+        Pronouns: 'they/them',
         assets: [],
         RoomId: 'VORTEX',
         player: userName

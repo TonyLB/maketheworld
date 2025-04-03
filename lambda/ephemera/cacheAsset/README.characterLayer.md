@@ -38,7 +38,7 @@ perceived by this character
         DataCategory: 'Meta::Character';
         address: AssetWorkspaceAddress;
         Name: string;
-        Pronouns: CharacterEphemeraPronouns;
+        Pronouns?: string;
         Color: 'blue' | 'purple' | 'green' | 'pink';
         fileURL: string; // URL to cached icon image
         Connected: boolean;

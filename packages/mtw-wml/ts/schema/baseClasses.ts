@@ -50,17 +50,7 @@ export type SchemaImageTag = {
     fileURL?: string;
 } & SchemaImportableBase
 
-export type SchemaPronouns = {
-    subject: string;
-    object: string;
-    possessive: string;
-    adjective: string;
-    reflexive: string;
-}
-
-export type SchemaPronounsTag = {
-    tag: 'Pronouns';
-} & SchemaPronouns & SchemaBase
+export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 
 export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag => (
     isSchemaShortName(item)
@@ -73,7 +63,6 @@ export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharac
 export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
-    Pronouns: SchemaPronouns;
     update?: boolean;
 } & SchemaBase
 

@@ -168,13 +168,7 @@ type CharacterDescribeData = {
     CharacterId: EphemeraCharacterId;
     Name: string;
     fileURL?: string;
-    Pronouns?: {
-        subject: string;
-        object: string;
-        reflexive: string;
-        possessive: string;
-        adjective: string;
-    };
+    Pronouns?: string;
 }
 
 export type CharacterDescription = {

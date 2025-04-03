@@ -9,26 +9,17 @@ import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const characterTemplates = {
-    Pronouns: {
-        subject: { required: true, type: ParsePropertyTypes.Literal },
-        object: { required: true, type: ParsePropertyTypes.Literal },
-        possessive: { required: true, type: ParsePropertyTypes.Literal },
-        adjective: { required: true, type: ParsePropertyTypes.Literal },
-        reflexive: { required: true, type: ParsePropertyTypes.Literal }
-    },
+    Pronouns: {},
     Character: {
         key: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
     }
 } as const
 
+const { converter: pronounsConverter, printMap: pronounsPrintMap } = literalTagFactory('Pronouns')
+
 export const characterConverters: Record<string, ConverterMapEntry> = {
-    Pronouns: {
-        initialize: ({ parseOpen }): SchemaPronounsTag => ({
-            tag: 'Pronouns',
-            ...validateProperties(characterTemplates.Pronouns)(parseOpen)
-        })
-    },
+    Pronouns: pronounsConverter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
             const properties = validateProperties(characterTemplates.Character)(parseOpen)
@@ -55,20 +46,5 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             })
             : [{ printMode: PrintMode.naive, output: '' }]
     ),
-    Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
-        isSchemaPronouns(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Pronouns',
-                properties: [
-                    { key: 'subject', type: 'literal', value: tag.subject},
-                    { key: 'object', type: 'literal', value: tag.object},
-                    { key: 'possessive', type: 'literal', value: tag.possessive},
-                    { key: 'adjective', type: 'literal', value: tag.adjective},
-                    { key: 'reflexive', type: 'literal', value: tag.reflexive}
-                ],
-                node: { data: tag, children: [] }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    )
+    Pronouns: pronounsPrintMap
 }
