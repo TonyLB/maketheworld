@@ -38,13 +38,7 @@ export const handler = async (event) => {
                         draft.Color = 'pink'
                         draft.Name = event.guestName
                         draft.player = event.player
-                        draft.pronouns = {
-                            subject: 'they',
-                            object: 'them',
-                            adjective: 'theirs',
-                            possessive: 'their',
-                            reflexive: 'themself'
-                        }
+                        draft.pronouns = 'they/them'
                         if (!draft.RoomId) {
                             draft.RoomId = 'VORTEX'
                         }

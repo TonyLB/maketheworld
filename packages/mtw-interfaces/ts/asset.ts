@@ -143,13 +143,7 @@ export type AssetClientPlayerCharacter = {
     scopedId?: string;
     fileName?: string;
     fileURL?: string;
-    Pronouns?: {
-        subject: string;
-        object: string;
-        reflexive: string;
-        possessive: string;
-        adjective: string;
-    };
+    Pronouns?: string;
 }
 
 export type AssetClientPlayerSettings = {

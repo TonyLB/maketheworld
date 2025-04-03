@@ -53,7 +53,7 @@ describe("registerCharacter", () => {
             Color: 'purple',
             HomeId: 'ROOM#VORTEX',
             assets: [],
-            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
+            Pronouns: 'they/them'
         })
         connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection'], sessions: ['TestSession'] }))
         await registerCharacter({
@@ -114,7 +114,7 @@ describe("registerCharacter", () => {
             Color: 'purple',
             HomeId: 'ROOM#VORTEX',
             assets: [],
-            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
+            Pronouns: 'they/them'
         })
         connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection'], sessions: ['previous', 'TestSession'] }))
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })

@@ -143,16 +143,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                             })
                         }
                     },
-                    subject: characterMeta.Pronouns.subject,
-                    Subject: capitalize(characterMeta.Pronouns.subject),
-                    object: characterMeta.Pronouns.object,
-                    Object: capitalize(characterMeta.Pronouns.object),
-                    possessive: characterMeta.Pronouns.possessive,
-                    Possessive: capitalize(characterMeta.Pronouns.possessive),
-                    adjective: characterMeta.Pronouns.adjective,
-                    Adjective: capitalize(characterMeta.Pronouns.adjective),
-                    reflexive: characterMeta.Pronouns.reflexive,
-                    Reflexive: capitalize(characterMeta.Pronouns.reflexive),
+                    Pronouns: characterMeta.Pronouns
                 }
             }, (draftSandbox) => {
             const transform = (globalSandbox) => (new Proxy(globalSandbox, {

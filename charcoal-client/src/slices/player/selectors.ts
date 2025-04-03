@@ -31,7 +31,7 @@ export const getMySettings = (player: PlayerPublic): PlayerPublic['Settings'] =>
 const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Characters'][number] => ({
     CharacterId: `CHARACTER#${guestId}`,
     Name: guestName,
-    Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
+    Pronouns: 'they/them'
 })
 
 export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {

@@ -139,7 +139,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color']
                 })) || {
                     Name: 'Unknown',
-                    Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' },
+                    Pronouns: 'they/them',
                 }
                 messageBus.send({
                     type: 'PublishMessage',

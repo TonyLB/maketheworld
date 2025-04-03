@@ -27,12 +27,12 @@ describe('Perception message', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            Pronouns: 'she/her',
             fileURL: 'https://example.com/image.jpg'
         })
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            Pronouns: 'she/her',
             fileURL: 'https://example.com/image.jpg'
         })
         await perceptionMessage({ payloads: [
@@ -56,7 +56,7 @@ describe('Perception message', () => {
             targets: ['CHARACTER#TESS'],
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess', 
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
+            Pronouns: 'she/her',
             fileURL: 'https://example.com/image.jpg'
         })
     })
@@ -71,7 +71,7 @@ describe('Perception message', () => {
                 RoomId: 'ROOM#VORTEX',
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
-                Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+                Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
                 Base: {
@@ -117,7 +117,7 @@ describe('Perception message', () => {
                 RoomId: 'ROOM#VORTEX',
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
-                Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+                Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
                 Base: {
@@ -150,7 +150,7 @@ describe('Perception message', () => {
                 RoomId: 'ROOM#VORTEX',
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
-                Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+                Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
                 Base: {
@@ -188,7 +188,7 @@ describe('Perception message', () => {
                 RoomId: 'ROOM#VORTEX',
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
-                Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+                Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
                 Base: {

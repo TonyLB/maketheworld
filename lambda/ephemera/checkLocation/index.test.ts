@@ -27,13 +27,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], assets: string[]): void => {
         Name: 'Test',
         HomeId: 'ROOM#VORTEX' as const,
         assets,
-        Pronouns: {
-            subject: 'they',
-            object: 'them',
-            possessive: 'their',
-            adjective: 'theirs',
-            reflexive: 'themself'
-        }
+        Pronouns: 'they/them'
     }
     internalCacheMock.CharacterMeta.get.mockResolvedValue(characterMetaMock)
     ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ Key, updateReducer, successCallback }) => {

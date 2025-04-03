@@ -67,13 +67,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
         Name: 'Test',
         HomeId: 'ROOM#VORTEX',
         assets,
-        Pronouns: {
-            subject: 'they',
-            object: 'them',
-            possessive: 'their',
-            adjective: 'theirs',
-            reflexive: 'themself'
-        }
+        Pronouns: 'they/them'
     })
     internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', SessionIds: ['abcdef'] }])
 }

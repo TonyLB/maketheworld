@@ -9,17 +9,7 @@ import { SchemaRemoveTag, SchemaReplaceTag } from "./edit";
 
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
-export type SchemaPronouns = {
-    subject: string;
-    object: string;
-    possessive: string;
-    adjective: string;
-    reflexive: string;
-}
-
-export type SchemaPronounsTag = {
-    tag: 'Pronouns';
-} & SchemaPronouns & SchemaBase
+export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 
 export type SchemaCharacterTag = {
     tag: 'Character';

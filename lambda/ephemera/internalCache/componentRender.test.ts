@@ -23,7 +23,7 @@ describe('ComponentRender cache handler', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
             'ROOM#TestOne': [{
@@ -92,7 +92,7 @@ describe('ComponentRender cache handler', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
             Base: {
@@ -161,7 +161,7 @@ describe('ComponentRender cache handler', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
             Base: {
@@ -230,7 +230,7 @@ describe('ComponentRender cache handler', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
             switch(ephemeraId) {
