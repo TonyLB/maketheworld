@@ -8,6 +8,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 export type StandardCharacterData = {
     tag: 'Character';
     shortName?: StandardEditableData<string>;
+    pronouns?: StandardEditableData<string>;
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
 } & StandardBaseData

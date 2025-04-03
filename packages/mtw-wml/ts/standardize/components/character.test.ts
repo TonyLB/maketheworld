@@ -8,11 +8,15 @@ import { StandardReplace } from "./edits"
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
         const testSource = deIndentWML(`
-            <Character key=(test)><ShortName>Tess</ShortName></Character>
+            <Character key=(test)>
+                <ShortName>Tess</ShortName>
+                <Pronouns>they/them</Pronouns>
+            </Character>
         `)
         const testCharacter = new StandardCharacter(testSource)
         expect(testCharacter.key).toEqual('test')
         expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
+        expect(testCharacter.pronouns?.toJSON()).toEqual('they/them')
         expect(schemaToWML([testCharacter.schema])).toEqual(testSource)
     })
 
@@ -21,10 +25,12 @@ describe('StandardCharacter class', () => {
             key: 'test',
             tag: 'Character',
             shortName: 'Tess',
+            pronouns: 'they/them',
         }
         const testCharacter = new StandardCharacter(testCharacterData)
         expect(testCharacter.key).toEqual('test')
         expect(testCharacter.shortName?.toJSON()).toEqual('Tess')
+        expect(testCharacter.pronouns?.toJSON()).toEqual('they/them')
         expect(testCharacter.toJSON()).toEqual(testCharacterData)
     })
 
