@@ -19,7 +19,7 @@ export const isStandardCharacter = (arg: any): arg is StandardCharacterData => {
     }
 
     return checkAll(
-        ('tag' in arg && arg.tag === 'Action'),
+        ('tag' in arg && arg.tag === 'Character'),
         checkTypes(arg, {
             key: 'string',
         },

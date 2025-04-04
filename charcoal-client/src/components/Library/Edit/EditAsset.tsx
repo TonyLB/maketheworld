@@ -43,6 +43,7 @@ import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -58,7 +59,7 @@ import { blue } from '@mui/material/colors'
 
 type AssetEditFormProps = {}
 
-const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
+const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
     <Button
         onClick={onAdd}
         variant='contained'
@@ -77,6 +78,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     //
     // TODO: Refactor below into a single reduce statement that updates a record of lists.
     //
+    const characters = useMemo<StandardCharacter[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardCharacter => (value instanceof StandardCharacter))), [standardForm])
     const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardRoom => (value instanceof StandardRoom))), [standardForm])
     const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardFeature => (value instanceof StandardFeature))), [standardForm])
     const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardKnowledge => (value instanceof StandardKnowledge))), [standardForm])
@@ -87,7 +89,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardAction => (value instanceof StandardAction))), [standardForm])
 
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
+    const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))
@@ -134,6 +136,15 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <RecentlyVisited />
                 <List dense>
                     <ListSubheader>Components</ListSubheader>
+                    { characters.length
+                        ? characters.map((characterItem) => (<WMLComponentHeader
+                                key={characterItem.key}
+                                ItemId={characterItem.key}
+                                onClick={() => { navigate(`Character/${characterItem.key}`)}}
+                                icon={<MapIcon />}
+                            />))
+                        : null
+                    }
                     { maps.length
                         ? maps.map((mapItem) => (<WMLComponentHeader
                                 key={mapItem.key}
@@ -205,6 +216,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         </Box>
         { !readonly &&
             <LabelledIndentBox label="Add Component" color={blue}>
+                <AddWMLComponent type="Character" onAdd={addAsset('Character')} />
                 <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
                 <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
                 <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
