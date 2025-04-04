@@ -106,6 +106,11 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Sta
                 tag,
                 key
             }
+        case 'Character':
+            return {
+                tag,
+                key
+            }
         case 'Room':
             return {
                 tag,
