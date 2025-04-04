@@ -27,7 +27,7 @@ const WMLComponentName: FunctionComponent<{ itemId: string }> = ({ itemId }) => 
     }
     if (hasShortName(component)) {
         return <React.Fragment>
-            { schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled' }
+            { component.shortName?._payload?.plain.toJSON() || 'Untitled' }
             { itemId in inheritedStandardForm.byId ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }

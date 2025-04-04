@@ -5,6 +5,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import { ExportItemContent, ImportItemContent } from './components/metaData'
+import StandardCharacter from './components/character'
 
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
@@ -1073,6 +1074,7 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testSource)
+        expect(test.byId.Tess instanceof StandardCharacter).toBe(true)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 

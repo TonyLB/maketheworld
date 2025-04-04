@@ -10,6 +10,10 @@ import { isSchemaPronouns, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
+import { StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { deepEqual } from "../../lib/objects"
+import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -17,6 +21,15 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
     tag = 'Character' as const
+
+    constructor(previous?: StandardCharacterPayload) {
+        if (previous) {
+            this._shortName = previous._shortName
+            this._name = previous._name
+            this._image = previous._image
+            this._pronouns = previous._pronouns
+        }
+    }
 
     fromJSON(props: StandardCharacterData) {
         const { shortName, pronouns } = props
@@ -100,6 +113,58 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
     get pronouns() { return this._payload.pronouns }
     get name() { return this._payload.name }
     get image() { return this._payload.image }
+
+    constructor(props: string | StandardCharacterData | GenericTreeNode<SchemaTag> | StandardCharacter) {
+        super(props)
+    }
+
+    override clone(): StandardCharacter {
+        const returnValue = new StandardCharacter(this)
+        returnValue._payload = new StandardCharacterPayload(this._payload)
+        return returnValue
+    }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardCharacter(super.merge(incoming) as StandardCharacter)
+    }
+
+    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
+        if (!(incoming instanceof StandardCharacter)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        const { hasDiff } = options ?? {}
+        if (deepEqual(this.toJSON(), incoming.toJSON())) {
+            return undefined
+        }
+        const base = new StandardCharacter(this.key).withImport(this.import).withExport(this.export) as StandardCharacter
+        base._payload._shortName = this._payload._shortName
+            ? this._payload._shortName.diff(incoming._payload._shortName)
+            : incoming._payload._shortName
+        base._payload._pronouns = this._payload._pronouns
+            ? this._payload._pronouns.diff(incoming._payload._pronouns)
+            : incoming._payload._shortName
+        return base
+    }
+
+    override withKey(key: string): StandardComponent {
+        return new StandardCharacter(super.withKey(key) as StandardCharacter)
+    }
+
+    override withUniversalKey(key: string): StandardComponent {
+        return new StandardCharacter(super.withUniversalKey(key) as StandardCharacter)
+    }
+
+    override withFileName(key: string): StandardComponent {
+        return new StandardCharacter(super.withFileName(key) as StandardCharacter)
+    }
+
+    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+        return new StandardCharacter(super.withImport(importData) as StandardCharacter)
+    }
+
+    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+        return new StandardCharacter(super.withExport(exportData) as StandardCharacter)
+    }
 }
 
 export default StandardCharacter
