@@ -56,6 +56,7 @@ import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFa
 import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
 import { blue } from '@mui/material/colors'
+import EditCharacter from './EditCharacter'
 
 type AssetEditFormProps = {}
 
@@ -259,6 +260,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                         <Routes>
                             <Route path={'WML'} element={<WMLEdit />} />
                             <Route path={'Map/:MapId'} element={<MapEdit />} />
+                            <Route path={'Character/:ComponentId'} element={<EditCharacter />} />
                             <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
                             <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
