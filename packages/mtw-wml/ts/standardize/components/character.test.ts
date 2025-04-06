@@ -4,6 +4,7 @@ import { StandardCharacterData } from "./dataTypes/character"
 import { StandardCharacter } from './character'
 import { mergeTest } from "./utils/testing"
 import { StandardReplace } from "./edits"
+import { excludeUndefined } from "../../lib/lists"
 
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
@@ -37,14 +38,15 @@ describe('StandardCharacter class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Character key=(test)>
-                <Name>Tess</Name>
+                <ShortName>Tess</ShortName>
             </Character>`,
             StandardCharacter,
             `<Character key=(test)>
-                <Name>Tess</Name>
+                <Replace><ShortName>Tess</ShortName></Replace>
+                <With><ShortName>Tessty</ShortName></With>
             </Character>`
         )).toEqual(deIndentWML(`
-            <Character key=(test)><Name>Tess</Name></Character>
+            <Character key=(test)><ShortName>Tessty</ShortName></Character>
         `))
     })
 
@@ -58,16 +60,21 @@ describe('StandardCharacter class', () => {
     })
 
     it('should diff different components correctly', () => {
-        const testCharacter = new StandardCharacter({
-            key: 'test',
-            tag: 'Character',
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-        })
-        const testCharacter2 = new StandardCharacter({
-            key: 'test',
-            tag: 'Character',
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tessa' }, children: [] }] },
-        })
-        expect(testCharacter.diff(testCharacter2)?.toJSON()).toEqual(new StandardReplace(testCharacter, testCharacter2).toJSON())
+        const testCharacter = new StandardCharacter(`
+            <Character key=(test)>
+                <ShortName>Tess</ShortName>
+            </Character>
+        `)
+        const testCharacter2 = new StandardCharacter(`
+            <Character key=(test)>
+                <ShortName>Contessa</ShortName>
+            </Character>`
+        )
+        expect(schemaToWML([testCharacter.diff(testCharacter2)?.schema].filter(excludeUndefined))).toEqual(deIndentWML(`
+            <Character key=(test)>
+                <Replace><ShortName>Tess</ShortName></Replace>
+                <With><ShortName>Contessa</ShortName></With>
+            </Character>
+        `))
     })
 })
