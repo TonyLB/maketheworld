@@ -91,12 +91,10 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         if (!(incoming instanceof StandardCharacterPayload)) {
             throw new Error('Type mistmatch on StandardCharacter merge')
         }
-        // const args: StandardCharacterData = {
-        //     key: this.key,
-        //     tag: 'Character',
-        // }
-        // return new StandardCharacter(args)
-        return incoming
+        const returnValue = new StandardCharacterPayload()
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._pronouns = (this._pronouns && incoming._pronouns) ? this._pronouns.merge(incoming._pronouns) : this._pronouns ?? incoming._pronouns
+        return returnValue as this
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
@@ -132,7 +130,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         if (!(incoming instanceof StandardCharacter)) {
             throw new Error('Mismatched component types in diff')
         }
-        const { hasDiff } = options ?? {}
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
@@ -142,7 +139,7 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
             : incoming._payload._shortName
         base._payload._pronouns = this._payload._pronouns
             ? this._payload._pronouns.diff(incoming._payload._pronouns)
-            : incoming._payload._shortName
+            : incoming._payload._pronouns
         return base
     }
 

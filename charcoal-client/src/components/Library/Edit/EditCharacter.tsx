@@ -51,24 +51,25 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
-const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
+const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
-        return schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || ''
+        return character.shortName?._payload.plain.toJSON() || ''
     })
 
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        if ((schemaOutputToString(ignoreWrapped(character.name)?.children ?? []) || '') !== debouncedTagValue) {
+        if ((character.shortName?._payload.plain.toJSON() || '') !== debouncedTagValue) {
             updateStandard({
                 type: 'update',
                 update: (incoming: StandardForm) => {
                     const base = incoming.byId[character.key]
                     if (base instanceof StandardCharacter) {
-                        base._payload._name = { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: debouncedTagValue }, children: []}] }
+                        base._payload._shortName = debouncedTagValue ? new StandardLiteral(debouncedTagValue) : undefined
                     }
                     return incoming
                 }
@@ -79,7 +80,7 @@ const LiteralNameField: FunctionComponent<{ character: StandardCharacter }> = ({
     return <TextField
         required
         id="name-field"
-        label="Name"
+        label="Short Name"
         value={currentNameValue}
         onChange={(event) => { setCurrentNameValue(event.target.value) }}
     />
@@ -127,15 +128,16 @@ type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const { updateStandard, standardForm, save, AssetId, status } = useLibraryAsset()
+    const { ComponentId } = useParams<{ ComponentId: string }>()
     const navigate = useNavigate()
 
     const character = useMemo(() => {
-        const character = standardForm.byId[standardForm.key]
+        const character = standardForm.byId[ComponentId ?? '']
         if (character instanceof StandardCharacter) {
             return character
         }
         return undefined
-    }, [standardForm])
+    }, [standardForm, ComponentId])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -207,7 +209,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
-                    <LiteralNameField character={character} />
+                    <LiteralShortNameField character={character} />
                 </Stack>
             </Stack>
             {/* <EditCharacterAssetList /> */}
@@ -218,37 +220,21 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
 type EditCharacterProps = {}
 
 export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
+    const { ComponentId } = useParams<{ ComponentId: string }>()
+    const { assetKey, updateStandard, standardForm } = useLibraryAsset()
 
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-
-    const character = useSelector(getMyCharacterByKey(assetKey)) as AssetClientPlayerCharacter
+    const character = useSelector(getMyCharacterByKey(ComponentId)) as AssetClientPlayerCharacter
     useAutoPin({
-        href: `/Library/Edit/Character/${assetKey}`,
-        label: `${assetKey}`,
-        type: 'LibraryEdit',
-        assetId: character?.CharacterId
+        href: `/Library/Edit/Character/${ComponentId}`,
+        label: `${ComponentId}`,
+        type: 'ComponentEdit',
+        iconName: 'Room',
+        assetId: `ASSET#${assetKey}`,
+        componentId: ComponentId || ''
     })
     useOnboardingCheckpoint('editCharacter', { requireSequence: true })
-    const dispatch = useDispatch()
-    useEffect(() => {
-        if (assetKey) {
-            dispatch(addItem({ key: character?.CharacterId }))
-            dispatch(heartbeat)
-        }
-    }, [dispatch, assetKey])
 
-    const currentStatus = useSelector(getStatus(character?.CharacterId))
-
-    return (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
-        ? 
-            <LibraryAsset assetKey={character?.CharacterId?.split('#')?.slice(1)?.[0] || ''} character>
-                <Routes>
-                    <Route path={'WML'} element={<WMLEdit />} />
-                    <Route path={''} element={<CharacterEditForm />} />
-                </Routes>
-            </LibraryAsset>
-            
-        : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
+    return <CharacterEditForm />
 
 }
 
