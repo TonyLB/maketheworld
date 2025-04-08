@@ -6,6 +6,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { treeFromWML } from "../utils"
 import { isSchemaTreeNode } from "../components/utils"
+import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 
 //
 // StandardLiteralSimpleBase holds the contents for a simple StandardLiteral
@@ -120,12 +121,12 @@ const fromDelta = (delta: { add?: string, remove?: string }): StandardLiteralSim
 
 export class StandardLiteralSimple implements StandardEditableWrapper<StandardLiteralSimpleBase> {
     payload: StandardLiteralSimpleBase
-    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardLiteralSimpleBase) {
             this.payload = data
             return
         }
-        const delta = factory(data)
+        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
         if (delta && delta.add && !delta.remove) {
             this.payload = delta.add
             return
@@ -156,12 +157,12 @@ export class StandardLiteralSimple implements StandardEditableWrapper<StandardLi
 
 export class StandardLiteralRemove implements StandardEditableWrapper<StandardLiteralSimpleBase> {
     match: StandardLiteralSimpleBase
-    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardLiteralSimpleBase) {
             this.match = data
             return
         }
-        const delta = factory(data)
+        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
         if (delta && !delta.add && delta.remove) {
             this.match = delta.remove
             return
@@ -197,13 +198,13 @@ export class StandardLiteralRemove implements StandardEditableWrapper<StandardLi
 export class StandardLiteralReplace implements StandardEditableWrapper<StandardLiteralSimpleBase> {
     match: StandardLiteralSimpleBase
     payload: StandardLiteralSimpleBase
-    constructor(...args: [StandardEditableData<string> | GenericTree<SchemaTag> | string] | [StandardLiteralSimpleBase, StandardLiteralSimpleBase]) {
+    constructor(...args: [StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string] | [StandardLiteralSimpleBase, StandardLiteralSimpleBase]) {
         if (args.length === 2) {
             this.match = args[0]
             this.payload = args[1]
             return
         }
-        const delta = factory(args[0])
+        const delta = factory(isRenderTree(args[0]) ? renderTreeToSchema(args[0]) : args[0])
         if (delta && delta.add && delta.remove) {
             this.match = delta.remove
             this.payload = delta.add
@@ -260,7 +261,7 @@ export class StandardLiteral {
             this._payload = arg
             return
         }
-        const delta = factory(arg)
+        const delta = factory(isRenderTree(arg) ? renderTreeToSchema(arg) : arg)
         if (!delta) {
             throw new Error('Invalid argument to StandardLiteral constructor')
         }

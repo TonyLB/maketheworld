@@ -19,6 +19,12 @@ describe('StandardLiteral', () => {
         expect(literal.toJSON()).toEqual({ tag: 'Replace', match: 'old', payload: 'new' })
     })
 
+    it('should create a StandardLiteralSimple from RenderTree', () => {
+        const literal = new StandardLiteral(['test'])
+        expect(literal._payload).toBeInstanceOf(StandardLiteralSimple)
+        expect(literal.toJSON()).toEqual('test')
+    })
+
     it('should merge two StandardLiteralSimple instances', () => {
         const literal1 = new StandardLiteral('test1')
         const literal2 = new StandardLiteral('test2')
