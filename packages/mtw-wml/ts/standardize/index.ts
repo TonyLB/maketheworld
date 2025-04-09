@@ -243,6 +243,7 @@ export class StandardForm {
                 return
             }
         }
+        console.log(`Invalid arguments: ${JSON.stringify(args, null, 4)}`)
         throw new Error('Invalid arguments in StandardForm constructor')
     }
 
