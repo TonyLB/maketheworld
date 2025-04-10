@@ -17,7 +17,7 @@ export class FetchImportsJSONHelper {
         if (node) {
             const assetWorkspace = new AssetWorkspace(node.address)
             await assetWorkspace.loadJSON()
-            return new StandardForm(assetWorkspace.standard ?? '')
+            return assetWorkspace.standard ? assetWorkspace.standard : new StandardForm('')
         }
         else {
             return new StandardForm('')
