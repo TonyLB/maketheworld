@@ -238,6 +238,10 @@ export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
 
 export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
 
+export type CharacterEventMessage = {
+    type: 'CharacterEvent';
+}
+
 export type RoomUpdateMessage = {
     type: 'RoomUpdate';
     roomId: EphemeraRoomId;
@@ -288,6 +292,7 @@ export type MessageType = PublishMessage |
     PerceptionMessage |
     MoveCharacterMessage |
     CheckLocationMessage |
+    CharacterEventMessage |
     RoomUpdateMessage |
     ExecuteActionMessage |
     MapUpdateMessage |
@@ -314,6 +319,7 @@ export const isMapSubscription = (prop: MessageType): prop is MapSubscriptionMes
 export const isMapUnsubscribe = (prop: MessageType): prop is MapUnsubscribeMessage => (prop.type === 'UnsubscribeFromMaps')
 export const isImportDefaults = (prop: MessageType): prop is ImportDefaultsMessage => (prop.type === 'ImportDefaults')
 export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDefaultsMessage => (prop.type === 'FetchImportDefaults')
+export const isCharacterEventMessage = (prop: MessageType): prop is CharacterEventMessage => (prop.type === 'CharacterEvent')
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
