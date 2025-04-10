@@ -4,8 +4,6 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaString } from "../../schema/baseClasses"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { treeFromWML } from "../utils"
-import { isSchemaTreeNode } from "../components/utils"
 import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 
 //

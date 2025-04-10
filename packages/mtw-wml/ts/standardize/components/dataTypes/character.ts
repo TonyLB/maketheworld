@@ -24,7 +24,8 @@ export const isStandardCharacter = (arg: any): arg is StandardCharacterData => {
             key: 'string',
         },
         {
-            name: 'node',
+            shortName: 'literal',
+            pronouns: 'literal',
             image: 'node'
         })
     )

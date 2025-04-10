@@ -27,6 +27,7 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
         },
         {
             shortName: 'literal',
+            examples: 'referenceList'
         })
     )
 }

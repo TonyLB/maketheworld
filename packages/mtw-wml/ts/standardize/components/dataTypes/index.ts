@@ -1,21 +1,21 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { SerializeNDJSONMixin } from "../../baseClasses";
-import { isSchemaTreeNode } from "../utils";
-import { ComponentTag, StandardBaseData } from "./abstract";
-import { StandardActionData, isStandardAction } from "./action";
-import { isStandardCharacter, StandardCharacterData } from "./character";
-import { StandardComputedData, isStandardComputed } from "./computed";
-import { isStandardExample, StandardExampleData } from "./example";
-import { StandardFeatureData, isStandardFeature } from "./feature";
-import { StandardImageData, isStandardImage } from "./image";
-import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge";
-import { StandardMapData, isStandardMap } from "./map";
-import { StandardMessageData, isStandardMessage } from "./message";
-import { StandardMomentData, isStandardMoment } from "./moment";
-import { StandardRoomData, isStandardRoom } from "./room";
-import { checkAll } from "./typeguards";
-import { StandardVariableData, isStandardVariable } from "./variable";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import type { SerializeNDJSONMixin } from "../../baseClasses"
+import { isSchemaTreeNode } from "../utils"
+import { ComponentTag, StandardBaseData } from "./abstract"
+import { StandardActionData, isStandardAction } from "./action"
+import { isStandardCharacter, StandardCharacterData } from "./character"
+import { StandardComputedData, isStandardComputed } from "./computed"
+import { isStandardExample, StandardExampleData } from "./example"
+import { StandardFeatureData, isStandardFeature } from "./feature"
+import { StandardImageData, isStandardImage } from "./image"
+import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge"
+import { StandardMapData, isStandardMap } from "./map"
+import { StandardMessageData, isStandardMessage } from "./message"
+import { StandardMomentData, isStandardMoment } from "./moment"
+import { StandardRoomData, isStandardRoom } from "./room"
+import { StandardVariableData, isStandardVariable } from "./variable"
+import { checkAll } from "./typeguards"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
@@ -119,6 +119,10 @@ export const isStandardComponent = (arg: any): arg is StandardComponentData => (
 export const isStandardForm = (arg: any): arg is StandardFormData => {
     if (typeof arg !== 'object') {
         return false
+    }
+    const firstErrorComponent = Object.values(arg.byId ?? {}).find((value) => !isStandardComponent(value))
+    if (firstErrorComponent) {
+        console.error(`Invalid component in byId(${isStandardRoom(firstErrorComponent)}, ${JSON.stringify(Object.keys(firstErrorComponent))}): ${JSON.stringify(firstErrorComponent, null, 4)}`)
     }
     return checkAll(
         ('key' in arg && typeof arg.key === 'string'),
