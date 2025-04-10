@@ -14,7 +14,8 @@ import {
     isUnregisterCharacterMessage,
     isCanonUpdateMessage,
     isCheckLocation,
-    isDisconnectCharacterMessage
+    isDisconnectCharacterMessage,
+    isCharacterEventMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -30,6 +31,7 @@ import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscriptio
 import mapUpdateMessage from '../mapUpdate'
 import { canonUpdateMessage } from '../canonUpdate'
 import checkLocation from "../checkLocation"
+import characterEvent from "../characterEvents"
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -97,6 +99,12 @@ messageBus.subscribe({
     priority: 3,
     filter: isCheckLocation,
     callback: checkLocation
+})
+messageBus.subscribe({
+    tag: 'CharacterEvent',
+    priority: 3,
+    filter: isCharacterEventMessage,
+    callback: characterEvent
 })
 messageBus.subscribe({
     tag: 'RoomUpdate',
