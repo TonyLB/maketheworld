@@ -66,20 +66,3 @@ export class MetaData {
     }
 
 }
-
-export const Meta = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class Meta extends Base {
-        Meta: MetaData;
-
-        constructor(...rest: any) {
-            super(...rest)
-            this.Meta = new MetaData()
-        }
-        override clear() {
-            this.Meta.clear()
-            super.clear()
-        }
-    }
-}
-
-export default Meta

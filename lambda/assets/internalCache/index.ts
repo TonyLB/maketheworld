@@ -1,13 +1,18 @@
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { CacheConstructor, CacheBase } from './baseClasses'
-import CacheLibrary from './library'
+import { CacheConstructor } from './baseClasses'
+import { CacheLibraryData } from './library'
 import { S3Client } from "@aws-sdk/client-s3"
-import CachePlayerLibrary from './playerLibrary'
-import Meta from './meta'
-import CachePlayerSettings from './playerSettings'
-import CacheGraph from './graph'
-import CacheSessionConnections from './sessionConnections'
-import CachePlayerSessions from './playerSessions'
+import { CachePlayerLibraryData } from './playerLibrary'
+import { MetaData } from './meta'
+import { CachePlayerSettingData } from './playerSettings'
+import { GraphCacheType, graphDBHandler, GraphNodeType } from './graph'
+import { CacheSessionConnectionsData } from './sessionConnections'
+import { CachePlayerSessionsData } from './playerSessions'
+import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
+import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
+import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
+import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
+
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
 class CacheConnectionData {
@@ -102,6 +107,38 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = Meta(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CachePlayerSessions(CacheSessionConnections(CacheConnection(CacheGraph(CacheBase))))))))
+class InternalCache {
+    Connection: CacheConnectionData = new CacheConnectionData()
+    Meta: MetaData = new MetaData()
+    PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
+    PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
+    Library: CacheLibraryData = new CacheLibraryData()
+    PlayerSessions: CachePlayerSessionsData = new CachePlayerSessionsData()
+    SessionConnections: CacheSessionConnectionsData = new CacheSessionConnectionsData()
+    _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>> = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
+    Graph: GraphCacheType
+    GraphNodes: GraphNodeType
+    
+    constructor() {
+        this.Graph = this._graphCache.Graph
+        this.GraphNodes = this._graphCache.Nodes
+    }
+
+    clear(): void {
+        this.Connection.clear()
+        this.Meta.clear()
+        this.PlayerSettings.clear()
+        this.PlayerLibrary.clear()
+        this.Library.clear()
+        this.PlayerSessions.clear()
+        this.SessionConnections.clear()
+    }
+
+    async flush(): Promise<void> {
+        await Promise.all([
+            this._graphCache.flush()
+        ])
+    }
+}
 export const internalCache = new InternalCache()
 export default internalCache

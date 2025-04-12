@@ -66,16 +66,3 @@ export class CacheLibraryData {
         return Object.values(this[key] || {})
     }
 }
-
-export const CacheLibrary = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheConnection extends Base {
-        Library: CacheLibraryData = new CacheLibraryData()
-
-        override clear() {
-            this.Library.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheLibrary

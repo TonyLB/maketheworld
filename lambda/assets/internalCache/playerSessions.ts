@@ -28,16 +28,3 @@ export class CachePlayerSessionsData {
         return (await this.SessionsByPlayer)[player]
     }
 }
-
-export const CachePlayerSessions = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CachePlayerSessions extends Base {
-        PlayerSessions: CachePlayerSessionsData = new CachePlayerSessionsData()
-
-        override clear() {
-            this.PlayerSessions.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CachePlayerSessions
