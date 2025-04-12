@@ -29,16 +29,3 @@ export class CacheSessionConnectionsData {
         this.ConnectionsBySessionId[sessionId] = Promise.resolve(connections)
     }
 }
-
-export const CacheSessionConnections = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheSessionConnections extends Base {
-        SessionConnections: CacheSessionConnectionsData = new CacheSessionConnectionsData()
-
-        override clear() {
-            this.SessionConnections.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CacheSessionConnections

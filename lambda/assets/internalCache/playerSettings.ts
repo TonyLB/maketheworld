@@ -51,16 +51,3 @@ export class CachePlayerSettingData {
         return this.PlayerSettings[player] || { onboardCompleteTags: [], found: false }
     }
 }
-
-export const CachePlayerSettings = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CachePlayerSettings extends Base {
-        PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
-
-        override clear() {
-            this.PlayerSettings.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CachePlayerSettings

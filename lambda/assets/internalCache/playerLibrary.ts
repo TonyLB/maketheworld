@@ -76,16 +76,3 @@ export class CachePlayerLibraryData {
         return this.CharacterLibraries[player] || { Characters: {}, Assets: {} }
     }
 }
-
-export const CachePlayerLibrary = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CachePlayerLibrary extends Base {
-        PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
-
-        override clear() {
-            this.PlayerLibrary.clear()
-            super.clear()
-        }
-    }
-}
-
-export default CachePlayerLibrary
