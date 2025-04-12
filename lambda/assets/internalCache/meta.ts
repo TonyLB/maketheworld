@@ -6,6 +6,7 @@ import { CacheConstructor } from './baseClasses'
 type MetaCache = {
     AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
     address?: AssetWorkspaceAddress;
+    cached?: boolean;
 }
 
 export class MetaData {
@@ -35,7 +36,7 @@ export class MetaData {
                 AssetId,
                 DataCategory: 'Meta::Asset'
             })),
-            ProjectionFields: ['AssetId', 'address']
+            ProjectionFields: ['AssetId', 'address', 'cached']
         })) || []
         return addresses.filter(({ address }) => (isAssetWorkspaceAddress(address)))
     }
