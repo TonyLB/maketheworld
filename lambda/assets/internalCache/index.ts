@@ -12,6 +12,7 @@ import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utiliti
 import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
+import { AssetData } from './assetData'
 
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
@@ -110,6 +111,7 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
 class InternalCache {
     Connection: CacheConnectionData = new CacheConnectionData()
     Meta: MetaData = new MetaData()
+    AssetData: AssetData = new AssetData()
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
     Library: CacheLibraryData = new CacheLibraryData()
@@ -127,6 +129,7 @@ class InternalCache {
     clear(): void {
         this.Connection.clear()
         this.Meta.clear()
+        this.AssetData.clear()
         this.PlayerSettings.clear()
         this.PlayerLibrary.clear()
         this.Library.clear()
@@ -136,7 +139,8 @@ class InternalCache {
 
     async flush(): Promise<void> {
         await Promise.all([
-            this._graphCache.flush()
+            this._graphCache.flush(),
+            this.AssetData.flush()
         ])
     }
 }
