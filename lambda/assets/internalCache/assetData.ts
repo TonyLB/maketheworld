@@ -36,6 +36,7 @@ export class AssetData {
                 const ndjsonLines = (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
                     Key: { DataCategory: AssetId },
                     IndexName: 'DataCategoryIndex',
+                    allFields: true
                 })) || []
                 const standardForm = new StandardForm([
                     { tag: 'Asset', key: AssetId.split('#').slice(1)[0], universalKey: AssetId },

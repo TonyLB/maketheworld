@@ -9,6 +9,7 @@ type QueryExtendedProps = Partial<{
     KeyConditionExpression: string;
     ExpressionAttributeValues: Record<string, any>;
     FilterExpression: string;
+    allFields?: boolean;
 }>
 
 type QueryKeyPropsDataCategoryIndex = {
@@ -127,10 +128,12 @@ export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string 
                         ':keyId': keyId,
                         ...(ExpressionAttributeValues || {})
                     }),
-                    ProjectionExpression: ProjectionFields
+                    ...(props.allFields ? {} : {
+                        ProjectionExpression: ProjectionFields
                         .map((key) => (key === this._incomingKeyLabel ? this._internalKeyLabel : key))
                         .map((key) => (translateToExpressionAttributeNames[key] || key))
-                        .join(', '),
+                        .join(', ')
+                    }),
                     ExpressionAttributeNames: (Object.keys(revisedExpressionAttributeNames).length > 0)
                         ? revisedExpressionAttributeNames
                         : undefined,
