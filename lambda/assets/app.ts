@@ -61,6 +61,13 @@ export const handler = async (event, context) => {
     //
     if (event?.message) {
         switch(event.message) {
+            case 'cacheAsset':
+                messageBus.send({
+                    type: 'CacheAsset',
+                    assetId: event.assetId,
+                })
+                await messageBus.flush()
+                return {}
             case 'metaData':
                 return await Promise.all(
                     (event.assetIds || []).map(async (assetId) => {
