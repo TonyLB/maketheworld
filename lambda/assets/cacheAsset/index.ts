@@ -27,7 +27,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
 
             const diff = dbAsset.diff(fileAsset)
             if (diff) {
-                console.log(`Difference found for asset ${assetId}:`, schemaToWML([diff.schema]))
                 await Promise.all(Object.values(diff.byId)
                     .map(async (component) => {
                         if (!component.universalKey) {
