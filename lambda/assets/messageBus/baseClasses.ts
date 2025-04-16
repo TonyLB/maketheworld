@@ -88,6 +88,11 @@ export type CacheAssetMessage = {
     assetId: string;
 }
 
+export type DecacheAssetMessage = {
+    type: 'DecacheAsset';
+    assetId: string;
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchImportsMessage |
@@ -101,7 +106,8 @@ export type MessageType = ReturnValueMessage |
     PlayerSettingsMessage |
     LibraryUpdateMessage |
     RemoveAssetMessage |
-    CacheAssetMessage
+    CacheAssetMessage |
+    DecacheAssetMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -117,5 +123,6 @@ export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSetting
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 export const isRemoveAssetMessage = (prop: MessageType): prop is RemoveAssetMessage => (prop.type === 'RemoveAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
+export const isDecacheAssetMessage = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

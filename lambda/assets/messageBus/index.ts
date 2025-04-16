@@ -13,7 +13,8 @@ import {
     isPlayerSettingMessage,
     isRemoveAssetMessage,
     isReturnValueMessage,
-    isCacheAssetMessage
+    isCacheAssetMessage,
+    isDecacheAssetMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -27,6 +28,7 @@ import playerSettingMessage from "../player/update"
 import removeAssetMessage from "../removeAsset"
 import returnValueMessage from "../returnValue"
 import cacheAssetMessage from "../cacheAsset"
+import decacheAssetMessage from "../decacheAsset"
 
 export const messageBus = new MessageBus()
 
@@ -95,6 +97,12 @@ messageBus.subscribe({
     priority: 7,
     filter: isCacheAssetMessage,
     callback: cacheAssetMessage
+})
+messageBus.subscribe({
+    tag: 'DecacheAsset',
+    priority: 7,
+    filter: isDecacheAssetMessage,
+    callback: decacheAssetMessage
 })
 messageBus.subscribe({
     tag: 'PlayerSettings',
