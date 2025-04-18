@@ -98,10 +98,13 @@ export const handler = async (event, context) => {
                 })
                 await messageBus.flush()
                 if (zone === 'Archive') {
-                    await sfnClient.send(new StartExecutionCommand({
-                        stateMachineArn: process.env.DECACHE_SFN,
-                        input: JSON.stringify({ assetIds: [AssetId] })
-                    }))        
+                    //
+                    // TODO ISS-5564: Redesign archive decache to directly call asset-lambda-internal function
+                    //
+                    // await sfnClient.send(new StartExecutionCommand({
+                    //     stateMachineArn: process.env.DECACHE_SFN,
+                    //     input: JSON.stringify({ assetIds: [AssetId] })
+                    // }))        
                 }
                 return {}
         }

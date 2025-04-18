@@ -36,11 +36,11 @@ States:
             -
                 Variable: "$.args.addresses"
                 IsPresent: True
-                Next: Cache Ephemera
+                Next: Cache All
         Default: Assign Addresses
     "Assign Addresses":
         Type: Task
-        Next: Cache Ephemera
+        Next: Cache All
         Resource: "${AddressLookupFunctionArn}"
         Parameters:
             "assetIds.$": "$.args.assetIds"
@@ -57,15 +57,32 @@ States:
                 ErrorEquals:
                     - States.All
                 Next: Notify of Failure
-    "Cache Ephemera":
-        Type: Task
+    "Cache All":
+        Type: Parallel
         Next: Done
-        Resource: "${EphemeraFunctionArn}"
-        Parameters:
-            "message": "cacheAssets"
-            "assetIds.$": "$.args.assetIds"
-            "addresses.$": "$.args.addresses"
-            "options.$": "$.args.options"
+        Branches:
+            -
+                StartAt: Cache Assets
+                States:
+                    "Cache Assets":
+                        Type: Task
+                        End: true
+                        Resource: "${AssetsFunctionArn}"
+                        Parameters:
+                            "message": "cacheAssets"
+                            "assetId.$": "$.args.assetIds[0]"
+            -
+                StartAt: Cache Ephemera
+                States:
+                    "Cache Ephemera":
+                        Type: Task
+                        End: true
+                        Resource: "${EphemeraFunctionArn}"
+                        Parameters:
+                            "message": "cacheAssets"
+                            "assetIds.$": "$.args.assetIds"
+                            "addresses.$": "$.args.addresses"
+                            "options.$": "$.args.options"
         Catch:
             -
                 ErrorEquals:

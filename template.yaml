@@ -1224,12 +1224,10 @@ Resources:
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
                   COGNITO_POOL_ID: !Ref UserPool
                   PARSE_WML_SFN: !Ref ParseWMLStateMachine
-                  CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
                   FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine
                   LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
                   APPLY_EDIT_SFN: !Ref ApplyWMLEditStateMachine
-                  DECACHE_SFN: !Ref DecacheAssetsStateMachine
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -1237,8 +1235,6 @@ Resources:
                 TableName: !Sub '${TablePrefix}_connections'
             - SNSPublishMessagePolicy:
                 TopicName: !GetAtt MTWFeedbackTopic.TopicName
-            - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_cache_assets_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_parse_wml_step_function'
             - StepFunctionsExecutionPolicy:
@@ -1249,8 +1245,6 @@ Resources:
                 StateMachineName: !Sub '${TablePrefix}_llm_generate_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_apply_wml_edit_step_function'
-            - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_decache_assets_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'
@@ -1550,6 +1544,7 @@ Resources:
       DefinitionSubstitutions:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+        AssetsFunctionArn: !GetAtt AssetsFunction.Arn
         TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
