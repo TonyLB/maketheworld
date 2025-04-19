@@ -1223,11 +1223,8 @@ Resources:
                   IMAGES_BUCKET: !Sub '${TablePrefix}-images'
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
                   COGNITO_POOL_ID: !Ref UserPool
-                  PARSE_WML_SFN: !Ref ParseWMLStateMachine
-                  FETCH_IMPORTS_SFN: !Ref FetchImportsStateMachine
                   HEAL_SFN: !Ref HealStateMachine
                   LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
-                  APPLY_EDIT_SFN: !Ref ApplyWMLEditStateMachine
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -1236,15 +1233,9 @@ Resources:
             - SNSPublishMessagePolicy:
                 TopicName: !GetAtt MTWFeedbackTopic.TopicName
             - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_parse_wml_step_function'
-            - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_fetch_imports_step_function'
-            - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_llm_generate_step_function'
-            - StepFunctionsExecutionPolicy:
-                StateMachineName: !Sub '${TablePrefix}_apply_wml_edit_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'

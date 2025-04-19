@@ -22,16 +22,20 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
                 ancestry.edges as any,
                 { address: {} as any }
             )
-            await sfnClient.send(new StartExecutionCommand({
-                stateMachineArn: process.env.FETCH_IMPORTS_SFN,
-                input: JSON.stringify({
-                    ConnectionId,
-                    RequestId,
-                    inheritanceNodes: Object.values(inheritanceGraph.nodes),
-                    inheritanceEdges: inheritanceGraph.edges,
-                    payloads: importsFromAsset
-                })
-            }))
+            //
+            // TODO: ISS-5568: Redesign fetchImports process to use Dynamo rather than raw WML
+            //
+
+            // await sfnClient.send(new StartExecutionCommand({
+            //     stateMachineArn: process.env.FETCH_IMPORTS_SFN,
+            //     input: JSON.stringify({
+            //         ConnectionId,
+            //         RequestId,
+            //         inheritanceNodes: Object.values(inheritanceGraph.nodes),
+            //         inheritanceEdges: inheritanceGraph.edges,
+            //         payloads: importsFromAsset
+            //     })
+            // }))
         })
     )
 }
