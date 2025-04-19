@@ -1,14 +1,31 @@
 ---
 Comment: Command step-function to execute decache
-StartAt: Decache Ephemera
+StartAt: Decache All
 States:
-    "Decache Ephemera":
-        Type: Task
+    "Decache All":
+        Type: Parallel
         Next: Done
-        Resource: "${EphemeraFunctionArn}"
-        Parameters:
-            "message": "decacheAssets"
-            "assetIds.$": "$.assetIds"
+        Branches:
+            -
+                StartAt: Decache Assets
+                States:
+                    "Decache Assets":
+                        Type: Task
+                        End: true
+                        Resource: "${AssetsFunctionArn}"
+                        Parameters:
+                            "message": "decacheAssets"
+                            "assetId.$": "$.args.assetIds[0]"
+            -
+                StartAt: Decache Ephemera
+                States:
+                    "Decache Ephemera":
+                        Type: Task
+                        End: true
+                        Resource: "${EphemeraFunctionArn}"
+                        Parameters:
+                            "message": "decacheAssets"
+                            "assetIds.$": "$.assetIds"
         Retry:
             -
                 ErrorEquals:

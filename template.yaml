@@ -1563,6 +1563,7 @@ Resources:
         Level: ALL
       DefinitionSubstitutions:
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+        AssetsFunctionArn: !GetAtt AssetsFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
