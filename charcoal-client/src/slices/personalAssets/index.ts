@@ -292,9 +292,9 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload) 
 export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
     const state = getState()
     const edit = selectors.getEdit(key)(state)
-    if (Object.values(edit.byId).filter(excludeUndefined).length && (isEphemeraAssetId(key) || isEphemeraCharacterId(key))) {
+    if (Object.values(edit.byId).filter(excludeUndefined).length && isEphemeraAssetId(key)) {
         const player = getPlayer(state).PlayerName
-        const adjustedKey: EphemeraAssetId | EphemeraCharacterId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
+        const adjustedKey: EphemeraAssetId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
         const internalKey = key === 'ASSET#draft' ? 'draft' : key.split('#').slice(1).join('#')
         const standardForm = new StandardForm({ ...edit, key: internalKey })
         const schema = schemaToWML([standardForm.schema])
@@ -303,9 +303,8 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
             message: 'applyEdit',
             RequestId: requestId,
             AssetId: adjustedKey,
-            tag: isEphemeraCharacterId(key) ? 'Character' : 'Asset',
             schema
-        }, { service: 'asset'}))
+        }, { service: 'wml' }))
         dispatch(publicActions.saveEdit(key)({ requestId }))
     }
 }
@@ -346,7 +345,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
     const roomComponent = standard.byId[roomId]
 
     if (roomComponent && isStandardRoom(roomComponent)) {
-        const name = schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? [])
+        const name = typeof roomComponent.shortName === 'string' ? roomComponent.shortName : ''
         if (name) {
             dispatch(socketDispatchPromise({
                 message: 'llmGenerate',
