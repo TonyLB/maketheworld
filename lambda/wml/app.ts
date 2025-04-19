@@ -11,6 +11,7 @@ import backupWML from "./backupWML";
 import applyEdit from "./applyEdit";
 import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
+import internalCache from "./internalCache";
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -49,6 +50,8 @@ const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
 }
 
 export const handler = async (event: any) => {
+
+    internalCache.clear()
 
     switch(event.message) {
         case 'parseWML':
