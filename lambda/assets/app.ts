@@ -19,8 +19,7 @@ import {
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage,
-    isAssetLLMGenerateAPIMessage,
-    isApplyEditAPIMessage
+    isAssetLLMGenerateAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 
@@ -217,7 +216,7 @@ export const handler = async (event, context) => {
         return
     }
     
-    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings', 'llmGenerate', 'applyEdit'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings', 'llmGenerate'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -362,27 +361,6 @@ export const handler = async (event, context) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
-            }
-        }
-        if (isApplyEditAPIMessage(request)) {
-            //
-            // TODO: ISS-5565: Redesign applyEdit to be called in WML lambda rather than here
-            //
-
-            // const player = await internalCache.Connection.get('player')
-            // await sfnClient.send(new StartExecutionCommand({
-            //     stateMachineArn: process.env.APPLY_EDIT_SFN,
-            //     input: JSON.stringify({
-            //         requestId: request.RequestId,
-            //         connectionId,
-            //         assetId: request.AssetId,
-            //         player,
-            //         schema: request.schema
-            //     })
-            // }))
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
             }
         }
     }
