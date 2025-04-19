@@ -98,10 +98,13 @@ export const handler = async (event, context) => {
                 })
                 await messageBus.flush()
                 if (zone === 'Archive') {
-                    await sfnClient.send(new StartExecutionCommand({
-                        stateMachineArn: process.env.DECACHE_SFN,
-                        input: JSON.stringify({ assetIds: [AssetId] })
-                    }))        
+                    //
+                    // TODO ISS-5564: Redesign archive decache to directly call asset-lambda-internal function
+                    //
+                    // await sfnClient.send(new StartExecutionCommand({
+                    //     stateMachineArn: process.env.DECACHE_SFN,
+                    //     input: JSON.stringify({ assetIds: [AssetId] })
+                    // }))        
                 }
                 return {}
         }
@@ -273,20 +276,24 @@ export const handler = async (event, context) => {
             })
         }
         if (isParseWMLAPIMessage(request)) {
-            const player = await internalCache.Connection.get('player')
-            await sfnClient.send(new StartExecutionCommand({
-                stateMachineArn: process.env.PARSE_WML_SFN,
-                input: JSON.stringify({
-                    player,
-                    requestId: request.RequestId,
-                    connectionId,
-                    assetId: request.AssetId === 'ASSET#draft' ? `ASSET#draft[${player}]` : request.AssetId,
-                    images: request.images,
-                    uploadName: request.uploadName,
-                    create: request.create,
-                    tag: request.tag
-                })
-            }))
+            //
+            // TODO: ISS-5567: Redesign parseWML to be called in WML lambda rather than here
+            //
+
+            // const player = await internalCache.Connection.get('player')
+            // await sfnClient.send(new StartExecutionCommand({
+            //     stateMachineArn: process.env.PARSE_WML_SFN,
+            //     input: JSON.stringify({
+            //         player,
+            //         requestId: request.RequestId,
+            //         connectionId,
+            //         assetId: request.AssetId === 'ASSET#draft' ? `ASSET#draft[${player}]` : request.AssetId,
+            //         images: request.images,
+            //         uploadName: request.uploadName,
+            //         create: request.create,
+            //         tag: request.tag
+            //     })
+            // }))
             return {
                 statusCode: 200,
                 body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
@@ -358,17 +365,21 @@ export const handler = async (event, context) => {
             }
         }
         if (isApplyEditAPIMessage(request)) {
-            const player = await internalCache.Connection.get('player')
-            await sfnClient.send(new StartExecutionCommand({
-                stateMachineArn: process.env.APPLY_EDIT_SFN,
-                input: JSON.stringify({
-                    requestId: request.RequestId,
-                    connectionId,
-                    assetId: request.AssetId,
-                    player,
-                    schema: request.schema
-                })
-            }))
+            //
+            // TODO: ISS-5565: Redesign applyEdit to be called in WML lambda rather than here
+            //
+
+            // const player = await internalCache.Connection.get('player')
+            // await sfnClient.send(new StartExecutionCommand({
+            //     stateMachineArn: process.env.APPLY_EDIT_SFN,
+            //     input: JSON.stringify({
+            //         requestId: request.RequestId,
+            //         connectionId,
+            //         assetId: request.AssetId,
+            //         player,
+            //         schema: request.schema
+            //     })
+            // }))
             return {
                 statusCode: 200,
                 body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
