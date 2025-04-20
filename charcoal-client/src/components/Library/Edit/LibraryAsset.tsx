@@ -51,7 +51,6 @@ type LibraryAssetContextType = {
     updateStandard: (action: UpdateStandardPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
-    save: () => void;
     readonly: boolean;
     serialized?: boolean;
     status?: keyof PersonalAssetsNodes;
@@ -70,7 +69,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     updateStandard: () => {},
     properties: {},
     loadedImages: {},
-    save: () => {},
     readonly: true,
     serialized: false,
     saving: false
@@ -104,10 +102,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
-    const save = useCallback(() => {
-        dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
-        dispatch(heartbeat)
-    }, [dispatch, AssetId])
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -122,7 +116,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             updateStandard,
             properties,
             loadedImages,
-            save,
             readonly: !(assetKey === 'draft'),
             serialized,
             status,

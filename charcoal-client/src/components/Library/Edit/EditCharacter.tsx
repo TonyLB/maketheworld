@@ -127,7 +127,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { updateStandard, standardForm, save, AssetId, status } = useLibraryAsset()
+    const { updateStandard, standardForm, AssetId, status } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const navigate = useNavigate()
 
@@ -173,8 +173,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }, [dispatch, character, updateStandard])
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
-        save()
-    }, [save])
+        // save()
+    }, [])
 
     if (!character) {
         return <Box sx={{ width: "100%" }} />

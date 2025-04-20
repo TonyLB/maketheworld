@@ -5,11 +5,8 @@ import {
     lifelineCondition,
     getFetchURL,
     fetchAction,
-    getSaveURL,
-    saveWML,
     clearAction,
     backoffAction,
-    parseWML,
     locallyParseWMLAction,
     regenerateWMLAction,
     initializeNewAction,
@@ -33,9 +30,7 @@ import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { push } from '../UI/feedback'
 import { excludeUndefined } from '../../lib/lists'
@@ -49,7 +44,6 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { isStandardExample } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/example'
 
 const autoSaveDebounce = new Debounce()
 
@@ -152,11 +146,11 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY']
             },
             WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDPARSE', 'NEEDSAVE']
+                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDPARSE']
             },
             NEEDPARSE: {
                 stateType: 'REDIRECT',
@@ -197,34 +191,6 @@ export const {
             WMLERROR: {
                 stateType: 'CHOICE',
                 choices: []
-            },
-            NEEDSAVE: {
-                stateType: 'REDIRECT',
-                newIntent: ['WMLDIRTY', 'FRESH'],
-                choices: ['GETSAVEURL']
-            },
-            GETSAVEURL: {
-                stateType: 'ATTEMPT',
-                action: getSaveURL,
-                resolve: 'SAVE',
-                reject: 'SAVEERROR'
-            },
-            SAVE: {
-                stateType: 'ATTEMPT',
-                action: saveWML,
-                resolve: 'PARSE',
-                reject: 'SAVEERROR'
-            },
-            PARSE: {
-                stateType: 'ATTEMPT',
-                action: parseWML,
-                resolve: 'FRESH',
-                reject: 'SAVEERROR'
-            },
-            SAVEERROR: {
-                stateType: 'REDIRECT',
-                newIntent: ['WMLDIRTY', 'FRESH'],
-                choices: ['WMLDIRTY']
             },
             CLEAR: {
                 stateType: 'ATTEMPT',
