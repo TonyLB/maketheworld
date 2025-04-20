@@ -94,10 +94,5 @@ export interface PersonalAssetsNodes {
     NEW: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SCHEMADIRTY: ISSMChoiceNode;
     REGENERATEWML: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    NEEDSAVE: ISSMRedirectNode;
-    GETSAVEURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    SAVE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    PARSE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    SAVEERROR: ISSMRedirectNode;
     CLEAR: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
 }
