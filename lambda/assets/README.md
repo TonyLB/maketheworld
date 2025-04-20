@@ -72,8 +72,6 @@ the personal assets of "PlayerName", and return updates on "RequestId"
 the personal assets of "PlayerName", and return updates on "RequestId"
 - ***fetch***: Generates a pre-signed S3 URL to fetch "AssetId" from "fileName" in the personal
 assets of "PlayerName"
-- ***parseWML***: Accepts a source fileName (likely in the **uploads** folder) and a destination
-address, and parses the source WML file as a possible new entry at the address.
 - [***fetchImports***](./fetchImportDefaults/README.md): Accepts a list of imports from assets, and
 recursively follows the import tree for a vertical slice of all relevant assets for only those items.
 
