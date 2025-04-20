@@ -14,7 +14,6 @@ import {
     isAssetCheckoutAPIMessage,
     isAssetSubscribeAPIMessage,
     isAssetWhoAmIAPIMessage,
-    isParseWMLAPIMessage,
     isFetchImportsAPIMessage,
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
@@ -216,7 +215,7 @@ export const handler = async (event, context) => {
         return
     }
     
-    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings', 'llmGenerate'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'updatePlayerSettings', 'llmGenerate'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -273,30 +272,6 @@ export const handler = async (event, context) => {
                 assetType: request.tag,
                 images: request.images
             })
-        }
-        if (isParseWMLAPIMessage(request)) {
-            //
-            // TODO: ISS-5567: Redesign parseWML to be called in WML lambda rather than here
-            //
-
-            // const player = await internalCache.Connection.get('player')
-            // await sfnClient.send(new StartExecutionCommand({
-            //     stateMachineArn: process.env.PARSE_WML_SFN,
-            //     input: JSON.stringify({
-            //         player,
-            //         requestId: request.RequestId,
-            //         connectionId,
-            //         assetId: request.AssetId === 'ASSET#draft' ? `ASSET#draft[${player}]` : request.AssetId,
-            //         images: request.images,
-            //         uploadName: request.uploadName,
-            //         create: request.create,
-            //         tag: request.tag
-            //     })
-            // }))
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
-            }
         }
         if (isAssetCheckinAPIMessage(request)) {
             messageBus.send({
