@@ -1,11 +1,16 @@
 import { FetchImportsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
-import { InheritanceGraph } from "./baseClasses"
+import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { sfnClient } from "../clients"
-import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
+import { stripImportAndExport } from "./utils"
+import recursiveFetchImports from "./recursiveFetchImports"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import { snsClient } from "../clients"
+import { PublishCommand } from "@aws-sdk/client-sns"
+
+const { FEEDBACK_TOPIC } = process.env
 
 export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([
@@ -22,20 +27,30 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
                 ancestry.edges as any,
                 { address: {} as any }
             )
-            //
-            // TODO: ISS-5568: Redesign fetchImports process to use Dynamo rather than raw WML
-            //
+            const jsonHelper = new FetchImportsJSONHelper(inheritanceGraph)
 
-            // await sfnClient.send(new StartExecutionCommand({
-            //     stateMachineArn: process.env.FETCH_IMPORTS_SFN,
-            //     input: JSON.stringify({
-            //         ConnectionId,
-            //         RequestId,
-            //         inheritanceNodes: Object.values(inheritanceGraph.nodes),
-            //         inheritanceEdges: inheritanceGraph.edges,
-            //         payloads: importsFromAsset
-            //     })
-            // }))
+            const importsByAsset = await Promise.all(
+                importsFromAsset.map(async ({ assetId, keys }) => {
+                    const standard = stripImportAndExport(await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] }))
+                    const wml = schemaToWML([standard.schema])
+                    return {
+                        assetId,
+                        wml
+                    }
+                })
+            )
+            await snsClient.send(new PublishCommand({
+                TopicArn: FEEDBACK_TOPIC,
+                Message: JSON.stringify({
+                    messageType: 'FetchImports',
+                    importsByAsset
+                }),
+                MessageAttributes: {
+                    RequestId: { DataType: 'String', StringValue: RequestId },
+                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Type: { DataType: 'String', StringValue: 'Success' }
+                }
+            }))
         })
     )
 }

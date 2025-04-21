@@ -10,7 +10,7 @@ jest.mock('./baseClasses')
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 const sfnClientMock = sfnClient as jest.Mocked<typeof sfnClient>
-const internalCacheMock = jest.mocked(internalCache, true)
+const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
 describe('fetchImportsMessage', () => {
     beforeEach(() => {
