@@ -44,11 +44,28 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                                 console.warn(`Component ${component.key} not found in file asset`)
                                 return
                             }
-                            await assetDB.putItem({
-                                ...(fileComponent.toJSON()),
-                                AssetId: component.universalKey,
-                                DataCategory: `ASSET#${assetId}`,
-                            })
+                            await Promise.all([
+                                assetDB.putItem({
+                                    ...(fileComponent.toJSON()),
+                                    AssetId: component.universalKey,
+                                    DataCategory: `ASSET#${assetId}`,
+                                }),
+                                assetDB.optimisticUpdate({
+                                    Key: {
+                                        AssetId: component.universalKey,
+                                        DataCategory: `Meta::${component.tag}`,    
+                                    },
+                                    updateKeys: ['cached'],
+                                    updateReducer: (draft) => {
+                                        if (!('cached' in draft)) {
+                                            draft.cached = []
+                                        }
+                                        if (!draft.cached.includes(assetId)) {
+                                            draft.cached = [...draft.cached, assetId]
+                                        }
+                                    },
+                                })
+                            ])
                         }
                     })
                 )
