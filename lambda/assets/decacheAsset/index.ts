@@ -12,7 +12,23 @@ export const decacheAssetMessage = async ({ payloads, messageBus }: { payloads: 
         await Promise.all(componentIds
             .filter(({ AssetId }) => (isEphemeraId(AssetId)))
             .map(async (componentKey) => (
-                assetDB.deleteItem(componentKey)
+                Promise.all([
+                    assetDB.deleteItem(componentKey),
+                    assetDB.optimisticUpdate({
+                        Key: {
+                            AssetId: componentKey.AssetId,
+                            DataCategory: `Meta::${componentKey.AssetId[0]}${componentKey.AssetId.slice(1).split('#')[0].toLocaleLowerCase()}`,
+                        },
+                        updateKeys: ['cached'],
+                        updateReducer: (draft) => {
+                            if (!('cached' in draft)) {
+                                draft.cached = []
+                            }
+                            draft.cached = draft.cached.filter((id) => (id !== assetId))
+                        },
+                        deleteCondition: (draft) => (draft.cached.length === 0)
+                    })
+                ])
             ))
         )
     }))
