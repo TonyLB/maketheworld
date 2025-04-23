@@ -2,9 +2,12 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../internalCache";
 import { CacheAssetMessage, MessageBus } from "../messageBus/baseClasses";
 import AssetWorkspace from "@tonylb/mtw-asset-workspace";
-import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
-import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits";
+import { StandardRemove, StandardReplace } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
+import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character";
+import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
+import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge";
+import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
 
 export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: CacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
@@ -69,6 +72,50 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         }
                     })
                 )
+                const characterChanges = Object.values(diff.byId)
+                    .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
+                        if (component instanceof StandardRemove) {
+                            return component._match instanceof StandardCharacter
+                        }
+                        if (component instanceof StandardReplace) {
+                            return component._match instanceof StandardCharacter
+                        }
+                        return component instanceof StandardCharacter
+                    })
+                characterChanges.forEach((component) => {
+                    const { universalKey } = component
+                    if (universalKey && isEphemeraCharacterId(universalKey)) {
+                        internalCache.ComponentData.invalidate(universalKey)
+                    }
+                })
+                const characterNotifications = Object.assign(
+                    {},
+                    ...(await Promise.all(
+                        characterChanges.map(async ({ universalKey }) => {
+                            if (!(universalKey && isEphemeraCharacterId(universalKey))) {
+                                return undefined
+                            }
+                            const [character] = await internalCache.ComponentData.get([universalKey])
+                            if (!character) {
+                                return undefined
+                            }
+                            return { [character.ComponentId]: character.byAssets }
+                        })
+                    )).filter(excludeUndefined)
+                )
+                const charactersRemoved = Object.keys(characterNotifications).filter((key) => {
+                    const character = characterNotifications[key]
+                    return character.length === 0
+                })
+                await Promise.all([
+                    eventBridgeClient.send(
+                        charactersRemoved.map((characterId) => ({
+                            Source: 'mtw.assets',
+                            DetailType: 'Character Removed',
+                            Detail: { characterId }
+                        }))
+                    )
+                ])
             }
         })
     )
