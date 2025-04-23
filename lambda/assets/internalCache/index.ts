@@ -13,6 +13,7 @@ import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"
 import { AssetData } from './assetData'
+import { ComponentData } from './componentData'
 
 
 type CacheConnectionKeys = 'connectionId' | 'sessionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
@@ -112,6 +113,7 @@ class InternalCache {
     Connection: CacheConnectionData = new CacheConnectionData()
     Meta: MetaData = new MetaData()
     AssetData: AssetData = new AssetData()
+    ComponentData: ComponentData = new ComponentData()
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
     Library: CacheLibraryData = new CacheLibraryData()
@@ -130,6 +132,7 @@ class InternalCache {
         this.Connection.clear()
         this.Meta.clear()
         this.AssetData.clear()
+        this.ComponentData.clear()
         this.PlayerSettings.clear()
         this.PlayerLibrary.clear()
         this.Library.clear()
