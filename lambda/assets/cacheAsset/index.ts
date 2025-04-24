@@ -97,7 +97,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                             }
                             const [character] = await internalCache.ComponentData.get([universalKey])
                             if (!character) {
-                                return undefined
+                                return { [universalKey]: [] }
                             }
                             return { [character.ComponentId]: character.byAssets }
                         })
@@ -108,12 +108,17 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     return character.length === 0
                 })
                 await Promise.all([
-                    eventBridgeClient.send(
-                        charactersRemoved.map((characterId) => ({
-                            Source: 'mtw.assets',
-                            DetailType: 'Character Removed',
-                            Detail: { characterId }
-                        }))
+                    ...(charactersRemoved.length
+                        ? [
+                            eventBridgeClient.send(
+                                charactersRemoved.map((characterId) => ({
+                                    Source: 'mtw.assets',
+                                    DetailType: 'Character Removed',
+                                    Detail: { characterId }
+                                }))
+                            )
+                        ]
+                        : []
                     )
                 ])
             }
