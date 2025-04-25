@@ -29,6 +29,7 @@ import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardExample from "./components/example"
+import StandardCharacter from "./components/character"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -86,7 +87,8 @@ export const hasDescription = (component: StandardComponent): component is Stand
 }
 
 export const hasShortName = (component: StandardComponent): component is StandardComponent & HasShortName => {
-    return (component instanceof StandardRoom)
+    return (component instanceof StandardRoom) ||
+        (component instanceof StandardCharacter)
 }
 
 export const standardComponentSortOrder = (byId: Record<string, StandardComponent>) => (componentA: StandardComponent, componentB: StandardComponent): number => {

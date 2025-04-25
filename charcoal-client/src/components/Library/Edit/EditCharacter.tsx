@@ -181,7 +181,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     }
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
-            primary={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) || 'Unnamed'}
+            primary={character?.shortName?._payload?.plain?.toJSON() || 'Unnamed'}
             secondary={character?.key || ''}
             commands={
                 <React.Fragment>
@@ -196,7 +196,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) || 'Unnamed'
+                    label: character?.shortName?._payload?.plain?.toJSON() || 'Unnamed'
                 }
             ]}
         />
@@ -228,7 +228,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
         href: `/Library/Edit/Character/${ComponentId}`,
         label: `${ComponentId}`,
         type: 'ComponentEdit',
-        iconName: 'Room',
+        iconName: 'Character',
         assetId: `ASSET#${assetKey}`,
         componentId: ComponentId || ''
     })

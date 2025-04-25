@@ -34,6 +34,8 @@ import { SchemaAssetTag, SchemaStoryTag } from '@tonylb/mtw-base/ts/schema/asset
 import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import ExampleEditor from './ExampleEditor'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
@@ -65,15 +67,15 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             hasShortName(component) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
                 <EditSchema
-                    value={component?.shortName?.children ?? []}
+                    value={[{ data: { tag: 'String', value: component?.shortName?._payload?.plain?.toJSON() ?? ''}, children: [] }]}
                     onChange={(value) => {
                         if (typeof value !== 'function') {
                             updateStandard({
                                 type: 'update',
                                 update: (incoming: StandardForm) => {
                                     const base = incoming.byId[ComponentId]
-                                    if (base instanceof StandardRoom) {
-                                        base._payload._shortName = new StandardRender([value])
+                                    if (base instanceof StandardRoom || base instanceof StandardCharacter) {
+                                        base._payload._shortName = new StandardLiteral(value)
                                     }
                                     return incoming
                                 }
@@ -114,7 +116,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         const component = standardForm.byId[ComponentId ?? '']
         if (component) {
             if (hasShortName(component)) {
-                return schemaOutputToString((unwrapSubject(component.shortName)?.children ?? []) as GenericTree<SchemaOutputTag>)
+                return component.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
             }
             else if (hasName(component)) {
                 return schemaOutputToString((unwrapSubject(component.name)?.children ?? []) as GenericTree<SchemaOutputTag>)

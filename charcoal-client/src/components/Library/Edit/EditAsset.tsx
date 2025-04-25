@@ -16,6 +16,7 @@ import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
 import AddIcon from '@mui/icons-material/Add'
 import MapIcon from '@mui/icons-material/Map'
+import PersonIcon from '@mui/icons-material/Person'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -142,7 +143,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                                 key={characterItem.key}
                                 ItemId={characterItem.key}
                                 onClick={() => { navigate(`Character/${characterItem.key}`)}}
-                                icon={<MapIcon />}
+                                icon={<PersonIcon />}
                             />))
                         : null
                     }
