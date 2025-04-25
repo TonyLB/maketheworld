@@ -27,6 +27,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import ForumIcon from '@mui/icons-material/Forum'
 import MapIcon from '@mui/icons-material/Explore'
+import PersonIcon from '@mui/icons-material/Person'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
 import OnboardingIcon from '@mui/icons-material/Lightbulb'
@@ -64,6 +65,8 @@ const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; ass
     switch(iconName) {
         case 'Map':
             return <MapIcon />
+        case 'Character':
+            return <PersonIcon />
         case 'MapEdit':
             return <React.Fragment>
                 <EditIcon />
