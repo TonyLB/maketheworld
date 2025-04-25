@@ -106,7 +106,13 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 const charactersRemoved = Object.keys(characterNotifications).filter((key) => {
                     const character = characterNotifications[key]
                     return character.length === 0
-                })
+                }).filter(isEphemeraCharacterId)
+                const charactersUpdated = Object.keys(characterNotifications).filter((key) => {
+                    const character = characterNotifications[key]
+                    return character.length > 0
+                }).filter(isEphemeraCharacterId)
+                const updatedCharacterData = await internalCache.ComponentData.get(charactersUpdated)
+
                 await Promise.all([
                     ...(charactersRemoved.length
                         ? [
@@ -115,6 +121,17 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                                     Source: 'mtw.assets',
                                     DetailType: 'Character Removed',
                                     Detail: { characterId }
+                                }))
+                            )
+                        ]
+                        : []
+                    ),
+                    ...(updatedCharacterData.length ?
+                        [
+                            eventBridgeClient.send(updatedCharacterData.map(({ ComponentId, byAssets }) => ({
+                                    Source: 'mtw.assets',
+                                    DetailType: 'Character Updated',
+                                    Detail: { characterId: ComponentId, byAssets: byAssets.map(({ AssetId, component }) => ({ AssetId, component: component.toJSON() })) }
                                 }))
                             )
                         ]
