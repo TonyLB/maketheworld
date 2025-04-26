@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`keyValueTokenizer should accept a UUID 1`] = `
+Object {
+  "endIdx": 20,
+  "startIdx": 0,
+  "type": "KeyValue",
+  "value": "ROOM#1234-5678-1234",
+}
+`;
+
 exports[`keyValueTokenizer should accept periods in keys 1`] = `
 Object {
   "endIdx": 10,
