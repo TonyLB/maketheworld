@@ -40,6 +40,7 @@ export type SchemaPositionTag = {
 
 export type SchemaMapTag = {
     tag: 'Map';
+    uuid?: string;
     key: string;
 } & SchemaImportableBase
 

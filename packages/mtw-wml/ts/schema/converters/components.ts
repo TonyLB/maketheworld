@@ -46,6 +46,7 @@ const componentTemplates = {
         y: { required: true, type: ParsePropertyTypes.Literal },
     },
     Map: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
@@ -283,6 +284,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Map',
             properties: [
+                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
