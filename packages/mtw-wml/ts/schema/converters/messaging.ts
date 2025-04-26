@@ -11,6 +11,7 @@ import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const messagingTemplates = {
     Message: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
@@ -54,6 +55,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Message',
                 properties: [
+                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],

@@ -46,6 +46,7 @@ export type SchemaMapTag = {
 
 export type SchemaMessageTag = {
     tag: 'Message';
+    uuid?: string;
     key: string;
 } & SchemaImportableBase
 
