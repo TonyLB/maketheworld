@@ -29,11 +29,11 @@ describe('keyValueTokenizer', () => {
         expect(keyValueTokenizer(testStream)).toMatchSnapshot()
     })
     it('should reject illegal characters', () => {
-        const testStream = new SourceStream('(Test-1)></Room>')
+        const testStream = new SourceStream('(Test@1)></Room>')
         expect(() => { keyValueTokenizer(testStream) }).toThrow(TokenizeException)
     })
-    it('should reject keys that start with a digit', () => {
-        const testStream = new SourceStream('(1_Test)></Room>')
-        expect(() => { keyValueTokenizer(testStream) }).toThrow(TokenizeException)
+    it('should accept a UUID', () => {
+        const testStream = new SourceStream('(ROOM#1234-5678-1234)></Room>')
+        expect(keyValueTokenizer(testStream)).toMatchSnapshot()
     })
 })
