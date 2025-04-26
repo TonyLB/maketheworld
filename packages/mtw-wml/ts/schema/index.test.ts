@@ -20,7 +20,7 @@ describe('schemaFromParse', () => {
                     <Room key=(overview) />
                     <Knowledge key=(baseInfo) />
                 </Import>
-                <Room key=(ABC)>
+                <Room uuid=(123-abc) key=(ABC)>
                     <ShortName>Vortex</ShortName>
                     <Example key=(Example1)>
                         <Name>Vortex</Name>
@@ -98,6 +98,7 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "Room",
+                        uuid: "123-abc",
                         key: "ABC",
                         display: undefined
                     },
@@ -676,6 +677,11 @@ describe('schemaFromParse', () => {
 describe('schemaToWML', () => {
     it('should correctly round-trip the simplest asset', () => {
         const testWML = `<Asset key=(Test)><Room key=(VORTEX) /></Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip a room with uuid', () => {
+        const testWML = `<Asset key=(Test)><Room uuid=(123-VORTEX) key=(VORTEX) /></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
