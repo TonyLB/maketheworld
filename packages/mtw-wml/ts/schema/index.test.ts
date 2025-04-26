@@ -703,6 +703,10 @@ describe('schemaToWML', () => {
                         </Description>
                     </Example>
                 </Knowledge>
+                <Map uuid=(123-map) key=(map1)>
+                    <Name>Test Map</Name>
+                    <Room key=(ABC)><Position x="100" y="0" /></Room>
+                </Map>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
