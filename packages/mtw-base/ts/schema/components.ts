@@ -28,6 +28,7 @@ export type SchemaFeatureTag = {
 
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
+    uuid?: string;
     key: string;
 } & SchemaImportableBase
 
