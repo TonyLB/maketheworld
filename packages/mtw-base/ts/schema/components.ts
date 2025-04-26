@@ -21,6 +21,7 @@ export type SchemaRoomTag = {
 
 export type SchemaFeatureTag = {
     tag: 'Feature';
+    uuid?: string;
     key: string;
     global?: boolean;
 } & SchemaImportableBase
