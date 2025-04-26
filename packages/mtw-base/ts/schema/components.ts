@@ -52,6 +52,7 @@ export type SchemaMessageTag = {
 
 export type SchemaMomentTag = {
     tag: 'Moment';
+    uuid?: string;
     key: string;
 } & SchemaImportableBase
 

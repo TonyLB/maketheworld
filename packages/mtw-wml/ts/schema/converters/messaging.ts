@@ -17,6 +17,7 @@ const messagingTemplates = {
         as: { type: ParsePropertyTypes.Key }
     },
     Moment: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
@@ -69,6 +70,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Moment',
                 properties: [
+                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
