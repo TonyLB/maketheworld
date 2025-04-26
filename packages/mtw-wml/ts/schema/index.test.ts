@@ -689,6 +689,12 @@ describe('schemaToWML', () => {
                         <Description>Test Room</Description>
                     </Example>
                 </Room>
+                <Feature uuid=(123-doors) key=(doors)>
+                    <Example uuid=(456-example2) key=(example2)>
+                        <Name>Drifting doors</Name>
+                        <Description>Doors drifting in space</Description>
+                    </Example>
+                </Feature>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
