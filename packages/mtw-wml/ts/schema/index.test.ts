@@ -707,6 +707,9 @@ describe('schemaToWML', () => {
                     <Name>Test Map</Name>
                     <Room key=(ABC)><Position x="100" y="0" /></Room>
                 </Map>
+                <Message uuid=(123-message) key=(message1)>
+                    <Room key=(VORTEX) />Something happened
+                </Message>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
