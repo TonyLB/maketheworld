@@ -20,6 +20,7 @@ const componentTemplates = {
     Name: {},
     ShortName: {},
     Room: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
         x: { type: ParsePropertyTypes.Literal },
@@ -205,6 +206,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Room',
             properties: [
+                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                 { key: 'key', type: 'key', value: tag.key },
                 //
                 // Render x/y properties from integers into strings

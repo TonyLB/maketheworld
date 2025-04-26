@@ -13,6 +13,7 @@ export type SchemaExitTag = {
 
 export type SchemaRoomTag = {
     tag: 'Room';
+    uuid?: string;
     key: string;
     x?: number;
     y?: number;
