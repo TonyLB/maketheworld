@@ -15,6 +15,7 @@ export type SchemaSummaryTag = {
 
 export type SchemaExampleTag = {
     tag: 'Example';
+    uuid?: string;
     key: string;
 } & SchemaImportableBase
 

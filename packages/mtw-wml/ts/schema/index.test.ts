@@ -680,8 +680,17 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip a room with uuid', () => {
-        const testWML = `<Asset key=(Test)><Room uuid=(123-VORTEX) key=(VORTEX) /></Asset>`
+    it('should correctly round-trip all components with uuid', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room uuid=(123-VORTEX) key=(VORTEX)>
+                    <Example uuid=(123-Example) key=(example1)>
+                        <Name>Vortex</Name>
+                        <Description>Test Room</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
