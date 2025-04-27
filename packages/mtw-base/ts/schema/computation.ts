@@ -10,6 +10,7 @@ export type SchemaVariableTag = {
 
 export type SchemaComputedTag = {
     tag: 'Computed';
+    uuid?: string;
     key: string;
     src: string;
     dependencies?: string[];
@@ -17,6 +18,7 @@ export type SchemaComputedTag = {
 
 export type SchemaActionTag = {
     tag: 'Action';
+    uuid?: string;
     key: string;
     src: string;
 } & SchemaImportableBase

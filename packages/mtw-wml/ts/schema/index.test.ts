@@ -713,6 +713,8 @@ describe('schemaToWML', () => {
                     </Message>
                 </Moment>
                 <Variable uuid=(123-variable) key=(lights) default={true} />
+                <Action uuid=(123-action) key=(flipLightSwitch) src={ lights = !lights } />
+                <Computed uuid=(123-computed) key=(dark) src={ !lights } />
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
