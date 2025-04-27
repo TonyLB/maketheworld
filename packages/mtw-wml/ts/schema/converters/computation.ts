@@ -7,6 +7,7 @@ import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const computationTemplates = {
     Variable: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         default: { type: ParsePropertyTypes.Expression },
         from: { type: ParsePropertyTypes.Key },
@@ -57,6 +58,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Variable',
                 properties: [
+                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'default', type: 'expression', value: tag.default ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
