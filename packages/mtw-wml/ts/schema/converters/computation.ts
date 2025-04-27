@@ -14,12 +14,14 @@ const computationTemplates = {
         as: { type: ParsePropertyTypes.Key }
     },
     Computed: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         src: { required: true, type: ParsePropertyTypes.Expression },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
     },
     Action: {
+        uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         src: { required: true, type: ParsePropertyTypes.Expression },
         from: { type: ParsePropertyTypes.Key },
@@ -73,6 +75,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Computed',
                 properties: [
+                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
@@ -87,6 +90,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Action',
                 properties: [
+                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
