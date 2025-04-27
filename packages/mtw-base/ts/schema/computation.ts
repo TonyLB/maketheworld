@@ -3,6 +3,7 @@ import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaVariableTag = {
     tag: 'Variable';
+    uuid?: string;
     key: string;
     default?: string;
 } & SchemaImportableBase
