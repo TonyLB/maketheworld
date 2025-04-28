@@ -1000,6 +1000,7 @@ Object {
         "data": Object {
           "key": "VORTEX",
           "tag": "Room",
+          "uuid": undefined,
           "x": undefined,
           "y": undefined,
         },
@@ -1019,6 +1020,7 @@ Object {
         "data": Object {
           "key": "cave",
           "tag": "Room",
+          "uuid": undefined,
           "x": undefined,
           "y": undefined,
         },
@@ -1038,6 +1040,7 @@ Object {
         "data": Object {
           "key": "curvingPassage",
           "tag": "Room",
+          "uuid": undefined,
           "x": undefined,
           "y": undefined,
         },
@@ -1057,6 +1060,7 @@ Object {
         "data": Object {
           "key": "chamber",
           "tag": "Room",
+          "uuid": undefined,
           "x": undefined,
           "y": undefined,
         },

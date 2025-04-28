@@ -10,7 +10,7 @@ describe('StandardRoom class', () => {
 
     it('should construct StandardRoom from WML', () => {
         const testSource = deIndentWML(`
-            <Room key=(test)>
+            <Room uuid=(123) key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
                 <Example key=(base) />
@@ -22,13 +22,14 @@ describe('StandardRoom class', () => {
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
 
     it('should construct StandardRoom from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Room key=(test)>
+            <Room uuid=(123) key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
                 <Example key=(base) />
@@ -41,6 +42,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
 

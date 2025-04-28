@@ -98,7 +98,7 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "Room",
-                        uuid: "123-abc",
+                        uuid: "ROOM#123-abc",
                         key: "ABC",
                         display: undefined
                     },
