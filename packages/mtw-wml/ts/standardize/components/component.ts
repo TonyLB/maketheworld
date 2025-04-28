@@ -40,7 +40,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
-    schema(key: string): GenericTreeNode<SchemaTag>;
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
@@ -73,7 +73,7 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                 if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
                     throw new Error(`No key found in ${label} constructor call.`)
                 }
-                this._key = new KeyPayload(node.data.key)
+                this._key = new KeyPayload({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._payload.fromSchema(node)
                 return
             }
@@ -109,13 +109,13 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         }
 
         get schema(): GenericTreeNode<SchemaTag> {
-            return this._payload.schema(this.key)
+            return this._payload.schema(this.key, this.universalKey)
         }
 
         nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key })
-                : this._payload.schema(options.localKey ?? this.key)
+                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key, universalKey: options.universalKey ?? this.universalKey })
+                : this._payload.schema(options.localKey ?? this.key, options.universalKey ?? this.universalKey)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {

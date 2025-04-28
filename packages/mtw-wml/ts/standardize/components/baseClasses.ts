@@ -20,6 +20,7 @@ export type StandardComponentReferenceKey = {
 export type NestedSchemaOptions = {
     localKey: string;
     globalKey: string;
+    universalKey?: string;
     removeContext?: boolean;
 }
 

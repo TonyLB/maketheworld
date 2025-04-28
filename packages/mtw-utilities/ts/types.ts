@@ -19,6 +19,13 @@ export const enforceTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM'>(key: T
     return `${key}#${value}`
 }
 
+export const stripTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM'>(key: T) => (value: string): string => {
+    if (value.startsWith(`${key}#`)) {
+        return value.slice(key.length + 1)
+    }
+    return value
+}
+
 export const AssetKey = enforceTypedKey('ASSET')
 export const CharacterKey = enforceTypedKey('CHARACTER')
 export const RoomKey = enforceTypedKey('ROOM')

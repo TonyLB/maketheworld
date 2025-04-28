@@ -10,6 +10,7 @@ import { isSchemaMapContents, isSchemaTaggedMessageLegalContents, SchemaTag } fr
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const componentTemplates = {
     Exit: {
@@ -83,7 +84,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     ShortName: shortNameConverter,
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
-            const { x, y, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
+            const { x, y, uuid, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)   
             if (typeof x !== 'undefined' && Number.isNaN(parseInt(x))) {
                 throw new Error(`Property 'x' must be a number`)
             }
@@ -92,6 +93,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Room',
+                uuid: uuid ? enforceTypedKey('ROOM')(uuid) : undefined,
                 x: typeof x !== 'undefined' ? parseInt(x) : undefined,
                 y: typeof y !== 'undefined' ? parseInt(y) : undefined,
                 ...rest
@@ -112,7 +114,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     },
     Position: {
         initialize: ({ parseOpen }): SchemaPositionTag => {
-            const { x, y, ...rest } = validateProperties(componentTemplates.Position)(parseOpen)
+            const { x, y } = validateProperties(componentTemplates.Position)(parseOpen)
             if (typeof x === 'undefined' || Number.isNaN(parseInt(x))) {
                 throw new Error(`Property 'x' must be a number`)
             }
@@ -173,30 +175,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             node: { data: tag, children }
         })
     },
-    // Description: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-    //     tagRender({
-    //         ...args,
-    //         tag: 'Description',
-    //         properties: [],
-    //         node: { data, children }
-    //     })
-    // ),
-    // Summary: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-    //     tagRender({
-    //         ...args,
-    //         tag: 'Summary',
-    //         properties: [],
-    //         node: { data, children }
-    //     })
-    // ),
-    // Name: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-    //     tagRender({
-    //         ...args,
-    //         tag: 'Name',
-    //         properties: [],
-    //         node: { data, children }
-    //     })
-    // ),
     ShortName: shortNamePrintMap,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
@@ -209,7 +187,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Room',
             properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ROOM')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key },
                 //
                 // Render x/y properties from integers into strings

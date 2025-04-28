@@ -1606,7 +1606,7 @@ describe('StandardForm', () => {
     })
 
     it('should merge base component with universalKey', () => {
-        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(one) /></Room>`)).withUniversalKey('ROOM#001')
+        const base = new StandardRoom(deIndentWML(`<Room uuid=(001) key=(test)><Example key=(one) /></Room>`))
         const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(two) /></Room>`))
         const merge = base.merge(incoming)
         if (!merge) {
@@ -1615,7 +1615,7 @@ describe('StandardForm', () => {
         else {
             expect(merge.universalKey).toEqual('ROOM#001')
             expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Room key=(test)>
+                <Room uuid=(001) key=(test)>
                     <Example key=(one) />
                     <Example key=(two) />
                 </Room>
@@ -1625,7 +1625,7 @@ describe('StandardForm', () => {
 
     it('should merge incoming component with universalKey', () => {
         const base = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(one) /></Room>`))
-        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(two) /></Room>`)).withUniversalKey('ROOM#001')
+        const incoming = new StandardRoom(deIndentWML(`<Room uuid=(001) key=(test)><Example key=(two) /></Room>`))
         const merge = base.merge(incoming)
         if (!merge) {
             expect(true).toBe(false)
@@ -1633,7 +1633,7 @@ describe('StandardForm', () => {
         else {
             expect(merge.universalKey).toEqual('ROOM#001')
             expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Room key=(test)>
+                <Room uuid=(001) key=(test)>
                     <Example key=(one) />
                     <Example key=(two) />
                 </Room>
@@ -1642,8 +1642,8 @@ describe('StandardForm', () => {
     })
 
     it('should merge identical universalKeys', () => {
-        const base = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(one) /></Room>`)).withUniversalKey('ROOM#001')
-        const incoming = new StandardRoom(deIndentWML(`<Room key=(test)><Example key=(two) /></Room>`)).withUniversalKey('ROOM#001')
+        const base = new StandardRoom(deIndentWML(`<Room uuid=(001) key=(test)><Example key=(one) /></Room>`))
+        const incoming = new StandardRoom(deIndentWML(`<Room uuid=(001) key=(test)><Example key=(two) /></Room>`))
         const merge = base.merge(incoming)
         if (!merge) {
             expect(true).toBe(false)
@@ -1651,7 +1651,7 @@ describe('StandardForm', () => {
         else {
             expect(merge.universalKey).toEqual('ROOM#001')
             expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Room key=(test)>
+                <Room uuid=(001) key=(test)>
                     <Example key=(one) />
                     <Example key=(two) />
                 </Room>
@@ -2097,7 +2097,7 @@ describe('StandardForm', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Image key=(testBackground) />
-                <Room key=(testRoom)>
+                <Room uuid=(002) key=(testRoom)>
                     <ShortName>Vortex</ShortName>
                     <Example key=(base)>
                         <Name>Vortex</Name>
@@ -2132,7 +2132,6 @@ describe('StandardForm', () => {
         `)
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-        testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#002')
         testSource._byId["testRoom.base"] = testSource._byId["testRoom.base"].withUniversalKey('EXAMPLE#025')
         testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
         testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
