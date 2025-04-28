@@ -7,6 +7,7 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const exampleTemplates = {
     Description: {},
@@ -68,10 +69,14 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Example: {
-        initialize: ({ parseOpen }): SchemaExampleTag => ({
-            tag: 'Example',
-            ...validateProperties(exampleTemplates.Example)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaExampleTag => {
+            const { uuid, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
+            return {
+                tag: 'Example',
+                uuid: uuid ? enforceTypedKey('EXAMPLE')(uuid) : undefined,
+                ...rest
+            }
+        }
     }
 }
 
@@ -111,7 +116,7 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Example',
             properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('EXAMPLE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],

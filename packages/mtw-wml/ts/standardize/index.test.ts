@@ -2099,7 +2099,7 @@ describe('StandardForm', () => {
                 <Image key=(testBackground) />
                 <Room uuid=(002) key=(testRoom)>
                     <ShortName>Vortex</ShortName>
-                    <Example key=(base)>
+                    <Example uuid=(025) key=(base)>
                         <Name>Vortex</Name>
                         <Description>Vortex Desc</Description>
                     </Example>
@@ -2132,7 +2132,6 @@ describe('StandardForm', () => {
         `)
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-        testSource._byId["testRoom.base"] = testSource._byId["testRoom.base"].withUniversalKey('EXAMPLE#025')
         testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
         testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
         testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
@@ -2162,13 +2161,13 @@ describe('StandardForm', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Feature key=(testGlobal)>
-                    <Example key=(base)>
+                    <Example uuid=(003b) key=(base)>
                         <Description>Global</Description>
                     </Example>
                 </Feature>
-                <Room key=(testRoom)>
+                <Room uuid=(001) key=(testRoom)>
                     <Feature key=(testLocal)>
-                        <Example key=(base)>
+                        <Example uuid=(004b) key=(base)>
                             <Name>Clocktower</Name>
                             <Description>
                                 A tower built of white sandstone blocks, with an ornate clock set on
@@ -2177,16 +2176,16 @@ describe('StandardForm', () => {
                         </Example>
                     </Feature>
                     <Feature global key=(testGlobal) />
-                    <Example key=(base)>
+                    <Example uuid=(001b) key=(base)>
                         <Name>Vortex</Name>
                     </Example>
                 </Room>
-                <Room key=(testRoomTwo) />
+                <Room uuid=(002) key=(testRoomTwo) />
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
-        testSource._byId.testRoom = testSource._byId.testRoom.withUniversalKey('ROOM#001')
-        testSource._byId.testRoomTwo = testSource._byId.testRoomTwo.withUniversalKey('ROOM#002')
+        testSource._byId.testRoom = testSource._byId.testRoom
+        testSource._byId.testRoomTwo = testSource._byId.testRoomTwo
         testSource._byId.testGlobal = testSource._byId.testGlobal.withUniversalKey('FEATURE#003')
         testSource._byId["testRoom.testLocal"] = testSource._byId["testRoom.testLocal"].withUniversalKey('FEATURE#004')
 
@@ -2198,23 +2197,25 @@ describe('StandardForm', () => {
                 key: 'testRoom',
                 universalKey: 'ROOM#001',
                 features: [{ key: 'testLocal', tag: 'Feature' }, { key: 'testGlobal', global: true, tag: 'Feature' }],
-                examples: [{ key: 'base', tag: 'Example'}],
+                examples: [{ key: 'base', universalKey: 'EXAMPLE#001b', tag: 'Example' }],
                 exits: []
             },
             {
                 tag: 'Example',
                 key: 'testRoom.base',
+                universalKey: 'EXAMPLE#001b',
                 name:['Vortex']
             },
             {
                 tag: 'Feature',
                 key: 'testRoom.testLocal',
-                examples: [{ key: 'base', tag: 'Example' }],
+                examples: [{ key: 'base', universalKey: 'EXAMPLE#004b', tag: 'Example' }],
                 universalKey: 'FEATURE#004'
             },
             {
                 tag: 'Example',
                 key: 'testRoom.testLocal.base',
+                universalKey: 'EXAMPLE#004b',
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
                 name: ['Clocktower']
             },
@@ -2223,11 +2224,12 @@ describe('StandardForm', () => {
                 tag: 'Feature',
                 key: 'testGlobal',
                 universalKey: 'FEATURE#003',
-                examples: [{ key: 'base', tag: 'Example' }]
+                examples: [{ key: 'base', universalKey: 'EXAMPLE#003b', tag: 'Example' }]
             },
             {
                 tag: 'Example',
                 key: 'testGlobal.base',
+                universalKey: 'EXAMPLE#003b',
                 description: ['Global']
             }
         ])

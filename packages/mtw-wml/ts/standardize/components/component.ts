@@ -114,8 +114,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
 
         nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key, universalKey: options.universalKey ?? this.universalKey })
-                : this._payload.schema(options.localKey ?? this.key, options.universalKey ?? this.universalKey)
+                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key, universalKey: this.universalKey })
+                : this._payload.schema(options.localKey ?? this.key, this.universalKey)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {

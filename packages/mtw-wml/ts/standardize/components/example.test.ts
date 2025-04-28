@@ -4,7 +4,6 @@ import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
-import { StandardReplace, StandardRemove } from "./edits"
 
 const mergeTest = (base: string, incoming: string): string => {
     const baseStandard = new StandardExample(deIndentWML(base))
@@ -20,7 +19,7 @@ describe('StandardExample class', () => {
 
     it('should construct StandardExample from WML', () => {
         const testSource = deIndentWML(`
-            <Example key=(test)>
+            <Example uuid=(123) key=(test)>
                 <Name>Name Test</Name>
                 <Summary>Summary Test</Summary>
                 <Description>Description Test</Description>
@@ -37,7 +36,7 @@ describe('StandardExample class', () => {
     it('should construct StandardExample from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Example key=(test)>
+            <Example uuid=(123) key=(test)>
                 <Name>Name Test</Name>
                 <Summary>Summary Test</Summary>
                 <Description>Description Test</Description>
