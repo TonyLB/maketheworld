@@ -7,9 +7,8 @@ import { StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
-import { StandardRender, StandardRenderRemove, StandardRenderReplace } from "../render"
+import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
-import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -81,14 +80,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         const children = [
             rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
             rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }),
             rebuildSchemaFromStandardRender(this._description, { tag: 'Description' })
         ].filter(excludeUndefined)
         return {
-            data: { tag: 'Example', key },
+            data: { tag: 'Example', key, uuid: universalKey },
             children
         }
     }
