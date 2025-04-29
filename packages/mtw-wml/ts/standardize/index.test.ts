@@ -2104,7 +2104,7 @@ describe('StandardForm', () => {
                         <Description>Vortex Desc</Description>
                     </Example>
                 </Room>
-                <Feature key=(testFeature)>
+                <Feature uuid=(003) key=(testFeature)>
                     <Example key=(base)>
                         <Name>Clocktower</Name>
                         <Description>
@@ -2132,7 +2132,6 @@ describe('StandardForm', () => {
         `)
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-        testSource._byId.testFeature = testSource._byId.testFeature.withUniversalKey('FEATURE#003')
         testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
         testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
         testSource._byId.openDoor = testSource._byId.openDoor.withUniversalKey('MESSAGE#006')
@@ -2160,13 +2159,13 @@ describe('StandardForm', () => {
     it('should group sub-components correctly in JSON', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
-                <Feature key=(testGlobal)>
+                <Feature uuid=(003) key=(testGlobal)>
                     <Example uuid=(003b) key=(base)>
                         <Description>Global</Description>
                     </Example>
                 </Feature>
                 <Room uuid=(001) key=(testRoom)>
-                    <Feature key=(testLocal)>
+                    <Feature uuid=(004) key=(testLocal)>
                         <Example uuid=(004b) key=(base)>
                             <Name>Clocktower</Name>
                             <Description>
@@ -2175,7 +2174,7 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature global key=(testGlobal) />
+                    <Feature uuid=(003) global key=(testGlobal) />
                     <Example uuid=(001b) key=(base)>
                         <Name>Vortex</Name>
                     </Example>
@@ -2184,10 +2183,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
-        testSource._byId.testRoom = testSource._byId.testRoom
-        testSource._byId.testRoomTwo = testSource._byId.testRoomTwo
-        testSource._byId.testGlobal = testSource._byId.testGlobal.withUniversalKey('FEATURE#003')
-        testSource._byId["testRoom.testLocal"] = testSource._byId["testRoom.testLocal"].withUniversalKey('FEATURE#004')
 
         const ndjson = testSource.toNDJSON()
         expect(ndjson).toEqual([
@@ -2196,7 +2191,7 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testRoom',
                 universalKey: 'ROOM#001',
-                features: [{ key: 'testLocal', tag: 'Feature' }, { key: 'testGlobal', global: true, tag: 'Feature' }],
+                features: [{ key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#004' }, { key: 'testGlobal', global: true, tag: 'Feature', universalKey: 'FEATURE#003' }],
                 examples: [{ key: 'base', universalKey: 'EXAMPLE#001b', tag: 'Example' }],
                 exits: []
             },
@@ -2233,6 +2228,35 @@ describe('StandardForm', () => {
                 description: ['Global']
             }
         ])
+    })
+
+    it('should round-trip nested subcomponents', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(test)>
+                <Room uuid=(001) key=(testRoom)>
+                    <Feature uuid=(004) key=(testLocal)>
+                        <Example uuid=(004b) key=(base)>
+                            <Name>Clocktower</Name>
+                            <Description>
+                                A tower built of white sandstone blocks, with an ornate
+                                clock set on the northern face.
+                            </Description>
+                        </Example>
+                    </Feature>
+                    <Feature uuid=(003) global key=(testGlobal) />
+                    <Example uuid=(001b) key=(base)><Name>Vortex</Name></Example>
+                </Room>
+                <Room uuid=(002) key=(testRoomTwo) />
+                <Feature uuid=(003) key=(testGlobal)>
+                    <Example uuid=(003b) key=(base)>
+                        <Description>Global</Description>
+                    </Example>
+                </Feature>
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+
+        expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
     it('should round-trip imports through NDJSON', () => {
