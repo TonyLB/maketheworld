@@ -101,10 +101,14 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Feature: {
-        initialize: ({ parseOpen }): SchemaFeatureTag => ({
-            tag: 'Feature',
-            ...validateProperties(componentTemplates.Feature)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaFeatureTag => {
+            const { uuid, ...rest } = validateProperties(componentTemplates.Feature)(parseOpen)
+            return {
+                tag: 'Feature',
+                uuid: uuid ? enforceTypedKey('FEATURE')(uuid) : undefined,
+                ...rest
+            }
+        }
     },
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => ({
@@ -211,7 +215,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Feature',
             properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('FEATURE')(tag.uuid) : '' },
                 { key: 'global', type: 'boolean', value: tag.global ?? false },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'as', type: 'key', value: tag.as ?? '' }

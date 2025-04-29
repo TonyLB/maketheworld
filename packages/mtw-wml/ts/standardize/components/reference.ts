@@ -55,13 +55,13 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
         return rest
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         if (this.tag === 'Character') {
             throw new Error('Character, Asset and Story references are not allowed in StandardReference')
         }
         if (this.tag === 'Feature') {
             return {
-                data: { tag: this.tag, global: this._global, key } as SchemaFeatureTag,
+                data: { tag: this.tag, global: this._global, key, uuid: universalKey } as SchemaFeatureTag,
                 children: []
             }
         }
