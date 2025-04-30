@@ -71,9 +71,9 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Map', key },
+            data: { tag: 'Map', key, uuid: universalKey },
             children: [
                 ...[this.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
                 ...this.images,

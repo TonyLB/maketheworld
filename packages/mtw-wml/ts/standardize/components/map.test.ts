@@ -10,13 +10,14 @@ describe('StandardMap class', () => {
 
     it('should construct StandardMap from WML', () => {
         const testSource = deIndentWML(`
-            <Map key=(test)>
+            <Map uuid=(001) key=(test)>
                 <Name>Name Test</Name>
                 <Image key=(testImage) />
                 <Room key=(testRoom)><Position x="100" y="100" /></Room>
             </Map>
         `)
         const testMap = new StandardMap(testSource)
+        expect(testMap.universalKey).toEqual('MAP#001')
         expect(testMap.key).toEqual('test')
         expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
