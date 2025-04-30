@@ -111,10 +111,14 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Knowledge: {
-        initialize: ({ parseOpen }): SchemaKnowledgeTag => ({
-            tag: 'Knowledge',
-            ...validateProperties(componentTemplates.Knowledge)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaKnowledgeTag => {
+            const { uuid, ...rest } = validateProperties(componentTemplates.Knowledge)(parseOpen)
+            return {
+                tag: 'Knowledge',
+                uuid: uuid ? enforceTypedKey('KNOWLEDGE')(uuid) : undefined,
+                ...rest
+            }
+        }
     },
     Position: {
         initialize: ({ parseOpen }): SchemaPositionTag => {
@@ -234,7 +238,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Knowledge',
             properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('KNOWLEDGE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],

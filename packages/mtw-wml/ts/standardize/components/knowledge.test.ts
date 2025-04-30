@@ -11,7 +11,7 @@ describe('StandardKnowledge class', () => {
 
     it('should construct StandardKnowledge from WML', () => {
         const testSource = deIndentWML(`
-            <Knowledge key=(test)><Example key=(base) /></Knowledge>
+            <Knowledge uuid=(001) key=(test)><Example key=(base) /></Knowledge>
         `)
         const testKnowledge = new StandardKnowledge(testSource)
         expect(testKnowledge.key).toEqual('test')
