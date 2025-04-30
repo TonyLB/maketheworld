@@ -135,10 +135,14 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Map: {
-        initialize: ({ parseOpen }): SchemaMapTag => ({
-            tag: 'Map',
-            ...validateProperties(componentTemplates.Map)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaMapTag => {
+            const { uuid, ...rest } = validateProperties(componentTemplates.Map)(parseOpen)
+            return {
+                tag: 'Map',
+                uuid: uuid ? enforceTypedKey('MAP')(uuid) : undefined,
+                ...rest
+            }
+        },
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         validateContents: {
             isValid: (tag) => (true),
@@ -270,7 +274,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Map',
             properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
