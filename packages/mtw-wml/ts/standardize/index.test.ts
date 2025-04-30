@@ -2113,7 +2113,7 @@ describe('StandardForm', () => {
                         </Description>
                     </Example>
                 </Feature>
-                <Knowledge key=(testKnowledge)>
+                <Knowledge uuid=(004) key=(testKnowledge)>
                     <Example key=(base)>
                         <Name>Learn</Name>
                         <Description>There is so much to know!</Description>
@@ -2132,7 +2132,6 @@ describe('StandardForm', () => {
         `)
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-        testSource._byId.testKnowledge = testSource._byId.testKnowledge.withUniversalKey('KNOWLEDGE#004')
         testSource._byId.testMap = testSource._byId.testMap.withUniversalKey('MAP#005')
         testSource._byId.openDoor = testSource._byId.openDoor.withUniversalKey('MESSAGE#006')
         testSource._byId.openDoorMoment = testSource._byId.openDoorMoment.withUniversalKey('MOMENT#007')
