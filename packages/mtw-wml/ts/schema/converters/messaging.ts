@@ -46,10 +46,14 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Moment: {
-        initialize: ({ parseOpen }): SchemaMomentTag => ({
-            tag: 'Moment',
-            ...validateProperties(messagingTemplates.Moment)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaMomentTag => {
+            const { uuid, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
+            return {
+                tag: 'Moment',
+                uuid: uuid ? enforceTypedKey('MOMENT')(uuid) : undefined,
+                ...rest
+            }
+        },
         typeCheckContents: (node) => (isSchemaMessage(node) || isSchemaRemove(node))
     },
 }
@@ -61,7 +65,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Message',
                 properties: [
-                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
@@ -75,7 +79,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Moment',
                 properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MOMENT')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],

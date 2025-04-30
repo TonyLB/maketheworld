@@ -9,9 +9,10 @@ describe('StandardMoment class', () => {
 
     it('should construct StandardMoment from WML', () => {
         const testSource = deIndentWML(`
-            <Moment key=(test)><Message key=(testMessage) /></Moment>
+            <Moment uuid=(001) key=(test)><Message key=(testMessage) /></Moment>
         `)
         const testMoment = new StandardMoment(testSource)
+        expect(testMoment.universalKey).toEqual('MOMENT#001')
         expect(testMoment.key).toEqual('test')
         expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(schemaToWML([testMoment.schema])).toEqual(testSource)
