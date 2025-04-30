@@ -8,6 +8,7 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const messagingTemplates = {
     Message: {
@@ -26,10 +27,14 @@ const messagingTemplates = {
 
 export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
-        initialize: ({ parseOpen }): SchemaMessageTag => ({
-            tag: 'Message',
-            ...validateProperties(messagingTemplates.Message)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaMessageTag => {
+            const { uuid, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
+            return {
+                tag: 'Message',
+                uuid: uuid ? enforceTypedKey('MESSAGE')(uuid) : undefined,
+                ...rest
+            }
+        },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => {
             if (!isSchemaMessage(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
@@ -56,7 +61,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Message',
                 properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],

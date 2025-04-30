@@ -62,9 +62,9 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Message', key },
+            data: { tag: 'Message', key, uuid: universalKey },
             children: [
                 ...this.rooms,
                 ...[this.description].filter(excludeUndefined).map(({ children }) => (children)).flat(1)

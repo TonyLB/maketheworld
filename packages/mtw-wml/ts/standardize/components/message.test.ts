@@ -10,9 +10,10 @@ describe('StandardMessage class', () => {
 
     it('should construct StandardMessage from WML', () => {
         const testSource = deIndentWML(`
-            <Message key=(test)><Room key=(testRoom) />Message Test</Message>
+            <Message uuid=(001) key=(test)><Room key=(testRoom) />Message Test</Message>
         `)
         const testMap = new StandardMessage(testSource)
+        expect(testMap.universalKey).toEqual('MESSAGE#001')
         expect(testMap.key).toEqual('test')
         expect(testMap.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] })
         expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
