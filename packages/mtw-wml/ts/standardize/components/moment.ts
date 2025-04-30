@@ -61,17 +61,17 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Moment', key },
+            data: { tag: 'Moment', key, uuid: universalKey },
             children: this.messages.map((reference) => (reference.schema))
         }
     }
 
     nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { localKey: key } = options
+        const { localKey: key, universalKey } = options
         return {
-            data: { tag: 'Moment', key },
+            data: { tag: 'Moment', key, uuid: universalKey },
             children: this.messages.map((reference) => (
                     //
                     // TODO: Resurface this code in ISS-5072 when messages get a global flag

@@ -8,7 +8,9 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-export const enforceTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE'>(key: T) => (value: string): `${T}#${string}` => {
+type ComponentKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT'
+
+export const enforceTypedKey = <T extends ComponentKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)
     if (checkForTwoSections) {
         if (checkType !== key) {
@@ -19,7 +21,7 @@ export const enforceTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAM
     return `${key}#${value}`
 }
 
-export const stripTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE'>(key: T) => (value: string): string => {
+export const stripTypedKey = <T extends ComponentKey>(key: T) => (value: string): string => {
     if (value.startsWith(`${key}#`)) {
         return value.slice(key.length + 1)
     }
