@@ -4,6 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const computationTemplates = {
     Variable: {
@@ -31,10 +32,14 @@ const computationTemplates = {
 
 export const computationConverters: Record<string, ConverterMapEntry> = {
     Variable: {
-        initialize: ({ parseOpen }): SchemaVariableTag => ({
-            tag: 'Variable',
-            ...validateProperties(computationTemplates.Variable)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaVariableTag => {
+            const { uuid, ...rest } = validateProperties(computationTemplates.Variable)(parseOpen)
+            return {
+                tag: 'Variable',
+                uuid: uuid ? enforceTypedKey('VARIABLE')(uuid) : undefined,
+                ...rest
+            }
+        },
     },
     Computed: {
         initialize: ({ parseOpen }): SchemaComputedTag => {
@@ -60,7 +65,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Variable',
                 properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('VARIABLE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'default', type: 'expression', value: tag.default ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
