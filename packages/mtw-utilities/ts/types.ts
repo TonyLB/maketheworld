@@ -8,7 +8,7 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-type ComponentKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT'
+type ComponentKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'VARIABLE' | 'COMPUTED' | 'ACTION'
 
 export const enforceTypedKey = <T extends ComponentKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)

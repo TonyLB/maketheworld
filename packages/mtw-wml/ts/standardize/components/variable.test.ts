@@ -9,9 +9,10 @@ describe('StandardVariable class', () => {
 
     it('should construct StandardVariable from WML', () => {
         const testSource = deIndentWML(`
-            <Variable key=(test) default={true} />
+            <Variable uuid=(001) key=(test) default={true} />
         `)
         const testVariable = new StandardVariable(testSource)
+        expect(testVariable.universalKey).toEqual('VARIABLE#001')
         expect(testVariable.key).toEqual('test')
         expect(testVariable.default).toEqual('true')
         expect(schemaToWML([testVariable.schema])).toEqual(testSource)

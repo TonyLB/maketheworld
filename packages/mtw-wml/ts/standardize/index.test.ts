@@ -2127,14 +2127,13 @@ describe('StandardForm', () => {
                     <Room key=(testRoom) />The door opens!
                 </Message>
                 <Moment uuid=(007) key=(openDoorMoment)><Message key=(openDoor) /></Moment>
-                <Variable key=(open) default={false} />
+                <Variable uuid=(008) key=(open) default={false} />
                 <Computed key=(closed) src={!open} />
                 <Action key=(toggleOpen) src={open = !open} />
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
         testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
-        testSource._byId.open = testSource._byId.open.withUniversalKey('VARIABLE#008')
         testSource._byId.closed = testSource._byId.closed.withUniversalKey('COMPUTED#009')
         testSource._byId.toggleOpen = testSource._byId.toggleOpen.withUniversalKey('ACTION#010')
 

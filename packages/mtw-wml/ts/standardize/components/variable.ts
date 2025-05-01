@@ -38,9 +38,9 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Variable', key, default: this.default },
+            data: { tag: 'Variable', key, default: this.default, uuid: universalKey },
             children: []
         }
     }
