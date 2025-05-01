@@ -43,10 +43,11 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
     },
     Computed: {
         initialize: ({ parseOpen }): SchemaComputedTag => {
-            const validatedProperties = validateProperties(computationTemplates.Computed)(parseOpen)
+            const { uuid, ...rest } = validateProperties(computationTemplates.Computed)(parseOpen)
             return {
                 tag: 'Computed',
-                ...validatedProperties
+                uuid: uuid ? enforceTypedKey('COMPUTED')(uuid) : undefined,
+                ...rest
             }
         }
     },
@@ -80,7 +81,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Computed',
                 properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('COMPUTED')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
                     { key: 'as', type: 'key', value: tag.as ?? '' }

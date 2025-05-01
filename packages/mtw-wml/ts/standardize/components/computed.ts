@@ -43,9 +43,9 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Computed', key, src: this.src },
+            data: { tag: 'Computed', key, uuid: universalKey, src: this.src },
             children: []
         }
     }
