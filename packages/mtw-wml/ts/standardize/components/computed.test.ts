@@ -9,9 +9,10 @@ describe('StandardComputed class', () => {
 
     it('should construct StandardComputed from WML', () => {
         const testSource = deIndentWML(`
-            <Computed key=(test) src={true} />
+            <Computed uuid=(001) key=(test) src={true} />
         `)
         const testComputed = new StandardComputed(testSource)
+        expect(testComputed.universalKey).toEqual('COMPUTED#001')
         expect(testComputed.key).toEqual('test')
         expect(testComputed.src).toEqual('true')
         expect(schemaToWML([testComputed.schema])).toEqual(testSource)
