@@ -52,10 +52,14 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Action: {
-        initialize: ({ parseOpen }): SchemaActionTag => ({
-            tag: 'Action',
-            ...validateProperties(computationTemplates.Action)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaActionTag => {
+            const { uuid, ...rest } = validateProperties(computationTemplates.Action)(parseOpen)
+            return {
+                tag: 'Action',
+                uuid: uuid ? enforceTypedKey('ACTION')(uuid) : undefined,
+                ...rest
+            }
+        }
     },
 }
 
@@ -96,7 +100,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Action',
                 properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ?? '' },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ACTION')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
                     { key: 'as', type: 'key', value: tag.as ?? '' }

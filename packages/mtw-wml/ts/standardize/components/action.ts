@@ -41,9 +41,9 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Action', key, src: this.src },
+            data: { tag: 'Action', key, uuid: universalKey, src: this.src },
             children: []
         }
     }
