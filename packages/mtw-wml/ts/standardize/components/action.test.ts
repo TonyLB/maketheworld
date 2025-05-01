@@ -9,10 +9,11 @@ describe('StandardAction class', () => {
 
     it('should construct StandardAction from WML', () => {
         const testSource = deIndentWML(`
-            <Action key=(test) src={testVar = false} />
+            <Action uuid=(001) key=(test) src={testVar = false} />
         `)
         const testAction = new StandardAction(testSource)
         expect(testAction.key).toEqual('test')
+        expect(testAction.universalKey).toEqual('ACTION#001')
         expect(testAction.src).toEqual('testVar = false')
         expect(schemaToWML([testAction.schema])).toEqual(testSource)
     })
