@@ -1,12 +1,8 @@
-import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { EditWrappedStandardNode, SerializeNDJSONMixin } from "../baseClasses";
-import { isLegalKey, nodeFromWML } from "../utils";
-import { StandardToJSONOptions } from "./baseClasses";
-import { StandardBaseData } from "./dataTypes/abstract"
-import { isSchemaTreeNode } from "./utils";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { EditWrappedStandardNode } from "../baseClasses";
+import { StandardToJSONOptions } from "./baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
-import { SchemaShortNameTag } from "@tonylb/mtw-base/ts/schema/components";
 import { StandardLiteral } from "../literal";
 
 export interface ComponentInterface {

@@ -52,6 +52,12 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
+    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardRemove {
+        const returnValue = this.clone()
+        returnValue._match = returnValue._match.remapReferences(props)
+        return returnValue
+    }
+
     toJSON(): StandardRemoveData {
         return {
             key: this.key,
@@ -184,6 +190,13 @@ export class StandardReplace implements StandardComponent {
         const returnValue = new StandardReplace(this)
         returnValue._match = returnValue._match.mapContents(callback)
         returnValue._payload = returnValue._payload.mapContents(callback)
+        return returnValue
+    }
+
+    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardReplace {
+        const returnValue = this.clone()
+        returnValue._match = returnValue._match.remapReferences(props)
+        returnValue._payload = returnValue._payload.remapReferences(props)
         return returnValue
     }
 

@@ -48,5 +48,6 @@ export interface StandardComponent {
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
+    remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: 'uuid' | 'key' }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }
