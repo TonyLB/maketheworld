@@ -44,6 +44,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
+    remapReferences?: (props: { mappings: { key: string; universalKey: string }[], mapTo: 'uuid' | 'key' }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
@@ -97,6 +98,15 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._payload = returnValue._payload.mapContents(callback)
             return returnValue
+        }
+
+        remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardComponent {
+            if (this._payload.remapReferences) {
+                const returnValue = this.clone() as GeneratedComponentClass
+                returnValue._payload = returnValue._payload.remapReferences?.(props) ?? returnValue._payload
+                return returnValue
+            }
+            return this
         }
 
         toJSON(options?: StandardToJSONOptions): D {
