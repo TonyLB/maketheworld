@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import type { SerializeNDJSONMixin } from "../../baseClasses"
+import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../utils"
 import { ComponentTag, StandardBaseData } from "./abstract"
 import { StandardActionData, isStandardAction } from "./action"
@@ -16,14 +16,9 @@ import { StandardRoomData, isStandardRoom } from "./room"
 import { StandardVariableData, isStandardVariable } from "./variable"
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isStandardReferenceData, StandardReferenceData } from "./reference"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
-
-export type StandardReferenceData = {
-    tag: ComponentTag;
-    global?: boolean;
-} & StandardBaseData & SerializeNDJSONMixin
-
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -41,19 +36,21 @@ export type StandardComponentNonEditData =
     StandardReferenceData
 
 export type StandardRemoveData = {
-    key: string;
+    key?: string;
+    universalKey?: string;
     tag: 'Remove';
     component: StandardComponentNonEditData;
 }
 
 export type StandardReplaceData = {
-    key: string;
+    key?: string;
+    universalKey?: string;
     tag: 'Replace';
     match: StandardComponentNonEditData;
     payload: StandardComponentNonEditData;
 }
 
-export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
+export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
 
 export const isStandardNonEdit = (value: any): value is StandardComponentNonEditData => (
     isStandardCharacter(value) ||
@@ -67,7 +64,8 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardVariable(value) ||
     isStandardComputed(value) ||
     isStandardAction(value) ||
-    isStandardImage(value)
+    isStandardImage(value) ||
+    isStandardReferenceData(value)
 )
 
 export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {
@@ -107,7 +105,6 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
     }
 }
 
-export type StandardComponentData = StandardComponentNonEditData | StandardRemoveData | StandardReplaceData
 export type StandardFormData = {
     key: string;
     byId: Record<string, StandardComponentData>;

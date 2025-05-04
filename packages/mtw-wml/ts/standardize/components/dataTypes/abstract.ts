@@ -3,7 +3,7 @@ import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 export type StandardBaseData = {
-    key: string;
+    key?: string;
     update?: boolean;
 }
 

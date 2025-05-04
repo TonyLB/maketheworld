@@ -55,16 +55,22 @@ export type StandardComponentDataNonEdit =
     StandardImage |
     StandardReferenceData
 
+export type StandardComponentTag = 'Character' | 'Example' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Message' | 'Moment' | 'Variable' | 'Computed' | 'Action' | 'Image' | 'Remove' | 'Replace'
+
 export type StandardRemove = {
+    key?: string;
+    universalKey?: string;
     tag: 'Remove';
     component: StandardComponentDataNonEdit;
-} & StandardBase
+}
 
 export type StandardReplace = {
+    key?: string;
+    universalKey?: string;
     tag: 'Replace';
     match: StandardComponentDataNonEdit;
     payload: StandardComponentDataNonEdit;
-} & StandardBase
+}
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentDataNonEdit => {
     if (isStandardNonEdit(component)) {
@@ -80,7 +86,7 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 
 export type StandardComponentData = StandardComponentDataNonEdit | StandardRemove | StandardReplace
 
-export const isStandardFactory = <T extends StandardComponentData>(tag: T["tag"]) => (value: StandardComponentData): value is T => (value.tag === tag)
+export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
 
 export const isStandardCharacter = isStandardFactory<StandardCharacter>("Character")
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
@@ -97,9 +103,9 @@ export const isStandardImage = isStandardFactory<StandardImage>("Image")
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
-export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!["Remove", "Replace"].includes(value.tag))
+export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!(typeof value !== 'string' && ["Remove", "Replace"].includes(value.tag)))
 
-export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): StandardComponentNonEditData => {
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
         case 'Example':
             return {

@@ -9,6 +9,7 @@ import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/component
 import { StandardRemove, StandardReplace } from "../edits"
 import { excludeUndefined } from "../../../lib/lists"
 import { deepEqual } from "../../../lib/objects"
+import { StandardReferenceData } from "../dataTypes"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree
@@ -114,6 +115,63 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference | St
     ), {})
     return Object.values(referencesById).filter(excludeUndefined)
 }
+
+//
+// mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
+// a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.
+// It is used to convert references from one format to another.
+//
+// The differente references types are:
+// - key: A reference that inclueds the local (to the Asset) key of the reference, and NOT the universal key
+// - universal: A reference that includes the universal key of the reference, and NOT the local (to the Asset) key
+// - both: A reference that includes both the local (to the Asset) key and the universal key of the reference
+//
+// mapReferenceToFormat is a curried function which accepts (as its first argument) a list of mapping between the local (to the Asset)
+// key and the universal key of the reference. The second argument is the reference to be mapped.
+//
+type ReferenceFormat = 'key' | 'universal' | 'both';
+
+export const mapReferenceToFormat = (mappings: { key: string; universalKey: string }[], format: ReferenceFormat) => 
+    (reference: StandardReference | StandardRemove | StandardReplace): StandardReference | StandardRemove | StandardReplace => {
+        const mapKey = (reference: StandardReferenceData): { key: string; universalKey: string } | undefined => {
+            if (typeof reference === 'string') {
+                return mappings.find(({ universalKey }) => (universalKey === reference))
+            }
+            if (reference.key) {
+                return mappings.find(({ key }) => (key === reference.key))
+            }
+            if (reference.universalKey) {
+                return mappings.find(({ universalKey }) => (universalKey === reference.universalKey))
+            }
+            return undefined
+        }
+
+        if (reference instanceof StandardReference) {
+            const newKey = mapKey(reference.toJSON() as StandardReferenceData)
+            if (!newKey) {
+                throw new Error(`Could not find mapping for reference ${JSON.stringify(reference.toJSON())}`)
+            }
+            return new StandardReference({
+                tag: reference.tag,
+                global: reference.global,
+                key: ['key', 'both'].includes(format) ? newKey.key : undefined,
+                universalKey: ['universal', 'both'].includes(format) ? newKey.universalKey : undefined,
+            })
+        }
+
+        if (reference instanceof StandardRemove) {
+            return new StandardRemove(mapReferenceToFormat(mappings, format)(reference._match as StandardReference) as StandardReference)
+        }
+
+        if (reference instanceof StandardReplace) {
+            return new StandardReplace(
+                mapReferenceToFormat(mappings, format)(reference._match as StandardReference) as StandardReference,
+                mapReferenceToFormat(mappings, format)(reference._payload as StandardReference) as StandardReference
+            )
+        }
+        
+        throw new Error('Unsupported reference type')
+    }
 
 export default linkReferenceKeys
 

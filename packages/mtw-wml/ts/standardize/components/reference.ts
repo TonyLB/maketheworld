@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { defaultComponentFromTag } from "../baseClasses";
+import { defaultComponentFromTag, StandardComponentData } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { isStandardFeature, StandardComponentNonEditData } from "./dataTypes"
@@ -10,7 +10,7 @@ import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@t
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardRemove, StandardReplace } from "./edits";
-import { StandardReferenceData } from "./dataTypes/reference";
+import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
@@ -28,7 +28,15 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
         }
     }
 
-    fromJSON(props: StandardReferenceData) {
+    fromJSON(props: StandardComponentData) {
+        if (!isStandardReferenceData(props)) {
+            throw new Error('Invalid StandardReferenceData passed to StandardReferencePayload')
+        }
+        if (typeof props === 'string') {
+            const [upcaseTag] = props.split('#')
+            this.tag = `${upcaseTag.charAt(0).toUpperCase()}${upcaseTag.slice(1).toLowerCase()}` as ComponentTag
+            return
+        }
         this.tag = props.tag
         this._global = props.global
     }
