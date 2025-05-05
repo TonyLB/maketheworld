@@ -52,10 +52,7 @@ export type StandardComponentDataNonEdit =
     StandardVariable |
     StandardComputed |
     StandardAction |
-    StandardImage |
-    StandardReferenceData
-
-export type StandardComponentTag = 'Character' | 'Example' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Message' | 'Moment' | 'Variable' | 'Computed' | 'Action' | 'Image' | 'Remove' | 'Replace'
+    StandardImage
 
 export type StandardRemove = {
     key?: string;
@@ -85,8 +82,9 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 }
 
 export type StandardComponentData = StandardComponentDataNonEdit | StandardRemove | StandardReplace
+export type StandardComponentTag = StandardComponentData["tag"]
 
-export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
+export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
 
 export const isStandardCharacter = isStandardFactory<StandardCharacter>("Character")
 export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
@@ -103,24 +101,27 @@ export const isStandardImage = isStandardFactory<StandardImage>("Image")
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
-export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!(typeof value !== 'string' && ["Remove", "Replace"].includes(value.tag)))
+export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!(["Remove", "Replace"].includes(value.tag)))
 
-export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Exclude<StandardComponentNonEditData, string> => {
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: string): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
         case 'Example':
             return {
                 tag,
-                key
+                key,
+                universalKey
             }
         case 'Character':
             return {
                 tag,
-                key
+                key,
+                universalKey
             }
         case 'Room':
             return {
                 tag,
                 key,
+                universalKey,
                 exits: []
             }
         case 'Feature':
@@ -129,33 +130,39 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key: string): Exc
             return {
                 tag,
                 key,
+                universalKey
             }
         case 'Image':
             return {
                 tag: 'Image' as const,
                 key,
+                universalKey
             }
         case 'Variable':
             return {
                 tag: 'Variable' as const,
-                key
+                key,
+                universalKey
             }
         case 'Computed':
             return {
                 tag: 'Computed' as const,
                 key,
+                universalKey,
                 src: '',
             }
         case 'Action':
             return {
                 tag: 'Action' as const,
                 key,
+                universalKey,
                 src: '',
             }
         case 'Map':
             return {
                 tag: 'Map' as const,
                 key,
+                universalKey,
                 images: [],
                 positions: [],
             }

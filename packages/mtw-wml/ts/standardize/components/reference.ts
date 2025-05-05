@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { defaultComponentFromTag, StandardComponentData } from "../baseClasses";
+import { defaultComponentFromTag, StandardComponentData, StandardComponentTag } from "../baseClasses";
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { isStandardFeature, StandardComponentNonEditData } from "./dataTypes"
@@ -8,7 +8,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
-import { ComponentTag } from "./dataTypes/abstract";
+import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { StandardRemove, StandardReplace } from "./edits";
 import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
@@ -16,6 +16,41 @@ import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { deepEqual } from "../../lib/objects";
+import { StandardEditablePayload } from "../../generics/editable";
+
+export class StandardReferenceSimpleBase implements StandardEditablePayload<string | StandardReferenceData> {
+    key?: string;
+    universalKey?: string;
+    tag: ComponentTag;
+    constructor(data: string | StandardReferenceData) {
+        if (typeof data === 'string') {
+            this.tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
+            this.universalKey = data
+        }
+        else {
+            this.key = data.key
+            this.universalKey = data.universalKey
+            this.tag = data.tag
+        }
+    }
+    get schema() {
+        return [{ data: { tag: this.tag, key: this.key} as SchemaTag, children: [] }]
+    }
+    clone() {
+        return new StandardReferenceSimpleBase(this.toJSON())
+    }
+    toJSON: () => string | StandardReferenceData = () => {
+        if (this.key) {
+            return { key: this.key, tag: this.tag, universalKey: this.universalKey } as StandardReferenceData
+        }
+        else {
+            if (!this.universalKey) {
+                throw new Error('StandardReferenceSimpleBase must have a universalKey or key')
+            }
+            return this.universalKey
+        }
+    }
+}
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
