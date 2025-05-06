@@ -16,7 +16,7 @@ import { StandardRoomData, isStandardRoom } from "./room"
 import { StandardVariableData, isStandardVariable } from "./variable"
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isStandardReferenceData, StandardReferenceData } from "./reference"
+import { isStandardReferencePayloadData, StandardReferenceData } from "./reference"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
@@ -65,7 +65,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardComputed(value) ||
     isStandardAction(value) ||
     isStandardImage(value) ||
-    isStandardReferenceData(value)
+    isStandardReferencePayloadData(value)
 )
 
 export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {

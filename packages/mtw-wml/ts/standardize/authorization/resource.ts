@@ -10,7 +10,7 @@ import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { treeFromWML } from "../utils";
-import { StandardReferenceData, isStandardReferenceData } from "../components/dataTypes/reference";
+import { StandardReferenceData, isStandardReferencePayloadData } from "../components/dataTypes/reference";
 import { isSchemaTreeNode } from "../components/utils";
 import { deepEqual } from "../../lib/objects";
 
@@ -21,7 +21,7 @@ export type StandardAuthorizationResourceNDJSON = {
 
 export const isStandardAuthorizationResourceNDJSON = (value: any): value is StandardAuthorizationResourceNDJSON => {
     return typeof value === 'object' &&
-        Array.isArray(value.referenceStack) && value.referenceStack.every(isStandardReferenceData) &&
+        Array.isArray(value.referenceStack) && value.referenceStack.every(isStandardReferencePayloadData) &&
         'grant' in value && isStandardAuthorizationData(value.grant)
 }
 

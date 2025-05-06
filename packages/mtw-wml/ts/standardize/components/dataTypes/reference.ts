@@ -7,7 +7,7 @@ export type StandardReferenceData = string | ({
     global?: boolean;
 } & StandardBaseData & SerializeNDJSONMixin)
 
-export const isStandardReferenceData = (arg: any): arg is StandardReferenceData => (
+export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => (
     typeof arg === 'string' ||
     checkTypes({
         required: { tag: CheckTypes.STRING },

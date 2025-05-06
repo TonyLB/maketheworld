@@ -6,19 +6,19 @@ import { isStandardFeature, StandardComponentNonEditData } from "./dataTypes"
 import { StandardFeatureData } from "./dataTypes/feature";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
-import { isSchemaComponent, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaComponent, isSchemaTag, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { StandardRemove, StandardReplace } from "./edits";
-import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { deepEqual } from "../../lib/objects";
-import { StandardEditablePayload } from "../../generics/editable";
+import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable";
 
-export class StandardReferenceSimpleBase implements StandardEditablePayload<string | StandardReferenceData> {
+export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: string;
     tag: ComponentTag;
@@ -52,6 +52,71 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<stri
     }
 }
 
+const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): StandardReferenceSimpleBase | undefined => {
+    if (isStandardReferencePayloadData(props)) {
+        return new StandardReferenceSimpleBase(props)
+    }
+    if (props.length === 1) {
+        const node = props[0]
+        if (!treeNodeTypeguard(isSchemaComponent)(node)) {
+            throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
+        }
+        const { tag, key, uuid } = node.data
+        return new StandardReferenceSimpleBase({ tag, key, universalKey: uuid })
+    }
+    throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
+}
+
+const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
+    if (typeof incoming === 'string') {
+        const [upcaseTag] = incoming.split('#')
+        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming } as StandardReferenceData
+    }
+    return incoming;
+}
+
+const standardReferenceSerialize = (incoming: StandardReferenceData): StandardReferenceData => {
+    if (typeof incoming === 'string') {
+        return incoming
+    }
+    const { tag, universalKey, key } = incoming
+    if (key) {
+        return incoming
+    }
+    return `${tag}#${universalKey}`
+}
+
+const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardReferenceData): StandardReferenceData => {
+    return incoming
+}
+
+const standardReferenceSubtract = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: string, remove?: string } => {
+    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+        return { add: undefined, remove: undefined }
+    }
+    else {
+        throw new MergeConflictError('Conflict during subtract operation')
+    }
+}
+
+const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: StandardReferenceData, remove?: StandardReferenceData } => {
+    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+        return { add: undefined, remove: undefined }
+    }
+    else {
+        return { add: standardReferenceSerialize(incoming), remove: standardReferenceSerialize(base) }
+    }
+}
+
+export const { constructorDelta: factory, typeguard: isStandardReferenceData, merge, diff } = standardEditableFactory({
+    typeguard: isStandardReferencePayloadData,
+    payloadFactory: payloadFactory,
+    payload: StandardReferenceSimpleBase,
+    add: standardReferenceAdd,
+    subtract: standardReferenceSubtract,
+    diff: standardReferenceDiff
+})
+
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
     _global?: boolean;
@@ -64,7 +129,7 @@ export class StandardReferencePayload implements ComponentConstructorMethods<Sta
     }
 
     fromJSON(props: StandardComponentData) {
-        if (!isStandardReferenceData(props)) {
+        if (!isStandardReferencePayloadData(props)) {
             throw new Error('Invalid StandardReferenceData passed to StandardReferencePayload')
         }
         if (typeof props === 'string') {
