@@ -16,7 +16,8 @@ import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { deepEqual } from "../../lib/objects";
-import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable";
+import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -116,6 +117,155 @@ export const { constructorDelta: factory, typeguard: isStandardReferenceData, me
     subtract: standardReferenceSubtract,
     diff: standardReferenceDiff
 })
+
+const fromDelta = (delta: { add?: string, remove?: string }): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined => {
+    const { add, remove } = delta
+    if (add) {
+        if (remove) {
+            return new StandardReferenceReplace(new StandardReferenceSimpleBase(remove), new StandardReferenceSimpleBase(add))
+        }
+        return new StandardReferenceSimple(new StandardReferenceSimpleBase(add))
+    }
+    if (remove) {
+        return new StandardReferenceRemove(new StandardReferenceSimpleBase(remove))
+    }
+    return undefined
+}
+
+export class StandardReferenceSimple implements StandardEditableWrapper<StandardReferenceSimpleBase> {
+    payload: StandardReferenceSimpleBase
+    constructor(data: StandardReferenceSimpleBase | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
+        if (data instanceof StandardReferenceSimpleBase) {
+            this.payload = data
+            return
+        }
+        const delta = factory(data)
+        if (delta && delta.add && !delta.remove) {
+            this.payload = delta.add
+            return
+        }
+        throw new Error('Invalid data in StandardReferenceSimple')
+    }
+    get schema() {
+        return this.payload.schema
+    }
+    nestedSchema(tag) {
+        return [{ data: tag, children: this.schema }]
+    }
+    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
+        return { add: this.payload.toJSON() }
+    }
+    clone() {
+        return new StandardReferenceSimple(this.payload)
+    }
+    toJSON: () => StandardEditableData<StandardReferenceData> = () => this.payload.toJSON()
+    get plain() { return this.payload }
+    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
+}
+
+export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
+    match: StandardReferenceSimpleBase
+    constructor(data: StandardReferenceSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
+        if (data instanceof StandardReferenceSimpleBase) {
+            this.match = data
+            return
+        }
+        const delta = factory(data)
+        if (delta && !delta.add && delta.remove) {
+            this.match = delta.remove
+            return
+        }
+        console.log(`Invalid data: ${JSON.stringify(data)}`)
+        throw new Error('Invalid data in StandardReferenceRemove')
+    }
+    get schema() {
+        return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
+    }
+    nestedSchema(tag) {
+        return [{
+            data: { tag: 'Remove' as const },
+            children: [{ data: tag, children: this.match.schema }]
+        }]
+    }
+    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
+        return { remove: this.match.toJSON() }
+    }
+    clone() {
+        return new StandardReferenceRemove(this.match)
+    }
+    toJSON: () => StandardEditableData<StandardReferenceData> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
+    get plain() { return this.match }
+    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
+}
+
+export class StandardReferenceReplace implements StandardEditableWrapper<StandardReferenceSimpleBase> {
+    match: StandardReferenceSimpleBase
+    payload: StandardReferenceSimpleBase
+    constructor(...args: [StandardEditableData<string> | GenericTree<SchemaTag> | string] | [StandardReferenceSimpleBase, StandardReferenceSimpleBase]) {
+        if (args.length === 2) {
+            this.match = args[0]
+            this.payload = args[1]
+            return
+        }
+        const delta = factory(args[0])
+        if (delta && delta.add && delta.remove) {
+            this.match = delta.remove
+            this.payload = delta.add
+            return
+        }
+        throw new Error('Invalid data in StandardReferenceReplace')
+    }
+    get schema() {
+        return [{ data: { tag: 'Replace' as const }, children: [
+            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
+            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
+        ] }]
+    }
+    nestedSchema(tag) {
+        return [{
+            data: { tag: 'Replace' as const },
+            children: [
+                {
+                    data: { tag: 'ReplaceMatch' as const },
+                    children: [{ data: tag, children: this.match.schema }]
+                },
+                {
+                    data: { tag: 'ReplacePayload' as const },
+                    children: [{ data: tag, children: this.payload.schema }]
+                }
+            ]
+        }]
+    }
+    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
+        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
+    }
+    clone() {
+        return new StandardReferenceReplace(this.match, this.payload)
+    }
+    toJSON: () => StandardEditableData<StandardReferenceData> = () => ({ 
+        tag: 'Replace' as const,
+        match: this.match.toJSON(),
+        payload: this.payload.toJSON()
+    })
+    get plain() { return this.payload }
+    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(merge(this._delta, other._delta))
+    }
+    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+        return fromDelta(diff(this._delta, other._delta))
+    }
+}
+
 
 export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
     tag: ComponentTag = 'Room';
