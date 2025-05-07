@@ -118,7 +118,7 @@ export const { constructorDelta: factory, typeguard: isStandardReferenceData, me
     diff: standardReferenceDiff
 })
 
-const fromDelta = (delta: { add?: string, remove?: string }): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined => {
+const fromDelta = (delta: { add?: StandardReferenceData, remove?: StandardReferenceData }): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined => {
     const { add, remove } = delta
     if (add) {
         if (remove) {
@@ -170,7 +170,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
 
 export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
     match: StandardReferenceSimpleBase
-    constructor(data: StandardReferenceSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardReferenceSimpleBase | StandardEditableData<string> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardReferenceSimpleBase) {
             this.match = data
             return
@@ -266,133 +266,214 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
     }
 }
 
-
-export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
-    tag: ComponentTag = 'Room';
-    _global?: boolean;
-
-    constructor(previous?: StandardReferencePayload) {
-        if (previous) {
-            this.tag = previous.tag
-            this._global = previous.global
-        }
-    }
-
-    fromJSON(props: StandardComponentData) {
-        if (!isStandardReferencePayloadData(props)) {
-            throw new Error('Invalid StandardReferenceData passed to StandardReferencePayload')
-        }
-        if (typeof props === 'string') {
-            const [upcaseTag] = props.split('#')
-            this.tag = `${upcaseTag.charAt(0).toUpperCase()}${upcaseTag.slice(1).toLowerCase()}` as ComponentTag
+export class StandardReference {
+    _payload: StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace;
+    
+    constructor(arg: any) {
+        if (arg instanceof StandardReferenceSimple || arg instanceof StandardReferenceRemove || arg instanceof StandardReferenceReplace) {
+            this._payload = arg
             return
         }
-        this.tag = props.tag
-        this._global = props.global
-    }
-
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
-        if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            this._global = node.data.global
+        const delta = factory(arg)
+        if (!delta) {
+            throw new Error('Invalid argument to StandardReference constructor')
         }
-        if (treeNodeTypeguard(isSchemaComponent)(node)) {
-            this.tag = node.data.tag
-            return
-        }
-        throw new Error('Schema mismatch in StandardReference constructor')
-    }
-
-    get global() { return this._global }
-
-    toJSON(): Omit<StandardComponentNonEditData, 'key' | 'universalKey'> {
-        const defaultTag = defaultComponentFromTag(this.tag, '')
-        const { key, ...rest } = defaultTag
-        if (isStandardFeature(defaultTag)) {
-            return { ...rest, global: this._global } as Omit<StandardFeatureData, 'key' | 'universalKey'>
-        }
-        return rest
-    }
-
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
-        if (this.tag === 'Character') {
-            throw new Error('Character, Asset and Story references are not allowed in StandardReference')
-        }
-        if (this.tag === 'Feature') {
-            return {
-                data: { tag: this.tag, global: this._global, key, uuid: universalKey } as SchemaFeatureTag,
-                children: []
+        if (delta.add) {
+            if (delta.remove) {
+                this._payload = new StandardReferenceReplace(arg)
+                return
             }
+            this._payload = new StandardReferenceSimple(arg)
+            return
         }
-        return {
-            data: { tag: this.tag, key } as SchemaTag,
-            children: []
+        if (delta.remove) {
+            this._payload = new StandardReferenceRemove(arg)
+            return
         }
+        throw new Error('Invalid argument to StandardReference constructor')
     }
 
-    merge(incoming: this): this {
-        const returnValue = new StandardReferencePayload(this)
-        if (incoming.global) {
-            returnValue._global = true
-        }
-        return returnValue as this
-    }
-    
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
-        return []
+    get schema(): GenericTree<SchemaTag> {
+        return this._payload.schema
     }
 
-    mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
-        return this
+    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+        return this._payload.nestedSchema(tag)
     }
+
+    toJSON(): StandardEditableData<StandardReferenceData> {
+        return this._payload.toJSON()
+    }
+
+    merge(incoming: StandardReference): StandardReference | undefined {
+        const merged = this._payload.merge(incoming._payload)
+        if (merged) {
+            return new StandardReference(merged)
+        }
+        return undefined
+    }
+    diff(incoming: StandardReference | undefined): StandardReference | undefined {
+        if (incoming) {
+            const diff = this._payload.diff(incoming._payload)
+            if (diff) {
+                return new StandardReference(diff)
+            }
+            return undefined
+        }
+        else {
+            const reversedDelta = this._payload._delta
+            if (reversedDelta) {
+                if (reversedDelta.add) {
+                    return new StandardReference(new StandardReferenceRemove(new StandardReferenceSimpleBase(reversedDelta.add)))
+                }
+                if (reversedDelta.remove) {
+                    return new StandardReference(new StandardReferenceSimple(reversedDelta.remove))
+                }
+            }
+            return undefined
+        }
+    }
+    mapContents(callback: (incoming: StandardReferenceData) => StandardReferenceData): StandardReference {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return new StandardReference(callback(this._payload.payload.toJSON()))
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceRemove(new StandardReferenceSimpleBase(callback(this._payload.match.toJSON()))))
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace((new StandardReferenceSimple(callback(this._payload.match.toJSON()))).payload, (new StandardReferenceSimple(callback(this._payload.payload.toJSON()))).payload))
+        }
+        throw new Error('Invalid StandardReference payload')
+    }
+
 }
 
-export class StandardReference extends componentClassFactory(StandardReferencePayload, 'StandardReference') {
+// export class StandardReferencePayload implements ComponentConstructorMethods<StandardReferenceData> {
+//     tag: ComponentTag = 'Room';
+//     _global?: boolean;
 
-    override get global() { return this._payload.global }
+//     constructor(previous?: StandardReferencePayload) {
+//         if (previous) {
+//             this.tag = previous.tag
+//             this._global = previous.global
+//         }
+//     }
 
-    override clone(): StandardReference {
-        const returnValue = new StandardReference(this)
-        returnValue._payload = new StandardReferencePayload(this._payload)
-        return returnValue
-    }
+//     fromJSON(props: StandardComponentData) {
+//         if (!isStandardReferencePayloadData(props)) {
+//             throw new Error('Invalid StandardReferenceData passed to StandardReferencePayload')
+//         }
+//         if (typeof props === 'string') {
+//             const [upcaseTag] = props.split('#')
+//             this.tag = `${upcaseTag.charAt(0).toUpperCase()}${upcaseTag.slice(1).toLowerCase()}` as ComponentTag
+//             return
+//         }
+//         this.tag = props.tag
+//         this._global = props.global
+//     }
 
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardReference(super.merge(incoming) as StandardReference)
-    }
+//     fromSchema(node: GenericTreeNode<SchemaTag>) {
+//         if (treeNodeTypeguard(isSchemaFeature)(node)) {
+//             this._global = node.data.global
+//         }
+//         if (treeNodeTypeguard(isSchemaComponent)(node)) {
+//             this.tag = node.data.tag
+//             return
+//         }
+//         throw new Error('Schema mismatch in StandardReference constructor')
+//     }
 
-    override withKey(key: string): StandardComponent {
-        return new StandardReference(super.withKey(key) as StandardReference)
-    }
+//     get global() { return this._global }
+
+//     toJSON(): Omit<StandardComponentNonEditData, 'key' | 'universalKey'> {
+//         const defaultTag = defaultComponentFromTag(this.tag, '')
+//         const { key, ...rest } = defaultTag
+//         if (isStandardFeature(defaultTag)) {
+//             return { ...rest, global: this._global } as Omit<StandardFeatureData, 'key' | 'universalKey'>
+//         }
+//         return rest
+//     }
+
+//     schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+//         if (this.tag === 'Character') {
+//             throw new Error('Character, Asset and Story references are not allowed in StandardReference')
+//         }
+//         if (this.tag === 'Feature') {
+//             return {
+//                 data: { tag: this.tag, global: this._global, key, uuid: universalKey } as SchemaFeatureTag,
+//                 children: []
+//             }
+//         }
+//         return {
+//             data: { tag: this.tag, key } as SchemaTag,
+//             children: []
+//         }
+//     }
+
+//     merge(incoming: this): this {
+//         const returnValue = new StandardReferencePayload(this)
+//         if (incoming.global) {
+//             returnValue._global = true
+//         }
+//         return returnValue as this
+//     }
     
-    override withUniversalKey(key: string): StandardComponent {
-        return new StandardReference(super.withUniversalKey(key) as StandardReference)
-    }
+//     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+//         return []
+//     }
 
-    override withFileName(key: string): StandardComponent {
-        return new StandardReference(super.withFileName(key) as StandardReference)
-    }
+//     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
+//         return this
+//     }
+// }
 
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardReference(super.withImport(importData) as StandardReference)
-    }
+// export class StandardReference extends componentClassFactory(StandardReferencePayload, 'StandardReference') {
 
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardReference(super.withExport(exportData) as StandardReference)
-    }
+//     override get global() { return this._payload.global }
 
-}
+//     override clone(): StandardReference {
+//         const returnValue = new StandardReference(this)
+//         returnValue._payload = new StandardReferencePayload(this._payload)
+//         return returnValue
+//     }
+
+//     override merge(incoming: StandardComponent): StandardComponent {
+//         return new StandardReference(super.merge(incoming) as StandardReference)
+//     }
+
+//     override withKey(key: string): StandardComponent {
+//         return new StandardReference(super.withKey(key) as StandardReference)
+//     }
+    
+//     override withUniversalKey(key: string): StandardComponent {
+//         return new StandardReference(super.withUniversalKey(key) as StandardReference)
+//     }
+
+//     override withFileName(key: string): StandardComponent {
+//         return new StandardReference(super.withFileName(key) as StandardReference)
+//     }
+
+//     override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
+//         return new StandardReference(super.withImport(importData) as StandardReference)
+//     }
+
+//     override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
+//         return new StandardReference(super.withExport(exportData) as StandardReference)
+//     }
+
+// }
 
 // 
 // Computes the difference between two lists of  editable `StandardReference` objects.
 // 
 type DiffStandardReferenceListParams = {
-    base: (StandardReference | StandardRemove | StandardReplace)[];
-    incoming: (StandardReference | StandardRemove | StandardReplace)[];
+    base: StandardReference[];
+    incoming: StandardReference[];
     hasDiff?: (key: string) => boolean;
     parentKey?: string;
 }
-export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }: DiffStandardReferenceListParams): (StandardReference | StandardRemove | StandardReplace)[] => {
-    const diffReference = (baseReference: StandardReference | StandardRemove | StandardReplace | undefined, incomingReference: StandardReference | StandardRemove | StandardReplace | undefined): StandardReference | StandardRemove | StandardReplace | undefined => {
+export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }: DiffStandardReferenceListParams): StandardReference[] => {
+    const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
         if (baseReference) {
             const lookupKey = baseReference.global || (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
             if (!incomingReference) {
@@ -405,16 +486,16 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
                         throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
                     }
                 }
-                if (baseReference instanceof StandardReplace) {
-                    return new StandardReplace(baseReference._payload, baseReference._match)
+                if (baseReference instanceof StandardReferenceReplace) {
+                    return new StandardReference(new StandardReferenceReplace(baseReference.payload, baseReference.match))
                 }
-                return new StandardRemove(baseReference)
+                return new StandardReference(new StandardReferenceRemove(baseReference._payload.plain))
             }
             if (baseReference.key !== incomingReference.key) {
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
-            if (baseReference instanceof StandardReference) {
-                if (incomingReference instanceof StandardReference) {
+            if (baseReference instanceof StandardReferenceSimple) {
+                if (incomingReference instanceof StandardReferenceSimple) {
                     if (hasDiff && hasDiff(lookupKey)) {
                         return baseReference
                     }
@@ -422,13 +503,11 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
-            if (baseReference instanceof StandardRemove) {
-                if (incomingReference instanceof StandardRemove) {
+            if (baseReference instanceof StandardReferenceRemove) {
+                if (incomingReference instanceof StandardReferenceRemove) {
                     if (hasDiff && hasDiff(lookupKey)) {
-                        const match = baseReference._match
-                        if (match instanceof StandardReference) {
-                            return match
-                        }
+                        const match = baseReference.match
+                        return new StandardReference(match)
                     }
                     return undefined
                 }
@@ -487,7 +566,7 @@ export const editableReferenceFactory = (node: GenericTreeNode<SchemaTag>): Stan
         if (deepEqual(base.toJSON(), incoming.toJSON())) {
             return base
         }
-        return new StandardReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))
+        return new StandardReferenceReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))
     }
     if (treeNodeTypeguard(isSchemaComponent)(node)) {
         return new StandardReference(node)
