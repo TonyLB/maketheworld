@@ -22,6 +22,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: string;
+    global?: boolean;
     tag: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
@@ -32,6 +33,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
             this.key = data.key
             this.universalKey = data.universalKey
             this.tag = data.tag
+            this.global = data.global
         }
     }
     get schema() {
@@ -42,7 +44,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
     }
     toJSON: () => string | StandardReferenceData = () => {
         if (this.key) {
-            return { key: this.key, tag: this.tag, universalKey: this.universalKey } as StandardReferenceData
+            return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global } as StandardReferenceData
         }
         else {
             if (!this.universalKey) {
@@ -63,7 +65,8 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
             throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
         }
         const { tag, key, uuid } = node.data
-        return new StandardReferenceSimpleBase({ tag, key, universalKey: uuid })
+        const global = 'global' in node.data ? node.data.global : undefined
+        return new StandardReferenceSimpleBase({ tag, key, universalKey: uuid, global })
     }
     throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
 }
@@ -146,6 +149,15 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         }
         throw new Error('Invalid data in StandardReferenceSimple')
     }
+    get universalKey() {
+        return this.payload.universalKey
+    }
+    get key() {
+        return this.payload.key
+    }
+    get global() {
+        return this.payload.global
+    }
     get schema() {
         return this.payload.schema
     }
@@ -185,6 +197,15 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
     get schema() {
         return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
+    }
+    get key() {
+        return this.match.key
+    }
+    get universalKey() {
+        return this.match.universalKey
+    }
+    get global() {
+        return this.match.global
     }
     nestedSchema(tag) {
         return [{
@@ -230,6 +251,15 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
             { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
             { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
         ] }]
+    }
+    get key() {
+        return this.payload.key
+    }
+    get universalKey() {
+        return this.payload.universalKey
+    }
+    get global() {
+        return this.payload.global
     }
     nestedSchema(tag) {
         return [{
@@ -295,6 +325,15 @@ export class StandardReference {
 
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
+    }
+    get key(): string | undefined {
+        return this._payload.key
+    }
+    get universalKey(): string | undefined {
+        return this._payload.universalKey
+    }
+    get global(): boolean | undefined {
+        return this._payload.global
     }
 
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
