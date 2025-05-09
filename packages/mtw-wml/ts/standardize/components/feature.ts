@@ -8,7 +8,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
+import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -17,7 +17,7 @@ import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
-    _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
+    _examples: StandardReference[] = [];
     _global?: boolean;
     tag = 'Feature' as const
 
@@ -34,7 +34,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node) => (new StandardReference(node)))
             this._global = node.data.global
             return
         }
@@ -55,7 +55,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Feature', key, global: this.global, uuid: universalKey },
-            children: this.examples.map((reference) => (reference.schema))
+            children: this.examples.map((reference) => (reference.schema)).flat(1)
         }
     }
 
@@ -65,7 +65,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
             data: { tag: 'Feature', key: localKey, uuid: universalKey },
             children: this.examples.map((reference) => (
                 reference.global
-                    ? reference.schema
+                    ? reference.schema[0]
                     : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${globalKey}.${reference.key}` })
             )).filter(excludeUndefined),
         }

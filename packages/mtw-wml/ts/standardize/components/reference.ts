@@ -182,7 +182,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
 
 export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
     match: StandardReferenceSimpleBase
-    constructor(data: StandardReferenceSimpleBase | StandardEditableData<string> | GenericTree<SchemaTag> | string) {
+    constructor(data: StandardReferenceSimpleBase | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
         if (data instanceof StandardReferenceSimpleBase) {
             this.match = data
             return
@@ -334,6 +334,9 @@ export class StandardReference {
     }
     get global(): boolean | undefined {
         return this._payload.global
+    }
+    clone(): StandardReference {
+        return new StandardReference(this._payload.clone())
     }
 
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
@@ -570,47 +573,7 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
         }
     }
     const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
-    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined) as (StandardReference | StandardRemove | StandardReplace)[]
-}
-
-export const editableReferenceFactory = (node: GenericTreeNode<SchemaTag>): StandardReference | StandardRemove | StandardReplace => {
-    if (treeNodeTypeguard(isSchemaRemove)(node)) {
-        const { children } = node
-        if (children.length !== 1) {
-            throw new Error('Remove node must have exactly one child')
-        }
-        const referenceSchema = children[0]
-        if (!treeNodeTypeguard(isSchemaComponent)(referenceSchema)) {
-            throw new Error('Remove node must have a component child')
-        }
-        return new StandardRemove(new StandardReference(referenceSchema))
-    }
-    if (treeNodeTypeguard(isSchemaReplace)(node)) {
-        const { children } = node
-        if (children.length !== 2) {
-            throw new Error('Replace node must have exactly two children')
-        }
-        const matchSchema = children.find(treeNodeTypeguard(isSchemaReplaceMatch))
-        const payloadSchema = children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child))
-        if (!(matchSchema && payloadSchema)) {
-            throw new Error('Replace node must have match and payload children')
-        }
-        const baseSchema = matchSchema.children[0]
-        const incomingSchema = payloadSchema.children[0]
-        if (!treeNodeTypeguard(isSchemaComponent)(baseSchema) || !treeNodeTypeguard(isSchemaComponent)(incomingSchema)) {
-            throw new Error('Replace node must have component children')
-        }
-        const base = new StandardReference(baseSchema)
-        const incoming = new StandardReference(incomingSchema)
-        if (deepEqual(base.toJSON(), incoming.toJSON())) {
-            return base
-        }
-        return new StandardReferenceReplace(new StandardReference(baseSchema), new StandardReference(incomingSchema))
-    }
-    if (treeNodeTypeguard(isSchemaComponent)(node)) {
-        return new StandardReference(node)
-    }
-    throw new Error('Schema mismatch in editableReferenceFactory')
+    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined)
 }
 
 export default StandardReference
