@@ -158,6 +158,9 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     get global() {
         return this.payload.global
     }
+    get tag() {
+        return this.payload.tag
+    }
     get schema() {
         return this.payload.schema
     }
@@ -206,6 +209,9 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
     get global() {
         return this.match.global
+    }
+    get tag() {
+        return this.match.tag
     }
     nestedSchema(tag) {
         return [{
@@ -260,6 +266,9 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
     }
     get global() {
         return this.payload.global
+    }
+    get tag() {
+        return this.payload.tag
     }
     nestedSchema(tag) {
         return [{
@@ -334,6 +343,9 @@ export class StandardReference {
     }
     get global(): boolean | undefined {
         return this._payload.global
+    }
+    get tag(): ComponentTag {
+        return this._payload.tag
     }
     clone(): StandardReference {
         return new StandardReference(this._payload.clone())

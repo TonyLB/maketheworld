@@ -62,7 +62,7 @@ export class StandardRemove implements StandardComponent {
         return {
             key: this.key,
             tag: 'Remove',
-            component: this._match.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin
+            component: this._match.toJSON() as StandardComponentNonEditData
         }
     }
 

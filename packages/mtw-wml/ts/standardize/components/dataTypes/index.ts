@@ -32,8 +32,7 @@ export type StandardComponentNonEditData =
     StandardVariableData |
     StandardComputedData |
     StandardActionData |
-    StandardImageData |
-    StandardReferenceData
+    StandardImageData
 
 export type StandardRemoveData = {
     key?: string;
@@ -64,8 +63,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardVariable(value) ||
     isStandardComputed(value) ||
     isStandardAction(value) ||
-    isStandardImage(value) ||
-    isStandardReferencePayloadData(value)
+    isStandardImage(value)
 )
 
 export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {
