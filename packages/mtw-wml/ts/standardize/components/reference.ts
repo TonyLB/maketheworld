@@ -528,7 +528,7 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
                 if (payload instanceof StandardReferenceReplace) {
                     return new StandardReference(new StandardReferenceReplace(payload.payload, payload.match))
                 }
-                return new StandardReference(new StandardReferenceRemove(payload))
+                return new StandardReference(new StandardReferenceRemove(payload.payload))
             }
             const incomingPayload = incomingReference._payload
             if (baseReference.key !== incomingReference.key) {

@@ -20,7 +20,7 @@ describe('StandardReference', () => {
             <Variable key=(test) />
         `)
         schema.loadWML(testSource)
-        const testVariable = new StandardReference(schema.schema[0])
+        const testVariable = new StandardReference(schema.schema)
         expect(testVariable.key).toEqual('test')
         expect(testVariable.tag).toEqual('Variable')
         expect(schemaToWML(testVariable.schema)).toEqual(testSource)
@@ -69,7 +69,7 @@ describe('diffStandardReferenceList', () => {
         const base = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
         const incoming = [new StandardReference({ key: 'test2', tag: 'Variable' }), new StandardReference({ key: 'test3', tag: 'Variable' })]
         const result = diffStandardReferenceList({ base, incoming })
-        expect(result).toEqual([new StandardReferenceRemove(base[0]._payload.plain), incoming[1]])
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Remove', match: { tag: 'Variable', key: 'test1' } }, { tag: 'Variable', key: 'test3'}])
     })
 
     it('should return empty array when lists are identical', () => {
@@ -83,6 +83,6 @@ describe('diffStandardReferenceList', () => {
         const base = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
         const incoming = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
         const result = diffStandardReferenceList({ base, incoming, hasDiff: (key) => (key === 'test1') })
-        expect(result).toEqual([new StandardReference({ key: 'test1', tag: 'Variable' })])
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ key: 'test1', tag: 'Variable' }])
     })
 })
