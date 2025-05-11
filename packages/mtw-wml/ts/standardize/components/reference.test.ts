@@ -52,7 +52,10 @@ describe('diffStandardReferenceList', () => {
         const base = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
         const incoming: StandardReference[] = []
         const result = diffStandardReferenceList({ base, incoming })
-        expect(result).toEqual([new StandardReferenceRemove(base[0]._payload.plain), new StandardReferenceRemove(base[1]._payload.plain)])
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([
+            { tag: 'Remove', match: { key: 'test1', tag: 'Variable' } },
+            { tag: 'Remove', match: { key: 'test2', tag: 'Variable' } }
+        ])
     })
 
     it('should return all adds when base list is empty', () => {

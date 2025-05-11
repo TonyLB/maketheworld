@@ -133,7 +133,7 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
-        const base = new StandardCharacter(this.key).withImport(this.import).withExport(this.export) as StandardCharacter
+        const base = new StandardCharacter(this.key ?? '').withImport(this.import).withExport(this.export) as StandardCharacter
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
