@@ -1,10 +1,6 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
-export const isSchemaTreeNode = (value: any): value is GenericTreeNode<SchemaTag> => {
-    return Boolean(value && typeof value === 'object' && 'data' in value && 'children' in value)
-}
-
 export const standardFieldToOutputNode = (field: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> => (
     field ? [field] : []
 )

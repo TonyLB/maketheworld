@@ -1,5 +1,5 @@
 import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
-import { isSchemaTreeNode } from "../utils"
+import { isSchemaTreeNode } from "../../../schema"
 import { isStandardLiteralData } from "../../literal"
 import { isStandardReferencePayloadData } from "./reference"
 

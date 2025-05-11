@@ -14,13 +14,13 @@
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
-import { isLegalKey, nodeFromWML } from "../utils";
+import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { ComponentKey, hasComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
-import { isSchemaTreeNode } from "./utils";
+import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";

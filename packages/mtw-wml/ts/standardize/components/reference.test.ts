@@ -1,8 +1,7 @@
 import { diffStandardReferenceList, StandardReference, StandardReferenceRemove } from './reference';
-import { StandardReferenceData } from './dataTypes/reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
-import { StandardRemove } from './edits';
+import { StandardReferenceData } from './dataTypes/reference';
 
 describe('StandardReference', () => {
     it('should construct StandardReference from WML', () => {

@@ -1,10 +1,8 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { deepEqual } from '../../lib/objects';
-import { isSchemaTreeNode } from '../../standardize/components/utils';
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit';
-import { nodeFromWML, treeFromWML } from '../../standardize/utils';
+import { isSchemaTreeNode, treeFromWML } from '../../schema';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;

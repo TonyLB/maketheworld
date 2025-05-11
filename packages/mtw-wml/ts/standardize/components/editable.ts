@@ -5,8 +5,8 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isStandardRemoveWithOptions, isStandardReplaceWithOptions } from "./dataTypes";
 import { ComponentInterface } from "./abstract";
 import { StandardComponentNonEditData } from "./dataTypes";
-import { isSchemaTreeNode } from "./utils";
-import { isLegalKey, nodeFromWML } from "../utils";
+import { isSchemaTreeNode, nodeFromWML } from "../../schema";
+import { isLegalKey } from "../utils";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 

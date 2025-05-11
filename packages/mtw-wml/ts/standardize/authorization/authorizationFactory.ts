@@ -1,5 +1,5 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaTreeNode } from "../components/utils"
+import { isSchemaTreeNode } from "../../schema"
 import { StandardAuthRemove, StandardAuthReplace } from "./components/edits"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"

@@ -3,9 +3,11 @@ import { ComponentTag, StandardBaseData } from "./abstract";
 import { SerializeNDJSONMixin } from "../../baseClasses";
 
 export type StandardReferenceData = string | ({
+    key?: string;
+    universalKey?: string;
     tag: ComponentTag;
     global?: boolean;
-} & StandardBaseData & SerializeNDJSONMixin)
+})
 
 export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => (
     typeof arg === 'string' ||

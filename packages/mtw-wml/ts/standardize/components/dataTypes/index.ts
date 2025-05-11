@@ -1,7 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
-import { isSchemaTreeNode } from "../utils"
-import { ComponentTag, StandardBaseData } from "./abstract"
+import { isSchemaTreeNode } from "../../../schema"
 import { StandardActionData, isStandardAction } from "./action"
 import { isStandardCharacter, StandardCharacterData } from "./character"
 import { StandardComputedData, isStandardComputed } from "./computed"

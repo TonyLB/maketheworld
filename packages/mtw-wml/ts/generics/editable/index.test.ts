@@ -2,10 +2,9 @@ import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { isSchemaTreeNode } from '../../standardize/components/utils'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { schemaToWML } from '../../schema'
+import { isSchemaTreeNode, schemaToWML } from '../../schema'
 
 interface TestData {
     id: number

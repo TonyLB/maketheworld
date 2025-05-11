@@ -12,7 +12,6 @@ import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardRoom from "./components/room"
-import { isSchemaTreeNode } from "./components/utils"
 import StandardVariable from "./components/variable"
 import { isStandardExample } from "./components/dataTypes/example"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -21,6 +20,7 @@ import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSch
 import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { ComponentTag } from "./components/dataTypes/abstract"
+import { isSchemaTreeNode } from "../schema"
 
 //
 // standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,

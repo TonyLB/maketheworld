@@ -9,10 +9,9 @@ import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
-import { treeFromWML } from "../utils";
 import { StandardReferenceData, isStandardReferencePayloadData } from "../components/dataTypes/reference";
-import { isSchemaTreeNode } from "../components/utils";
 import { deepEqual } from "../../lib/objects";
+import { isSchemaTreeNode, treeFromWML } from "../../schema";
 
 export type StandardAuthorizationResourceNDJSON = {
     referenceStack: StandardReferenceData[];
@@ -112,7 +111,7 @@ export class StandardAuthorizationResource {
     get schema(): GenericTree<SchemaTag> {
         const grants = this.grants.map(grant => grant.schema)
         return this.referenceStack.reduceRight<GenericTree<SchemaTag>>((previous, reference) => {
-            return [{ data: reference.schema.data, children: previous }]
+            return [{ data: reference.schema[0].data, children: previous }]
         }, grants)
     }
     
@@ -131,7 +130,7 @@ export class StandardAuthorizationResource {
 
         const finalReference = this.referenceStack.slice(-1)[0]
         if (finalReference) {
-            return [{ data: finalReference.schema.data, children: [...grants, ...children] }]
+            return [{ data: finalReference.schema[0].data, children: [...grants, ...children] }]
         }
         else {
             return [...grants, ...children]
