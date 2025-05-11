@@ -132,8 +132,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
-            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global })),
-            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global }))
+            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global })),
+            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global }))
         ]
     }
 
@@ -184,7 +184,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key).withImport(this.import).withExport(this.export) as StandardRoom
+        const base = new StandardRoom(this.key ?? '').withImport(this.import).withExport(this.export) as StandardRoom
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName

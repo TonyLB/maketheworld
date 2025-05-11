@@ -79,8 +79,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key })),
-            ...this.examples.map((example) => (example.referencedKeys())).flat(1)
+            ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key: key ?? '' }))
         ]
     }
 
@@ -109,7 +108,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardFeature(this.key).withImport(this.import).withExport(this.export) as StandardFeature
+        const base = new StandardFeature(this.key ?? '').withImport(this.import).withExport(this.export) as StandardFeature
         base._payload._examples = examplesDiff
         return base
     }

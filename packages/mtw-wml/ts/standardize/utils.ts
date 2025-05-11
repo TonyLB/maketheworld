@@ -1,24 +1,7 @@
-import { excludeUndefined } from "../lib/lists"
 import { Schema } from "../schema"
-import applyEdits from "../schema/treeManipulation/applyEdits"
-import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
-import { SerializeNDJSONMixin, StandardComponentData, StandardNodeKeys } from "./baseClasses"
+import { SerializeNDJSONMixin, StandardComponentData } from "./baseClasses"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-
-export const combineTagChildren = <T extends StandardComponentData, K extends StandardNodeKeys<T>>(base: T, incoming: T, key: K): T[K] | undefined => {
-    if (!excludeUndefined(base[key])) {
-        return incoming[key]
-    }
-    if (!excludeUndefined(incoming[key])) {
-        return base[key]
-    }
-    const tagTree = new SchemaTagTree([base[key] as GenericTreeNode<SchemaTag>])
-    const incomingTagTree = new SchemaTagTree([incoming[key] as GenericTreeNode<SchemaTag>])
-    tagTree._tagList = [...tagTree._tagList, ...incomingTagTree._tagList]
-    const combinedSchema = applyEdits(tagTree.tree)
-    return combinedSchema.length ? { ...combinedSchema[0], id: (base[key] as any).id || (incoming[key] as any).id } as T[K] : undefined
-}
 
 export const isLegalKey = (value: string) => (value.match(/^[a-zA-Z\_][a-zA-Z0-9\_\.]+$/))
 

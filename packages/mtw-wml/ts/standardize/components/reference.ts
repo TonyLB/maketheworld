@@ -1,20 +1,10 @@
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { defaultComponentFromTag, StandardComponentData, StandardComponentTag } from "../baseClasses";
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
-import { isStandardFeature, StandardComponentNonEditData } from "./dataTypes"
-import { StandardFeatureData } from "./dataTypes/feature";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { StandardExportItem, StandardImportItem } from "./metaData";
-import { isSchemaComponent, isSchemaTag, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
-import { isSchemaFeature, SchemaFeatureTag } from "@tonylb/mtw-base/ts/schema/components";
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
-import { StandardRemove, StandardReplace } from "./edits";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
@@ -529,27 +519,23 @@ type DiffStandardReferenceListParams = {
 export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }: DiffStandardReferenceListParams): StandardReference[] => {
     const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
         if (baseReference) {
+            const payload = baseReference._payload
             const lookupKey = baseReference.global || (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
             if (!incomingReference) {
-                if (baseReference instanceof StandardRemove) {
-                    const match = baseReference._match
-                    if (match instanceof StandardReference) {
-                        return match
-                    }
-                    else {
-                        throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-                    }
+                if (payload instanceof StandardReferenceRemove) {
+                    return new StandardReference(payload.match)
                 }
-                if (baseReference instanceof StandardReferenceReplace) {
-                    return new StandardReference(new StandardReferenceReplace(baseReference.payload, baseReference.match))
+                if (payload instanceof StandardReferenceReplace) {
+                    return new StandardReference(new StandardReferenceReplace(payload.payload, payload.match))
                 }
-                return new StandardReference(new StandardReferenceRemove(baseReference._payload.plain))
+                return new StandardReference(new StandardReferenceRemove(payload))
             }
+            const incomingPayload = incomingReference._payload
             if (baseReference.key !== incomingReference.key) {
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
-            if (baseReference instanceof StandardReferenceSimple) {
-                if (incomingReference instanceof StandardReferenceSimple) {
+            if (payload instanceof StandardReferenceSimple) {
+                if (incomingPayload instanceof StandardReferenceSimple) {
                     if (hasDiff && hasDiff(lookupKey)) {
                         return baseReference
                     }
@@ -557,23 +543,20 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
-            if (baseReference instanceof StandardReferenceRemove) {
-                if (incomingReference instanceof StandardReferenceRemove) {
+            if (payload instanceof StandardReferenceRemove) {
+                if (incomingPayload instanceof StandardReferenceRemove) {
                     if (hasDiff && hasDiff(lookupKey)) {
-                        const match = baseReference.match
+                        const match = payload.match
                         return new StandardReference(match)
                     }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
-            if (baseReference instanceof StandardReplace) {
-                if (incomingReference instanceof StandardReplace) {
+            if (payload instanceof StandardReferenceReplace) {
+                if (incomingPayload instanceof StandardReferenceReplace) {
                     if (hasDiff && hasDiff(lookupKey)) {
-                        const payload = baseReference._payload
-                        if (payload instanceof StandardReference) {
-                            return payload
-                        }
+                        return baseReference
                     }
                     return undefined
                 }

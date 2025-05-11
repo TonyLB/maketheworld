@@ -1,15 +1,13 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference from "../reference"
+import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimpleBase } from "../reference"
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardRemove, StandardReplace } from "../edits"
 import { excludeUndefined } from "../../../lib/lists"
-import { deepEqual } from "../../../lib/objects"
-import { StandardReferenceData } from "../dataTypes"
+import { StandardReferenceData } from "../dataTypes/reference"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     return unique(tree
@@ -86,33 +84,29 @@ export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
         .map(({ to }) => (to)))
 }
 
-export const mergeUniqueReferences = (...referenceLists: (StandardReference | StandardRemove | StandardReplace)[][]): (StandardReference | StandardRemove | StandardReplace)[] => {
-    const referencesById = referenceLists.reduce<Record<string, (StandardReference | StandardRemove | StandardReplace | undefined)>>((previous, references) => (
-        references.reduce<Record<string, StandardReference | StandardRemove | StandardReplace | undefined>>((accumulator, reference) => {
-            const previousReference = accumulator[reference.key]
-            if (previousReference) {
-                if (reference instanceof StandardRemove) {
-                    if (!deepEqual(previousReference.toJSON(), reference._match.toJSON())) {
-                        throw new Error(`Mismatched references in mergeUniqueReferences`)
-                    }
-                    return {
-                        ...accumulator,
-                        [reference.key]: undefined
-                    }
-                }
-                else {
-                    return {
-                        ...accumulator,
-                        [reference.key]: previousReference.merge(reference) as StandardReference | StandardRemove | undefined
-                    }
-                }
+export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]): StandardReference[] => {
+    const referencesById = referenceLists.reduce<StandardReference[]>((previous, references) => (
+        references.reduce<StandardReference[]>((accumulator, reference) => {
+            const matchReference = (a: StandardReference) => (b: StandardReference): boolean => (
+                Boolean((a.key && b.key && (a.key === b.key)) ||
+                (a.universalKey && b.universalKey && (a.universalKey === b.universalKey)))
+            )
+            const previousReferences = accumulator.filter(matchReference(reference))
+            if (previousReferences.length) {
+                const mergedValue = [...previousReferences, reference].reduce<StandardReference | undefined>((accumulator, reference) => (
+                    accumulator ? accumulator.merge(reference) as StandardReference | undefined : reference
+                ), undefined)
+                return [
+                    ...accumulator.filter((check) => (!matchReference(reference)(check))),
+                    mergedValue
+                ].filter(excludeUndefined)
             }
-            return {
+            return [
                 ...accumulator,
-                [reference.key]: reference
-            }
+                reference
+            ]
         }, previous)
-    ), {})
+    ), [])
     return Object.values(referencesById).filter(excludeUndefined)
 }
 
@@ -132,7 +126,7 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference | St
 type ReferenceFormat = 'key' | 'universal' | 'both';
 
 export const mapReferenceToFormat = (mappings: { key: string; universalKey: string }[], format: ReferenceFormat) => 
-    (reference: StandardReference | StandardRemove | StandardReplace): StandardReference | StandardRemove | StandardReplace => {
+    (reference: StandardReference): StandardReference => {
         const mapKey = (reference: StandardReferenceData): { key: string; universalKey: string } | undefined => {
             if (typeof reference === 'string') {
                 return mappings.find(({ universalKey }) => (universalKey === reference))
@@ -146,7 +140,8 @@ export const mapReferenceToFormat = (mappings: { key: string; universalKey: stri
             return undefined
         }
 
-        if (reference instanceof StandardReference) {
+        const payload = reference._payload
+        if (payload instanceof StandardReference) {
             const newKey = mapKey(reference.toJSON() as StandardReferenceData)
             if (!newKey) {
                 throw new Error(`Could not find mapping for reference ${JSON.stringify(reference.toJSON())}`)
@@ -159,15 +154,15 @@ export const mapReferenceToFormat = (mappings: { key: string; universalKey: stri
             })
         }
 
-        if (reference instanceof StandardRemove) {
-            return new StandardRemove(mapReferenceToFormat(mappings, format)(reference._match as StandardReference) as StandardReference)
+        if (payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceRemove(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))))
         }
 
-        if (reference instanceof StandardReplace) {
-            return new StandardReplace(
-                mapReferenceToFormat(mappings, format)(reference._match as StandardReference) as StandardReference,
-                mapReferenceToFormat(mappings, format)(reference._payload as StandardReference) as StandardReference
-            )
+        if (payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace(
+                new StandardReferenceSimpleBase(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))),
+                new StandardReferenceSimpleBase(mapReferenceToFormat(mappings, format)(new StandardReference(payload.payload)))
+            ))
         }
         
         throw new Error('Unsupported reference type')
