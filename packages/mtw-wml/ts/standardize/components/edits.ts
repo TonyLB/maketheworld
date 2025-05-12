@@ -62,12 +62,8 @@ export class StandardRemove implements StandardComponent {
         return {
             key: this.key,
             tag: 'Remove',
-            component: this._match.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin
+            component: this._match.toJSON() as StandardComponentNonEditData
         }
-    }
-
-    toNDJSON(): StandardComponentData & SerializeNDJSONMixin {
-        return this.toJSON()
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
@@ -82,7 +78,7 @@ export class StandardRemove implements StandardComponent {
         if (removeContext) {
             return this._match.nestedSchema(byId, options)
         }
-        const localKey = this._match.key.split('.').slice(-1)[0]
+        const localKey = (this._match.key ?? '').split('.').slice(-1)[0]
         return {
             data: { tag: 'Remove' },
             children: [this._match.nestedSchema(byId, { ...options, localKey, removeContext: true })]
@@ -204,13 +200,9 @@ export class StandardReplace implements StandardComponent {
         return {
             key: this.key,
             tag: 'Replace',
-            match: this._match.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin,
-            payload: this._payload.toJSON() as StandardComponentNonEditData & SerializeNDJSONMixin
+            match: this._match.toJSON() as StandardComponentNonEditData,
+            payload: this._payload.toJSON() as StandardComponentNonEditData
         }
-    }
-
-    toNDJSON(): StandardComponentData & SerializeNDJSONMixin {
-        return this.toJSON()
     }
 
     get schema(): GenericTreeNode<SchemaTag> {

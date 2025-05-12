@@ -1,5 +1,4 @@
-import { StandardReferenceData } from "../../../components/dataTypes";
-import { isStandardReferenceData } from "../../../components/dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "../../../components/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 
@@ -74,7 +73,7 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
         return false
     }
     return checkAll(
-        ('referenceStack' in arg && Array.isArray(arg.referenceStack) && arg.referenceStack.every(isStandardReferenceData)),
+        ('referenceStack' in arg && Array.isArray(arg.referenceStack) && arg.referenceStack.every(isStandardReferencePayloadData)),
         ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }

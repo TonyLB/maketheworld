@@ -5,8 +5,7 @@ import { NestedSchemaOptions, StandardToJSONOptions } from "../../components/bas
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../../list";
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization";
-import { isSchemaTreeNode } from "../../components/utils";
-import { nodeFromWML } from "../../utils";
+import { isSchemaTreeNode, nodeFromWML } from "../../../schema";
 import { deepEqual } from "../../../lib/objects";
 import { StandardAuthorizationItem } from "./baseClasses";
 import { StandardAuthReplace } from "./edits";

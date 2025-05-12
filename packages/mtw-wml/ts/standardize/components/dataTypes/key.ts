@@ -1,7 +1,7 @@
 import { checkTypes } from "./typeguards";
 
 export interface ComponentKey {
-    key: string;
+    key?: string;
     universalKey?: string;
     fileName?: string;
 }

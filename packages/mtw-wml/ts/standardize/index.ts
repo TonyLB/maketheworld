@@ -9,10 +9,9 @@ import StandardRoom, { StandardRoomPayload } from "./components/room"
 import StandardFeature, { StandardFeaturePayload } from "./components/feature"
 import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardMap from "./components/map"
-import { isSchemaTreeNode } from "./components/utils"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { isLegalKey, nodeFromWML } from "./utils"
+import { isLegalKey } from "./utils"
 import { ComponentTag, StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/baseClasses"
 import { objectMap } from "../lib/objects"
@@ -30,6 +29,7 @@ import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardExample from "./components/example"
 import StandardCharacter from "./components/character"
+import { isSchemaTreeNode, nodeFromWML } from "../schema"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -99,8 +99,8 @@ export const standardComponentSortOrder = (byId: Record<string, StandardComponen
     // ancestor(s) and compare against those instead.
     // Finally, if they are peers in terms of ancestry, compare the two keys directly.
     //
-    const keyA = componentA.key
-    const keyB = componentB.key
+    const keyA = componentA.key ?? ''
+    const keyB = componentB.key ?? ''
     if (keyA.startsWith(`${keyB}.`)) {
         return 1
     }

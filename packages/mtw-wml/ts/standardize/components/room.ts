@@ -13,12 +13,11 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { dependencyReferenceKeys, exitReferenceKeys, mergeUniqueReferences } from "./utils/references"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList, editableReferenceFactory } from "./reference"
+import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
@@ -27,8 +26,8 @@ import { isSchemaString } from "../../schema/baseClasses"
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: GenericTree<SchemaTag> = [];
-    _features: (StandardReference | StandardRemove | StandardReplace)[] = [];
-    _examples: (StandardReference | StandardRemove | StandardReplace)[] = [];
+    _features: StandardReference[] = [];
+    _examples: StandardReference[] = [];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -60,8 +59,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._exits = defaultSelected(exitTagTree.tree)
-            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(editableReferenceFactory)
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(editableReferenceFactory)
+            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (new StandardReference(node))))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference(node))))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -90,8 +89,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...this.features.map((reference) => (reference.schema)),
-                ...this.examples.map((reference) => (reference.schema)),
+                ...this.features.map((reference) => (reference.schema)).flat(1),
+                ...this.examples.map((reference) => (reference.schema)).flat(1),
                 ...this.exits
             ]
         }
@@ -105,12 +104,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map((reference) => (
                     reference.global
-                        ? reference.schema
+                        ? reference.schema[0]
                         : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
-                        ? reference.schema
+                        ? reference.schema[0]
                         : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
                 )).filter(excludeUndefined),
                 ...this.exits
@@ -133,8 +132,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .map((key) => ({ referenceType: 'Dependency' as const, key })),
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key })),
-            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global })),
-            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key, global }))
+            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global })),
+            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global }))
         ]
     }
 
@@ -185,7 +184,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key).withImport(this.import).withExport(this.export) as StandardRoom
+        const base = new StandardRoom(this.key ?? '').withImport(this.import).withExport(this.export) as StandardRoom
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName

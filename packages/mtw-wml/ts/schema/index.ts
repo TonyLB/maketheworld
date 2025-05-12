@@ -329,3 +329,24 @@ export class Schema {
     get schema() { return this._schema }
 
 }
+
+export const treeFromWML = (wml: string): GenericTree<SchemaTag> => {
+    const schema = new Schema()
+    schema.loadWML(wml)
+    return schema.schema
+}
+
+export const nodeFromWML = (wml: string): GenericTreeNode<SchemaTag> => {
+    const schema = treeFromWML(wml)
+    if (schema.length === 0) {
+        throw new Error('Empty WML argument')
+    }
+    if (schema.length > 1) {
+        throw new Error('Multiple elements in StandardComponent WML argument')
+    }
+    return schema[0]
+}
+
+export const isSchemaTreeNode = (value: any): value is GenericTreeNode<SchemaTag> => {
+    return Boolean(value && typeof value === 'object' && 'data' in value && 'children' in value)
+}

@@ -1,10 +1,9 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardComponentData } from "./dataTypes";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { SerializeNDJSONMixin } from "../baseClasses";
+import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -29,7 +28,7 @@ export type StandardDiffOptions = {
 }
 
 export interface StandardComponent {
-    key: string;
+    key?: string;
     clone(): StandardComponent;
     universalKey?: string;
     global?: boolean;
@@ -42,7 +41,7 @@ export interface StandardComponent {
     export?: StandardExportItem;
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
-    toJSON(options?: StandardToJSONOptions): StandardComponentData & SerializeNDJSONMixin;
+    toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(byId: Record<string, StandardComponent>, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;

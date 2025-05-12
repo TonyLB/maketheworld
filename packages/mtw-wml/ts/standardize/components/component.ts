@@ -13,20 +13,19 @@
 //
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { SerializeNDJSONMixin } from "../baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
-import { isLegalKey, nodeFromWML } from "../utils";
+import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
-import { StandardComponentData } from "./dataTypes";
-import { ComponentKey } from "./dataTypes/key"
+import { ComponentKey, hasComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
-import { isSchemaTreeNode } from "./utils";
+import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
+import { StandardComponentData } from "../baseClasses";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -35,12 +34,12 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     payload: D;
 }
 
-export interface ComponentConstructorMethods<D extends ComponentKey> {
+export interface ComponentConstructorMethods<D> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag>;
+    schema(key?: string, universalKey?: string): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
@@ -48,7 +47,7 @@ export interface ComponentConstructorMethods<D extends ComponentKey> {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
-export const componentClassFactory = <D extends StandardComponentData & SerializeNDJSONMixin, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
+export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
         _key: KeyPayload;
         _payload: InstanceType<typeof Base>;
@@ -78,11 +77,11 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
                 this._payload.fromSchema(node)
                 return
             }
-            this._key = new KeyPayload(props)
+            this._key = hasComponentKey(props) ? new KeyPayload(props) : (typeof props === 'string' ? new KeyPayload(props) : new KeyPayload(''))
             this._payload.fromJSON(props)
         }
 
-        get key(): string { return this._key.key }
+        get key(): string | undefined { return this._key.key }
         get universalKey(): string | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return this._key.fileName }
         get tag(): ComponentTag { return this._payload.tag }
@@ -139,14 +138,12 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         // edit tags on the import and export information of the components
         //
         merge(incoming: StandardComponent): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.key)
-            if (incoming.key !== this.key) {
-                throw new MergeConflictError(`Merge of two unequal keys in ${label} (${this.key} vs ${incoming.key})`)
-            }
+            const returnValue = new GeneratedComponentClass(this.universalKey ?? '')
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
             }
             returnValue._key._universalKey = this.universalKey ?? incoming.universalKey
+            returnValue._key._key = incoming.key ?? this.key
             returnValue._key._fileName = incoming.fileName ?? this.fileName
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             //
@@ -159,8 +156,8 @@ export const componentClassFactory = <D extends StandardComponentData & Serializ
         }
 
         diff(incoming: StandardComponent): StandardComponent | undefined {
-            if (this.key !== incoming.key) {
-                throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
+            if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
+                throw new Error(`Mismatched universalKeys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
             if (deepEqual(this.toJSON(), incoming.toJSON())) {
                 return undefined

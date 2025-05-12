@@ -14,6 +14,7 @@ export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
+    uuid?: string;
     update?: boolean;
 } & SchemaBase
 
@@ -23,7 +24,11 @@ export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => 
     checkTypes({
         required: {
             tag: CheckTypes.STRING,
-            key: CheckTypes.STRING
+            key: CheckTypes.STRING,
+        },
+        optional: {
+            uuid: CheckTypes.STRING,
+            update: CheckTypes.BOOLEAN,
         },
         values: {
             tag: 'Character'

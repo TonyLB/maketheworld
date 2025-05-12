@@ -1,6 +1,6 @@
 import { StandardBaseData } from "./abstract"
 import { checkAll } from "./typeguards";
-import { isStandardReferenceData, StandardReferenceData } from "./reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "./reference";
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
 
 export type StandardMomentData = {
@@ -18,7 +18,7 @@ export const isStandardMoment = (arg: any): arg is StandardMomentData => {
         checkTypes({
             required: { tag: CheckTypes.STRING },
             values: {
-                messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferenceData))
+                messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferencePayloadData))
             }
         })(arg)
     )

@@ -7,7 +7,7 @@ import { SerializeNDJSONMixin } from "../baseClasses";
 import { ComponentKey } from "./dataTypes/key"
 
 export class KeyPayload {
-    _key: string;
+    _key?: string;
     _universalKey?: string;
     _fileName?: string;
 
@@ -31,7 +31,7 @@ export class KeyPayload {
     get universalKey() { return this._universalKey }
     get fileName() { return this._fileName }
 
-    toJSON(options?: { stripUniversalKey?: boolean }): { key: string } & SerializeNDJSONMixin {
+    toJSON(options?: { stripUniversalKey?: boolean }): { key?: string } & SerializeNDJSONMixin {
         return {
             key: this.key,
             ...(options?.stripUniversalKey ? {} : { universalKey: this.universalKey }),
