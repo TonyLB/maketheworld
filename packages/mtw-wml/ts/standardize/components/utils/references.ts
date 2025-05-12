@@ -1,7 +1,7 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimpleBase } from "../reference"
+import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardReferenceSimpleBase } from "../reference"
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
@@ -141,7 +141,7 @@ export const mapReferenceToFormat = (mappings: { key: string; universalKey: stri
         }
 
         const payload = reference._payload
-        if (payload instanceof StandardReference) {
+        if (payload instanceof StandardReferenceSimple) {
             const newKey = mapKey(reference.toJSON() as StandardReferenceData)
             if (!newKey) {
                 throw new Error(`Could not find mapping for reference ${JSON.stringify(reference.toJSON())}`)

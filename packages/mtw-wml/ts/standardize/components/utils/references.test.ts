@@ -1,4 +1,4 @@
-import StandardReference from '../reference'
+import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple } from '../reference'
 import { mapReferenceToFormat } from './references'
 
 describe('mapReferenceToFormat', () => {
@@ -18,6 +18,17 @@ describe('mapReferenceToFormat', () => {
             new StandardReference({ tag: 'Remove', component: { tag: 'Example', key: 'Example4' } }),
             new StandardReference({ tag: 'Replace', match: { tag: 'Example', key: 'Example5' }, payload: { tag: 'Room', key: 'Room1' } })
         ]
+        console.log(`reference payloads: ${
+            references.map(reference => (
+                reference._payload instanceof StandardReferenceSimple
+                    ? 'Simple'
+                    : reference._payload instanceof StandardReferenceRemove
+                        ? 'Remove'
+                        : reference._payload instanceof StandardReferenceReplace
+                            ? 'Replace' : 'Unknown'
+                )
+            )
+        }`)
 
         const mappedReferences = references.map(mapReferenceToFormat(referenceMapping, 'universal'))
         expect(mappedReferences).toEqual([

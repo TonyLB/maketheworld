@@ -13,6 +13,6 @@ export const isStandardReferencePayloadData = (arg: any): arg is StandardReferen
     typeof arg === 'string' ||
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { global: CheckTypes.BOOLEAN, key: CheckTypes.STRING }
+        optional: { global: CheckTypes.BOOLEAN, key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
     })(arg)
 )

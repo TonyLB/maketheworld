@@ -122,7 +122,6 @@ export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent =>
     ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(value.tag)
 )
 
-
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
     ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Space', 'br', 'If', 'Statement', 'Fallthrough'].includes(value.tag)
 )

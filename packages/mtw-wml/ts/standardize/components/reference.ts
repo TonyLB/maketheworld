@@ -32,12 +32,12 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
     clone() {
         return new StandardReferenceSimpleBase(this.toJSON())
     }
-    toJSON: () => string | StandardReferenceData = () => {
-        if (this.key) {
+    toJSON: () => StandardReferenceData = () => {
+        if (typeof this.key !== 'undefined') {
             return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global } as StandardReferenceData
         }
         else {
-            if (!this.universalKey) {
+            if (typeof this.universalKey === 'undefined') {
                 throw new Error('StandardReferenceSimpleBase must have a universalKey or key')
             }
             return this.universalKey

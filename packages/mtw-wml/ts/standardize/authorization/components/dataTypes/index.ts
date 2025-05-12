@@ -1,5 +1,4 @@
-import { StandardReferenceData } from "../../../components/dataTypes";
-import { isStandardReferencePayloadData } from "../../../components/dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "../../../components/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 

@@ -338,7 +338,10 @@ export const treeFromWML = (wml: string): GenericTree<SchemaTag> => {
 
 export const nodeFromWML = (wml: string): GenericTreeNode<SchemaTag> => {
     const schema = treeFromWML(wml)
-    if (schema.length !== 1) {
+    if (schema.length === 0) {
+        throw new Error('Empty WML argument')
+    }
+    if (schema.length > 1) {
         throw new Error('Multiple elements in StandardComponent WML argument')
     }
     return schema[0]

@@ -37,7 +37,7 @@ describe('StandardMoment class', () => {
             messages: [{ tag: 'Message', key: 'testMessage' }]
         }
         const testMoment = new StandardMoment(testMomentData)
-        expect(testMoment.messages).toEqual([new StandardReference({ tag: 'Message', key: 'testMessage' })])
+        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(testMoment.toJSON()).toEqual(testMomentData)
     })
 
@@ -81,9 +81,9 @@ describe('StandardMoment class', () => {
             <Moment key=(test)><Message key=(testMessage) /><Message key=(testMessageTwo) /></Moment>
         `)
         const testMoment2 = new StandardMoment(testSource2)
-        expect(testMoment.diff(testMoment2)).toEqual(new StandardMoment(`
+        expect(testMoment.diff(testMoment2)?.schema).toEqual((new StandardMoment(`
             <Moment key=(test)><Message key=(testMessageTwo) /></Moment>
-        `))
+        `)).schema)
     })
 
     it('should correctly diff removing a message', () => {
@@ -95,8 +95,8 @@ describe('StandardMoment class', () => {
             <Moment key=(test)><Message key=(testMessage) /></Moment>
         `)
         const testMoment2 = new StandardMoment(testSource2)
-        expect(testMoment.diff(testMoment2)).toEqual(new StandardMoment(`
+        expect(testMoment.diff(testMoment2)?.schema).toEqual((new StandardMoment(`
             <Moment key=(test)><Remove><Message key=(testMessageTwo) /></Remove></Moment>
-        `))
+        `)).schema)
     })
 })

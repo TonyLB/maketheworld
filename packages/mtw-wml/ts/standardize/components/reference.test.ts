@@ -38,6 +38,19 @@ describe('StandardReference', () => {
     it('should merge correctly', () => {
         expect(schemaToWML(new StandardReference('<Variable key=(test) />')?.merge(new StandardReference('<Variable key=(test) />'))?.schema ?? [])).toEqual(deIndentWML('<Variable key=(test) />'))
     })
+
+    it('should correctly parse a StandardReferenceRemove', () => {
+        const testReferenceData = {
+            tag: 'Remove',
+            component: {
+                tag: 'Variable',
+                key: 'test'
+            }
+        }
+        const testVariableRemove = new StandardReference(testReferenceData)
+        expect(testVariableRemove.tag).toEqual('Remove')
+        expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceRemove)
+    })
 })
 
 describe('diffStandardReferenceList', () => {
