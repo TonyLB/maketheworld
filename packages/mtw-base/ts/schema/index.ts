@@ -118,9 +118,17 @@ export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
     ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(value.tag)
 )
 export type SchemaComponent = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaMessageTag | SchemaMomentTag
-export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(value.tag)
+export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Message', 'Moment'].includes(tag)
 )
+export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
+    isSchemaComponentTag(value.tag)
+)
+export type ComponentUUID = `${SchemaComponent["tag"]}#${string}`
+export const isSchemaComponentUUID = (value: string): value is ComponentUUID => {
+    const [tag, ...rest] = value.split('#')
+    return isSchemaComponentTag(tag) && rest.length === 1 && rest[0].length > 0
+}
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
     ['Remove', 'Replace', 'ReplaceMatch', 'ReplacePayload', 'String', 'Link', 'Space', 'br', 'If', 'Statement', 'Fallthrough'].includes(value.tag)
