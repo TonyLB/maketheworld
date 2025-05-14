@@ -15,7 +15,7 @@ import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardReferenceData } from "./components/dataTypes/reference";
 
@@ -103,7 +103,7 @@ export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
 
 export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!(["Remove", "Replace"].includes(value.tag)))
 
-export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: string): Exclude<StandardComponentNonEditData, string> => {
+export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
         case 'Example':
             return {
@@ -126,11 +126,17 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
             }
         case 'Feature':
         case 'Knowledge':
-        case 'Message':
             return {
                 tag,
                 key,
                 universalKey
+            }
+        case 'Message':
+            return {
+                tag,
+                key,
+                universalKey,
+                rooms: []
             }
         case 'Image':
             return {
@@ -142,7 +148,8 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
             return {
                 tag: 'Variable' as const,
                 key,
-                universalKey
+                universalKey,
+                default: ''
             }
         case 'Computed':
             return {

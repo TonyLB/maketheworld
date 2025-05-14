@@ -4,7 +4,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardVariableData } from "./dataTypes/variable"
 import { StandardExportItem, StandardImportItem } from "./metaData";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation";
 
 export class StandardVariablePayload implements ComponentConstructorMethods<StandardVariableData> {
@@ -38,7 +38,7 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Variable', key, default: this.default, uuid: universalKey },
             children: []
@@ -77,7 +77,7 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
         return new StandardVariable(super.withKey(key) as StandardVariable)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardVariable(super.withUniversalKey(key) as StandardVariable)
     }
 

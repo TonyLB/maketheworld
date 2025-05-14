@@ -1,9 +1,10 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 export type StandardBaseData = {
     key?: string;
+    universalKey?: ComponentUUID;
     update?: boolean;
 }
 

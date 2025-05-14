@@ -11,7 +11,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
@@ -52,7 +52,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Feature', key, global: this.global, uuid: universalKey },
             children: this.examples.map((reference) => (reference.schema)).flat(1)
@@ -121,7 +121,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withKey(key) as StandardFeature)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardFeature(super.withUniversalKey(key) as StandardFeature)
     }
 

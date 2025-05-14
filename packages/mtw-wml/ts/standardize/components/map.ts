@@ -15,7 +15,7 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { positionReferenceKeys } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
@@ -71,7 +71,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Map', key, uuid: universalKey },
             children: [
@@ -122,7 +122,7 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.withKey(key) as StandardMap)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardMap(super.withUniversalKey(key) as StandardMap)
     }
 

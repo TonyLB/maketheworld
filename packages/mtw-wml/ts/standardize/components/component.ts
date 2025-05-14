@@ -21,7 +21,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
-import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
@@ -39,11 +39,11 @@ export interface ComponentConstructorMethods<D> {
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
-    schema(key?: string, universalKey?: string): GenericTreeNode<SchemaTag>;
+    schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
     nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
-    remapReferences?: (props: { mappings: { key: string; universalKey: string }[], mapTo: 'uuid' | 'key' }) => this;
+    remapReferences?: (props: { mappings: { key: string; universalKey: ComponentUUID }[], mapTo: 'uuid' | 'key' }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
@@ -82,7 +82,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         get key(): string | undefined { return this._key.key }
-        get universalKey(): string | undefined { return this._key.universalKey }
+        get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return this._key.fileName }
         get tag(): ComponentTag { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
@@ -99,7 +99,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardComponent {
+        remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID; }[]; mapTo: "uuid" | "key"; }): StandardComponent {
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.(props) ?? returnValue._payload
@@ -175,7 +175,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withUniversalKey(key: string | undefined): StandardComponent {
+        withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key._universalKey = key
             return returnValue

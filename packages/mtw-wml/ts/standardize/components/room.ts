@@ -15,7 +15,7 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
@@ -84,7 +84,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -198,7 +198,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.withKey(key) as StandardRoom)
     }
 
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardRoom(super.withUniversalKey(key) as StandardRoom)
     }
 

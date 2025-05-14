@@ -7,7 +7,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { KeyPayload } from "./key";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { removeNDJSONOnlyProperties } from "../utils";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 
@@ -250,12 +250,12 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
         returnValue._payload = this._match.withKey(key)
-        returnValue._key._universalKey = key
+        returnValue._key._universalKey = this.universalKey
         returnValue._key._fileName = this.fileName
         return returnValue
     }
 
-    withUniversalKey(key: string | undefined): StandardComponent {
+    withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._payload = this._match.withUniversalKey(key)

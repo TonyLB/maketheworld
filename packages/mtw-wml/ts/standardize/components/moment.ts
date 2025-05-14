@@ -1,5 +1,3 @@
-import applyEdits from "../../schema/treeManipulation/applyEdits"
-import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
@@ -7,7 +5,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mergeUniqueReferences } from "./utils/references"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { deepEqual } from "../../lib/objects"
@@ -52,7 +50,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key, uuid: universalKey },
             children: this.messages.map((reference) => (reference.schema)).flat(1)
@@ -124,7 +122,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.withKey(key) as StandardMoment)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardMoment(super.withUniversalKey(key) as StandardMoment)
     }
 

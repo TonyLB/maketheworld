@@ -3,12 +3,13 @@
 // that are only relevant in serialization) for a StandardComponent class
 //
 
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { ComponentKey } from "./dataTypes/key"
 
 export class KeyPayload {
     _key?: string;
-    _universalKey?: string;
+    _universalKey?: ComponentUUID;
     _fileName?: string;
 
     constructor(props: string | ComponentKey | KeyPayload) {

@@ -11,9 +11,8 @@ import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
@@ -48,7 +47,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
             children: this.examples.map((reference) => (reference.schema)).flat(1)
@@ -117,7 +116,7 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withKey(key) as StandardKnowledge)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardKnowledge(super.withUniversalKey(key) as StandardKnowledge)
     }
 

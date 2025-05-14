@@ -4,7 +4,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
@@ -66,7 +66,7 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withKey(key) as StandardImage)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardImage(super.withUniversalKey(key) as StandardImage)
     }
 
