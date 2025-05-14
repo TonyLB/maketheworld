@@ -42,13 +42,13 @@ describe('StandardReference', () => {
     it('should correctly parse a StandardReferenceRemove', () => {
         const testReferenceData = {
             tag: 'Remove',
-            component: {
+            match: {
                 tag: 'Variable',
                 key: 'test'
             }
         }
         const testVariableRemove = new StandardReference(testReferenceData)
-        expect(testVariableRemove.tag).toEqual('Remove')
+        expect(testVariableRemove.tag).toEqual('Variable')
         expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceRemove)
     })
 })
