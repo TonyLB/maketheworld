@@ -16,27 +16,27 @@ describe('mapReferenceToFormat', () => {
             new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }),
             new StandardReference({ tag: 'Room', key: 'Room2' }),
             new StandardReference({ tag: 'Feature', universalKey: 'FEATURE#003' }),
-            new StandardReference({ tag: 'Remove', component: { tag: 'Example', key: 'Example4' } }),
+            new StandardReference({ tag: 'Remove', match: { tag: 'Example', key: 'Example4' } }),
             new StandardReference({ tag: 'Replace', match: { tag: 'Example', key: 'Example5' }, payload: { tag: 'Room', key: 'Room1' } })
         ]
-        console.log(`reference payloads: ${
-            references.map(reference => (
-                reference._payload instanceof StandardReferenceSimple
-                    ? 'Simple'
-                    : reference._payload instanceof StandardReferenceRemove
-                        ? 'Remove'
-                        : reference._payload instanceof StandardReferenceReplace
-                            ? 'Replace' : 'Unknown'
-                )
-            )
-        }`)
+        // console.log(`reference payloads: ${
+        //     references.map(reference => (
+        //         reference._payload instanceof StandardReferenceSimple
+        //             ? 'Simple'
+        //             : reference._payload instanceof StandardReferenceRemove
+        //                 ? 'Remove'
+        //                 : reference._payload instanceof StandardReferenceReplace
+        //                     ? 'Replace' : 'Unknown'
+        //         )
+        //     )
+        // }`)
 
         const mappedReferences = references.map(mapReferenceToFormat(referenceMapping, 'universal'))
-        expect(mappedReferences).toEqual([
+        expect(mappedReferences.map((reference) => (reference.toJSON()))).toEqual([
             'ROOM#001',
             'ROOM#002',
             'FEATURE#003',
-            { tag: 'Remove', component: 'EXAMPLE#004' },
+            { tag: 'Remove', match: 'EXAMPLE#004' },
             { tag: 'Replace', match: 'EXAMPLE#005', payload: 'ROOM#001' }
         ]);
     })
