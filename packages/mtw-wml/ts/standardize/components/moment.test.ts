@@ -2,7 +2,6 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMomentData } from "./dataTypes/moment"
 import StandardMoment from './moment'
-import StandardReference from "./reference"
 import { mergeTest } from './utils/testing'
 
 describe('StandardMoment class', () => {
@@ -43,11 +42,11 @@ describe('StandardMoment class', () => {
 
     it('should merge correctly', () => {
         expect(mergeTest(
-            '<Moment key=(test)><Message key=(testMessage) /></Moment>',
+            '<Moment uuid=(Moment1) key=(test)><Message key=(testMessage) /></Moment>',
             StandardMoment,
-            '<Moment key=(test)><Message key=(testMessageTwo) /></Moment>'
+            '<Moment uuid=(Moment1) key=(test)><Message key=(testMessageTwo) /></Moment>'
         )).toEqual(deIndentWML(`
-            <Moment key=(test)>
+            <Moment uuid=(Moment1) key=(test)>
                 <Message key=(testMessage) />
                 <Message key=(testMessageTwo) />
             </Moment>

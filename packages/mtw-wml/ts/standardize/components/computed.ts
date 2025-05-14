@@ -4,7 +4,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardComputedData } from "./dataTypes/computed"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { StandardExportItem, StandardImportItem } from "./metaData";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
 
 export class StandardComputedPayload implements ComponentConstructorMethods<StandardComputedData> {
@@ -43,7 +43,7 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Computed', key, uuid: universalKey, src: this.src },
             children: []
@@ -83,7 +83,7 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         return new StandardComputed(super.withKey(key) as StandardComputed)
     }
 
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardComputed(super.withUniversalKey(key) as StandardComputed)
     }
 

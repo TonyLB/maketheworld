@@ -1,7 +1,7 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
-import { isStandardComponent, isStandardForm, StandardComponentData, StandardFormData } from "./components/dataTypes"
+import { isStandardComponent, isStandardForm, StandardFormData } from "./components/dataTypes"
 import { unique } from "../list"
 import SchemaTagTree from "../tagTree/schema"
 import applyEdits from "../schema/treeManipulation/applyEdits"
@@ -139,12 +139,12 @@ export const standardComponentSortOrder = (byId: Record<string, StandardComponen
         return indexA - indexB
     }
     else {
-        return elementToCompareA.key.localeCompare(elementToCompareB.key)
+        return (elementToCompareA.key ?? '').localeCompare(elementToCompareB.key ?? '')
     }
 }
 
 export class StandardForm {
-    _key: string;
+    _key?: string;
     _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
 
@@ -165,9 +165,9 @@ export class StandardForm {
                 if (standardItem) {
                     return {
                         ...previous,
-                        [standardItem.key]: standardItem
-                            .withImport(importItemById[standardItem.key])
-                            .withExport(exportItemById[standardItem.key])
+                        [standardItem.key ?? '']: standardItem
+                            .withImport(importItemById[standardItem.key ?? ''])
+                            .withExport(exportItemById[standardItem.key ?? ''])
                     }
                 }
                 else {
@@ -187,7 +187,7 @@ export class StandardForm {
                 if (standardItem) {
                     return {
                         ...previous,
-                        [standardItem.key]: standardItem.withImport(standardData.from).withExport(standardData.exportAs)
+                        [standardItem.key ?? '']: standardItem.withImport(standardData.from).withExport(standardData.exportAs)
                     }
                 }
                 else {
@@ -392,7 +392,7 @@ export class StandardForm {
     }
 
     get byId(): Record<string, StandardComponent> { return this._byId }
-    get key(): string { return this._key }
+    get key(): string { return this._key ?? '' }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
         return {
@@ -401,7 +401,7 @@ export class StandardForm {
             byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
                 return {
                     ...previous,
-                    [component.key]: component.toJSON(options) as StandardComponentData
+                    [component.key ?? '']: component.toJSON(options) as StandardComponentData
                 }
             }, {})
         }
@@ -420,7 +420,7 @@ export class StandardForm {
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
         const children = Object.values(this._byId)
-            .filter(({ key }) => (!key.includes('.')))
+            .filter(({ key }) => (!(key ?? '').includes('.')))
             .sort(standardComponentSortOrder(this._byId))
             .map((component) => (component.nestedSchema(this._byId, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
@@ -488,7 +488,7 @@ export class StandardForm {
             byId: [...Object.values(this._byId), ...Object.values(incoming._byId)]
                 .filter(excludeUndefined)
                 .reduce<Record<string, StandardComponentData>>((previous, component) => {
-                    return { ...previous, [component.key]: defaultComponentFromTag(component.tag, component.key) }
+                    return { ...previous, [component.key ?? '']: defaultComponentFromTag(component.tag, component.key) }
                 }, {}),
             metaData: []
         })
@@ -505,8 +505,8 @@ export class StandardForm {
         const returnValue = this._clone()
         returnValue._byId = allKeys
             .reduce<Record<string, StandardComponent>>((previous, key) => {
-                const baseComponent = this._byId[key]
-                const incomingComponent = incoming._byId[key]
+                const baseComponent = this._byId[key ?? '']
+                const incomingComponent = incoming._byId[key ?? '']
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
                     const baseImport = baseComponent.import
@@ -528,17 +528,17 @@ export class StandardForm {
                                 ? incomingExport
                                 : undefined
                     if (diffedComponent) {
-                        return { ...previous, [key]: diffedComponent.withImport(diffImport).withExport(diffExport) }
+                        return { ...previous, [key ?? '']: diffedComponent.withImport(diffImport).withExport(diffExport) }
                     } else {
                         return previous
                     }
                 }
                 else {
                     if (baseComponent) {
-                        return { ...previous, [key]: new StandardRemove(baseComponent) }
+                        return { ...previous, [key ?? '']: new StandardRemove(baseComponent) }
                     }
                     if (incomingComponent) {
-                        return { ...previous, [key]: incomingComponent }
+                        return { ...previous, [key ?? '']: incomingComponent }
                     }
                     throw new Error('diff error')
                 }
@@ -684,7 +684,7 @@ export class StandardForm {
             ...(Object.entries(requestTypeByKey)
                 .map(([key, request]) => (
                     this.byId[key]
-                        ? requestOutput(request, this.byId[key]).map((component) => ({ [component.key]: component }))
+                        ? requestOutput(request, this.byId[key]).map((component) => ({ [component.key ?? '']: component }))
                         : []
                 ))
                 .flat(1)
@@ -709,7 +709,7 @@ export class StandardForm {
         const renameContentsCallback = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
             tree.map((node) => {
                 if (treeNodeTypeguard(isSchemaWithKey)(node)) {
-                    const match = findMatchingRename(node.data.key)
+                    const match = findMatchingRename(node.data.key ?? '')
                     if (match) {
                         return {
                             data: { ...node.data, key: match.toKey },
@@ -754,7 +754,7 @@ export class StandardForm {
         )
         returnValue._byId = Object.values(returnValue._byId)
             .reduce<Record<string, StandardComponent>>((previous, component) => {
-                const matchKey = findMatchingRename(component.key)
+                const matchKey = findMatchingRename(component.key ?? '')
                 if (matchKey) {
                     if (previous[matchKey.toKey]) {
                         throw new Error('renameKey collision')
@@ -773,12 +773,12 @@ export class StandardForm {
                             .withExport(exportItem)
                     }
                 }
-                if (previous[component.key]) {
+                if (previous[component.key ?? '']) {
                     throw new Error('renameKey collision')
                 }
                 return {
                     ...previous,
-                    [component.key]: component.mapContents(renameContentsCallback)
+                    [component.key ?? '']: component.mapContents(renameContentsCallback)
                 }
             }, {})
 
@@ -794,7 +794,7 @@ export class StandardForm {
     withUpdatedUniversalKeys(callback: (key: string) => string | undefined): StandardForm {
         const returnValue = this._clone()
         returnValue._byId = objectMap(returnValue.byId, (component) => {
-            const updatedUniversalKey = callback(component.key)
+            const updatedUniversalKey = callback(component.key ?? '')
             if (updatedUniversalKey && !(component.universalKey === updatedUniversalKey)) {
                 return component.withUniversalKey(updatedUniversalKey)
             }

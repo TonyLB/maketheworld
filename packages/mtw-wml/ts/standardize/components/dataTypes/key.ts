@@ -1,8 +1,9 @@
+import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { checkTypes } from "./typeguards";
 
 export interface ComponentKey {
     key?: string;
-    universalKey?: string;
+    universalKey?: ComponentUUID;
     fileName?: string;
 }
 
@@ -17,5 +18,5 @@ export const hasComponentKey = (arg: any): arg is ComponentKey => {
             universalKey: 'string',
             fileName: 'string'
         }
-    )
+    ) && (!arg.universalKey || isSchemaComponentUUID(arg.universalKey))
 }

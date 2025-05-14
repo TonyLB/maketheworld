@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
@@ -19,7 +19,7 @@ export type StandardComponentReferenceKey = {
 export type NestedSchemaOptions = {
     localKey: string;
     globalKey: string;
-    universalKey?: string;
+    universalKey?: ComponentUUID;
     removeContext?: boolean;
 }
 
@@ -30,7 +30,7 @@ export type StandardDiffOptions = {
 export interface StandardComponent {
     key?: string;
     clone(): StandardComponent;
-    universalKey?: string;
+    universalKey?: ComponentUUID;
     global?: boolean;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;

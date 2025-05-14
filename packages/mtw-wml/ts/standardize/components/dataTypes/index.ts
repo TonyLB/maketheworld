@@ -102,7 +102,7 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 }
 
 export type StandardFormData = {
-    key: string;
+    key?: string;
     byId: Record<string, StandardComponentData>;
     metaData: GenericTree<SchemaTag>;
 }

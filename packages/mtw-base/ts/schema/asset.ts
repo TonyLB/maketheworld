@@ -1,7 +1,7 @@
 import { SchemaBase } from "./baseClasses";
 
 type SchemaAssetBase = {
-    key: string;
+    key?: string;
     fileName?: string;
     zone?: string;
     subFolder?: string;

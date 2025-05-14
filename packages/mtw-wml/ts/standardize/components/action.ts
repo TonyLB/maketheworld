@@ -3,7 +3,7 @@ import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardComponent } from "./baseClasses";
 
@@ -41,7 +41,7 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Action', key, uuid: universalKey, src: this.src },
             children: []
@@ -81,7 +81,7 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
         return new StandardAction(super.withKey(key) as StandardAction)
     }
     
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardAction(super.withUniversalKey(key) as StandardAction)
     }
 

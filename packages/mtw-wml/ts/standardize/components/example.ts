@@ -11,7 +11,7 @@ import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
-import { isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -80,7 +80,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    schema(key: string, universalKey?: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         const children = [
             rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
             rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }),
@@ -168,7 +168,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withKey(key) as StandardExample)
     }
 
-    override withUniversalKey(key: string): StandardComponent {
+    override withUniversalKey(key: ComponentUUID): StandardComponent {
         return new StandardExample(super.withUniversalKey(key) as StandardExample)
     }
 
