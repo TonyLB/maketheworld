@@ -1,8 +1,9 @@
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple } from '../reference'
 import { mapReferenceToFormat } from './references'
 
 describe('mapReferenceToFormat', () => {
-    const referenceMapping = [
+    const referenceMapping: { key: string; universalKey: ComponentUUID }[] = [
         { key: 'Room1', universalKey: 'ROOM#001' },
         { key: 'Room2', universalKey: 'ROOM#002' },
         { key: 'Feature3', universalKey: 'FEATURE#003' },

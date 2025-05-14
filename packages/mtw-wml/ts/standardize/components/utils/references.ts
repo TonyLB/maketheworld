@@ -2,7 +2,7 @@ import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardReferenceSimpleBase } from "../reference"
-import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
@@ -125,9 +125,9 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]
 //
 type ReferenceFormat = 'key' | 'universal' | 'both';
 
-export const mapReferenceToFormat = (mappings: { key: string; universalKey: string }[], format: ReferenceFormat) => 
+export const mapReferenceToFormat = (mappings: { key: string; universalKey: ComponentUUID }[], format: ReferenceFormat) =>
     (reference: StandardReference): StandardReference => {
-        const mapKey = (reference: StandardReferenceData): { key: string; universalKey: string } | undefined => {
+        const mapKey = (reference: StandardReferenceData): { key: string; universalKey: ComponentUUID } | undefined => {
             if (typeof reference === 'string') {
                 return mappings.find(({ universalKey }) => (universalKey === reference))
             }
@@ -155,13 +155,13 @@ export const mapReferenceToFormat = (mappings: { key: string; universalKey: stri
         }
 
         if (payload instanceof StandardReferenceRemove) {
-            return new StandardReference(new StandardReferenceRemove(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))))
+            return new StandardReference(new StandardReferenceRemove(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))._payload.plain))
         }
 
         if (payload instanceof StandardReferenceReplace) {
             return new StandardReference(new StandardReferenceReplace(
-                new StandardReferenceSimpleBase(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))),
-                new StandardReferenceSimpleBase(mapReferenceToFormat(mappings, format)(new StandardReference(payload.payload)))
+                mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))._payload.plain,
+                mapReferenceToFormat(mappings, format)(new StandardReference(payload.payload))._payload.plain
             ))
         }
         

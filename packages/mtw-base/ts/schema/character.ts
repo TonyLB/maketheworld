@@ -6,6 +6,7 @@ import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
 import { SchemaShortNameTag } from "./components";
 import { SchemaRemoveTag, SchemaReplaceTag } from "./edit";
+import { ComponentUUID } from ".";
 
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
@@ -14,7 +15,7 @@ export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
-    uuid?: string;
+    uuid?: ComponentUUID;
     update?: boolean;
 } & SchemaBase
 

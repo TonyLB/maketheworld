@@ -1,6 +1,7 @@
 import { SchemaBase, SchemaImportableBase } from "./baseClasses"
 import checkTypes, { CheckTypes } from "../utils/checkTypes"
 import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
+import { ComponentUUID } from ".";
 
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
@@ -13,7 +14,7 @@ export type SchemaExitTag = {
 
 export type SchemaRoomTag = {
     tag: 'Room';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
     x?: number;
     y?: number;
@@ -21,14 +22,14 @@ export type SchemaRoomTag = {
 
 export type SchemaFeatureTag = {
     tag: 'Feature';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
     global?: boolean;
 } & SchemaImportableBase
 
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
 } & SchemaImportableBase
 
@@ -40,19 +41,19 @@ export type SchemaPositionTag = {
 
 export type SchemaMapTag = {
     tag: 'Map';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
 } & SchemaImportableBase
 
 export type SchemaMessageTag = {
     tag: 'Message';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
 } & SchemaImportableBase
 
 export type SchemaMomentTag = {
     tag: 'Moment';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
 } & SchemaImportableBase
 

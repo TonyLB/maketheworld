@@ -15,7 +15,6 @@ import { StandardRoomData, isStandardRoom } from "./room"
 import { StandardVariableData, isStandardVariable } from "./variable"
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isStandardReferencePayloadData, StandardReferenceData } from "./reference"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
 
