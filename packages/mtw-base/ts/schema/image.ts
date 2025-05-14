@@ -1,10 +1,11 @@
 import { SchemaImportableBase } from "./baseClasses";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
+import { ComponentUUID } from ".";
 
 export type SchemaImageTag = {
     tag: 'Image';
     key: string;
-    uuid?: string;
+    uuid?: ComponentUUID;
     fileURL?: string;
 } & SchemaImportableBase
 

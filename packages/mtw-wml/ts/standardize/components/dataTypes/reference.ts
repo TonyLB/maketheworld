@@ -1,10 +1,10 @@
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
-import { ComponentTag, StandardBaseData } from "./abstract";
-import { SerializeNDJSONMixin } from "../../baseClasses";
+import { ComponentTag } from "./abstract";
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 export type StandardReferenceData = string | ({
     key?: string;
-    universalKey?: string;
+    universalKey?: ComponentUUID;
     tag: ComponentTag;
     global?: boolean;
 })

@@ -1,5 +1,5 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
@@ -11,11 +11,14 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
-    universalKey?: string;
+    universalKey?: ComponentUUID;
     global?: boolean;
     tag: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
+            if (!isSchemaComponentUUID(data)) {
+                throw new Error('Invalid StandardReferenceData passed to StandardReferenceSimpleBase')
+            }
             this.tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
             this.universalKey = data
         }
@@ -71,13 +74,16 @@ const standardReferenceDeserialize = (incoming: StandardReferenceData): Standard
 
 const standardReferenceSerialize = (incoming: StandardReferenceData): StandardReferenceData => {
     if (typeof incoming === 'string') {
+        if (!isSchemaComponentUUID(incoming)) {
+            throw new Error('Invalid StandardReferenceData passed to standardReferenceSerialize')
+        }
         return incoming
     }
     const { tag, universalKey, key } = incoming
     if (key) {
         return incoming
     }
-    return `${tag}#${universalKey}`
+    return `${tag.toUpperCase()}#${universalKey}`
 }
 
 const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardReferenceData): StandardReferenceData => {

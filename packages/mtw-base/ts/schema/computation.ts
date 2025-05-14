@@ -1,16 +1,17 @@
 import { SchemaImportableBase } from "./baseClasses"
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
+import { ComponentUUID } from ".";
 
 export type SchemaVariableTag = {
     tag: 'Variable';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
     default?: string;
 } & SchemaImportableBase
 
 export type SchemaComputedTag = {
     tag: 'Computed';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
     src: string;
     dependencies?: string[];
@@ -18,7 +19,7 @@ export type SchemaComputedTag = {
 
 export type SchemaActionTag = {
     tag: 'Action';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
     src: string;
 } & SchemaImportableBase

@@ -1,3 +1,4 @@
+import { ComponentUUID } from ".";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { SchemaBase, SchemaImportableBase } from "./baseClasses";
 
@@ -15,7 +16,7 @@ export type SchemaSummaryTag = {
 
 export type SchemaExampleTag = {
     tag: 'Example';
-    uuid?: string;
+    uuid?: ComponentUUID;
     key: string;
 } & SchemaImportableBase
 

@@ -124,10 +124,10 @@ export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"]
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
 )
-export type ComponentUUID = `${SchemaComponent["tag"]}#${string}`
+export type ComponentUUID = `${Uppercase<SchemaComponent["tag"]>}#${string}`
 export const isSchemaComponentUUID = (value: string): value is ComponentUUID => {
     const [tag, ...rest] = value.split('#')
-    return isSchemaComponentTag(tag) && rest.length === 1 && rest[0].length > 0
+    return isSchemaComponentTag(`${tag[0]}${tag.slice(1).toLowerCase()}`) && rest.length === 1 && rest[0].length > 0
 }
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
