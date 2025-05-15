@@ -74,8 +74,10 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key })),
-            ...this.examples.map((example) => (example.referencedKeys())).flat(1)
+            ...this.examples
+                .map(({ key }) => (key))
+                .filter(excludeUndefined)
+                .map((key) => ({ referenceType: 'Direct' as const, key })),
         ]
     }
 
@@ -103,7 +105,7 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardKnowledge(this.key).withImport(this.import).withExport(this.export) as StandardKnowledge
+        const base = new StandardKnowledge(this.key ?? '').withImport(this.import).withExport(this.export) as StandardKnowledge
         base._payload._examples = examplesDiff
         return base
     }

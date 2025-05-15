@@ -3,9 +3,10 @@
 // that are only relevant in serialization) for a StandardComponent class
 //
 
-import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { ComponentKey } from "./dataTypes/key"
+import { isLegalKey } from "../utils";
 
 export class KeyPayload {
     _key?: string;
@@ -20,8 +21,15 @@ export class KeyPayload {
             return
         }
         if (typeof props === 'string') {
-            this._key = props
-            return
+            if (isSchemaComponentUUID(props)) {
+                this._universalKey = props
+                return
+            }
+            if (isLegalKey(props)) {
+                this._key = props
+                return
+            }
+            throw new Error(`KeyPayload constructor: '${props}' is not a valid key`)
         }
         this._key = props.key
         this._universalKey = props.universalKey
