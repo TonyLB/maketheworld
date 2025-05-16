@@ -157,7 +157,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
         returnValue._examples = returnValue._examples.map(mapReference)
-        console.log(`mapReferences: ${JSON.stringify(returnValue._examples.map((reference) => (reference.toJSON())), null, 2)}`)
         returnValue._features = returnValue._features.map(mapReference)
         return returnValue as this
     }

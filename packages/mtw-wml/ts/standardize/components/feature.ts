@@ -6,7 +6,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardFeatureData } from "./dataTypes/feature"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mergeUniqueReferences } from "./utils/references"
+import { mapReferenceToFormat, mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -34,7 +34,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node) => (new StandardReference(node)))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node) => (new StandardReference([node])))
             this._global = node.data.global
             return
         }
@@ -85,6 +85,13 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardFeaturePayload(this)
+        return returnValue as this
+    }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+        const returnValue = new StandardFeaturePayload(this)
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        returnValue._examples = returnValue._examples.map(mapReference)
         return returnValue as this
     }
 }

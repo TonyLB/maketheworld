@@ -57,6 +57,7 @@ export const directReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
             }
         })
         .flat(1)
+        .filter(excludeUndefined)
     )
 }
 
