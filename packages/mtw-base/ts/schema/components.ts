@@ -30,7 +30,7 @@ export type SchemaFeatureTag = {
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 export type SchemaPositionTag = {
@@ -73,7 +73,7 @@ export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
 )
 
 export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING}, optional: { key: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
 )
 
 export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (

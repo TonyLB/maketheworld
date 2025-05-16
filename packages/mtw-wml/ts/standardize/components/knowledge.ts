@@ -6,7 +6,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mergeUniqueReferences } from "./utils/references"
+import { mapReferenceToFormat, mergeUniqueReferences } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -32,7 +32,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference(node))))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
@@ -85,6 +85,14 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         const returnValue = new StandardKnowledgePayload(this)
         return returnValue as this
     }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+        const returnValue = new StandardKnowledgePayload(this)
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        returnValue._examples = returnValue._examples.map(mapReference)
+        return returnValue as this
+    }
+    
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
