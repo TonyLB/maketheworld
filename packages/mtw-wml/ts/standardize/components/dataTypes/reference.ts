@@ -9,14 +9,15 @@ export type StandardReferenceData = string | ({
     global?: boolean;
 })
 
-export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => (
-    (typeof arg === 'string' && isSchemaComponentUUID(arg)) ||
-    (
-        checkTypes({
-            required: { tag: CheckTypes.STRING },
-            optional: { global: CheckTypes.BOOLEAN, key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
-        })(arg) &&
-        isSchemaComponentTag(arg.tag) &&
-        (!arg.universalKey || isSchemaComponentUUID(arg.universalKey))
-    )
-)
+export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => {
+    console.log(`isStandardReferencePayloadData`, arg)
+    return (typeof arg === 'string' && isSchemaComponentUUID(arg)) ||
+        (
+            checkTypes({
+                required: { tag: CheckTypes.STRING },
+                optional: { global: CheckTypes.BOOLEAN, key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
+            })(arg) &&
+            isSchemaComponentTag(arg.tag) &&
+            (!arg.universalKey || isSchemaComponentUUID(arg.universalKey))
+        )
+}

@@ -23,7 +23,7 @@ export type SchemaRoomTag = {
 export type SchemaFeatureTag = {
     tag: 'Feature';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
     global?: boolean;
 } & SchemaImportableBase
 
@@ -69,7 +69,7 @@ export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
 )
 
 export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Feature' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Feature' } })(schema)
 )
 
 export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (

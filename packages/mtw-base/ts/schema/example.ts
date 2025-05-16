@@ -17,7 +17,7 @@ export type SchemaSummaryTag = {
 export type SchemaExampleTag = {
     tag: 'Example';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 export const isSchemaName = (schema: any): schema is SchemaNameTag => (
@@ -34,8 +34,8 @@ export const isSchemaSummary = (schema: any): schema is SchemaSummaryTag => (
 
 export const isSchemaExample = (schema: any): schema is SchemaExampleTag => (
     checkTypes({
-        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
-        optional: { as: CheckTypes.STRING },
+        required: { tag: CheckTypes.STRING },
+        optional: { as: CheckTypes.STRING, key: CheckTypes.STRING, uuid: CheckTypes.STRING },
         values: { tag: 'Example' }
     })(schema)
 )

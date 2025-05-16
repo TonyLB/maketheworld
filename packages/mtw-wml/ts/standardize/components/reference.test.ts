@@ -35,6 +35,13 @@ describe('StandardReference', () => {
         expect(testVariable.toJSON()).toEqual(testReferenceData)
     })
 
+    it('should correctly return schema for universalKey-only references', () => {
+        const testVariable = new StandardReference('EXAMPLE#1234')
+        expect(schemaToWML(testVariable.schema)).toEqual(deIndentWML(`
+            <Example uuid=(1234) />
+        `))
+    })
+
     it('should merge correctly', () => {
         expect(schemaToWML(new StandardReference('<Variable key=(test) />')?.merge(new StandardReference('<Variable key=(test) />'))?.schema ?? [])).toEqual(deIndentWML('<Variable key=(test) />'))
     })

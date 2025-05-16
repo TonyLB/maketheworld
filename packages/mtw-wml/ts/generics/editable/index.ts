@@ -94,7 +94,17 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
     return {
         constructorDelta: (constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => {
             //
-            // First, check whether the props are a string that needs to be parsed into a schema tree.
+            // First check whether the props are a StandardEditableData of the appropriate data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
+            //
+            if (props.typeguard(constructorProps)) {
+                const payload = props.payloadFactory(constructorProps)
+                if (payload) {
+                    return { add: payload }
+                }
+                return undefined
+            }
+            //
+            // Next, check whether the props are a string that needs to be parsed into a schema tree.
             //
             const factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
 
