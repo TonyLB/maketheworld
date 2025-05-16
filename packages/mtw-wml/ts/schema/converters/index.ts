@@ -52,7 +52,7 @@ export const printMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Asset',
             properties: [
-                { key: 'key', type: 'key', value: tag.key },
+                { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'Story', type: 'boolean', value: tag.Story ?? false },
                 { key: 'update', type: 'boolean', value: tag.update ?? false }
             ],

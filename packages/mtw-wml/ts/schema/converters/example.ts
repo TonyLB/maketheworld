@@ -15,7 +15,7 @@ const exampleTemplates = {
     Name: {},
     Example: {
         uuid: { type: ParsePropertyTypes.Key },
-        key: { required: true, type: ParsePropertyTypes.Key }
+        key: { type: ParsePropertyTypes.Key }
     },
 } as const
 
@@ -117,7 +117,7 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
             tag: 'Example',
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('EXAMPLE')(tag.uuid) : '' },
-                { key: 'key', type: 'key', value: tag.key },
+                { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }

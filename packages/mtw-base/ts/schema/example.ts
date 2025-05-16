@@ -17,7 +17,7 @@ export type SchemaSummaryTag = {
 export type SchemaExampleTag = {
     tag: 'Example';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 export const isSchemaName = (schema: any): schema is SchemaNameTag => (
