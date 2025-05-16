@@ -30,7 +30,8 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         }
     }
     get schema() {
-        return [{ data: { tag: this.tag, key: this.key} as SchemaTag, children: [] }]
+        console.log(`Schema tag: ${this.tag}, ${this.universalKey}`)
+        return [{ data: { tag: this.tag, key: this.key, uuid: this.universalKey } as SchemaTag, children: [] }]
     }
     clone() {
         return new StandardReferenceSimpleBase(this.toJSON())
@@ -330,7 +331,9 @@ export class StandardReference {
             this._payload = arg
             return
         }
+        console.log(`StandardReference constructor`, arg)
         const delta = factory(arg)
+        console.log(`StandardReference constructor delta`, delta)
         if (!delta) {
             throw new Error('Invalid argument to StandardReference constructor')
         }

@@ -10,7 +10,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { dependencyReferenceKeys, exitReferenceKeys, mergeUniqueReferences } from "./utils/references"
+import { dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences } from "./utils/references"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList } from "./reference"
@@ -59,8 +59,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._exits = defaultSelected(exitTagTree.tree)
-            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (new StandardReference(node))))
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference(node))))
+            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (new StandardReference([node]))))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -150,6 +150,15 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 })
         }
         returnValue._exits = callback(returnValue._exits)
+        return returnValue as this
+    }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+        const returnValue = new StandardRoomPayload(this)
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        returnValue._examples = returnValue._examples.map(mapReference)
+        console.log(`mapReferences: ${JSON.stringify(returnValue._examples.map((reference) => (reference.toJSON())), null, 2)}`)
+        returnValue._features = returnValue._features.map(mapReference)
         return returnValue as this
     }
 }
