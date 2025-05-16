@@ -233,8 +233,8 @@ export const processComponents = (props: {
                 }, localizedComponent)
                 const editWrappedComponent = (!metaDataContext && inContextOfRemove) ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
                 return mergeByIds(
-                    mergeByIds(previous, { [localizedComponent.key]: editWrappedComponent }),
-                    processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: localizedComponent.key, tag: item.data.tag }] })
+                    mergeByIds(previous, { [localizedComponent.key ?? '']: editWrappedComponent }),
+                    processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: localizedComponent.key ?? '', tag: item.data.tag }] })
                 )
             }
         }

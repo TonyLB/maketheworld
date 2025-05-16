@@ -58,7 +58,7 @@ export class StandardAuthorizationCollection {
                 const { referenceStack } = standardResource
                 return {
                     ...previous,
-                    [referenceStack.map(({ key }) => (key)).join('.')]: new StandardAuthorizationResource(standardResource)
+                    [referenceStack.map((reference) => ((typeof reference === 'object' && 'key' in reference) ? reference.key : undefined)).filter(excludeUndefined).join('.')]: new StandardAuthorizationResource(standardResource)
                 }
             }, {})
             this._grants = Object.values(grantsByReference)
@@ -91,6 +91,9 @@ export class StandardAuthorizationCollection {
             this._key = ''
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
+                if (!node.data.key) {
+                    throw new Error('StandardAuthorizationCollection constructor requires a key')
+                }
                 this._key = node.data.key
 
                 //
@@ -130,7 +133,7 @@ export class StandardAuthorizationCollection {
         throw new Error('Invalid arguments in StandardAuthorization constructor')
     }
 
-    get header(): { tag: 'Asset' } & StandardBaseData {
+    get header(): { tag: 'Asset', key: string } & StandardBaseData {
         return {
             tag: 'Asset',
             key: this._key
@@ -313,7 +316,7 @@ export class StandardAuthorizationCollection {
                 const { referenceStack, grants } = resource
                 if (referenceStack.slice(0, fromStack.length).every(({ key }, index) => (key === fromStack[index]))) {
                     return new StandardAuthorizationResource({
-                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? new StandardReference({ ...reference.toJSON(), key: toStack[index] }) : reference)),
+                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? reference.withKey(toStack[index]) : reference)),
                         grants
                     })
                 }

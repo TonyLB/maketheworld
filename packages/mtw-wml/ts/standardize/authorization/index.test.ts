@@ -60,7 +60,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                    referenceStack: [{ key: 'Room1', tag: 'Room' }],
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -72,7 +72,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room2', tag: 'Room', exits: [] }],
+                    referenceStack: [{ key: 'Room2', tag: 'Room' }],
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -104,15 +104,14 @@ describe('StandardAuthorizationCollection', () => {
                 </Room>
             </Asset>
         `)
-        expect(collection.byId).toEqual({
-            'Room1': new StandardAuthorizationResource({
-                referenceStack: [{ key: 'Room1', tag: 'Room' }],
-                grants: [{
-                    tag: 'Grant',
-                    player: 'Player1',
-                    actions: ['action1']
-                }]
-            })
+        expect(Object.keys(collection.byId)).toEqual(['Room1'])
+        expect(collection.byId["Room1"].toJSON()).toEqual({
+            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            grants: [{
+                tag: 'Grant',
+                player: 'Player1',
+                actions: ['action1']
+            }]
         })
     })
 
@@ -163,7 +162,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                    referenceStack: [{ key: 'Room1', tag: 'Room' }],
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -186,7 +185,7 @@ describe('StandardAuthorizationCollection', () => {
         expect(collection.toNDJSON()).toEqual([
             { tag: 'Asset', key: 'test' },
             { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
         ])
     })
 
@@ -294,7 +293,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         const clone = collection._clone()
-        expect(clone).toEqual(collection)
+        expect(schemaToWML([clone.schema])).toEqual(schemaToWML([collection.schema]))
         expect(clone).not.toBe(collection)
         expect(clone._grants).not.toBe(collection._grants)
         expect(clone._grants[0]).not.toBe(collection._grants[0])
