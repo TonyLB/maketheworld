@@ -13,7 +13,7 @@ import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
-import { positionReferenceKeys } from "./utils/references"
+import { mapReferenceToFormat, positionReferenceKeys } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
@@ -102,6 +102,16 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         returnValue._positions = callback(returnValue._positions)
         return returnValue as this
     }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+        const returnValue = new StandardMapPayload(this)
+        // const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        //
+        // After refactoring Position as StandardPosition class, we will need to
+        // remap those references here
+        //
+        return returnValue as this
+    }
 }
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
@@ -137,6 +147,7 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
     override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
         return new StandardMap(super.withExport(exportData) as StandardMap)
     }
+    
 }
 
 export default StandardMap

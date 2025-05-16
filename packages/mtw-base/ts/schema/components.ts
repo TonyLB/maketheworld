@@ -42,7 +42,7 @@ export type SchemaPositionTag = {
 export type SchemaMapTag = {
     tag: 'Map';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 export type SchemaMessageTag = {
@@ -81,7 +81,7 @@ export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (
 )
 
 export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Map' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING }, values: { tag: 'Map' } })(schema)
 )
 
 export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
