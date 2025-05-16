@@ -4,7 +4,6 @@ import { StandardAuthorizationItem } from "./components/baseClasses"
 import StandardGrant from "./components/grant"
 import { schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
-import { StandardAuthRemove, StandardAuthReplace } from "./components/edits"
 
 describe('StandardAuthorizationResource class', () => {
 
@@ -15,7 +14,7 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
         const resource = new StandardAuthorizationResource({ referenceStack: [reference], grants })
-        expect(resource.referenceStack).toEqual([reference])
+        expect(resource.referenceStack.map((reference) => (reference.toJSON()))).toEqual([reference.toJSON()])
         expect(resource.grants).toEqual(grants)
         expect(resource.toJSON()).toEqual({
             referenceStack: [reference.toJSON()],
@@ -31,7 +30,7 @@ describe('StandardAuthorizationResource class', () => {
             referenceStack: [{ key: 'Room1', tag: 'Room' }],
             grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
         }])
-        expect(resource.referenceStack).toEqual([new StandardReference({ key: 'Room1', tag: 'Room' })])
+        expect(resource.referenceStack.map((reference) => (reference.toJSON()))).toEqual([{ key: 'Room1', tag: 'Room' }])
         expect(resource.grants).toEqual([
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
@@ -71,11 +70,11 @@ describe('StandardAuthorizationResource class', () => {
         const resource = new StandardAuthorizationResource(wml)
         expect(resource.toNDJSON()).toEqual([
             {
-                referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                referenceStack: [{ key: 'Room1', tag: 'Room' }],
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             },
             {
-                referenceStack: [{ key: 'Room1', tag: 'Room', exits: [] }],
+                referenceStack: [{ key: 'Room1', tag: 'Room' }],
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }
         ])
