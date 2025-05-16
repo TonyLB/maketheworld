@@ -16,7 +16,7 @@ describe('StandardMessage class', () => {
         expect(testMap.universalKey).toEqual('MESSAGE#001')
         expect(testMap.key).toEqual('test')
         expect(testMap.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] })
-        expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
+        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -29,7 +29,7 @@ describe('StandardMessage class', () => {
         const testMap = new StandardMessage(schema.schema[0])
         expect(testMap.key).toEqual('test')
         expect(testMap.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] })
-        expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
+        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -38,12 +38,12 @@ describe('StandardMessage class', () => {
             key: 'test',
             tag: 'Message',
             description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] },
-            rooms: [{ data: { tag: 'Room', key: "testRoom" }, children: [] }],
+            rooms: [{ tag: 'Room', key: "testRoom" }],
         }
         const testMap = new StandardMessage(testMapData)
         expect(testMap.key).toEqual('test')
         expect(testMap.description).toEqual({ data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] })
-        expect(testMap.rooms).toEqual([{ data: { tag: 'Room', key: "testRoom" }, children: [] }])
+        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(testMap.toJSON()).toEqual(testMapData)
     })
 

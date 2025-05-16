@@ -13,7 +13,7 @@ import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 const messagingTemplates = {
     Message: {
         uuid: { type: ParsePropertyTypes.Key },
-        key: { required: true, type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
     },
@@ -66,7 +66,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Message',
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children }
