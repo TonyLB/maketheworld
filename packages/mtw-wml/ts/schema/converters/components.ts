@@ -243,7 +243,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Knowledge',
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('KNOWLEDGE')(tag.uuid) : '' },
-                { key: 'key', type: 'key', value: tag.key },
+                { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -275,7 +275,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Map',
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
-                { key: 'key', type: 'key', value: tag.key },
+                { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
