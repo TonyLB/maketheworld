@@ -48,7 +48,7 @@ export type SchemaMapTag = {
 export type SchemaMessageTag = {
     tag: 'Message';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 export type SchemaMomentTag = {
@@ -85,7 +85,7 @@ export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
 )
 
 export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Message' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING }, values: { tag: 'Message' } })(schema)
 )
 
 export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (

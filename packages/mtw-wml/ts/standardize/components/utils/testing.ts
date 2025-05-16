@@ -5,7 +5,6 @@ export const mergeTest = <T extends { toJSON: () => any, merge: (args: any) => a
     const baseSchema = new Schema()
     baseSchema.loadWML(deIndentWML(base))
     const baseStandard = new standardClass(baseSchema.schema[0])
-    console.log(`baseStandard: ${JSON.stringify(baseStandard.toJSON(), null, 4)}`)
     const testSchema = new Schema()
     testSchema.loadWML(deIndentWML(incoming))
     const testStandard = new standardClass(testSchema.schema[0])
@@ -13,6 +12,5 @@ export const mergeTest = <T extends { toJSON: () => any, merge: (args: any) => a
     if (!mergedStandard) {
         throw new Error('Failure in mergeTest utility')
     }
-    console.log(`mergedStandard: ${JSON.stringify(mergedStandard.toJSON(), null, 4)}`)
     return schemaToWML([mergedStandard.schema])
 }

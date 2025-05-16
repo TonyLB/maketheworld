@@ -8,19 +8,21 @@ import { StandardComponent } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { dependencyReferenceKeys, directReferenceKeys } from "./utils/references"
+import { dependencyReferenceKeys, directReferenceKeys, mapReferenceToFormat, mergeUniqueReferences } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
-import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaMessage } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import StandardReference from "./reference"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { StandardReferenceData } from "./dataTypes/reference"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;
-    _rooms: GenericTree<SchemaTag> = [];
+    _rooms: StandardReference[] = [];
     tag = 'Message' as const
 
     constructor(previous?: StandardMessagePayload) {
@@ -32,7 +34,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromJSON(props: StandardMessageData) {
         this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-        this._rooms = props.rooms
+        this._rooms = props.rooms?.map((reference) => (new StandardReference(reference))) ?? []
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -42,7 +44,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
             this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
             const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            this._rooms = roomTagTree.tree
+            this._rooms = roomTagTree.tree.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (new StandardReference([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
@@ -58,7 +60,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             description: stripUI
                 ? rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const })
                 : this.description,
-            rooms: this.rooms
+            rooms: this.rooms.map((reference) => (reference.toJSON() as StandardReferenceData)),
         }
     }
 
@@ -66,7 +68,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
-                ...this.rooms,
+                ...this.rooms.map((reference) => (reference.schema)).flat(1),
                 ...[this.description].filter(excludeUndefined).map(({ children }) => (children)).flat(1)
             ]
         }
@@ -75,16 +77,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     merge(incoming: this): this {
         const returnValue = new StandardMessagePayload()
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
-        returnValue._rooms = applyEdits([...this.rooms, ...incoming.rooms])
+        returnValue._rooms = mergeUniqueReferences(this._rooms, incoming._rooms)
         return returnValue as this
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...directReferenceKeys(this.rooms)
-                .map((key) => ({ referenceType: 'Direct' as const, key })),
-            ...dependencyReferenceKeys(this.rooms)
-                .map((key) => ({ referenceType: 'Dependency' as const, key }))
+            ...this._rooms.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global }))
         ]
     }
 
@@ -93,9 +92,17 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         if (returnValue._description) {
             returnValue._description = returnValue._description.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
-        returnValue._rooms = callback(returnValue._rooms)
+        // returnValue._rooms = callback(returnValue._rooms)
         return returnValue as this
     }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+        const returnValue = new StandardMessagePayload(this)
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        returnValue._rooms = returnValue._rooms.map(mapReference)
+        return returnValue as this
+    }
+
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
