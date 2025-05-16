@@ -46,6 +46,11 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
             return this.universalKey
         }
     }
+    withKey(key: string): StandardReferenceSimpleBase {
+        const returnValue = this.clone()
+        returnValue.key = key
+        return returnValue
+    }
 }
 
 const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): StandardReferenceSimpleBase | undefined => {
@@ -177,6 +182,11 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
+    withKey(key: string): StandardReferenceSimple {
+        const returnValue = this.clone()
+        returnValue.payload = this.payload.withKey(key)
+        return returnValue
+    }
 }
 
 export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
@@ -228,6 +238,11 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
     diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
+    }
+    withKey(key: string): StandardReferenceRemove {
+        const returnValue = this.clone()
+        returnValue.match = this.match.withKey(key)
+        return returnValue
     }
 }
 
@@ -299,6 +314,12 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
     diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
+    withKey(key: string): StandardReferenceReplace {
+        const returnValue = this.clone()
+        returnValue.match = this.match.withKey(key)
+        returnValue.payload = this.payload.withKey(key)
+        return returnValue
+    }
 }
 
 export class StandardReference {
@@ -343,6 +364,7 @@ export class StandardReference {
     get tag(): ComponentTag {
         return this._payload.tag
     }
+
     clone(): StandardReference {
         return new StandardReference(this._payload.clone())
     }
@@ -394,6 +416,12 @@ export class StandardReference {
             return new StandardReference(new StandardReferenceReplace((new StandardReferenceSimple(callback(this._payload.match.toJSON()))).payload, (new StandardReferenceSimple(callback(this._payload.payload.toJSON()))).payload))
         }
         throw new Error('Invalid StandardReference payload')
+    }
+
+    withKey(key: string): StandardReference {
+        const returnValue = this.clone()
+        returnValue._payload = this._payload.withKey(key)
+        return returnValue
     }
 
 }

@@ -46,7 +46,7 @@ export class StandardAuthorizationResource {
                 }
                 if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
                     const { referenceStack, grants } = extractGrants(schema[0].children)
-                    return { referenceStack: [new StandardReference(schema[0]), ...referenceStack], grants }
+                    return { referenceStack: [new StandardReference(schema), ...referenceStack], grants }
                 }
                 else {
                     return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }

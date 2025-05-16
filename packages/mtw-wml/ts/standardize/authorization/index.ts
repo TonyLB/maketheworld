@@ -1,22 +1,15 @@
-import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { isSchemaExport, isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
-import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
-import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaAsset, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
 import { isLegalKey } from "../utils"
 import StandardReference from "../components/reference"
 import { isSchemaTreeNode, nodeFromWML } from "../../schema"
 import { ComponentProcessingTemplate } from "../processComponents"
-import { standardAuthorizationFactory } from "./authorizationFactory"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
 import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
-import { defaultComponentFromTag, SerializeNDJSONMixin } from "../baseClasses"
 import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
 import { standardComponentSortOrder } from ".."
 import { unique } from "../../list"
@@ -65,7 +58,7 @@ export class StandardAuthorizationCollection {
                 const { referenceStack } = standardResource
                 return {
                     ...previous,
-                    [referenceStack.map(({ key }) => (key)).join('.')]: new StandardAuthorizationResource(standardResource)
+                    [referenceStack.map((reference) => ((typeof reference === 'object' && 'key' in reference) ? reference.key : undefined)).filter(excludeUndefined).join('.')]: new StandardAuthorizationResource(standardResource)
                 }
             }, {})
             this._grants = Object.values(grantsByReference)
@@ -98,6 +91,9 @@ export class StandardAuthorizationCollection {
             this._key = ''
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
+                if (!node.data.key) {
+                    throw new Error('StandardAuthorizationCollection constructor requires a key')
+                }
                 this._key = node.data.key
 
                 //
@@ -137,7 +133,7 @@ export class StandardAuthorizationCollection {
         throw new Error('Invalid arguments in StandardAuthorization constructor')
     }
 
-    get header(): { tag: 'Asset' } & StandardBaseData {
+    get header(): { tag: 'Asset', key: string } & StandardBaseData {
         return {
             tag: 'Asset',
             key: this._key
@@ -320,7 +316,7 @@ export class StandardAuthorizationCollection {
                 const { referenceStack, grants } = resource
                 if (referenceStack.slice(0, fromStack.length).every(({ key }, index) => (key === fromStack[index]))) {
                     return new StandardAuthorizationResource({
-                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? new StandardReference({ ...reference.toJSON(), key: toStack[index] }) : reference)),
+                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? reference.withKey(toStack[index]) : reference)),
                         grants
                     })
                 }

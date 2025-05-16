@@ -47,11 +47,10 @@ describe("processAuthorizations", () => {
             schema: schema.schema
         })
 
-        expect(result).toEqual({
-            'test': new StandardAuthorizationResource({
-                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
-                grants: [new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] })]
-            })
+        expect(Object.keys(result)).toEqual(['test'])
+        expect(result.test.toJSON()).toEqual({
+            referenceStack: [{ key: 'test', tag: 'Room' }],
+            grants: [{ tag: 'Grant', player: 'test1', actions: ['action1'] }]
         })
     })
 
@@ -71,14 +70,13 @@ describe("processAuthorizations", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result).toEqual({
-            'test.testFeature': new StandardAuthorizationResource({
-                referenceStack: [
-                    new StandardReference({ key: 'test', tag: 'Room' }),
-                    new StandardReference({ key: 'testFeature', tag: 'Feature' })
-                ],
-                grants: [new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] })]
-            })
+        expect(Object.keys(result)).toEqual(['test.testFeature'])
+        expect(result["test.testFeature"].toJSON()).toEqual({
+            referenceStack: [
+                { key: 'test', tag: 'Room' },
+                { key: 'testFeature', tag: 'Feature' }
+            ],
+            grants: [{ tag: 'Grant', player: 'test1', actions: ['action1'] }]
         })
     })
 
@@ -98,11 +96,10 @@ describe("processAuthorizations", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result).toEqual({
-            'test': new StandardAuthorizationResource({
-                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
-                grants: [new StandardAuthRemove(new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] }))]
-            })
+        expect(Object.keys(result)).toEqual(['test'])
+        expect(result.test.toJSON()).toEqual({
+            referenceStack: [{ key: 'test', tag: 'Room' }],
+            grants: [{ tag: 'Remove', component: { tag: 'Grant', player: 'test1', actions: ['action1'] } }]
         })
     })
 
@@ -125,14 +122,14 @@ describe("processAuthorizations", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result).toEqual({
-            'test': new StandardAuthorizationResource({
-                referenceStack: [new StandardReference({ key: 'test', tag: 'Room' })],
-                grants: [new StandardAuthReplace(
-                    new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action1'] }),
-                    new StandardGrant({ tag: 'Grant', player: 'test1', actions: ['action2'] })
-                )]
-            })
+        expect(Object.keys(result)).toEqual(['test'])
+        expect(result.test.toJSON()).toEqual({
+            referenceStack: [{ key: 'test', tag: 'Room' }],
+            grants: [{
+                tag: 'Replace',
+                match: { tag: 'Grant', player: 'test1', actions: ['action1'] },
+                payload: { tag: 'Grant', player: 'test1', actions: ['action2'] }
+            }]
         })
     })
 })
