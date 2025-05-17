@@ -4,7 +4,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mergeUniqueReferences } from "./utils/references"
+import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { diffStandardReferenceList } from "./reference"
@@ -89,6 +89,14 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         return this
     }
+
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: ReferenceFormat }): this {
+        const returnValue = new StandardMomentPayload(this)
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
+        returnValue._messages = returnValue._messages.map(mapReference)
+        return returnValue as this
+    }
+    
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

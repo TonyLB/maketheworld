@@ -54,7 +54,7 @@ export type SchemaMessageTag = {
 export type SchemaMomentTag = {
     tag: 'Moment';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
 } & SchemaImportableBase
 
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
