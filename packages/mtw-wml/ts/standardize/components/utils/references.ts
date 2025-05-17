@@ -124,7 +124,7 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]
 // mapReferenceToFormat is a curried function which accepts (as its first argument) a list of mapping between the local (to the Asset)
 // key and the universal key of the reference. The second argument is the reference to be mapped.
 //
-type ReferenceFormat = 'key' | 'universal' | 'both';
+export type ReferenceFormat = 'key' | 'universal' | 'both';
 
 export const mapReferenceToFormat = (mappings: { key: string; universalKey: ComponentUUID }[], format: ReferenceFormat) =>
     (reference: StandardReference): StandardReference => {

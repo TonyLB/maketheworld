@@ -4,6 +4,7 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
+import { ReferenceFormat } from "./utils/references";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -47,6 +48,6 @@ export interface StandardComponent {
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];
-    remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: 'uuid' | 'key' }): StandardComponent;
+    remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
 }

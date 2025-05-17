@@ -10,6 +10,7 @@ import { removeNDJSONOnlyProperties } from "../utils";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
+import { ReferenceFormat } from "./utils/references";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -52,7 +53,7 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardRemove {
+    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: ReferenceFormat; }): StandardRemove {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.remapReferences(props)
         return returnValue
@@ -189,7 +190,7 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: "uuid" | "key"; }): StandardReplace {
+    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: ReferenceFormat; }): StandardReplace {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.remapReferences(props)
         returnValue._payload = returnValue._payload.remapReferences(props)
