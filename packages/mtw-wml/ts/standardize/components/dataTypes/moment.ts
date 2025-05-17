@@ -13,13 +13,12 @@ export const isStandardMoment = (arg: any): arg is StandardMomentData => {
         return false
     }
 
-    return checkAll(
-        ('tag' in arg && arg.tag === 'Moment'),
-        checkTypes({
-            required: { tag: CheckTypes.STRING },
-            values: {
-                messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferencePayloadData))
-            }
-        })(arg)
-    )
+    return checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, universalKey: CheckTypes.STRING },
+        values: {
+            tag: (tag: any) => (tag === 'Moment'),
+            messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferencePayloadData))
+        }
+    })(arg)
 }
