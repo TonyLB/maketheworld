@@ -8,7 +8,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { dependencyReferenceKeys, directReferenceKeys, mapReferenceToFormat, mergeUniqueReferences } from "./utils/references"
+import { dependencyReferenceKeys, directReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -96,9 +96,9 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: "uuid" | "key" }): this {
+    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
-        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
+        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._rooms = returnValue._rooms.map(mapReference)
         return returnValue as this
     }
