@@ -69,7 +69,7 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
     throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
 }
 
-const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
+export const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
     if (typeof incoming === 'string') {
         const [upcaseTag] = incoming.split('#')
         return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming } as StandardReferenceData
@@ -77,7 +77,7 @@ const standardReferenceDeserialize = (incoming: StandardReferenceData): Standard
     return incoming;
 }
 
-const standardReferenceSerialize = (incoming: StandardReferenceData): StandardReferenceData => {
+export const standardReferenceSerialize = (incoming: StandardReferenceData): StandardReferenceData => {
     if (typeof incoming === 'string') {
         if (!isSchemaComponentUUID(incoming)) {
             throw new Error('Invalid StandardReferenceData passed to standardReferenceSerialize')
