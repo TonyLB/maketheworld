@@ -1,16 +1,12 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
-import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { unique } from "../../list";
-import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isStandardPositionData, StandardPositionData } from "./dataTypes/position";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize } from "./reference";
+import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 
 export class StandardPositionSimpleBase implements StandardEditablePayload<StandardPositionData> {
     room: StandardReferenceSimple;
@@ -426,8 +422,7 @@ export const diffStandardPositionList = ({ base, incoming }: DiffStandardPositio
     const isEqual = (a: StandardPosition, b: StandardPosition) => {
         return a.x === b.x &&
             a.y === b.y &&
-            a.room.toJSON().key === b.room.toJSON().key &&
-            a.room.toJSON().tag === b.room.toJSON().tag;
+            a.room.equal(b.room)
     }
 
     // Find removes: in base but not in incoming
