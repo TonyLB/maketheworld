@@ -345,6 +345,12 @@ export class StandardPosition {
     get room(): StandardReference {
         return new StandardReference(this._payload.room)
     }
+    get x(): number {
+        return this._payload.x
+    }
+    get y(): number {
+        return this._payload.y
+    }
 
     clone(): StandardPosition {
         return new StandardPosition(this._payload.clone())
@@ -414,59 +420,29 @@ type DiffStandardPositionListParams = {
     hasDiff?: (key: string) => boolean;
     parentKey?: string;
 }
-export const diffStandardPositionList = ({ base, incoming, hasDiff, parentKey }: DiffStandardPositionListParams): StandardPosition[] => {
-    const diffPosition = (basePosition: StandardPosition | undefined, incomingPosition: StandardPosition | undefined): StandardPosition | undefined => {
-        if (basePosition) {
-            const payload = basePosition._payload
-            const lookupKey = basePosition.global || (!parentKey) ? `${basePosition.key}` : `${parentKey}.${basePosition.key}`
-            if (!incomingPosition) {
-                if (payload instanceof StandardPositionRemove) {
-                    return new StandardReference(payload.match)
-                }
-                if (payload instanceof StandardReferenceReplace) {
-                    return new StandardReference(new StandardReferenceReplace(payload.payload, payload.match))
-                }
-                return new StandardReference(new StandardReferenceRemove(payload.payload))
-            }
-            const incomingPayload = incomingReference._payload
-            if (baseReference.key !== incomingReference.key) {
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceSimple) {
-                if (incomingPayload instanceof StandardReferenceSimple) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        return baseReference
-                    }
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceRemove) {
-                if (incomingPayload instanceof StandardReferenceRemove) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        const match = payload.match
-                        return new StandardReference(match)
-                    }
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceReplace) {
-                if (incomingPayload instanceof StandardReferenceReplace) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        return baseReference
-                    }
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-        }
-        else {
-            return incomingReference
-        }
+
+export const diffStandardPositionList = ({ base, incoming }: DiffStandardPositionListParams): StandardPosition[] => {
+    // Helper to compare two StandardPosition objects for being on the same room
+    const isEqual = (a: StandardPosition, b: StandardPosition) => {
+        return a.x === b.x &&
+            a.y === b.y &&
+            a.room.toJSON().key === b.room.toJSON().key &&
+            a.room.toJSON().tag === b.room.toJSON().tag;
     }
-    const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
-    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined)
+
+    // Find removes: in base but not in incoming
+    const removes = base
+        .filter(basePos => !incoming.some(incomingPos => isEqual(basePos, incomingPos)))
+        .map(basePos => new StandardPosition({
+            tag: 'Remove',
+            match: basePos.toJSON()
+        }))
+
+    // Find adds: in incoming but not in base
+    const adds = incoming
+        .filter(incomingPos => !base.some(basePos => isEqual(basePos, incomingPos)))
+
+    return [...removes, ...adds]
 }
 
-export default StandardReference
+export default StandardPosition

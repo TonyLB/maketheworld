@@ -1,0 +1,99 @@
+import { diffStandardPositionList, StandardPosition, StandardPositionRemove } from './position';
+import { deIndentWML } from '../../schema/utils';
+import { Schema, schemaToWML } from '../../schema';
+import { StandardPositionData } from './dataTypes/position';
+
+describe('StandardPosition', () => {
+    it('should construct StandardPosition from WML', () => {
+        const testSource = deIndentWML(`
+            <Room key=(test)><Position x=(1) y=(2) /></Room>
+        `)
+        const testPosition = new StandardPosition(testSource)
+        expect(testPosition.room.toJSON()).toEqual({ key: 'test', tag: 'Room' })
+        expect(testPosition.x).toEqual(1)
+        expect(testPosition.y).toEqual(2)
+        expect(schemaToWML(testPosition.schema)).toEqual(testSource)
+    })
+
+    it('should construct StandardPosition from schema', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
+            <Room key=(test)><Position x=(1) y=(2) /></Room>
+        `)
+        schema.loadWML(testSource)
+        const testPosition = new StandardPosition(schema.schema)
+        expect(testPosition.room.toJSON()).toEqual({ key: 'test', tag: 'Room' })
+        expect(testPosition.x).toEqual(1)
+        expect(testPosition.y).toEqual(2)
+        expect(schemaToWML(testPosition.schema)).toEqual(testSource)
+    })
+
+    it('should construct StandardPosition from StandardPositionData', () => {
+        const testPositionData: StandardPositionData = {
+            room: { key: 'test', tag: 'Room' },
+            x: 1,
+            y: 2
+        }
+        const testPosition = new StandardPosition(testPositionData)
+        expect(testPosition.toJSON()).toEqual(testPositionData)
+    })
+
+    it('should merge correctly', () => {
+        expect(schemaToWML(new StandardPosition('<Room key=(test)><Position x=(1) y=(2) /></Room>')?.merge(new StandardPosition('<Room key=(test)><Position x=(4) y=(5) /></Room>'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test)><Position x=(4) y=(5) /></Room>'))
+    })
+
+    it('should correctly parse a StandardPositionRemove', () => {
+        const testPositionData = {
+            tag: 'Remove',
+            match: {
+                tag: 'Position',
+                room: { key: 'test', tag: 'Room' },
+                x: 1,
+                y: 2
+            }
+        } as const
+        const testPositionRemove = new StandardPosition(testPositionData)
+        expect(testPositionRemove._payload).toBeInstanceOf(StandardPositionRemove)
+    })
+})
+
+describe('diffStandardReferenceList', () => {
+    it('should return empty array when both lists are empty', () => {
+        const base: StandardPosition[] = []
+        const incoming: StandardPosition[] = []
+        const result = diffStandardPositionList({ base, incoming })
+        expect(result).toEqual([])
+    })
+
+    it('should return all removes when incoming list is empty', () => {
+        const base = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const incoming: StandardPosition[] = []
+        const result = diffStandardPositionList({ base, incoming })
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([
+            { tag: 'Remove', match: { tag: 'Position', room: { key: 'test', tag: 'Room' }, x: 1, y: 2 } },
+            { tag: 'Remove', match: { tag: 'Position', room: { key: 'test2', tag: 'Room' }, x: 3, y: 4 } }
+        ])
+    })
+
+    it('should return all adds when base list is empty', () => {
+        const base: StandardPosition[] = []
+        const incoming = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const result = diffStandardPositionList({ base, incoming })
+        expect(result).toEqual(incoming)
+    })
+
+    it('should return correct diff when lists have different elements', () => {
+        const base = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const incoming = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test3' }, x: 5, y: 6 })]
+        const result = diffStandardPositionList({ base, incoming })
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Remove', match: { tag: 'Position', room: { key: 'test1', tag: 'Room' }, x: 1, y: 2 } }, { tag: 'Position', room: { key: 'test3', tag: 'Room' }, x: 5, y: 6 }])
+    })
+
+    it('should return empty array when lists are identical', () => {
+        const base = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const incoming = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const result = diffStandardPositionList({ base, incoming })
+        expect(result).toEqual([])
+    })
+
+})

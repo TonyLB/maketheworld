@@ -187,6 +187,22 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         returnValue.payload = this.payload.withKey(key)
         return returnValue
     }
+    equal(other: StandardReferenceSimple): boolean {
+        //
+        // Returns if the two objects share either the same key or the same universalKey,
+        // and have no other differences
+        //
+        if (this.payload.universalKey && other.payload.universalKey && this.payload.universalKey !== other.payload.universalKey) {
+            return false
+        }
+        if (this.payload.key && other.payload.key && this.payload.key !== other.payload.key) {
+            return false
+        }
+        if (this.payload.key === other.payload.key || this.payload.universalKey === other.payload.universalKey) {
+            return true
+        }
+        return false
+    }
 }
 
 export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
