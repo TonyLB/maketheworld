@@ -58,6 +58,56 @@ describe('StandardReference', () => {
         expect(testVariableRemove.tag).toEqual('Variable')
         expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceRemove)
     })
+
+    it('should correctly judge equality when only key specified', () => {
+        const testReferenceData = {
+            tag: 'Variable',
+            key: 'test',
+            universalKey: 'VARIABLE#1234'
+        }
+        const testReference = new StandardReference(testReferenceData)
+        expect(testReference.equal(new StandardReference({ tag: 'Variable', key: 'test' }))).toBe(true)
+    })
+
+    it('should correctly judge equality when only universalKey specified', () => {
+        const testReferenceData = {
+            tag: 'Variable',
+            key: 'test',
+            universalKey: 'VARIABLE#1234'
+        }
+        const testReference = new StandardReference(testReferenceData)
+        expect(testReference.equal(new StandardReference({ tag: 'Variable', universalKey: 'VARIABLE#1234' }))).toBe(true)
+    })
+
+    it('should correct judge inequality when key differs', () => {
+        const testReferenceData = {
+            tag: 'Variable',
+            key: 'test',
+            universalKey: 'VARIABLE#1234'
+        }
+        const testReference = new StandardReference(testReferenceData)
+        expect(testReference.equal(new StandardReference({ tag: 'Variable', key: 'test2', universalKey: 'VARIABLE#1234' }))).toBe(false)
+    })
+
+    it('should correct judge inequality when universalKey differs', () => {
+        const testReferenceData = {
+            tag: 'Variable',
+            key: 'test',
+            universalKey: 'VARIABLE#1234'
+        }
+        const testReference = new StandardReference(testReferenceData)
+        expect(testReference.equal(new StandardReference({ tag: 'Variable', key: 'test', universalKey: 'VARIABLE#5678' }))).toBe(false)
+    })
+
+    it('should correctly judge inequality when tags differ', () => {
+        const testReferenceData = {
+            tag: 'Variable',
+            key: 'test',
+            universalKey: 'VARIABLE#1234'
+        }
+        const testReference = new StandardReference(testReferenceData)
+        expect(testReference.equal(new StandardReference({ key: 'test', tag: 'Example' }))).toBe(false)
+    })
 })
 
 describe('diffStandardReferenceList', () => {
