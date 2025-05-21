@@ -13,15 +13,16 @@ import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
-import { mapReferenceToFormat, positionReferenceKeys, ReferenceFormat } from "./utils/references"
+import { positionReferenceKeys, ReferenceFormat } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
+import StandardPosition, { mergeStandardPositionList } from "./position"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     _images: GenericTree<SchemaTag> = [];
-    _positions: GenericTree<SchemaTag> = [];
+    _positions: StandardPosition[] = [];
     tag = 'Map' as const
 
     constructor(previous?: StandardMapPayload) {
@@ -35,7 +36,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromJSON(props: StandardMapData) {
         this._name = props.name
         this._images = props.images
-        this._positions = props.positions
+        this._positions = props.positions.map((position) => (new StandardPosition(position))).filter(excludeUndefined)
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -52,7 +53,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
             this._images = imagesTagTree.tree
-            this._positions = positionsTagTree.tree
+            this._positions = positionsTagTree.tree.map((position) => (new StandardPosition(position))).filter(excludeUndefined)
             return
         }
         throw new Error('Schema mismatch in StandardMap constructor')
@@ -67,7 +68,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             tag: 'Map',
             name: this.name,
             images: this.images,
-            positions: this.positions
+            positions: this.positions.map((position) => position.toJSON())
         }
     }
 
@@ -77,7 +78,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             children: [
                 ...[this.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
                 ...this.images,
-                ...this.positions
+                ...this.positions.map((position) => position.schema).filter(excludeUndefined).flat(1)
             ]
         }
     }
@@ -86,20 +87,20 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         const returnValue = new StandardMapPayload()
         returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
         returnValue._images = applyEdits([...this.images, ...incoming.images])
-        returnValue._positions = applyEdits([...this.positions, ...incoming.positions])
+        returnValue._positions = mergeStandardPositionList(this.positions, incoming.positions)
         return returnValue as this
     }
 
     referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
-        return positionReferenceKeys(this.positions ?? [])
-            .map((key) => ({ referenceType: 'Position', key }))
+        return []
+        // return positionReferenceKeys(this.positions ?? [])
+        //     .map((key) => ({ referenceType: 'Position', key }))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardMapPayload(this)
         returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
         returnValue._images = callback(returnValue._images)
-        returnValue._positions = callback(returnValue._positions)
         return returnValue as this
     }
 
