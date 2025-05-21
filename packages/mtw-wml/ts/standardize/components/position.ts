@@ -440,4 +440,20 @@ export const diffStandardPositionList = ({ base, incoming }: DiffStandardPositio
     return [...removes, ...adds]
 }
 
+export const mergeStandardPositionList = (base: StandardPosition[], incoming: StandardPosition[]): StandardPosition[] => {
+    return incoming.reduce((acc, incomingPos) => {
+        const index = acc.findIndex(basePos => basePos.room.equal(incomingPos.room))
+        if (index !== -1) {
+            const merged = acc[index].merge(incomingPos) || acc[index]
+            return [
+                ...acc.slice(0, index),
+                merged,
+                ...acc.slice(index + 1)
+            ]
+        } else {
+            return [...acc, incomingPos]
+        }
+    }, [...base])
+}
+
 export default StandardPosition

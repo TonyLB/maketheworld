@@ -3,12 +3,14 @@ import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { StandardPositionData } from "./position";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMapData = {
     tag: 'Map';
     name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
     images: GenericTree<SchemaTag>;
-    positions: GenericTree<SchemaTag>;
+    positions: StandardEditableData<StandardPositionData>[];
 } & StandardBaseData
 
 export const isStandardMap = (arg: any): arg is StandardMapData => {
