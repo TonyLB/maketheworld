@@ -156,7 +156,7 @@ describe('StandardRoom class', () => {
         `))
     })
 
-        it('should map references to local keys correctly', () => {
+    it('should map references to local keys correctly', () => {
         const test = new StandardRoom(`
             <Room key=(testRoomOne)>
                 <Example uuid=(Example1) />
@@ -178,5 +178,12 @@ describe('StandardRoom class', () => {
         `))
     })
 
+    it('should correctly derive key from as in an import', () => {
+        const test = new StandardRoom(`
+            <Room key=(base) as=(testRoomOne) />
+        `)
+        expect(test.key).toEqual('testRoomOne')
+
+    })
 
 })
