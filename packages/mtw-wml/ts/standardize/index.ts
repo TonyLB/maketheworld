@@ -240,8 +240,37 @@ export class StandardForm {
                         legalParents: ['Room', 'Feature', 'Knowledge']
                     }
                 ]
-        
+
+                //
+                // mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
+                //
+                const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<string, StandardComponent>): Record<string, StandardComponent> => {
+                    return Object.entries(newById).reduce((previous, [key, value]) => {
+                        const base = previous[key]
+                        if (base) {
+                            const merged = mergeWithEdits(base, value)
+                            if (merged) {
+                                const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
+                                const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
+                                return { ...previous, [key]: merged.withImport(mergedImport).withExport(mergedExport) }
+                            }
+                            else {
+                                const { [key]: _, ...rest } = previous
+                                return rest
+                            }
+                        }
+                        else {
+                            return { ...previous, [key]: value }
+                        }
+                    }, byId)
+                }
+                
                 this._byId = processComponents({ componentTemplates, schema: node.children })
+                    .reduce<Record<string, StandardComponent>>((previous, component) => {
+                        return mergeByIds(previous, {
+                            [component.key ?? '']: component
+                        })
+                    }, {})
                 return
             }
         }

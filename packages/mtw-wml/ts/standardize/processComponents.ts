@@ -47,30 +47,6 @@ type ConditionalContextItem = {
 })
 
 //
-// mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
-//
-const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<string, StandardComponent>): Record<string, StandardComponent> => {
-    return Object.entries(newById).reduce((previous, [key, value]) => {
-        const base = previous[key]
-        if (base) {
-            const merged = mergeWithEdits(base, value)
-            if (merged) {
-                const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-                const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
-                return { ...previous, [key]: merged.withImport(mergedImport).withExport(mergedExport) }
-            }
-            else {
-                const { [key]: _, ...rest } = previous
-                return rest
-            }
-        }
-        else {
-            return { ...previous, [key]: value }
-        }
-    }, byId)
-}
-
-//
 // processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
 //
 export const processComponents = (props: {
@@ -80,7 +56,7 @@ export const processComponents = (props: {
     componentContext?: { key: string; tag: ComponentTag; }[];
     inContextOfRemove?: boolean;
     metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
-}): Record<string, StandardComponent> => {
+}): StandardComponent[] => {
     //
     // Loop through each tag in standard order
     //
@@ -93,25 +69,25 @@ export const processComponents = (props: {
         metaDataContext
     } = props
 
-    const recursiveById = schema.reduce<Record<string, StandardComponent>>((previous, item) => {
+    const recursiveById = schema.reduce<StandardComponent[]>((previous, item) => {
         //
         // If the item is an import, set metaDataContext to 'Import'
         //
         if (treeNodeTypeguard(isSchemaImport)(item)) {
-            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } }))
+            return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } })]
         }
         //
         // If the item is an export, set metaDataContext to 'Export'
         //
         if (treeNodeTypeguard(isSchemaExport)(item)) {
-            return mergeByIds(previous, processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Export' } }))
+            return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Export' } })]
         }
 
         //
         // If the item is a remove, set inContextOfRemove to true
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
-            return mergeByIds(previous, processComponents({ ...props, schema: item.children, inContextOfRemove: true }))
+            return [...previous, ...processComponents({ ...props, schema: item.children, inContextOfRemove: true })]
         }
 
         //
@@ -127,20 +103,27 @@ export const processComponents = (props: {
             if (replaceMatch && replacePayload) {
                 const matchById = processComponents({ ...props, schema: replaceMatch.children })
                 const payloadById = processComponents({ ...props, schema: replacePayload.children })
-                const mergedById = objectMerge(matchById, payloadById)
-                const replaceById = Object.entries(mergedById).reduce<Record<string, StandardComponent>>((previous, [key, { itemA: matchComponent, itemB: payloadComponent }]) => {
-                    if (matchComponent && payloadComponent) {
-                        return { ...previous, [key]: new StandardReplace(matchComponent, payloadComponent) }
-                    }
-                    if (matchComponent) {
-                        return { ...previous, [key]: new StandardRemove(matchComponent) }
-                    }
-                    if (payloadComponent) {
-                        return { ...previous, [key]: payloadComponent }
+                const reduceToKeys = (previous: Record<string, StandardComponent>, item: StandardComponent) => {
+                    const key = item.key
+                    if (key) {
+                        return { ...previous, [key]: item }
                     }
                     return previous
-                }, {})
-                return mergeByIds(previous, replaceById)
+                }
+                const mergedById = Object.values(objectMerge(matchById.reduce(reduceToKeys, {}), payloadById.reduce(reduceToKeys, {})))
+                const replaceById = mergedById.reduce<StandardComponent[]>((previous, { itemA: matchComponent, itemB: payloadComponent }) => {
+                    if (matchComponent && payloadComponent) {
+                        return [...previous, new StandardReplace(matchComponent, payloadComponent)]
+                    }
+                    if (matchComponent) {
+                        return [...previous, new StandardRemove(matchComponent)]
+                    }
+                    if (payloadComponent) {
+                        return [...previous, payloadComponent]
+                    }
+                    return previous
+                }, [])
+                return [...previous, ...replaceById]
             }
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
@@ -149,7 +132,7 @@ export const processComponents = (props: {
         // If the item is a condition, process each sub-statement with the condition added to the context.
         //
         if (treeNodeTypeguard(isSchemaCondition)(item)) {
-            const { accumulatedById } = item.children.reduce<{ accumulatedById: Record<string, StandardComponent>; contextItem?: ConditionalContextItem; }>(({ accumulatedById, contextItem }, item) => {
+            const { accumulated } = item.children.reduce<{ accumulated: StandardComponent[]; contextItem?: ConditionalContextItem; }>(({ accumulated, contextItem }, item) => {
                 if (contextItem?.fallthrough) {
                     throw new Error('A statement or fallthrough occurring after a fallthrough node is an error.')
                 }
@@ -157,7 +140,7 @@ export const processComponents = (props: {
                     const { if: condition } = item.data
                     const newContextItem: ConditionalContextItem = { condition, fallthrough: false, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
                     return {
-                        accumulatedById: mergeByIds(accumulatedById, processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })),
+                        accumulated: [...accumulated, ...processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })],
                         contextItem: newContextItem
                     }
                 }
@@ -167,13 +150,13 @@ export const processComponents = (props: {
                     }
                     const newContextItem: ConditionalContextItem = { fallthrough: true, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
                     return {
-                        accumulatedById: mergeByIds(accumulatedById, processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })),
+                        accumulated: [...accumulated, ...processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })],
                         contextItem: newContextItem
                     }
                 }
-                return { accumulatedById, contextItem }
-            }, { accumulatedById: previous })
-            return accumulatedById
+                return { accumulated, contextItem }
+            }, { accumulated: previous })
+            return accumulated
         }
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
@@ -187,8 +170,8 @@ export const processComponents = (props: {
                 const component = metaDataContext
                     ? metaDataContext.type === 'Import'
                         ? inContextOfRemove
-                            ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key))
-                            : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key))
+                            ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key ?? ''))
+                            : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key ?? ''))
                         : inContextOfRemove
                             ? temp?.withExport(new ExportItemRemove(exportRename))
                             : temp?.withExport(new ExportItemContent(exportRename))
@@ -232,14 +215,15 @@ export const processComponents = (props: {
                     })
                 }, localizedComponent)
                 const editWrappedComponent = (!metaDataContext && inContextOfRemove) ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
-                return mergeByIds(
-                    mergeByIds(previous, { [localizedComponent.key ?? '']: editWrappedComponent }),
-                    processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: localizedComponent.key ?? '', tag: item.data.tag }] })
-                )
+                return [
+                    ...previous,
+                    editWrappedComponent,
+                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: localizedComponent.key ?? '', tag: item.data.tag }] })
+                ]
             }
         }
-        return mergeByIds(previous, processComponents({ ...props, schema: item.children }))
-    }, {})
+        return [...previous, ...processComponents({ ...props, schema: item.children })]
+    }, [])
 
     return recursiveById
 }
