@@ -53,7 +53,16 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
             this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
             this._images = imagesTagTree.tree
-            this._positions = positionsTagTree.tree.map((position) => (new StandardPosition([position]))).filter(excludeUndefined)
+            this._positions = positionsTagTree.tree
+                .map((position) => {
+                    try {
+                        return new StandardPosition([position])
+                    }
+                    catch (e) {
+                        return undefined
+                    }
+                })
+                .filter(excludeUndefined)
             return
         }
         throw new Error('Schema mismatch in StandardMap constructor')

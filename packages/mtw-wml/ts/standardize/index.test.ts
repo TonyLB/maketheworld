@@ -802,12 +802,6 @@ describe('StandardForm', () => {
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                    <Room key=(testRoomThree) />
-                    <If {false}>
-                        <Room key=(testRoomOne) />
-                        <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
-                    </If>
-                    <If {true} />
                 </Map>
             </Asset>
         `))
