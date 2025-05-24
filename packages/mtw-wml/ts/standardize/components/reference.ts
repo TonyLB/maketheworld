@@ -30,7 +30,15 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         }
     }
     get schema() {
-        return [{ data: { tag: this.tag, key: this.key, uuid: this.universalKey } as SchemaTag, children: [] }]
+        return [{
+            data: {
+                tag: this.tag,
+                key: this.key,
+                uuid: this.universalKey,
+                global: this.global
+            } as SchemaTag,
+            children: []
+        }]
     }
     clone() {
         return new StandardReferenceSimpleBase(this.toJSON())

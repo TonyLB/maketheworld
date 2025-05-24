@@ -14,6 +14,17 @@ describe('StandardReference', () => {
         expect(schemaToWML(testVariable.schema)).toEqual(testSource)
     })
 
+    it('should properly construct a global reference', () => {
+        const testSource = deIndentWML(`
+            <Feature global key=(test) />
+        `)
+        const testFeature = new StandardReference(testSource)
+        expect(testFeature.key).toEqual('test')
+        expect(testFeature.tag).toEqual('Feature')
+        expect(testFeature.global).toEqual(true)
+        expect(schemaToWML(testFeature.schema)).toEqual(testSource)
+    })
+
     it('should construct StandardReference from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
