@@ -5,6 +5,7 @@ import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardPositionData } from "./position";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { isStandardReferenceData } from "../reference";
 
 export type StandardMapData = {
     tag: 'Map';
@@ -22,11 +23,19 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
         ('tag' in arg && arg.tag === 'Map'),
         checkTypes(arg, {
             key: 'string',
-            positions: 'tree',
             images: 'tree'
         },
         {
             name: 'node',
-        })
+        }),
+        (
+            'positions' in arg &&
+            Array.isArray(arg.positions) &&
+            arg.positions.every((position) => (
+                'x' in position && typeof position.x === 'number' &&
+                'y' in position && typeof position.y === 'number' &&
+                'room' in position && isStandardReferenceData(position.room)
+            ))
+        )
     )
 }

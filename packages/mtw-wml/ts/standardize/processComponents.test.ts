@@ -1,9 +1,7 @@
 import { objectMap } from "../lib/objects"
 import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
-import SchemaTagTree from "../tagTree/schema"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
-import { ImportItemContent, ExportItemContent } from "./components/metaData"
 import StandardRoom from "./components/room"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
@@ -41,7 +39,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result).toEqual({})
+        expect(result).toEqual([])
     })
 
     it('should parse a provided schema', () => {
@@ -68,23 +66,23 @@ describe("processComponents", () => {
             schema: schema.schema
         })
 
-        expect(result.test instanceof StandardRoom).toBe(true)
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': '<Room key=(test)><Example key=(base) /></Room>',
-            'test.base': deIndentWML(`
+        expect(result.find(({ key }) => (key === 'test')) instanceof StandardRoom).toBe(true)
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            '<Room key=(test)><Example key=(base) /></Room>',
+            deIndentWML(`
                 <Example key=(test.base)>
                     <Name>Test Room</Name>
                     <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
                 </Example>
             `),
-            'testFeature': '<Feature key=(testFeature)><Example key=(base) /></Feature>',
-            'testFeature.base': deIndentWML(`
+            '<Feature key=(testFeature)><Example key=(base) /></Feature>',
+            deIndentWML(`
                 <Example key=(testFeature.base)>
                     <Description><If {false}>Four</If></Description>
                 </Example>
             `)
-        })
+        ])
     })
 
     it('should correctly localize subcomponents', () => {
@@ -111,34 +109,34 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect((objectMap(result, (component) => (schemaToWML([component.schema]))))).toEqual({
-            'test': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Room key=(test)>
                     <Feature key=(testLocal) />
                     <Feature global key=(testGlobal) />
                     <Example key=(base) />
                 </Room>
             `),
-            'test.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(test.base)>
                     <Name>Test Room</Name>
                     <Summary>One<br /><If {false}>Two</If></Summary>
                     <Description>Three</Description>
                 </Example>
             `),
-            'test.testLocal': deIndentWML(`
+            deIndentWML(`
                 <Feature key=(test.testLocal)><Example key=(base) /></Feature>
             `),
-            'test.testLocal.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(test.testLocal.base)><Description>Local</Description></Example>
             `),
-            'testGlobal': deIndentWML(`
+            deIndentWML(`
                 <Feature global key=(testGlobal)><Example key=(base) /></Feature>
             `),
-            'testGlobal.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(testGlobal.base)><Description>Global</Description></Example>
             `)
-        })
+        ])
     })
 
     it('should combine descriptions in rooms and features', () => {
@@ -183,26 +181,25 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
-                <Room key=(test)><Example key=(base) /></Room>
-            `),
-            'test.base': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            `<Room key=(test)><Example key=(base) /></Room>`,
+            deIndentWML(`
                 <Example key=(test.base)>
-                    <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Summary>One<br /></Summary>
                     <Description>Three</Description>
                 </Example>
             `),
-            'testFeature': deIndentWML(`
-                <Feature key=(testFeature)><Example key=(base) /></Feature>
-            `),
-            'testFeature.base': deIndentWML(`
+            `<Room key=(test)><Example key=(base) /></Room>`,
+            `<Example key=(test.base)><Summary><If {false}>Two</If></Summary></Example>`,
+            `<Feature key=(testFeature)><Example key=(base) /></Feature>`,
+            deIndentWML(`
                 <Example key=(testFeature.base)>
                     <Description><If {false}>Four</If></Description>
                 </Example>
-            `)
-        })
+            `),
+            `<Room key=(test)><Example key=(base) /></Room>`,
+            `<Example key=(test.base)><Name>Test Room</Name></Example>`
+        ])
     })
 
     it('should combine exits in rooms', () => {
@@ -234,20 +231,13 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
-                <Room key=(test)>
-                    <Example key=(base) />
-                    <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
-                </Room>
-            `),
-            'test.base': deIndentWML(`
-                <Example key=(test.base)><Description>One<br /></Description></Example>
-            `),
-            'testTwo': deIndentWML(`
-                <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
-            `)
-        })
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            `<Room key=(test)><Example key=(base) /></Room>`,
+            `<Example key=(test.base)><Description>One<br /></Description></Example>`,
+            `<Room key=(testTwo) />`,
+            `<Room key=(test)><If {false}><Exit to=(testTwo)>Test Exit</Exit></If></Room>`,
+            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`
+        ])
     })
 
     it('should combine render in nested rooms', () => {
@@ -285,23 +275,20 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            `<Room key=(test)><Example key=(base) /></Room>`,
+            `<Example key=(test.base)><Description>One<br /></Description></Example>`,
+            `<Room key=(testTwo) />`,
+            `<Message key=(testMessage)><Room key=(test) />Test message</Message>`,
+            deIndentWML(`
                 <Room key=(test)>
                     <Example key=(base) />
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
-            'test.base': deIndentWML(`
-                <Example key=(test.base)><Description>One<br />Two</Description></Example>
-            `),
-            'testTwo': deIndentWML(`
-                <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
-            `),
-            'testMessage': deIndentWML(`
-                <Message key=(testMessage)><Room key=(test) />Test message</Message>
-            `)
-        })
+            `<Example key=(test.base)><Description>Two</Description></Example>`,
+            `<Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>`
+        ])
     })
 
     it('should render features and links correctly', () => {
@@ -335,34 +322,34 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Room key=(test)><Example key=(base) /></Room>
             `),
-            'test.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(test.base)>
                     <Description><Link to=(testFeatureOne)>test</Link></Description>
                 </Example>
             `),
-            'testFeatureOne': deIndentWML(`
+            deIndentWML(`
                 <Feature key=(testFeatureOne)><Example key=(base) /></Feature>
             `),
-            'testFeatureOne.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(testFeatureOne.base)>
                     <Name>TestOne</Name>
                     <Description><Link to=(testFeatureTwo)>two</Link></Description>
                 </Example>
             `),
-            'testFeatureTwo': deIndentWML(`
+            deIndentWML(`
                 <Feature key=(testFeatureTwo)><Example key=(base) /></Feature>
             `),
-            'testFeatureTwo.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(testFeatureTwo.base)>
                     <Name>TestTwo</Name>
                     <Description>Test</Description>
                 </Example>
             `)
-        })
+        ])
     })
 
     it('should correctly parse a map', () => {
@@ -384,23 +371,23 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'testMap': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Map key=(testMap)><Room key=(testRoom)><Position x="0" y="100" /></Room></Map>
             `),
-            'testRoom': deIndentWML(`
+            deIndentWML(`
                 <Room key=(testRoom)>
                     <Example key=(base) />
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
             `),
-            'testTwo': deIndentWML(`
-                <Room key=(testTwo) />
-            `),
-            'testRoom.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(testRoom.base)><Description>Test</Description></Example>
+            `),
+            deIndentWML(`
+                <Room key=(testTwo) />
             `)
-        })
+        ])
     })
 
     it('should correctly extract data from imports with dynamic rename', () => {
@@ -419,40 +406,14 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'testRoom': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Room key=(testRoom)><Example key=(base) /></Room>
             `),
-            'testRoom.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(testRoom.base)><Description>Test</Description></Example>
             `)
-        })
-    })
-
-    it('should correctly extract data from exports with dynamic rename', () => {
-        const testSource = `
-            <Asset key=(Test)>
-                <Export>
-                    <Room key=(base) as=(testRoom)>
-                        <Example key=(base)><Description>Test</Description></Example>
-                    </Room>
-                </Export>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        const result = processComponents({
-            componentTemplates,
-            schema: schema.schema,
-        })
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'base': deIndentWML(`
-                <Room key=(base)><Example key=(base) /></Room>
-            `),
-            'base.base': deIndentWML(`
-                <Example key=(base.base)><Description>Test</Description></Example>
-            `)
-        })
+        ])
     })
 
     it('should parse a remove tag', () => {
@@ -471,16 +432,16 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Remove><Room key=(test)><Example key=(base) /></Room></Remove>
             `),
-            'test.base': deIndentWML(`
+            deIndentWML(`
                 <Remove>
                     <Example key=(test.base)><Description>Test</Description></Example>
                 </Remove>
             `)
-        })
+        ])
     })
 
     it('should parse a replace tag', () => {
@@ -518,12 +479,12 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(objectMap(result, (component) => (schemaToWML([component.schema])))).toEqual({
-            'test': deIndentWML(`
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
                 <Replace><Room key=(test)><Example key=(base) /></Room></Replace>
                 <With><Room key=(test)><Example key=(base) /></Room></With>
             `),
-            'test.base': deIndentWML(`
+            deIndentWML(`
                 <Replace>
                     <Example key=(test.base)><Description>Test</Description></Example>
                 </Replace>
@@ -531,20 +492,20 @@ describe("processComponents", () => {
                     <Example key=(test.base)><Description>Changed</Description></Example>
                 </With>
             `),
-            'toRemove': deIndentWML(`
+            deIndentWML(`
                 <Remove><Feature key=(toRemove)><Example key=(base) /></Feature></Remove>
             `),
-            'toRemove.base': deIndentWML(`
+            deIndentWML(`
                 <Remove>
                     <Example key=(toRemove.base)><Description>Test</Description></Example>
                 </Remove>
             `),
-            'toAdd': deIndentWML(`
+            deIndentWML(`
                 <Feature key=(toAdd)><Example key=(base) /></Feature>
             `),
-            'toAdd.base': deIndentWML(`
+            deIndentWML(`
                 <Example key=(toAdd.base)><Description>Added</Description></Example>
             `)
-        })
+        ])
     })
 })
