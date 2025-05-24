@@ -74,7 +74,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
                     throw new Error(`No key found in ${label} constructor call.`)
                 }
-                this._key = new KeyPayload({ key: "as" in node.data ? node.data.as ?? node.data.key : node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                this._key = new KeyPayload({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._payload.fromSchema(node)
                 return
             }

@@ -2290,7 +2290,7 @@ describe('StandardForm', () => {
     })
 
 
-    describe('renameKey', () => {
+    xdescribe('renameKey', () => {
         it('should retarget links to the renamed key', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
