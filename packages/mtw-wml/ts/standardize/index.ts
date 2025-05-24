@@ -21,7 +21,7 @@ import { mergeWithEdits, StandardRemove, StandardReplace } from "./components/ed
 import { standardComponentFactory } from "./componentFactory"
 import importExportFromTree from "./importExportFromTree"
 import { StandardToJSONOptions } from "./components/baseClasses"
-import { isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaExport, isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
@@ -265,7 +265,26 @@ export class StandardForm {
                     }, byId)
                 }
                 
-                this._byId = processComponents({ componentTemplates, schema: node.children })
+                const componentFragments = processComponents({ componentTemplates, schema: node.children })
+                const universalKeyMappings: { universalKey?: ComponentUUID; key?: string }[] = componentFragments
+                    .reduce<{ universalKey?: ComponentUUID; key?: string }[]>((previous, component) => {
+                        const previousMatchIndex = previous.findIndex(({ key, universalKey }) => (
+                            (key && key === component.key) ||
+                            (universalKey && universalKey === component.universalKey)
+                        ))
+                        if (previousMatchIndex === -1) {
+                            return [...previous, { universalKey: component.universalKey, key: component.key }]
+                        }
+                        const previousMatch = previous[previousMatchIndex]
+                        if (previousMatch && (
+                            (previousMatch.key && component.key && previousMatch.key !== component.key) ||
+                            (previousMatch.universalKey && component.universalKey && previousMatch.universalKey !== component.universalKey))) {
+                            throw new Error(`Key / UniversalKey mismatch in StandardForm constructor (${component.key} / ${component.universalKey})`)
+                        }
+                        return [...previous, { universalKey: previousMatch.universalKey ?? component.universalKey, key: previousMatch.key ?? component.key }]
+                    }, [])
+                    .filter(({ key, universalKey }) => (key && universalKey))
+                this._byId = componentFragments
                     .reduce<Record<string, StandardComponent>>((previous, component) => {
                         return mergeByIds(previous, {
                             [component.key ?? '']: component
