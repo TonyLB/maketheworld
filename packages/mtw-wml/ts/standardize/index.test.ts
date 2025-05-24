@@ -1891,27 +1891,30 @@ describe('StandardForm', () => {
             `))
         })
 
-        //
-        // TODO: Continue adding uuids to unit tests from this point forward
-        //
         it('should remove nested components properly', () => {
-            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
-            const incoming = new StandardForm(`<Asset key=(Test)><Room key=(testRoom) /></Asset>`)
+            const base = new StandardForm(`<Asset key=(Test)><Room uuid=(testRoom) key=(testRoom)><Feature uuid=(testFeature) key=(testFeature) /></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset key=(Test)><Room uuid=(testRoom) key=(testRoom) /></Asset>`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
-                    <Room key=(testRoom)><Remove><Feature key=(testFeature) /></Remove></Room>
+                    <Room key=(testRoom)>
+                        <Remove><Feature uuid=(testFeature) key=(testFeature) /></Remove>
+                    </Room>
                 </Asset>
             `))
         })
 
         it('should remove components with nested components properly', () => {
-            const base = new StandardForm(`<Asset key=(Test)><Room key=(testRoom)><Feature key=(testFeature) /></Room></Asset>`)
+            const base = new StandardForm(`<Asset key=(Test)><Room uuid=(testRoom) key=(testRoom)><Feature uuid=(testFeature) key=(testFeature) /></Room></Asset>`)
             const incoming = new StandardForm(`<Asset key=(Test) />`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
-                    <Remove><Room key=(testRoom)><Feature key=(testFeature) /></Room></Remove>
+                    <Remove>
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Feature uuid=(testFeature) key=(testFeature) />
+                        </Room>
+                    </Remove>
                 </Asset>
             `))
         })
@@ -1919,9 +1922,9 @@ describe('StandardForm', () => {
         it('should diff a rename correctly', () => {
             const base = new StandardForm(`
                 <Asset key=(test)>
-                    <Room key=(Room1)><Exit to=(Room2)>text</Exit></Room>
-                    <Room key=(Room2)>
-                        <Example key=(base)><Name>Garden</Name></Example>
+                    <Room uuid=(Room1) key=(Room1)><Exit to=(Room2)>text</Exit></Room>
+                    <Room uuid=(Room2) key=(Room2)>
+                        <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -1929,14 +1932,16 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
-                    <Room key=(garden)><Example key=(base)><Name>Garden</Name></Example></Room>
+                    <Room uuid=(Room2) key=(garden)>
+                        <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
+                    </Room>
                     <Room key=(Room1)>
                         <Remove><Exit to=(Room2)>text</Exit></Remove>
                         <Exit to=(garden)>text</Exit>
                     </Room>
                     <Remove>
-                        <Room key=(Room2)>
-                            <Example key=(base)><Name>Garden</Name></Example>
+                        <Room uuid=(Room2) key=(Room2)>
+                            <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
                         </Room>
                     </Remove>
                 </Asset>
@@ -1946,7 +1951,7 @@ describe('StandardForm', () => {
         it('should diff an import change correctly', () => {
             const base = new StandardForm(`
                 <Asset key=(test)>
-                    <Import from=(base)><Room key=(Room1) /></Import>
+                    <Import from=(base)><Room uuid=(Room1) key=(Room1) /></Import>
                 </Asset>
             `)
             const incoming = base._clone()
@@ -1966,8 +1971,8 @@ describe('StandardForm', () => {
         it('should diff an export change correctly', () => {
             const base = new StandardForm(`
                 <Asset key=(test)>
-                    <Room key=(Room1) />
-                    <Export><Room key=(Room1) as=(testOne) /></Export>
+                    <Room uuid=(Room1) key=(Room1) />
+                    <Export><Room uuid=(Room1) key=(Room1) as=(testOne) /></Export>
                 </Asset>
             `)
             const incoming = base._clone()
