@@ -30,6 +30,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardExample from "./components/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
+import { mergeToComponentList } from "./mergeToComponentList"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -286,29 +287,7 @@ export class StandardForm {
                         ]
                     }, [])
                     .filter(({ key, universalKey }) => (key || universalKey))
-                this._components = componentFragments
-                    .reduce<StandardComponent[]>((previous, component) => {
-                        const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
-                            (matchKey && matchKey === component.key) ||
-                            (universalKey && universalKey === component.universalKey)
-                        ))
-                        const componentIndex = previous.findIndex(({ key, universalKey }) => {
-                            return (
-                                keyMatch && (
-                                (key && keyMatch.key && key === keyMatch.key) ||
-                                (universalKey && keyMatch.universalKey && universalKey === keyMatch.universalKey)
-                            ))
-                        })
-                        if (componentIndex === -1) {
-                            return [...previous, component]
-                        }
-                        const mergedComponent = mergeHelper(previous[componentIndex], component)
-                        return [
-                            ...previous.slice(0, componentIndex),
-                            mergedComponent,
-                            ...previous.slice(componentIndex + 1)
-                        ].filter(excludeUndefined)
-                    }, [])
+                this._components = componentFragments.reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                 this._byId = this._components
                     .reduce<Record<string, StandardComponent>>((previous, component) => {
                         return {
