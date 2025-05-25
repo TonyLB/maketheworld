@@ -163,21 +163,27 @@ export class StandardForm {
 
             const { importItemById, exportItemById } = importExportFromTree(args.metaData)
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
-            this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
+            this._components = Object.values(args.byId).reduce<StandardComponent[]>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
-                    return {
+                    return [
                         ...previous,
-                        [standardItem.key ?? '']: standardItem
+                        standardItem
                             .withImport(importItemById[standardItem.key ?? ''])
                             .withExport(exportItemById[standardItem.key ?? ''])
-                    }
+                    ]
                 }
                 else {
                     return previous
                 }
-            }, {})
-            this._components = Object.values(this._byId)
+            }, [])
+            this._byId = this._components
+                .reduce<Record<string, StandardComponent>>((previous, component) => {
+                    return {
+                        ...previous,
+                        [component.key ?? '']: component
+                    }
+                }, {})
             return
         }
         if (isStandardNDJSON(args)) {
@@ -186,19 +192,28 @@ export class StandardForm {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
             this._key = assetLine.key
-            this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
+            this._components = args.filter(isStandardComponent).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
-                    return {
+                    return [
                         ...previous,
-                        [standardItem.key ?? '']: standardItem.withImport(standardData.from).withExport(standardData.exportAs)
-                    }
+                        standardItem
+                            .withImport(standardData.from)
+                            .withExport(standardData.exportAs)
+                    ]
                 }
                 else {
                     return previous
                 }
-            }, {})
-            this._components = Object.values(this._byId)
+            }, [])
+            this._byId = this._components
+                .reduce<Record<string, StandardComponent>>((previous, component) => {
+                    return {
+                        ...previous,
+                        [component.key ?? '']: component
+                    }
+                }, {})
+
             this._metaData = []
 
             return
@@ -246,21 +261,6 @@ export class StandardForm {
                     }
                 ]
 
-                //
-                // mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
-                //
-                const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
-                    const merged = mergeWithEdits(base, value)
-                    if (merged) {
-                        const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-                        const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
-                        return merged.withImport(mergedImport).withExport(mergedExport)
-                    }
-                    else {
-                        return undefined
-                    }
-                }
-                
                 const componentFragments = processComponents({ componentTemplates, schema: node.children })
                 const universalKeyMappings: { universalKey?: ComponentUUID; key?: string }[] = componentFragments
                     .reduce<{ universalKey?: ComponentUUID; key?: string }[]>((previous, component) => {
