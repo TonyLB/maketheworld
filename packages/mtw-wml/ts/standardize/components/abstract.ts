@@ -4,6 +4,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { StandardLiteral } from "../literal";
+import { StandardReferenceData } from "./dataTypes/reference";
 
 export interface ComponentInterface {
     key: string;
@@ -13,6 +14,7 @@ export interface ComponentInterface {
     toJSON(options?: StandardToJSONOptions): Record<string, any>;
     merge(incoming: this): this | undefined;
     withUniversalKey(key: string): this;
+    referenceData: StandardReferenceData;
 }
 
 export interface HasName {

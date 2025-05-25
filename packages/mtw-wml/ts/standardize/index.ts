@@ -31,6 +31,9 @@ import StandardExample from "./components/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings, UniversalKeyMapping } from "./mergeToComponentList"
+import { StandardReferenceData } from "./components/dataTypes/reference"
+import { uniqueReferences } from "./components/utils/references"
+import StandardReference from "./components/reference"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -546,6 +549,13 @@ export class StandardForm {
             }))
     }
 
+    _lookup(reference: StandardReferenceData): StandardComponent | undefined {
+        if (typeof reference === 'string') {
+            return this._components.find((component) => (component.universalKey === reference))
+        }
+        return this._components.find((component) => (component.key === reference.key || component.universalKey === reference.universalKey))
+    }
+
     //
     // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
     // and merges all contents in place
@@ -571,7 +581,7 @@ export class StandardForm {
             key: this.key,
             byId: [...this._components, ...incoming._components]
                 .reduce<Record<string, StandardComponentData>>((previous, component) => {
-                    return { ...previous, [component.key ?? '']: defaultComponentFromTag(component.tag, component.key) }
+                    return { ...previous, [component.key ?? '']: defaultComponentFromTag(component.tag, component.key, component.universalKey) }
                 }, {}),
             metaData: []
         })
@@ -579,19 +589,30 @@ export class StandardForm {
         // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
         // to diff the components in each StandardForm against each other.
         //
-        const allKeys = unique(
+        const allKeys = uniqueReferences(
             [...this._components, ...incoming._components]
-            .filter(excludeUndefined)
-            .sort((a, b) => (standardComponentSortOrder(mergedForKeys.byId)(b, a)))
-            .map(({ key }) => (key))
-        )
+            .map((component) => (new StandardReference(component.referenceData)))
+        ).map((reference) => (reference._payload.plain.toJSON()))
         const returnValue = this._clone()
+        //
+        // TODO: It is important that all of the keys be sorted in *reverse* standardComponentSortOrder,
+        // so that when you come to (for instance) a parent room with child features and examples,
+        // those children would *already* have been diffed and be in the `previous` variable of the
+        // reduce. That, in turn, powers the `hasDiff` function in the options of the diff method,
+        // to make sure that the relevant parent components are provided as context for the structure
+        // of the diff StandardForm.
+        //
+        // The problem with this (at the moment) is that the standardComponentSortOrder function is
+        // deeply entangled with the way that parent-child information is encoded in the string structure
+        // of keys. Long-term, we want to disentangle that. Short-term, we should get a fix that works
+        // in cases where keys are provided, in order to get back to a more stable state.
+        //
         returnValue._components = allKeys
-            .reduce<StandardComponent[]>((previous, key) => {
-                const baseComponent = this.byId[key ?? '']
-                const incomingComponent = incoming.byId[key ?? '']
+            .reduce<StandardComponent[]>((previous, reference) => {
+                const baseComponent = this._lookup(reference)
+                const incomingComponent = incoming._lookup(reference)
                 if (baseComponent && incomingComponent) {
-                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
+                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous.find(({ key }) => (key === subKey)))) })
                     const baseImport = baseComponent.import
                     const incomingImport = incomingComponent.import
                     const diffImport = (baseImport && incomingImport)
@@ -611,6 +632,7 @@ export class StandardForm {
                                 ? incomingExport
                                 : undefined
                     if (diffedComponent) {
+                        console.log(`diffedComponent: ${diffedComponent.key} (${diffedComponent.tag})`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             diffedComponent.withImport(diffImport).withExport(diffExport)
@@ -635,6 +657,7 @@ export class StandardForm {
                     throw new Error('diff error')
                 }
             }, [])
+        console.log(`returnValue._components: ${returnValue._components.map(({ key, tag }) => (`${key} (${tag})`)).join(', ')}`)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)

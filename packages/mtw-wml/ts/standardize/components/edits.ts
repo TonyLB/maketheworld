@@ -11,6 +11,7 @@ import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
+import { StandardReferenceData } from "./dataTypes/reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -45,6 +46,17 @@ export class StandardRemove implements StandardComponent {
 
     clone(): StandardRemove {
         return new StandardRemove(this)
+    }
+
+    get referenceData(): StandardReferenceData {
+        if (this.universalKey && !this.key) {
+            return this.universalKey
+        }
+        return {
+            tag: this._match.tag as ComponentTag,
+            key: this.key,
+            universalKey: this.universalKey,
+        }
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRemove {
@@ -181,6 +193,17 @@ export class StandardReplace implements StandardComponent {
 
     clone(): StandardReplace {
         return new StandardReplace(this)
+    }
+
+    get referenceData(): StandardReferenceData {
+        if (this.universalKey && !this.key) {
+            return this.universalKey
+        }
+        return {
+            tag: this._match.tag as ComponentTag,
+            key: this.key,
+            universalKey: this.universalKey,
+        }
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardReplace {

@@ -5,6 +5,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
+import { StandardReferenceData } from "./dataTypes/reference";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -50,4 +51,5 @@ export interface StandardComponent {
     referencedKeys(): StandardComponentReferenceKey[];
     remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
+    referenceData: StandardReferenceData;
 }
