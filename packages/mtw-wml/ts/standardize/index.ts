@@ -489,7 +489,7 @@ export class StandardForm {
         return {
             key: this._key,
             metaData: this.metaData,
-            byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
+            byId: this._components.reduce<Record<string, StandardComponentData>>((previous, component) => {
                 return {
                     ...previous,
                     [component.key ?? '']: component.toJSON(options) as StandardComponentData
