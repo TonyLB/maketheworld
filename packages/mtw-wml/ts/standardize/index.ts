@@ -465,7 +465,43 @@ export class StandardForm {
         }
     }
 
-    get byId(): Record<string, StandardComponent> { return this._byId }
+    get byId(): Record<string, StandardComponent> {
+        const returnProxy = new Proxy(this._components, {
+            get: (target, prop: string) => {
+                const findComponent = target.find((component) => (component.key === prop))
+                if (findComponent) {
+                    return findComponent
+                }
+                return undefined
+            },
+            has(target, prop: string): boolean {
+                const findComponent = target.find((component) => (component.key === prop))
+                if (findComponent) {
+                    return true
+                }
+                return false
+            },
+            set: (target, prop: string, value: StandardComponent): boolean => {
+                if (isStandardComponent(value)) {
+                    const findComponentIndex = target.findIndex((component) => (component.key === prop))
+                    if (findComponentIndex === -1) {
+                        target.push(value)
+                    }
+                    else {
+                        target = [
+                            ...target.slice(0, findComponentIndex),
+                            value,
+                            ...target.slice(findComponentIndex + 1)
+                        ]
+                    }
+                    return true
+                }
+                throw new Error('Invalid value in StandardForm byId setter')
+            }
+
+        })
+        return returnProxy as unknown as Record<string, StandardComponent>
+    }
     get key(): string { return this._key ?? '' }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
