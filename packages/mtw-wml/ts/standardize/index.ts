@@ -145,6 +145,7 @@ export const standardComponentSortOrder = (byId: Record<string, StandardComponen
 
 export class StandardForm {
     _key?: string;
+    _components: StandardComponent[];
     _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
 
@@ -152,6 +153,7 @@ export class StandardForm {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
             this._key = args
             this._byId = {}
+            this._components = []
             this._metaData = []
             return
         }
@@ -174,6 +176,7 @@ export class StandardForm {
                     return previous
                 }
             }, {})
+            this._components = Object.values(this._byId)
             return
         }
         if (isStandardNDJSON(args)) {
@@ -194,6 +197,7 @@ export class StandardForm {
                     return previous
                 }
             }, {})
+            this._components = Object.values(this._byId)
             this._metaData = []
 
             return
@@ -244,25 +248,16 @@ export class StandardForm {
                 //
                 // mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
                 //
-                const mergeByIds = (byId: Record<string, StandardComponent>, newById: Record<string, StandardComponent>): Record<string, StandardComponent> => {
-                    return Object.entries(newById).reduce((previous, [key, value]) => {
-                        const base = previous[key]
-                        if (base) {
-                            const merged = mergeWithEdits(base, value)
-                            if (merged) {
-                                const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-                                const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
-                                return { ...previous, [key]: merged.withImport(mergedImport).withExport(mergedExport) }
-                            }
-                            else {
-                                const { [key]: _, ...rest } = previous
-                                return rest
-                            }
-                        }
-                        else {
-                            return { ...previous, [key]: value }
-                        }
-                    }, byId)
+                const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
+                    const merged = mergeWithEdits(base, value)
+                    if (merged) {
+                        const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
+                        const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
+                        return merged.withImport(mergedImport).withExport(mergedExport)
+                    }
+                    else {
+                        return undefined
+                    }
                 }
                 
                 const componentFragments = processComponents({ componentTemplates, schema: node.children })
@@ -281,14 +276,45 @@ export class StandardForm {
                             (previousMatch.universalKey && component.universalKey && previousMatch.universalKey !== component.universalKey))) {
                             throw new Error(`Key / UniversalKey mismatch in StandardForm constructor (${component.key} / ${component.universalKey})`)
                         }
-                        return [...previous, { universalKey: previousMatch.universalKey ?? component.universalKey, key: previousMatch.key ?? component.key }]
+                        return [
+                            ...previous.slice(0, previousMatchIndex),
+                            {
+                                universalKey: previousMatch.universalKey ?? component.universalKey,
+                                key: previousMatch.key ?? component.key
+                            },
+                            ...previous.slice(previousMatchIndex + 1)
+                        ]
                     }, [])
-                    .filter(({ key, universalKey }) => (key && universalKey))
-                this._byId = componentFragments
-                    .reduce<Record<string, StandardComponent>>((previous, component) => {
-                        return mergeByIds(previous, {
-                            [component.key ?? '']: component
+                    .filter(({ key, universalKey }) => (key || universalKey))
+                this._components = componentFragments
+                    .reduce<StandardComponent[]>((previous, component) => {
+                        const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
+                            (matchKey && matchKey === component.key) ||
+                            (universalKey && universalKey === component.universalKey)
+                        ))
+                        const componentIndex = previous.findIndex(({ key, universalKey }) => {
+                            return (
+                                keyMatch && (
+                                (key && keyMatch.key && key === keyMatch.key) ||
+                                (universalKey && keyMatch.universalKey && universalKey === keyMatch.universalKey)
+                            ))
                         })
+                        if (componentIndex === -1) {
+                            return [...previous, component]
+                        }
+                        const mergedComponent = mergeHelper(previous[componentIndex], component)
+                        return [
+                            ...previous.slice(0, componentIndex),
+                            mergedComponent,
+                            ...previous.slice(componentIndex + 1)
+                        ].filter(excludeUndefined)
+                    }, [])
+                this._byId = this._components
+                    .reduce<Record<string, StandardComponent>>((previous, component) => {
+                        return {
+                            ...previous,
+                            [component.key ?? '']: component
+                        }
                     }, {})
                 return
             }

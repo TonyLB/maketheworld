@@ -1977,7 +1977,6 @@ describe('StandardForm', () => {
             `)
             const incoming = base._clone()
             incoming._byId['Room1'] = incoming._byId['Room1'].withExport(new ExportItemContent('testTwo'))
-            console.log(`incoming: ${schemaToWML([incoming.schema])}`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
