@@ -223,9 +223,6 @@ export class StandardForm {
                 ? nodeFromWML(args)
                 : args
 
-            this._byId = {}
-            this._metaData = []
-
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
                 this._key = node.data.key
 
@@ -297,15 +294,20 @@ export class StandardForm {
                     }, {})
                 return
             }
+            else {
+                this._metaData = []
+                this._components = []
+                this._byId = {}
+            }
         }
         console.log(`Invalid arguments: ${JSON.stringify(args, null, 4)}`)
         throw new Error('Invalid arguments in StandardForm constructor')
     }
 
     get metaData(): GenericTree<SchemaTag> {
-        const exportContents: GenericTree<SchemaTag> = Object.values(this._byId)
+        const exportContents: GenericTree<SchemaTag> = this._components
             .filter((component) => (Boolean(component.export)))
-            .sort(standardComponentSortOrder(this._byId))
+            .sort(standardComponentSortOrder(this.byId))
             .map((component): GenericTreeNode<SchemaTag> => {
                 const schema = component.schema
                 if (component.export instanceof ExportItemRemove) {
@@ -532,6 +534,7 @@ export class StandardForm {
         const returnValue = new StandardForm(this.key)
         returnValue._metaData = [...this._metaData]
         returnValue._byId = objectMap(this._byId, (component) => (component.clone()))
+        returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }
 
