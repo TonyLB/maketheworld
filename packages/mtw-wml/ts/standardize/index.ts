@@ -499,8 +499,8 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
-        const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
-            .sort(standardComponentSortOrder(this._byId))
+        const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
+            .sort(standardComponentSortOrder(this.byId))
             .map((component) => (component.toJSON()))
         return [
             this.header,
