@@ -30,6 +30,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardExample from "./components/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
+import { mergeToComponentList } from "./mergeToComponentList"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -162,21 +163,27 @@ export class StandardForm {
 
             const { importItemById, exportItemById } = importExportFromTree(args.metaData)
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
-            this._byId = Object.values(args.byId).reduce<Record<string, StandardComponent>>((previous, standardData) => {
+            this._components = Object.values(args.byId).reduce<StandardComponent[]>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
-                    return {
+                    return [
                         ...previous,
-                        [standardItem.key ?? '']: standardItem
+                        standardItem
                             .withImport(importItemById[standardItem.key ?? ''])
                             .withExport(exportItemById[standardItem.key ?? ''])
-                    }
+                    ]
                 }
                 else {
                     return previous
                 }
-            }, {})
-            this._components = Object.values(this._byId)
+            }, [])
+            this._byId = this._components
+                .reduce<Record<string, StandardComponent>>((previous, component) => {
+                    return {
+                        ...previous,
+                        [component.key ?? '']: component
+                    }
+                }, {})
             return
         }
         if (isStandardNDJSON(args)) {
@@ -185,19 +192,28 @@ export class StandardForm {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
             this._key = assetLine.key
-            this._byId = args.filter(isStandardComponent).reduce<Record<string, StandardComponent>>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
+            this._components = args.filter(isStandardComponent).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
-                    return {
+                    return [
                         ...previous,
-                        [standardItem.key ?? '']: standardItem.withImport(standardData.from).withExport(standardData.exportAs)
-                    }
+                        standardItem
+                            .withImport(standardData.from)
+                            .withExport(standardData.exportAs)
+                    ]
                 }
                 else {
                     return previous
                 }
-            }, {})
-            this._components = Object.values(this._byId)
+            }, [])
+            this._byId = this._components
+                .reduce<Record<string, StandardComponent>>((previous, component) => {
+                    return {
+                        ...previous,
+                        [component.key ?? '']: component
+                    }
+                }, {})
+
             this._metaData = []
 
             return
@@ -206,9 +222,6 @@ export class StandardForm {
             const node = typeof args === 'string'
                 ? nodeFromWML(args)
                 : args
-
-            this._byId = {}
-            this._metaData = []
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
                 this._key = node.data.key
@@ -245,21 +258,6 @@ export class StandardForm {
                     }
                 ]
 
-                //
-                // mergeByIds takes two byId objects and merges them together, using the merge method of the StandardComponent class.
-                //
-                const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
-                    const merged = mergeWithEdits(base, value)
-                    if (merged) {
-                        const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-                        const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
-                        return merged.withImport(mergedImport).withExport(mergedExport)
-                    }
-                    else {
-                        return undefined
-                    }
-                }
-                
                 const componentFragments = processComponents({ componentTemplates, schema: node.children })
                 const universalKeyMappings: { universalKey?: ComponentUUID; key?: string }[] = componentFragments
                     .reduce<{ universalKey?: ComponentUUID; key?: string }[]>((previous, component) => {
@@ -286,29 +284,7 @@ export class StandardForm {
                         ]
                     }, [])
                     .filter(({ key, universalKey }) => (key || universalKey))
-                this._components = componentFragments
-                    .reduce<StandardComponent[]>((previous, component) => {
-                        const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
-                            (matchKey && matchKey === component.key) ||
-                            (universalKey && universalKey === component.universalKey)
-                        ))
-                        const componentIndex = previous.findIndex(({ key, universalKey }) => {
-                            return (
-                                keyMatch && (
-                                (key && keyMatch.key && key === keyMatch.key) ||
-                                (universalKey && keyMatch.universalKey && universalKey === keyMatch.universalKey)
-                            ))
-                        })
-                        if (componentIndex === -1) {
-                            return [...previous, component]
-                        }
-                        const mergedComponent = mergeHelper(previous[componentIndex], component)
-                        return [
-                            ...previous.slice(0, componentIndex),
-                            mergedComponent,
-                            ...previous.slice(componentIndex + 1)
-                        ].filter(excludeUndefined)
-                    }, [])
+                this._components = componentFragments.reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                 this._byId = this._components
                     .reduce<Record<string, StandardComponent>>((previous, component) => {
                         return {
@@ -318,15 +294,20 @@ export class StandardForm {
                     }, {})
                 return
             }
+            else {
+                this._metaData = []
+                this._components = []
+                this._byId = {}
+            }
         }
         console.log(`Invalid arguments: ${JSON.stringify(args, null, 4)}`)
         throw new Error('Invalid arguments in StandardForm constructor')
     }
 
     get metaData(): GenericTree<SchemaTag> {
-        const exportContents: GenericTree<SchemaTag> = Object.values(this._byId)
+        const exportContents: GenericTree<SchemaTag> = this._components
             .filter((component) => (Boolean(component.export)))
-            .sort(standardComponentSortOrder(this._byId))
+            .sort(standardComponentSortOrder(this.byId))
             .map((component): GenericTreeNode<SchemaTag> => {
                 const schema = component.schema
                 if (component.export instanceof ExportItemRemove) {
@@ -465,7 +446,43 @@ export class StandardForm {
         }
     }
 
-    get byId(): Record<string, StandardComponent> { return this._byId }
+    get byId(): Record<string, StandardComponent> {
+        const returnProxy = new Proxy(this._components, {
+            get: (target, prop: string) => {
+                const findComponent = target.find((component) => (component.key === prop))
+                if (findComponent) {
+                    return findComponent
+                }
+                return undefined
+            },
+            has(target, prop: string): boolean {
+                const findComponent = target.find((component) => (component.key === prop))
+                if (findComponent) {
+                    return true
+                }
+                return false
+            },
+            set: (target, prop: string, value: StandardComponent): boolean => {
+                if (isStandardComponent(value)) {
+                    const findComponentIndex = target.findIndex((component) => (component.key === prop))
+                    if (findComponentIndex === -1) {
+                        target.push(value)
+                    }
+                    else {
+                        target = [
+                            ...target.slice(0, findComponentIndex),
+                            value,
+                            ...target.slice(findComponentIndex + 1)
+                        ]
+                    }
+                    return true
+                }
+                throw new Error('Invalid value in StandardForm byId setter')
+            }
+
+        })
+        return returnProxy as unknown as Record<string, StandardComponent>
+    }
     get key(): string { return this._key ?? '' }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
@@ -517,6 +534,7 @@ export class StandardForm {
         const returnValue = new StandardForm(this.key)
         returnValue._metaData = [...this._metaData]
         returnValue._byId = objectMap(this._byId, (component) => (component.clone()))
+        returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }
 
