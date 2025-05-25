@@ -569,8 +569,7 @@ export class StandardForm {
         //
         const mergedForKeys = new StandardForm({
             key: this.key,
-            byId: [...Object.values(this._byId), ...Object.values(incoming._byId)]
-                .filter(excludeUndefined)
+            byId: [...this._components, ...incoming._components]
                 .reduce<Record<string, StandardComponentData>>((previous, component) => {
                     return { ...previous, [component.key ?? '']: defaultComponentFromTag(component.tag, component.key) }
                 }, {}),
@@ -581,16 +580,16 @@ export class StandardForm {
         // to diff the components in each StandardForm against each other.
         //
         const allKeys = unique(
-            [...Object.values(this._byId), ...Object.values(incoming._byId)]
+            [...this._components, ...incoming._components]
             .filter(excludeUndefined)
-            .sort((a, b) => (standardComponentSortOrder(mergedForKeys._byId)(b, a)))
+            .sort((a, b) => (standardComponentSortOrder(mergedForKeys.byId)(b, a)))
             .map(({ key }) => (key))
         )
         const returnValue = this._clone()
-        returnValue._byId = allKeys
-            .reduce<Record<string, StandardComponent>>((previous, key) => {
-                const baseComponent = this._byId[key ?? '']
-                const incomingComponent = incoming._byId[key ?? '']
+        returnValue._components = allKeys
+            .reduce<StandardComponent[]>((previous, key) => {
+                const baseComponent = this.byId[key ?? '']
+                const incomingComponent = incoming.byId[key ?? '']
                 if (baseComponent && incomingComponent) {
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous[subKey])) })
                     const baseImport = baseComponent.import
@@ -612,21 +611,30 @@ export class StandardForm {
                                 ? incomingExport
                                 : undefined
                     if (diffedComponent) {
-                        return { ...previous, [key ?? '']: diffedComponent.withImport(diffImport).withExport(diffExport) }
+                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                            previous,
+                            diffedComponent.withImport(diffImport).withExport(diffExport)
+                        )
                     } else {
                         return previous
                     }
                 }
                 else {
                     if (baseComponent) {
-                        return { ...previous, [key ?? '']: new StandardRemove(baseComponent) }
+                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                            previous,
+                            new StandardRemove(baseComponent)
+                        )
                     }
                     if (incomingComponent) {
-                        return { ...previous, [key ?? '']: incomingComponent }
+                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                            previous,
+                            incomingComponent
+                        )
                     }
                     throw new Error('diff error')
                 }
-            }, {})
+            }, [])
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)
