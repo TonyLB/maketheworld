@@ -30,7 +30,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardExample from "./components/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
-import { mergeToComponentList } from "./mergeToComponentList"
+import { mergeToComponentList, mergeUniversalKeyMappings, UniversalKeyMapping } from "./mergeToComponentList"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -538,30 +538,22 @@ export class StandardForm {
         return returnValue
     }
 
+    get _universalKeyMapping(): UniversalKeyMapping[] {
+        return this._components
+            .map((component) => ({
+                key: component.key,
+                universalKey: component.universalKey
+            }))
+    }
+
     //
     // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
     // and merges all contents in place
     //
     merge(incoming: StandardForm): StandardForm {
-        const allKeys = unique(Object.keys(this._byId), Object.keys(incoming._byId))
+        const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._universalKeyMapping, ...incoming._universalKeyMapping])
         const returnValue = this._clone()
-        returnValue._byId = allKeys
-            .reduce<Record<string, StandardComponent>>((previous, key) => {
-                const baseComponent = this._byId[key]
-                const incomingComponent = incoming._byId[key]
-                if (baseComponent && incomingComponent) {
-                    const mergedComponent = mergeWithEdits(baseComponent, incomingComponent)
-                    if (mergedComponent) {
-                        return { ...previous, [key]: mergedComponent }
-                    } else {
-                        const { [key]: _, ...rest } = previous
-                        return rest
-                    }
-                }
-                else {
-                    return { ...previous, [key]: baseComponent ?? incomingComponent }
-                }
-            }, {})
+        returnValue._components = [...this._clone()._components, ...incoming._clone()._components].reduce(mergeToComponentList(mergedUniversalKeyMappings), [])
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)

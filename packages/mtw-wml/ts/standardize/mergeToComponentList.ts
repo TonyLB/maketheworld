@@ -15,7 +15,12 @@ const mergeHelper = (base: StandardComponent, value: StandardComponent): Standar
     }
 }
 
-export const mergeToComponentList = (universalKeyMappings: { universalKey?: ComponentUUID; key?: string }[]) => (previous: StandardComponent[], component: StandardComponent): StandardComponent[] => {
+export type UniversalKeyMapping = {
+    universalKey?: ComponentUUID
+    key?: string
+}
+
+export const mergeToComponentList = (universalKeyMappings: UniversalKeyMapping[]) => (previous: StandardComponent[], component: StandardComponent): StandardComponent[] => {
     const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
         (matchKey && matchKey === component.key) ||
         (universalKey && universalKey === component.universalKey)
@@ -36,4 +41,19 @@ export const mergeToComponentList = (universalKeyMappings: { universalKey?: Comp
         mergedComponent,
         ...previous.slice(componentIndex + 1)
     ].filter(excludeUndefined)
+}
+
+export const mergeUniversalKeyMappings = (universalKeyMappings: UniversalKeyMapping[]): UniversalKeyMapping[] => {
+    return universalKeyMappings.reduce<UniversalKeyMapping[]>((acc: UniversalKeyMapping[], current: UniversalKeyMapping) => {
+        const existingIndex = acc.findIndex(item => (item.universalKey === current.universalKey || item.key === current.key))
+        if (existingIndex === -1) {
+            return [...acc, current]
+        }
+        const existingItem = acc[existingIndex]
+        const mergedItem: UniversalKeyMapping = {
+            universalKey: existingItem.universalKey || current.universalKey,
+            key: existingItem.key || current.key
+        }
+        return [...acc.slice(0, existingIndex), mergedItem, ...acc.slice(existingIndex + 1)]
+    }, [])
 }
