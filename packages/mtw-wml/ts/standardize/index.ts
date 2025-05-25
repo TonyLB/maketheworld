@@ -489,7 +489,7 @@ export class StandardForm {
         return {
             key: this._key,
             metaData: this.metaData,
-            byId: Object.values(this._byId).reduce<Record<string, StandardComponentData>>((previous, component) => {
+            byId: this._components.reduce<Record<string, StandardComponentData>>((previous, component) => {
                 return {
                     ...previous,
                     [component.key ?? '']: component.toJSON(options) as StandardComponentData
@@ -499,8 +499,8 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
-        const components: (StandardComponentData & SerializeNDJSONMixin)[] = Object.values(this._byId)
-            .sort(standardComponentSortOrder(this._byId))
+        const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
+            .sort(standardComponentSortOrder(this.byId))
             .map((component) => (component.toJSON()))
         return [
             this.header,
@@ -510,10 +510,10 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        const children = Object.values(this._byId)
+        const children = this._components
             .filter(({ key }) => (!(key ?? '').includes('.')))
-            .sort(standardComponentSortOrder(this._byId))
-            .map((component) => (component.nestedSchema(this._byId, {})))
+            .sort(standardComponentSortOrder(this.byId))
+            .map((component) => (component.nestedSchema(this.byId, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {

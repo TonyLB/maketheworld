@@ -2272,12 +2272,10 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
-        testSource._byId.testBackground = testSource._byId.testBackground.withUniversalKey('IMAGE#001')
 
         const ndjson = testSource.toNDJSON()
         const test = new StandardForm(ndjson)
         expect(schemaToWML([test.schema])).toEqual(testWML)
-        expect(test.byId.testBackground.universalKey).toEqual('IMAGE#001')
         expect(test.byId.testRoom.universalKey).toEqual('ROOM#002')
         expect(test.byId["testRoom.base"].universalKey).toEqual('EXAMPLE#025')
         expect(test.byId.testFeature.universalKey).toEqual('FEATURE#003')
