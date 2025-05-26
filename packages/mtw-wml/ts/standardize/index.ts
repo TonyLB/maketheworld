@@ -553,7 +553,10 @@ export class StandardForm {
         if (typeof reference === 'string') {
             return this._components.find((component) => (component.universalKey === reference))
         }
-        return this._components.find((component) => (component.key === reference.key || component.universalKey === reference.universalKey))
+        return this._components.find((component) => (
+            (component.key && component.key === reference.key) ||
+            (component.universalKey && component.universalKey === reference.universalKey)
+        ))
     }
 
     //
@@ -577,6 +580,8 @@ export class StandardForm {
         // This provides a base for standardComponentSortOrder to merge the two key lists in the correct order
         // (without risking the possibility of merge conflicts that are irrelevant at this stage).
         //
+        console.log(`diff base: ${JSON.stringify(this.toJSON(), null, 4)}`)
+        console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
         const mergedForKeys = new StandardForm({
             key: this.key,
             byId: [...this._components, ...incoming._components]
@@ -622,6 +627,7 @@ export class StandardForm {
                 const baseComponent = this._lookup(reference)
                 const incomingComponent = incoming._lookup(reference)
                 if (baseComponent && incomingComponent) {
+                    console.log(`bothMatch: ${JSON.stringify(reference, null, 4)}`)
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous.find(({ key }) => (key === subKey)))) })
                     const baseImport = baseComponent.import
                     const incomingImport = incomingComponent.import
@@ -642,7 +648,6 @@ export class StandardForm {
                                 ? incomingExport
                                 : undefined
                     if (diffedComponent) {
-                        console.log(`diffedComponent: ${diffedComponent.key} (${diffedComponent.tag})`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             diffedComponent.withImport(diffImport).withExport(diffExport)
@@ -653,12 +658,14 @@ export class StandardForm {
                 }
                 else {
                     if (baseComponent) {
+                        console.log(`baseMatch: ${JSON.stringify(reference, null, 4)}`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             new StandardRemove(baseComponent)
                         )
                     }
                     if (incomingComponent) {
+                        console.log(`incomingMatch: ${JSON.stringify(reference, null, 4)}`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             incomingComponent
