@@ -605,9 +605,19 @@ export class StandardForm {
         // The problem with this (at the moment) is that the standardComponentSortOrder function is
         // deeply entangled with the way that parent-child information is encoded in the string structure
         // of keys. Long-term, we want to disentangle that. Short-term, we should get a fix that works
-        // in cases where keys are provided, in order to get back to a more stable state.
+        // in cases where the keys are organized as they are, in order to get back to a more stable state.
         //
         returnValue._components = allKeys
+            .sort((a, b) => {
+                const lookupA = mergedForKeys._lookup(a)
+                const lookupB = mergedForKeys._lookup(b)
+                if (lookupA && lookupB) {
+                    return standardComponentSortOrder(mergedForKeys.byId)(lookupB, lookupA)
+                }
+                else {
+                    return 0
+                }
+            })
             .reduce<StandardComponent[]>((previous, reference) => {
                 const baseComponent = this._lookup(reference)
                 const incomingComponent = incoming._lookup(reference)
