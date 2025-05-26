@@ -27,6 +27,7 @@ import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
+import { StandardReferenceData } from "./dataTypes/reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -89,6 +90,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
         get global(): boolean | undefined { return true }
+        get referenceData(): StandardReferenceData {
+            if (this.universalKey && !this.key) {
+                return this.universalKey
+            }
+            return {
+                tag: this.tag,
+                key: this.key,
+                universalKey: this.universalKey,
+            }
+        }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)

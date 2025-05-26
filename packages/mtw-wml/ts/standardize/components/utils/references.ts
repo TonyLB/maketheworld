@@ -111,6 +111,12 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]
     return Object.values(referencesById).filter(excludeUndefined)
 }
 
+export const uniqueReferences = (references: StandardReference[]): StandardReference[] => {
+    return references.reduce<StandardReference[]>((previous, reference) => (
+        mergeUniqueReferences(previous, [reference])
+    ), [])
+}
+
 //
 // mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
 // a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.
