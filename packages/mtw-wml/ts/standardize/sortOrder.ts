@@ -1,8 +1,9 @@
 import { StandardComponent } from "./components/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardRemove, StandardReplace } from "./components/edits"
+import StandardReference from "./components/reference"
 
-export const standardComponentSortOrder = (lookup: (value: string) => StandardComponent) => (componentA: StandardComponent, componentB: StandardComponent): number => {
+export const standardComponentSortOrder = (lookup: (value: string) => StandardReference) => (referenceA: StandardReference, referenceB: StandardReference): number => {
     //
     // Subcomponents will have keys that start with their ancestry, separated by periods (i.e. "Room1.Feature1").
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
@@ -10,8 +11,8 @@ export const standardComponentSortOrder = (lookup: (value: string) => StandardCo
     // ancestor(s) and compare against those instead.
     // Finally, if they are peers in terms of ancestry, compare the two keys directly.
     //
-    const keyA = componentA.key ?? ''
-    const keyB = componentB.key ?? ''
+    const keyA = referenceA.key ?? ''
+    const keyB = referenceB.key ?? ''
     if (keyA.startsWith(`${keyB}.`)) {
         return 1
     }
@@ -34,18 +35,12 @@ export const standardComponentSortOrder = (lookup: (value: string) => StandardCo
     const differingAncestorsA = ancestorsA.slice(commonAncestors.length)
     const differingAncestorsB = ancestorsB.slice(commonAncestors.length)
 
-    const elementToCompareA = differingAncestorsA.length ? lookup([commonAncestorString, differingAncestorsA[0]].filter((value) => (value)).join('.')) : componentA
-    const elementToCompareB = differingAncestorsB.length ? lookup([commonAncestorString, differingAncestorsB[0]].filter((value) => (value)).join('.')) : componentB
+    const elementToCompareA = differingAncestorsA.length ? lookup([commonAncestorString, differingAncestorsA[0]].filter((value) => (value)).join('.')) : referenceA
+    const elementToCompareB = differingAncestorsB.length ? lookup([commonAncestorString, differingAncestorsB[0]].filter((value) => (value)).join('.')) : referenceB
     
     const componentKeys: ComponentTag[] = ['Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
-    const tagA = ((elementToCompareA instanceof StandardRemove || elementToCompareA instanceof StandardReplace)
-        ? elementToCompareA._match.tag
-        : elementToCompareA.tag) as ComponentTag
-    const tagB = ((elementToCompareB instanceof StandardRemove || elementToCompareB instanceof StandardReplace)
-        ? elementToCompareB._match.tag
-        : elementToCompareB.tag) as ComponentTag
-    const indexA = componentKeys.indexOf(tagA)
-    const indexB = componentKeys.indexOf(tagB)
+    const indexA = componentKeys.indexOf(elementToCompareA.tag)
+    const indexB = componentKeys.indexOf(elementToCompareB.tag)
     if (indexA !== indexB) {
         return indexA - indexB
     }
