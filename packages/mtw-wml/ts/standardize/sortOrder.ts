@@ -1,9 +1,9 @@
 import { StandardComponent } from "./components/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardRemove, StandardReplace } from "./components/edits"
-import StandardReference from "./components/reference"
+import StandardReference, { StandardReferenceSimple } from "./components/reference"
 
-export const standardComponentSortOrder = (lookup: (value: string) => StandardReference) => (referenceA: StandardReference, referenceB: StandardReference): number => {
+export const standardComponentSortOrder = (lookup: (value: string) => StandardReferenceSimple) => (referenceA: StandardReferenceSimple, referenceB: StandardReferenceSimple): number => {
     //
     // Subcomponents will have keys that start with their ancestry, separated by periods (i.e. "Room1.Feature1").
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
