@@ -55,6 +55,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _export?: StandardExportItem;
+        leastCommonContext: StandardReferenceData[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -62,10 +63,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._payload = props._payload
                 this._import = props._import
                 this._export = props._export
+                this.leastCommonContext = props.leastCommonContext
                 return
             }
             if (typeof props === 'string' && (isLegalKey(props) || isSchemaComponentUUID(props))) {
                 this._key = new KeyPayload(props)
+                this.leastCommonContext = []
                 return
             }
             if (isSchemaTreeNode(props) || typeof props === 'string') {
@@ -77,10 +80,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 }
                 this._key = new KeyPayload({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._payload.fromSchema(node)
+                this.leastCommonContext = []
                 return
             }
             this._key = hasComponentKey(props) ? new KeyPayload(props) : (typeof props === 'string' ? new KeyPayload(props) : new KeyPayload(''))
             this._payload.fromJSON(props)
+            this.leastCommonContext = []
         }
 
         get key(): string | undefined { return this._key.key }
