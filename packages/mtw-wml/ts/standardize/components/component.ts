@@ -28,6 +28,7 @@ import { StandardReplace } from "./edits";
 import { StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
+import { StandardReferenceSimple } from "./reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -55,7 +56,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _export?: StandardExportItem;
-        leastCommonContext: StandardReferenceData[];
+        leastCommonContext: StandardReferenceSimple[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -63,7 +64,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._payload = props._payload
                 this._import = props._import
                 this._export = props._export
-                this.leastCommonContext = props.leastCommonContext
+                this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
             if (typeof props === 'string' && (isLegalKey(props) || isSchemaComponentUUID(props))) {
@@ -198,6 +199,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key._universalKey = key
+            return returnValue
+        }
+
+        withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            returnValue.leastCommonContext = leastCommonContext.map((context) => (context.clone()))
             return returnValue
         }
 
