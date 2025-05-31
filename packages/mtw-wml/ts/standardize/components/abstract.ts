@@ -17,6 +17,7 @@ export interface ComponentInterface {
     withUniversalKey(key: string): this;
     referenceData: StandardReferenceData;
     leastCommonContext: StandardReferenceSimple[];
+    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): this;
 }
 
 export interface HasName {
