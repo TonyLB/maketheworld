@@ -508,4 +508,34 @@ describe("processComponents", () => {
             `)
         ])
     })
+
+    it('should correctly process leastCommonContext', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Room key=(testRoom)>
+                    <Feature key=(testFeatureLocal) />
+                </Room>
+                <Feature key=(testFeatureGlobal) />
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const result = processComponents({
+            componentTemplates,
+            schema: schema.schema,
+        })
+        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+            deIndentWML(`
+                <Room key=(testRoom)><Feature key=(testFeatureLocal) /></Room>
+            `),
+            deIndentWML(`
+                <Feature key=(testRoom.testFeatureLocal) />
+            `),
+            deIndentWML(`
+                <Feature key=(testFeatureGlobal) />
+            `),
+        ])
+        expect(result[1].leastCommonContext.map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
+        expect(result[2].leastCommonContext).toEqual([])
+    })
 })
