@@ -189,7 +189,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return undefined
             }
             else {
-                return new StandardReplace(this, incoming)
+                const leastCommonContext = this.leastCommonContext.filter((reference) => (
+                    incoming.leastCommonContext.some((incomingReference) => (
+                        reference.equal(incomingReference)
+                    ))
+                ))
+
+                return new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
             }
         }
 
