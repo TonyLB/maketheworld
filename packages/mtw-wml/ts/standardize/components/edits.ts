@@ -90,14 +90,13 @@ export class StandardRemove implements StandardComponent {
     }
 
     nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { removeContext} = options
+        const { removeContext } = options
         if (removeContext) {
             return this._match.nestedSchema(byId, options)
         }
-        const localKey = (this._match.key ?? '').split('.').slice(-1)[0]
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(byId, { ...options, localKey, removeContext: true })]
+            children: [this._match.nestedSchema(byId, { ...options, key: new StandardReferenceSimple({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
         }
     }
 

@@ -13,7 +13,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardReferenceSimple } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
@@ -22,6 +22,7 @@ import { deepEqual } from "../../lib/objects"
 import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
 import { isSchemaString } from "../../schema/baseClasses"
+import { isStandardRoom } from "../baseClasses"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -97,20 +98,22 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { localKey, globalKey: key, universalKey } = options
+        const { key, context } = options
+        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
+        const newContext = [...(context ?? []), contextKey]
         return {
-            data: { tag: 'Room', key: localKey, uuid: universalKey },
+            data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema[0]
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
+                        : byId[`${key.key}.${reference.key}`]?.nestedSchema(byId, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: [...context ?? [], contextKey] })
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema[0]
-                        : byId[`${key}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${key}.${reference.key}` })
+                        : byId[`${(newContext ?? []).map(ref => ref.key).join('.')}.${reference.key}`]?.nestedSchema(byId, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
                 )).filter(excludeUndefined),
                 ...this.exits
             ]
