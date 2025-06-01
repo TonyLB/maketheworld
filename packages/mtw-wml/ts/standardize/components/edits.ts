@@ -12,6 +12,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
+import { StandardReferenceSimple } from "./reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -21,11 +22,13 @@ import { StandardReferenceData } from "./dataTypes/reference";
 export class StandardRemove implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
+    leastCommonContext: StandardReferenceSimple[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
+            this.leastCommonContext = props.leastCommonContext
             return
         }
         this._key = new KeyPayload({ key: props.key, universalKey: props.universalKey })
@@ -150,6 +153,12 @@ export class StandardRemove implements StandardComponent {
         returnValue._key._universalKey = returnValue._match.universalKey
         return returnValue
     }
+
+    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+        const returnValue = this.clone()
+        returnValue.leastCommonContext = leastCommonContext
+        return returnValue
+    }
 }
 
 //
@@ -160,7 +169,8 @@ export class StandardRemove implements StandardComponent {
 export class StandardReplace implements StandardComponent {
     _key: KeyPayload;
     _match: StandardComponent;
-    _payload: StandardComponent
+    _payload: StandardComponent;
+    leastCommonContext: StandardReferenceSimple[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -179,6 +189,7 @@ export class StandardReplace implements StandardComponent {
             this._key = props._key
             this._match = props._match.clone()
             this._payload = props._payload.clone()
+            this.leastCommonContext = props.leastCommonContext
             return
         }
         throw new Error('StandardReplace constructor called with invalid arguments')
@@ -190,6 +201,12 @@ export class StandardReplace implements StandardComponent {
     get import() { return this._match.import }
     get export() { return this._match.export }
     get global() { return this._match.global }
+
+    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+        const returnValue = this.clone()
+        returnValue.leastCommonContext = leastCommonContext
+        return returnValue
+    }
 
     clone(): StandardReplace {
         return new StandardReplace(this)
