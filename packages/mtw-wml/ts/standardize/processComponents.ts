@@ -1,40 +1,19 @@
 import { objectMerge } from "../lib/objects"
-import { unique } from "../list"
-import SchemaTagTree from "../tagTree/schema"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
 import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove } from "./components/metaData"
-import { mergeWithEdits, StandardRemove, StandardReplace } from "./components/edits"
-import { isImportable, isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { StandardRemove, StandardReplace } from "./components/edits"
+import { isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExport, isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
+import { StandardReferenceSimple } from "./components/reference"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
     legalParents?: ComponentTag[];
-}
-
-const keysByComponentTypeFactory = (tagTree: SchemaTagTree) => (tag: ComponentTag) => {
-    const keysExtract = (imported: boolean) => (
-        tagTree
-            .filter({ and: [{ match: tag }, imported ? { match: 'Import' } : { not: { match: 'Import' } }] })
-            .prune({ after: { match: tag } })
-            .prune({ before: { match: tag } })
-            .tree
-            .map(({ data }) => {
-                if (data.tag !== tag) {
-                    throw new Error('standardizeSchema tag mismatch')
-                }
-                if (imported && isImportable(data)) {
-                    return data.as ?? data.key
-                }
-                return data.key
-            })
-    )
-    return unique(keysExtract(true), keysExtract(false)).sort()
 }
 
 type ConditionalContextItem = {
@@ -53,7 +32,7 @@ export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
     conditionalContext?: ConditionalContextItem[];
-    componentContext?: { key: string; tag: ComponentTag; }[];
+    componentContext?: StandardReferenceSimple[];
     inContextOfRemove?: boolean;
     metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
 }): StandardComponent[] => {
@@ -191,7 +170,11 @@ export const processComponents = (props: {
                 //
                 // Localize the key for the component if it is not global, and has a parent tag
                 //
-                const localizedComponent = (parentTag && !(component.global ?? false)) ? component.withKey(`${parentTag.key}.${component.key}`) : component
+                const localizedComponent = (parentTag && !(component.global ?? false))
+                    ? component
+                        .withKey(`${parentTag.key}.${component.key}`)
+                        .withLeastCommonContext(componentContext)
+                    : component
 
                 //
                 // Wrap the component contents in conditional statements as necessary
@@ -218,7 +201,7 @@ export const processComponents = (props: {
                 return [
                     ...previous,
                     editWrappedComponent,
-                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, { key: localizedComponent.key ?? '', tag: item.data.tag }] })
+                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, new StandardReferenceSimple(localizedComponent.referenceData)] })
                 ]
             }
         }
