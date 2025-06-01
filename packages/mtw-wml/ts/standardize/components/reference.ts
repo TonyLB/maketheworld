@@ -215,6 +215,9 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         returnValue.payload = this.payload.withKey(key)
         return returnValue
     }
+    equal(other: StandardReferenceSimple): boolean {
+        return this.payload.equal(other.payload)
+    }
 }
 
 export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
