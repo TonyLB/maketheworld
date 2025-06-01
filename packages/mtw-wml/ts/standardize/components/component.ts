@@ -141,8 +141,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey ?? this.key, globalKey: options.globalKey ?? this.key, universalKey: this.universalKey })
-                : this._payload.schema(options.localKey ?? this.key, this.universalKey)
+                ? this._payload.nestedSchema(byId, { ...options, key: new StandardReferenceSimple({ tag: this.tag, key: options.key?.key ?? this.key, universalKey: options.key?.universalKey ?? this.universalKey }) })
+                : this._payload.schema(options.key?.key ?? this.key, options.key?.universalKey ?? this.universalKey)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {

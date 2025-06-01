@@ -20,9 +20,8 @@ export type StandardComponentReferenceKey = {
 }
 
 export type NestedSchemaOptions = {
-    localKey: string;
-    globalKey: string;
-    universalKey?: ComponentUUID;
+    key: StandardReferenceSimple;
+    context: StandardReferenceSimple[];
     removeContext?: boolean;
 }
 

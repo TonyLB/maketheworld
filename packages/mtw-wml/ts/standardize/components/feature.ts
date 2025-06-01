@@ -8,7 +8,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardReferenceSimple } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -60,13 +60,15 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     }
 
     nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { localKey, globalKey, universalKey } = options
+        const { key, context } = options
+        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
+        const newContext = [...(context ?? []), contextKey]
         return {
-            data: { tag: 'Feature', key: localKey, uuid: universalKey },
+            data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
             children: this.examples.map((reference) => (
                 reference.global
                     ? reference.schema[0]
-                    : byId[`${globalKey}.${reference.key}`]?.nestedSchema(byId, { ...options, localKey: reference.key, globalKey: `${globalKey}.${reference.key}` })
+                    : byId[`${(newContext ?? []).map(ref => ref.key).join('.')}.${reference.key}`]?.nestedSchema(byId, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
             )).filter(excludeUndefined),
         }
     }
