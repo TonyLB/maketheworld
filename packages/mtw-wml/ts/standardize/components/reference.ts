@@ -13,6 +13,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
     key?: string;
     universalKey?: ComponentUUID;
     global?: boolean;
+    context?: StandardReferenceData[];
     tag: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
@@ -59,26 +60,46 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         returnValue.key = key
         return returnValue
     }
-    equal(other: StandardReferenceSimpleBase): boolean {
-    //
-    // Returns if the two objects share either the same key or the same universalKey,
-    // and have no other differences
-    //
-    if (this.tag !== other.tag) {
+    withContext(context: StandardReferenceData[]): StandardReferenceSimpleBase {
+        const returnValue = this.clone()
+        returnValue.context = context
+        return returnValue
+    }
+    equals(other: StandardReferenceSimpleBase): boolean {
+        //
+        // Returns if the two objects share either the same key or the same universalKey,
+        // and have no other differences
+        //
+        if (this.tag !== other.tag) {
+            return false
+        }
+        if (this.universalKey && other.universalKey && this.universalKey !== other.universalKey) {
+            return false
+        }
+        if (this.key && other.key && this.key !== other.key) {
+            return false
+        }
+        if (this.key === other.key || this.universalKey === other.universalKey) {
+            return true
+        }
         return false
     }
-    if (this.universalKey && other.universalKey && this.universalKey !== other.universalKey) {
-        return false
-    }
-    if (this.key && other.key && this.key !== other.key) {
-        return false
-    }
-    if (this.key === other.key || this.universalKey === other.universalKey) {
-        return true
-    }
-    return false
-}
 
+    merge(other: StandardReferenceSimpleBase): StandardReferenceSimpleBase {
+        const returnValue = this.clone()
+        if (other.key) {
+            returnValue.key = other.key
+        }
+        if (other.universalKey && returnValue.universalKey && returnValue.universalKey !== other.universalKey) {
+            throw new MergeConflictError('Mismatched universalKeys in StandardReferenceSimpleBase merge')
+        }
+        if (other.universalKey) {
+            returnValue.universalKey = other.universalKey
+        }
+        const newContext = (this.context ?? []).filter((reference) => (!(other.context ?? []).some((otherReference) => ((new StandardReferenceSimpleBase(otherReference).equals(new StandardReferenceSimpleBase(reference)))))))
+        returnValue.context = newContext.length > 0 ? newContext : undefined
+        return returnValue
+    }
 }
 
 const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): StandardReferenceSimpleBase | undefined => {
@@ -190,6 +211,9 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     get tag() {
         return this.payload.tag
     }
+    get conxtext() {
+        return this.payload.context
+    }
     get schema() {
         return this.payload.schema
     }
@@ -215,8 +239,8 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         returnValue.payload = this.payload.withKey(key)
         return returnValue
     }
-    equal(other: StandardReferenceSimple): boolean {
-        return this.payload.equal(other.payload)
+    equals(other: StandardReferenceSimple): boolean {
+        return this.payload.equals(other.payload)
     }
 }
 
@@ -246,6 +270,9 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
     get global() {
         return this.match.global
+    }
+    get context() {
+        return this.match.context
     }
     get tag() {
         return this.match.tag
@@ -308,6 +335,9 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
     }
     get global() {
         return this.payload.global
+    }
+    get context() {
+        return this.payload.context
     }
     get tag() {
         return this.payload.tag
@@ -457,13 +487,13 @@ export class StandardReference {
 
     equal(other: StandardReference): boolean {
         if (this._payload instanceof StandardReferenceSimple && other._payload instanceof StandardReferenceSimple) {
-            return this._payload.payload.equal(other._payload.payload)
+            return this._payload.payload.equals(other._payload.payload)
         }
         if (this._payload instanceof StandardReferenceRemove && other._payload instanceof StandardReferenceRemove) {
-            return this._payload.match.equal(other._payload.match)
+            return this._payload.match.equals(other._payload.match)
         }
         if (this._payload instanceof StandardReferenceReplace && other._payload instanceof StandardReferenceReplace) {
-            return this._payload.match.equal(other._payload.match) && this._payload.payload.equal(other._payload.payload)
+            return this._payload.match.equals(other._payload.match) && this._payload.payload.equals(other._payload.payload)
         }
         return false
     }

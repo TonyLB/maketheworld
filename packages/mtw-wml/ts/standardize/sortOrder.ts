@@ -1,7 +1,5 @@
-import { StandardComponent } from "./components/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardRemove, StandardReplace } from "./components/edits"
-import StandardReference, { StandardReferenceSimple } from "./components/reference"
+import { StandardReferenceSimple } from "./components/reference"
 
 export const standardComponentSortOrder = (lookup: (value: string) => StandardReferenceSimple) => (referenceA: StandardReferenceSimple, referenceB: StandardReferenceSimple): number => {
     //

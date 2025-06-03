@@ -174,7 +174,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._export = (this.export && incoming.export) ? this.export.merge(incoming.export) : this.export ?? incoming.export
             returnValue.leastCommonContext = this.leastCommonContext.filter((reference) => (
                 incoming.leastCommonContext.some((incomingReference) => (
-                    reference.equal(incomingReference)
+                    reference.equals(incomingReference)
                 ))
             ))
 
@@ -191,7 +191,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             else {
                 const leastCommonContext = this.leastCommonContext.filter((reference) => (
                     incoming.leastCommonContext.some((incomingReference) => (
-                        reference.equal(incomingReference)
+                        reference.equals(incomingReference)
                     ))
                 ))
 
