@@ -18,7 +18,7 @@ describe('standardComponentSortOrder', () => {
         return new StandardReferenceSimple({ key, tag: (tagMap[key] || 'Room') as ComponentTag })
     }
 
-    const sortOrder = standardComponentSortOrder(lookup)
+    const sortOrder = standardComponentSortOrder
 
     it('should order subcomponents after their parent', () => {
         const parent = new StandardReferenceSimple({ key: 'Room1', tag: 'Room' })
