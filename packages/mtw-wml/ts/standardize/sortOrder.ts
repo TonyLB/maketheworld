@@ -1,7 +1,7 @@
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./components/reference"
 
-export const standardComponentSortOrder = (lookup: (value: string) => StandardReferenceSimple) => (referenceA: StandardReferenceSimple, referenceB: StandardReferenceSimple): number => {
+export const standardComponentSortOrder = (referenceA: StandardReferenceSimple, referenceB: StandardReferenceSimple): number => {
     //
     // Subcomponents will have keys that include their context of ancestry.
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
