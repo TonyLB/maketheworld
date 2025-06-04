@@ -13,7 +13,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
     key?: string;
     universalKey?: ComponentUUID;
     global?: boolean;
-    context?: StandardReferenceData[];
+    context?: StandardReferenceSimpleBase[];
     tag: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
@@ -60,7 +60,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         returnValue.key = key
         return returnValue
     }
-    withContext(context: StandardReferenceData[]): StandardReferenceSimpleBase {
+    withContext(context: StandardReferenceSimpleBase[]): StandardReferenceSimpleBase {
         const returnValue = this.clone()
         returnValue.context = context
         return returnValue
@@ -211,7 +211,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     get tag() {
         return this.payload.tag
     }
-    get conxtext() {
+    get context() {
         return this.payload.context
     }
     get schema() {
@@ -237,6 +237,11 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     withKey(key: string): StandardReferenceSimple {
         const returnValue = this.clone()
         returnValue.payload = this.payload.withKey(key)
+        return returnValue
+    }
+    withContext(context: StandardReferenceSimpleBase[]): StandardReferenceSimple {
+        const returnValue = this.clone()
+        returnValue.payload = this.payload.withContext(context)
         return returnValue
     }
     equals(other: StandardReferenceSimple): boolean {
