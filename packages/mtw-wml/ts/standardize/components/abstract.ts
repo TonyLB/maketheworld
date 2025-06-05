@@ -5,10 +5,11 @@ import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaDescriptionTag, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { StandardLiteral } from "../literal";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple } from "./reference";
+import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./reference";
 
 export interface ComponentInterface {
-    key: string;
+    _key: StandardReferenceSimpleBase
+    key?: string;
     universalKey?: string;
     schema: GenericTreeNode<SchemaTag>;
     clone(): this;
