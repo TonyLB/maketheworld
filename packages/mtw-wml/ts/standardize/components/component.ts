@@ -21,14 +21,14 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
-import { ComponentUUID, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponent, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple } from "./reference";
+import { isStandardReferenceData, StandardReferenceSimple, StandardReferenceSimpleBase } from "./reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -52,7 +52,7 @@ export interface ComponentConstructorMethods<D> {
 
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
-        _key: KeyPayload;
+        _key: StandardReferenceSimpleBase;
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _export?: StandardExportItem;
@@ -60,7 +60,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
-                this._key = new KeyPayload(props._key)
+                this._key = new StandardReferenceSimpleBase(props._key)
                 this._payload = props._payload
                 this._import = props._import
                 this._export = props._export
@@ -68,7 +68,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return
             }
             if (typeof props === 'string' && (isLegalKey(props) || isSchemaComponentUUID(props))) {
-                this._key = new KeyPayload(props)
+                this._key = new StandardReferenceSimpleBase(props)
                 this.leastCommonContext = []
                 return
             }
@@ -79,19 +79,23 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
                     throw new Error(`No key found in ${label} constructor call.`)
                 }
-                this._key = new KeyPayload({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                const tag = node.data.tag
+                if (!isSchemaComponentTag(tag)) {
+                    throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
+                }
+                this._key = new StandardReferenceSimpleBase({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._payload.fromSchema(node)
                 this.leastCommonContext = []
                 return
             }
-            this._key = hasComponentKey(props) ? new KeyPayload(props) : (typeof props === 'string' ? new KeyPayload(props) : new KeyPayload(''))
+            this._key = isStandardReferenceData(props) ? new StandardReferenceSimpleBase(props) : (typeof props === 'string' ? new StandardReferenceSimpleBase(props) : new StandardReferenceSimpleBase(''))
             this._payload.fromJSON(props)
             this.leastCommonContext = []
         }
 
         get key(): string | undefined { return this._key.key }
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
-        get fileName(): string | undefined { return this._key.fileName }
+        get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
         get export(): StandardExportItem | undefined { return this._export }
@@ -128,7 +132,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         toJSON(options?: StandardToJSONOptions): D {
             return {
-                ...this._key.toJSON(options),
+                key: this.key,
+                universalKey: this.universalKey,
                 ...this._payload.toJSON(options),
                 ...(this.import ? { from: this.import.toJSON() } : {}),
                 ...(this.export ? { exportAs: this.export.toJSON() } : {})
@@ -163,9 +168,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.key && incoming.key && this.key !== incoming.key) {
                 throw new MergeConflictError(`Merge of two unequal keys in ${label}`)
             }
-            returnValue._key._universalKey = this.universalKey ?? incoming.universalKey
-            returnValue._key._key = incoming.key ?? this.key
-            returnValue._key._fileName = incoming.fileName ?? this.fileName
+            returnValue._key = this._key.merge(incoming._key)
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             //
             // Merge base and incoming import and export
@@ -201,15 +204,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         withKey(key: string): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
-            const newKey = new KeyPayload(returnValue._key)
-            newKey._key = key
-            returnValue._key = newKey
+            returnValue._key.key = key
             return returnValue
         }
 
         withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
-            returnValue._key._universalKey = key
+            returnValue._key.universalKey = key
             return returnValue
         }
 
@@ -221,7 +222,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         withFileName(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
-            returnValue._key._fileName = key
+            // returnValue._key._fileName = key
             return returnValue
         }
 
