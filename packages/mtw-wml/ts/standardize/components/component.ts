@@ -161,7 +161,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // edit tags on the import and export information of the components
         //
         merge(incoming: StandardComponent): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.universalKey ?? this.key ??'')
+            const returnValue = new GeneratedComponentClass(this.universalKey ?? { tag: this.tag, key: this.key } as D ?? '')
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
             }
