@@ -67,7 +67,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
-            if (typeof props === 'string' && (isLegalKey(props) || isSchemaComponentUUID(props))) {
+            if (typeof props === 'string' && isLegalKey(props)) {
+                this._key = new StandardReferenceSimpleBase({
+                    tag: this._payload.tag,
+                    key: props
+                })
+                this.leastCommonContext = []
+                return
+            }
+            if (typeof props === 'string' && isSchemaComponentUUID(props)) {
                 this._key = new StandardReferenceSimpleBase(props)
                 this.leastCommonContext = []
                 return
