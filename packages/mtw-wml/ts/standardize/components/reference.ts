@@ -8,6 +8,7 @@ import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { isLegalKey } from "../utils";
 
 export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
     key?: string;

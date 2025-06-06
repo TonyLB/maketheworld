@@ -34,6 +34,7 @@ import { mergeToComponentList, mergeUniversalKeyMappings, UniversalKeyMapping } 
 import { StandardReferenceData } from "./components/dataTypes/reference"
 import { uniqueReferences } from "./components/utils/references"
 import StandardReference from "./components/reference"
+import { standardComponentSortOrder } from "./sortOrder"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -95,7 +96,7 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardCharacter)
 }
 
-export const standardComponentSortOrder = (byId: Record<string, StandardComponent>) => (componentA: StandardComponent, componentB: StandardComponent): number => {
+export const legacyStandardComponentSortOrder = (byId: Record<string, StandardComponent>) => (componentA: StandardComponent, componentB: StandardComponent): number => {
     //
     // Subcomponents will have keys that start with their ancestry, separated by periods (i.e. "Room1.Feature1").
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
@@ -310,7 +311,7 @@ export class StandardForm {
     get metaData(): GenericTree<SchemaTag> {
         const exportContents: GenericTree<SchemaTag> = this._components
             .filter((component) => (Boolean(component.export)))
-            .sort(standardComponentSortOrder(this.byId))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
             .map((component): GenericTreeNode<SchemaTag> => {
                 const schema = component.schema
                 if (component.export instanceof ExportItemRemove) {
@@ -353,7 +354,7 @@ export class StandardForm {
 
         const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
             .filter((component) => (Boolean(component.import)))
-            .sort(standardComponentSortOrder(this._byId))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
             .reduce<Record<string, GenericTree<SchemaTag>>>((previous, component): Record<string, GenericTree<SchemaTag>> => {
                 const maybeAddAsKey = (data: SchemaTag, from: string): SchemaTag => {
                     const originalKey = (data as SchemaWithKey).key
@@ -503,7 +504,7 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
-            .sort(standardComponentSortOrder(this.byId))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
             .map((component) => (component.toJSON()))
         return [
             this.header,
@@ -515,7 +516,7 @@ export class StandardForm {
         const metaData = this.metaData
         const children = this._components
             .filter(({ key }) => (!(key ?? '').includes('.')))
-            .sort(standardComponentSortOrder(this.byId))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
             .map((component) => (component.nestedSchema(this.byId, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
@@ -617,7 +618,7 @@ export class StandardForm {
                 const lookupA = mergedForKeys._lookup(a)
                 const lookupB = mergedForKeys._lookup(b)
                 if (lookupA && lookupB) {
-                    return standardComponentSortOrder(mergedForKeys.byId)(lookupB, lookupA)
+                    return standardComponentSortOrder(lookupA._key, lookupB._key)
                 }
                 else {
                     return 0

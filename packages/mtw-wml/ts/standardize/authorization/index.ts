@@ -11,7 +11,7 @@ import processAuthorizations from "./processAuthorizations"
 import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
 import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
-import { standardComponentSortOrder } from ".."
+import { legacyStandardComponentSortOrder } from ".."
 import { unique } from "../../list"
 import { standardComponentByTag } from "../nonEditFactory"
 import { deepEqual } from "../../lib/objects"
@@ -198,7 +198,7 @@ export class StandardAuthorizationCollection {
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
             const aComponent = sortOrderById[a.referenceStack.map(({ key }) => (key)).join('.')]
             const bComponent = sortOrderById[b.referenceStack.map(({ key }) => (key)).join('.')]
-            return standardComponentSortOrder(sortOrderById)(aComponent, bComponent)
+            return legacyStandardComponentSortOrder(sortOrderById)(aComponent, bComponent)
         }
     }
 
