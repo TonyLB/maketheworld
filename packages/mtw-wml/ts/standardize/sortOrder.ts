@@ -1,7 +1,7 @@
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./components/reference"
 
-export const standardComponentSortOrder = (referenceA: StandardReferenceSimple, referenceB: StandardReferenceSimple): number => {
+export const standardComponentSortOrder = (referenceA: StandardReferenceSimple | StandardReferenceSimpleBase, referenceB: StandardReferenceSimple | StandardReferenceSimpleBase): number => {
     //
     // Subcomponents will have keys that include their context of ancestry.
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
@@ -9,10 +9,12 @@ export const standardComponentSortOrder = (referenceA: StandardReferenceSimple, 
     // of the key provided.
     // Lastly, if they are in the same context, compare the tags and then the keys.
     //
-    if ((referenceA.context ?? []).some(referenceB.payload.equals.bind(referenceB.payload))) {
+    const baseA = referenceA instanceof StandardReferenceSimple ? referenceA.payload : referenceA
+    const baseB = referenceB instanceof StandardReferenceSimple ? referenceB.payload : referenceB
+    if ((baseA.context ?? []).some(baseB.equals.bind(baseB))) {
         return -1
     }
-    if ((referenceB.context ?? []).some(referenceA.payload.equals.bind(referenceA.payload))) {
+    if ((baseB.context ?? []).some(baseA.equals.bind(baseA))) {
         return 1
     }
     const differingA: StandardReferenceSimpleBase | undefined = (referenceA.context ?? []).find((reference) => (!referenceB.context?.some(reference.equals.bind(reference))))
