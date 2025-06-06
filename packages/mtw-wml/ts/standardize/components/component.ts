@@ -67,7 +67,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
-            if (typeof props === 'string' && (isLegalKey(props) || isSchemaComponentUUID(props))) {
+            if (typeof props === 'string' && isLegalKey(props)) {
+                this._key = new StandardReferenceSimpleBase({
+                    tag: this._payload.tag,
+                    key: props
+                })
+                this.leastCommonContext = []
+                return
+            }
+            if (typeof props === 'string' && isSchemaComponentUUID(props)) {
                 this._key = new StandardReferenceSimpleBase(props)
                 this.leastCommonContext = []
                 return
@@ -161,7 +169,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // edit tags on the import and export information of the components
         //
         merge(incoming: StandardComponent): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this.universalKey ?? { tag: this.tag, key: this.key } as D ?? '')
+            const returnValue = new GeneratedComponentClass(this.universalKey ?? this.key ??'')
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new MergeConflictError(`Merge of two unequal universalKeys in ${label}`)
             }
