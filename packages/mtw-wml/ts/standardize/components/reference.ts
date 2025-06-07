@@ -8,18 +8,17 @@ import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { isLegalKey } from "../utils";
 
-export class StandardReferenceSimpleBase implements StandardEditablePayload<StandardReferenceData> {
+export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
     global?: boolean;
-    context?: StandardReferenceSimpleBase[];
+    context?: StandardKey[];
     tag: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
             if (!isSchemaComponentUUID(data)) {
-                throw new Error('Invalid StandardReferenceData passed to StandardReferenceSimpleBase')
+                throw new Error('Invalid StandardReferenceData passed to StandardKey')
             }
             this.tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
             this.universalKey = data
@@ -43,7 +42,7 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         }]
     }
     clone() {
-        return new StandardReferenceSimpleBase(this.toJSON())
+        return new StandardKey(this.toJSON())
     }
     toJSON: () => StandardReferenceData = () => {
         if (typeof this.key !== 'undefined') {
@@ -51,22 +50,22 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         }
         else {
             if (typeof this.universalKey === 'undefined') {
-                throw new Error('StandardReferenceSimpleBase must have a universalKey or key')
+                throw new Error('StandardKey must have a universalKey or key')
             }
             return this.universalKey
         }
     }
-    withKey(key: string): StandardReferenceSimpleBase {
+    withKey(key: string): StandardKey {
         const returnValue = this.clone()
         returnValue.key = key
         return returnValue
     }
-    withContext(context: StandardReferenceSimpleBase[]): StandardReferenceSimpleBase {
+    withContext(context: StandardKey[]): StandardKey {
         const returnValue = this.clone()
         returnValue.context = context
         return returnValue
     }
-    equals(other: StandardReferenceSimpleBase): boolean {
+    equals(other: StandardKey): boolean {
         //
         // Returns if the two objects share either the same key or the same universalKey,
         // and have no other differences
@@ -86,37 +85,37 @@ export class StandardReferenceSimpleBase implements StandardEditablePayload<Stan
         return false
     }
 
-    merge(other: StandardReferenceSimpleBase): StandardReferenceSimpleBase {
+    merge(other: StandardKey): StandardKey {
         const returnValue = this.clone()
         if (other.key) {
             returnValue.key = other.key
         }
         if (other.universalKey && returnValue.universalKey && returnValue.universalKey !== other.universalKey) {
-            throw new MergeConflictError('Mismatched universalKeys in StandardReferenceSimpleBase merge')
+            throw new MergeConflictError('Mismatched universalKeys in StandardKey merge')
         }
         if (other.universalKey) {
             returnValue.universalKey = other.universalKey
         }
-        const newContext = (this.context ?? []).filter((reference) => (!(other.context ?? []).some((otherReference) => ((new StandardReferenceSimpleBase(otherReference).equals(new StandardReferenceSimpleBase(reference)))))))
+        const newContext = (this.context ?? []).filter((reference) => (!(other.context ?? []).some((otherReference) => ((new StandardKey(otherReference).equals(new StandardKey(reference)))))))
         returnValue.context = newContext.length > 0 ? newContext : undefined
         return returnValue
     }
 }
 
-const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): StandardReferenceSimpleBase | undefined => {
+const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): StandardKey | undefined => {
     if (isStandardReferencePayloadData(props)) {
-        return new StandardReferenceSimpleBase(props)
+        return new StandardKey(props)
     }
     if (props.length === 1) {
         const node = props[0]
         if (!treeNodeTypeguard(isSchemaComponent)(node)) {
-            throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
+            throw new Error('Invalid argument in StandardKey constructor')
         }
         const { tag, key, uuid } = node.data
         const global = 'global' in node.data ? node.data.global : undefined
-        return new StandardReferenceSimpleBase({ tag, key, universalKey: uuid, global })
+        return new StandardKey({ tag, key, universalKey: uuid, global })
     }
-    throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
+    throw new Error('Invalid argument in StandardKey constructor')
 }
 
 export const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
@@ -166,7 +165,7 @@ const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardRe
 export const { constructorDelta: factory, typeguard: isStandardReferenceData, merge, diff } = standardEditableFactory({
     typeguard: isStandardReferencePayloadData,
     payloadFactory: payloadFactory,
-    payload: StandardReferenceSimpleBase,
+    payload: StandardKey,
     add: standardReferenceAdd,
     subtract: standardReferenceSubtract,
     diff: standardReferenceDiff
@@ -176,20 +175,20 @@ const fromDelta = (delta: { add?: StandardReferenceData, remove?: StandardRefere
     const { add, remove } = delta
     if (add) {
         if (remove) {
-            return new StandardReferenceReplace(new StandardReferenceSimpleBase(remove), new StandardReferenceSimpleBase(add))
+            return new StandardReferenceReplace(new StandardKey(remove), new StandardKey(add))
         }
-        return new StandardReferenceSimple(new StandardReferenceSimpleBase(add))
+        return new StandardReferenceSimple(new StandardKey(add))
     }
     if (remove) {
-        return new StandardReferenceRemove(new StandardReferenceSimpleBase(remove))
+        return new StandardReferenceRemove(new StandardKey(remove))
     }
     return undefined
 }
 
-export class StandardReferenceSimple implements StandardEditableWrapper<StandardReferenceSimpleBase> {
-    payload: StandardReferenceSimpleBase
-    constructor(data: StandardReferenceSimpleBase | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardReferenceSimpleBase) {
+export class StandardReferenceSimple implements StandardEditableWrapper<StandardKey> {
+    payload: StandardKey
+    constructor(data: StandardKey | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
+        if (data instanceof StandardKey) {
             this.payload = data
             return
         }
@@ -229,10 +228,10 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     }
     toJSON: () => StandardEditableData<StandardReferenceData> = () => this.payload.toJSON()
     get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    merge(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
     }
-    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    diff(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
     withKey(key: string): StandardReferenceSimple {
@@ -240,7 +239,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         returnValue.payload = this.payload.withKey(key)
         return returnValue
     }
-    withContext(context: StandardReferenceSimpleBase[]): StandardReferenceSimple {
+    withContext(context: StandardKey[]): StandardReferenceSimple {
         const returnValue = this.clone()
         returnValue.payload = this.payload.withContext(context)
         return returnValue
@@ -250,10 +249,10 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     }
 }
 
-export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferenceSimpleBase> {
-    match: StandardReferenceSimpleBase
-    constructor(data: StandardReferenceSimpleBase | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardReferenceSimpleBase) {
+export class StandardReferenceRemove implements StandardEditableWrapper<StandardKey> {
+    match: StandardKey
+    constructor(data: StandardKey | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string) {
+        if (data instanceof StandardKey) {
             this.match = data
             return
         }
@@ -297,10 +296,10 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
     toJSON: () => StandardEditableData<StandardReferenceData> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
     get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    merge(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
     }
-    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    diff(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
     withKey(key: string): StandardReferenceRemove {
@@ -310,10 +309,10 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
 }
 
-export class StandardReferenceReplace implements StandardEditableWrapper<StandardReferenceSimpleBase> {
-    match: StandardReferenceSimpleBase
-    payload: StandardReferenceSimpleBase
-    constructor(...args: [StandardEditableData<string> | GenericTree<SchemaTag> | string] | [StandardReferenceSimpleBase, StandardReferenceSimpleBase]) {
+export class StandardReferenceReplace implements StandardEditableWrapper<StandardKey> {
+    match: StandardKey
+    payload: StandardKey
+    constructor(...args: [StandardEditableData<string> | GenericTree<SchemaTag> | string] | [StandardKey, StandardKey]) {
         if (args.length === 2) {
             this.match = args[0]
             this.payload = args[1]
@@ -375,10 +374,10 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
         payload: this.payload.toJSON()
     })
     get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    merge(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
     }
-    diff(other: StandardEditableWrapper<StandardReferenceSimpleBase>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
+    diff(other: StandardEditableWrapper<StandardKey>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
     withKey(key: string): StandardReferenceReplace {
@@ -464,7 +463,7 @@ export class StandardReference {
             const reversedDelta = this._payload._delta
             if (reversedDelta) {
                 if (reversedDelta.add) {
-                    return new StandardReference(new StandardReferenceRemove(new StandardReferenceSimpleBase(reversedDelta.add)))
+                    return new StandardReference(new StandardReferenceRemove(new StandardKey(reversedDelta.add)))
                 }
                 if (reversedDelta.remove) {
                     return new StandardReference(new StandardReferenceSimple(reversedDelta.remove))
@@ -478,7 +477,7 @@ export class StandardReference {
             return new StandardReference(callback(this._payload.payload.toJSON()))
         }
         if (this._payload instanceof StandardReferenceRemove) {
-            return new StandardReference(new StandardReferenceRemove(new StandardReferenceSimpleBase(callback(this._payload.match.toJSON()))))
+            return new StandardReference(new StandardReferenceRemove(new StandardKey(callback(this._payload.match.toJSON()))))
         }
         if (this._payload instanceof StandardReferenceReplace) {
             return new StandardReference(new StandardReferenceReplace((new StandardReferenceSimple(callback(this._payload.match.toJSON()))).payload, (new StandardReferenceSimple(callback(this._payload.payload.toJSON()))).payload))

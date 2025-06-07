@@ -6,7 +6,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./reference";
+import { StandardReferenceSimple, StandardKey } from "./reference";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -30,7 +30,7 @@ export type StandardDiffOptions = {
 }
 
 export interface StandardComponent {
-    _key: StandardReferenceSimpleBase;
+    _key: StandardKey;
     key?: string;
     universalKey?: ComponentUUID;
     clone(): StandardComponent;

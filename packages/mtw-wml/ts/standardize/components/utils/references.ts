@@ -1,7 +1,7 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardReferenceSimpleBase } from "../reference"
+import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardKey } from "../reference"
 import { ComponentUUID, isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"

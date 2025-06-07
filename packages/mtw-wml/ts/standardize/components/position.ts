@@ -69,7 +69,7 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
             y: position.data.y
         })
     }
-    throw new Error('Invalid argument in StandardReferenceSimpleBase constructor')
+    throw new Error('Invalid argument in StandardKey constructor')
 }
 
 const standardPositionDeserialize = (incoming: StandardPositionData): StandardPositionData => {

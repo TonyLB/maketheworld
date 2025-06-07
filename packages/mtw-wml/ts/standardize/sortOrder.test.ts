@@ -1,5 +1,5 @@
 import { standardComponentSortOrder } from './sortOrder'
-import StandardReference, { StandardReferenceSimple, StandardReferenceSimpleBase } from './components/reference'
+import StandardReference, { StandardReferenceSimple, StandardKey } from './components/reference'
 import { ComponentTag } from './components/dataTypes/abstract'
 
 describe('standardComponentSortOrder', () => {
@@ -70,15 +70,15 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order components with different ancestry by ancestor tag order', () => {
-        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardReferenceSimpleBase({ key: 'Room1', tag: 'Room' })])
-        const b = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardReferenceSimpleBase({ key: 'Room2', tag: 'Room' })])
+        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
+        const b = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardKey({ key: 'Room2', tag: 'Room' })])
         // Both are Feature, but their ancestors are Room1 and Room2, which are both Room, so fallback to key comparison
         expect(sortOrder(a, b)).toBeLessThan(0)
         expect(sortOrder(b, a)).toBeGreaterThan(0)
     })
 
     it('should order components with different tags and different ancestry', () => {
-        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardReferenceSimpleBase({ key: 'Room1', tag: 'Room' })])
+        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
         const b = new StandardReferenceSimple({ key: 'Room2', tag: 'Room' })
         // Room1 comes before Room2
         expect(sortOrder(b, a)).toBeGreaterThan(0)

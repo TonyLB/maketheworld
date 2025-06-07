@@ -1,7 +1,7 @@
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./components/reference"
+import { StandardReferenceSimple, StandardKey } from "./components/reference"
 
-export const standardComponentSortOrder = (referenceA: StandardReferenceSimple | StandardReferenceSimpleBase, referenceB: StandardReferenceSimple | StandardReferenceSimpleBase): number => {
+export const standardComponentSortOrder = (referenceA: StandardReferenceSimple | StandardKey, referenceB: StandardReferenceSimple | StandardKey): number => {
     //
     // Subcomponents will have keys that include their context of ancestry.
     // First compare the two keys to see if one is a subcomponent of the other. If so, the subcomponent should come second.
@@ -17,8 +17,8 @@ export const standardComponentSortOrder = (referenceA: StandardReferenceSimple |
     if ((baseB.context ?? []).some(baseA.equals.bind(baseA))) {
         return 1
     }
-    const differingA: StandardReferenceSimpleBase | undefined = (referenceA.context ?? []).find((reference) => (!referenceB.context?.some(reference.equals.bind(reference))))
-    const differingB: StandardReferenceSimpleBase | undefined = (referenceB.context ?? []).find((reference) => (!referenceA.context?.some(reference.equals.bind(reference))))
+    const differingA: StandardKey | undefined = (referenceA.context ?? []).find((reference) => (!referenceB.context?.some(reference.equals.bind(reference))))
+    const differingB: StandardKey | undefined = (referenceB.context ?? []).find((reference) => (!referenceA.context?.some(reference.equals.bind(reference))))
     const elementToCompareA = differingA
         ? new StandardReferenceSimple(differingA.toJSON())
         : referenceA
