@@ -7,7 +7,7 @@ import { ComponentProcessingTemplate } from "../processComponents"
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference, { StandardReferenceSimple, StandardReferenceSimpleBase } from "../components/reference"
+import StandardReference, { StandardReferenceSimple, StandardKey } from "../components/reference"
 
 //
 // mergeAuthByIds takes two objects keyed by resource ID and merges them together, using the merge method of the StandardAuthorizationItem class.
@@ -42,7 +42,7 @@ const mergeAuthByIds = (byId: Record<string, StandardAuthorizationResource>, new
 export const processAuthorizations = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
-    componentContext?: StandardReferenceSimpleBase[];
+    componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
 }): Record<string, StandardAuthorizationResource> => {
     //

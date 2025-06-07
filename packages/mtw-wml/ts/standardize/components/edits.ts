@@ -12,7 +12,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./reference";
+import { StandardReferenceSimple, StandardKey } from "./reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -20,7 +20,7 @@ import { StandardReferenceSimple, StandardReferenceSimpleBase } from "./referenc
 // at the StandardForm level, rather than on the individual component classes.
 //
 export class StandardRemove implements StandardComponent {
-    _key: StandardReferenceSimpleBase;
+    _key: StandardKey;
     _match: StandardComponent;
     leastCommonContext: StandardReferenceSimple[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
@@ -35,7 +35,7 @@ export class StandardRemove implements StandardComponent {
         if (!isSchemaComponentTag(tag)) {
             throw new Error(`Invalid tag provided to StandardRemove constructor: ${tag}`)
         }
-        this._key = new StandardReferenceSimpleBase({ tag, key: props.key, universalKey: props.universalKey })
+        this._key = new StandardKey({ tag, key: props.key, universalKey: props.universalKey })
         this._match = props as StandardComponent
         return
     }
@@ -115,35 +115,35 @@ export class StandardRemove implements StandardComponent {
     withKey(key: string): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
     withUniversalKey(key: string | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
     withFileName(key: string | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
     withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withImport(importData)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
     withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withExport(exportData)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
@@ -163,7 +163,7 @@ export class StandardRemove implements StandardComponent {
 // methods at this level do NOT contain the functionality to handle component-level edits ... that is included
 // at the StandardForm level, rather than on the individual component classes.
 export class StandardReplace implements StandardComponent {
-    _key: StandardReferenceSimpleBase;
+    _key: StandardKey;
     _match: StandardComponent;
     _payload: StandardComponent;
     leastCommonContext: StandardReferenceSimple[] = [];
@@ -181,7 +181,7 @@ export class StandardReplace implements StandardComponent {
             if (!isSchemaComponentTag(tag)) {
                 throw new Error(`Invalid tag provided to StandardReplace constructor: ${tag}`)
             }
-            this._key = new StandardReferenceSimpleBase({ tag, key: match.key, universalKey: match.universalKey })
+            this._key = new StandardKey({ tag, key: match.key, universalKey: match.universalKey })
             return
         }
         const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
@@ -291,7 +291,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
         returnValue._payload = this._match.withKey(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
@@ -299,7 +299,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
         returnValue._payload = this._match.withUniversalKey(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
@@ -307,7 +307,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._payload = this._payload.withFileName(key)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
@@ -315,7 +315,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withImport(importData)
         returnValue._payload = this._payload.withImport(importData)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 
@@ -323,7 +323,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withExport(exportData)
         returnValue._payload = this._payload.withExport(exportData)
-        returnValue._key = new StandardReferenceSimpleBase(this._match._key)
+        returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
 

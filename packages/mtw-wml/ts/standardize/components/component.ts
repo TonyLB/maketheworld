@@ -28,7 +28,7 @@ import { StandardReplace } from "./edits";
 import { StandardComponentData } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { isStandardReferenceData, StandardReferenceSimple, StandardReferenceSimpleBase } from "./reference";
+import { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -52,7 +52,7 @@ export interface ComponentConstructorMethods<D> {
 
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
-        _key: StandardReferenceSimpleBase;
+        _key: StandardKey;
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _export?: StandardExportItem;
@@ -60,7 +60,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
-                this._key = new StandardReferenceSimpleBase(props._key)
+                this._key = new StandardKey(props._key)
                 this._payload = props._payload
                 this._import = props._import
                 this._export = props._export
@@ -68,7 +68,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
-                this._key = new StandardReferenceSimpleBase({
+                this._key = new StandardKey({
                     tag: this._payload.tag,
                     key: props
                 })
@@ -76,7 +76,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return
             }
             if (typeof props === 'string' && isSchemaComponentUUID(props)) {
-                this._key = new StandardReferenceSimpleBase(props)
+                this._key = new StandardKey(props)
                 this.leastCommonContext = []
                 return
             }
@@ -91,12 +91,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (!isSchemaComponentTag(tag)) {
                     throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
                 }
-                this._key = new StandardReferenceSimpleBase({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._payload.fromSchema(node)
                 this.leastCommonContext = []
                 return
             }
-            this._key = isStandardReferenceData(props) ? new StandardReferenceSimpleBase(props) : (typeof props === 'string' ? new StandardReferenceSimpleBase(props) : new StandardReferenceSimpleBase(''))
+            this._key = isStandardReferenceData(props) ? new StandardKey(props) : (typeof props === 'string' ? new StandardKey(props) : new StandardKey(''))
             this._payload.fromJSON(props)
             this.leastCommonContext = []
         }
