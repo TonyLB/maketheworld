@@ -7,7 +7,7 @@ import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
-import StandardReference, { diffStandardReferenceList } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
@@ -57,19 +57,18 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key, context } = options
+        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
+        const newContext = [...(context ?? []), contextKey]
         return {
             data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
-            children: this.messages.map((reference) => (
-                    //
-                    // TODO: Resurface this code in ISS-5072 when messages get a global flag
-                    //
-                    // reference.global
-                    //     ? reference.schema
-                    //     : byId[`${key}.${reference.key}`]?.nestedSchema(byId, reference.key, `${key}.${reference.key}`)
-                    reference.schema
-                )).filter(excludeUndefined).flat(1)
+            children: this.messages.map((reference) => {
+                if (reference.global) {
+                    return reference.schema
+                }
+                return lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
+            }).filter(excludeUndefined).flat(1)
         }
     }
     

@@ -43,7 +43,7 @@ export interface ComponentConstructorMethods<D> {
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
-    nestedSchema?(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
+    nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
     remapReferences?: (props: { mappings: { key: string; universalKey: ComponentUUID }[], mapTo: ReferenceFormat }) => this;
@@ -152,9 +152,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return this._payload.schema(this.key, this.universalKey)
         }
 
-        nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(byId, { ...options, key: new StandardReferenceSimple({ tag: this.tag, key: options.key?.key ?? this.key, universalKey: options.key?.universalKey ?? this.universalKey }) })
+                ? this._payload.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple({ tag: this.tag, key: options.key?.key ?? this.key, universalKey: options.key?.universalKey ?? this.universalKey }) })
                 : this._payload.schema(options.key?.key ?? this.key, options.key?.universalKey ?? this.universalKey)
         }
 
