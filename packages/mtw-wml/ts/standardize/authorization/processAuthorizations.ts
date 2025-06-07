@@ -1,16 +1,13 @@
 import { objectMerge } from "../../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { mergeAuthWithEdits, StandardAuthRemove, StandardAuthReplace } from "./components/edits"
+import { StandardAuthRemove } from "./components/edits"
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentProcessingTemplate } from "../processComponents"
-import { ComponentTag } from "../components/dataTypes/abstract"
-import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
-import { StandardAuthorizationCollectionGrant } from "."
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference from "../components/reference"
+import StandardReference, { StandardReferenceSimple, StandardReferenceSimpleBase } from "../components/reference"
 
 //
 // mergeAuthByIds takes two objects keyed by resource ID and merges them together, using the merge method of the StandardAuthorizationItem class.
@@ -45,7 +42,7 @@ const mergeAuthByIds = (byId: Record<string, StandardAuthorizationResource>, new
 export const processAuthorizations = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
-    componentContext?: { key: string; tag: ComponentTag; }[];
+    componentContext?: StandardReferenceSimpleBase[];
     inContextOfRemove?: boolean;
 }): Record<string, StandardAuthorizationResource> => {
     //
@@ -111,11 +108,14 @@ export const processAuthorizations = (props: {
                 //
                 // Localize the key for the component if it is not global, and has a parent tag
                 //
-                const localizedKey = (parentTag && !(('global' in item.data && item.data.global) ?? false)) ? `${parentTag.key}.${item.data.key}` : item.data.key
+                const newComponent = new StandardReference(item.data)
+                if (!(newComponent._payload instanceof StandardReferenceSimple)) {
+                    throw new Error(`Component ${item.data.tag} does not have a valid reference payload`)
+                }
 
                 return mergeAuthByIds(
                     previous,
-                    processAuthorizations({ ...props, schema: item.children, componentContext: [...componentContext, { key: localizedKey, tag: item.data.tag }] })
+                    processAuthorizations({ ...props, schema: item.children, componentContext: [...componentContext, newComponent._payload.payload] })
                 )
             }
         }
@@ -125,7 +125,7 @@ export const processAuthorizations = (props: {
             // Create a reference to the nearest parent in the componentContext, and use
             // that to create a new StandardAuthorizationResource object to merge.
             //
-            const referenceStack = componentContext.map(({ key, tag }) => (new StandardReference({ key: key.split('.').slice(-1)[0], tag })))
+            const referenceStack = componentContext.map((reference) => (new StandardReference(reference)))
             const key = referenceStack.map(({ key }) => key).join('.')
             const itemResource = new StandardAuthorizationResource({
                 referenceStack,
