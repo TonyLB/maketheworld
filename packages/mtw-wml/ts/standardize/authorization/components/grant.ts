@@ -112,7 +112,7 @@ export class StandardGrant implements StandardAuthorizationItem {
 
     nestedSchema(byId: Record<string, StandardAuthorizationItem>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         return this._payload.nestedSchema
-            ? this._payload.nestedSchema(byId, { ...options, localKey: options.localKey, globalKey: options.globalKey })
+            ? this._payload.nestedSchema(byId, options)
             : this._payload.schema()
     }
 

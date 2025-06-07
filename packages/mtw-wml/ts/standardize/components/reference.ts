@@ -399,6 +399,7 @@ export class StandardReference {
         }
         const delta = factory(arg)
         if (!delta) {
+            console.log(`Invalid argument to StandardReference constructor: ${JSON.stringify(arg)}`)
             throw new Error('Invalid argument to StandardReference constructor')
         }
         if (delta.add) {

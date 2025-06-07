@@ -11,10 +11,10 @@ import processAuthorizations from "./processAuthorizations"
 import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
 import { StandardBaseData } from "../components/dataTypes/abstract"
 import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
-import { legacyStandardComponentSortOrder } from ".."
 import { unique } from "../../list"
 import { standardComponentByTag } from "../nonEditFactory"
 import { deepEqual } from "../../lib/objects"
+import { standardComponentSortOrder } from "../sortOrder"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -198,7 +198,7 @@ export class StandardAuthorizationCollection {
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
             const aComponent = sortOrderById[a.referenceStack.map(({ key }) => (key)).join('.')]
             const bComponent = sortOrderById[b.referenceStack.map(({ key }) => (key)).join('.')]
-            return legacyStandardComponentSortOrder(sortOrderById)(aComponent, bComponent)
+            return standardComponentSortOrder(aComponent._key, bComponent._key)
         }
     }
 
