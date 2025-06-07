@@ -465,7 +465,7 @@ export class StandardForm {
         const children = this._components
             .filter(({ key }) => (!(key ?? '').includes('.')))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .map((component) => (component.nestedSchema(this.byId, {})))
+            .map((component) => (component.nestedSchema(this._lookup, {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {
@@ -607,14 +607,12 @@ export class StandardForm {
                 }
                 else {
                     if (baseComponent) {
-                        console.log(`baseMatch: ${JSON.stringify(reference, null, 4)}`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             new StandardRemove(baseComponent)
                         )
                     }
                     if (incomingComponent) {
-                        console.log(`incomingMatch: ${JSON.stringify(reference, null, 4)}`)
                         return mergeToComponentList(mergedForKeys._universalKeyMapping)(
                             previous,
                             incomingComponent
@@ -623,7 +621,6 @@ export class StandardForm {
                     throw new Error('diff error')
                 }
             }, [])
-        console.log(`returnValue._components: ${returnValue._components.map(({ key, tag }) => (`${key} (${tag})`)).join(', ')}`)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)

@@ -8,7 +8,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList, StandardReferenceSimple } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -54,7 +54,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key, context } = options
         const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
         const newContext = [...(context ?? []), contextKey]
@@ -63,7 +63,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
             children: this.examples.map((reference) => (
                 reference.global
                     ? reference.schema[0]
-                    : byId[`${(newContext ?? []).map(ref => ref.key).join('.')}.${reference.key}`]?.nestedSchema(byId, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
+                    : lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
             )).filter(excludeUndefined)
         }
     }

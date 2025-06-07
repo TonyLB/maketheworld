@@ -46,7 +46,7 @@ export interface StandardComponent {
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;
-    nestedSchema(byId: Record<string, StandardComponent>, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     referencedKeys(): StandardComponentReferenceKey[];

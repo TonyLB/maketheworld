@@ -93,14 +93,14 @@ export class StandardRemove implements StandardComponent {
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { removeContext } = options
         if (removeContext) {
-            return this._match.nestedSchema(byId, options)
+            return this._match.nestedSchema(lookup, options)
         }
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(byId, { ...options, key: new StandardReferenceSimple({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
+            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
         }
     }
 
@@ -256,12 +256,12 @@ export class StandardReplace implements StandardComponent {
         }
     }
 
-    nestedSchema(byId: Record<string, StandardComponent>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Replace' },
             children: [
-                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(byId, options)] },
-                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(byId, options)] }
+                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(lookup, options)] },
+                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(lookup, options)] }
             ]
         }
     }
