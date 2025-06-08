@@ -6,6 +6,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import { ExportItemContent, ImportItemContent } from './components/metaData'
 import StandardCharacter from './components/character'
+import { StandardKey } from './components/reference'
 
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
@@ -2006,7 +2007,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
@@ -2034,7 +2035,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
@@ -2057,7 +2058,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'ShortName', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'ShortName', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)><ShortName>Test Room</ShortName></Room>
                 </Asset>
@@ -2077,7 +2078,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Stub', keys: ['testRoom'] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Stub', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)><Room key=(testRoom) /></Asset>
             `))
         })    
@@ -2099,7 +2100,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <Example key=(base)>
@@ -2128,7 +2129,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <Example key=(base)>
@@ -2161,7 +2162,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testFeature'], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testFeature', tag: 'Feature' })], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature key=(testFeature)>
                         <Example key=(base)>
@@ -2192,7 +2193,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: ['testMap'], cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testMap', tag: 'Map' })], cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom) />
                     <Map key=(testMap)>
@@ -2219,7 +2220,7 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: ['testRoom'], cascadeConditions: [{ conditionType: 'Exit', cascadeType: 'Exit' }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Exit', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ conditionType: 'Exit', cascadeType: 'Exit' }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>

@@ -17,7 +17,8 @@ import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
-import { StandardReferenceData } from "./components/dataTypes/reference";
+import { StandardKey } from "./components/reference";
+import { deepEqual } from "../lib/objects";
 
 type StandardBase = {
     key: string;
@@ -249,7 +250,7 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
 
 export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
-    keys: string[];
+    keys: StandardKey[];
     cascadeConditions?: {
         conditionType: 'Link' | 'Position' | 'Exit';
         cascadeType: StandardFormSubsetRequest["requestType"];
@@ -259,17 +260,17 @@ export type StandardFormSubsetRequestFull = {
 
 export type StandardFormSubsetRequestStub = {
     requestType: 'Stub',
-    keys: string[];
+    keys: StandardKey[];
 }
 
 export type StandardFormSubsetRequestShortName = {
     requestType: 'ShortName',
-    keys: string[];
+    keys: StandardKey[];
 }
 
 export type StandardFormSubsetRequestExit = {
     requestType: 'Exit',
-    keys: string[];
+    keys: StandardKey[];
     cascadeConditions?: {
         conditionType: 'Link' | 'Position' | 'Exit';
         cascadeType: StandardFormSubsetRequest["requestType"];
@@ -296,5 +297,27 @@ export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRe
             return 3
         case 'Stub':
             return 4
+    }
+}
+
+//
+// TODO: Create a standardForSubsetRequestMatch function that can compare two requests and determine if they have
+// equivalent arguments (other than their keys) and return a boolean. This will be useful for determining
+// if a new request can be merged with an existing one.
+//
+export const standardFormSubsetRequestMatch = (a: StandardFormSubsetRequest) => (b: StandardFormSubsetRequest): boolean => {
+    if (a.requestType !== b.requestType) {
+        return false
+    }
+    switch(a.requestType) {
+        case 'Full':
+        case 'Exit':
+            if (b.requestType !== a.requestType) {
+                return false
+            }
+            return deepEqual(a.cascadeConditions, b.cascadeConditions)
+        case 'ShortName':
+        case 'Stub':
+            return true
     }
 }

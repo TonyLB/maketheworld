@@ -18,6 +18,7 @@ import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
+import { StandardKey } from "./reference"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -100,10 +101,14 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    subset(): this {
+        return new StandardMapPayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this.positions.map((position ) => {
             if (position._payload instanceof StandardPositionSimple || position._payload instanceof StandardPositionReplace) {
-                return [{ referenceType: 'Position' as const, key: position._payload.room.key ?? '' }]
+                return [{ referenceType: 'Position' as const, key: position._payload.room.plain }]
             }
             return []
         }).flat(1)

@@ -6,6 +6,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardComponent } from "./baseClasses";
+import { StandardKey, StandardReferenceSimple } from "./reference";
 
 export class StandardActionPayload implements ComponentConstructorMethods<StandardActionData> {
     _src?: string;
@@ -54,7 +55,11 @@ export class StandardActionPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+    subset(): this {
+        return new StandardActionPayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
         return []
     }
 

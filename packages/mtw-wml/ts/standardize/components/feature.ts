@@ -79,9 +79,13 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    subset(): this {
+        return new StandardFeaturePayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.map(({ key }) => ({ referenceType: 'Direct' as const, key: key ?? '' }))
+            ...this.examples.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 

@@ -3,7 +3,7 @@ import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
+import { SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import { StandardReferenceSimple, StandardKey } from "./reference";
@@ -14,9 +14,8 @@ export type StandardToJSONOptions = {
 }
 
 export type StandardComponentReferenceKey = {
-    key: string;
+    key: StandardKey;
     referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
-    global?: boolean;
 }
 
 export type NestedSchemaOptions = {
@@ -49,6 +48,7 @@ export interface StandardComponent {
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
+    subset(options: StandardFormSubsetRequest): StandardComponent;
     referencedKeys(): StandardComponentReferenceKey[];
     remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;

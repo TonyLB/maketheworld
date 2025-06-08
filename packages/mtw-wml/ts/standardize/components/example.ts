@@ -15,6 +15,7 @@ import { ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { StandardKey } from "./reference"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -92,6 +93,10 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
+    subset(): this {
+        return new StandardExamplePayload() as this
+    }
+
     merge(incoming: this): this {
         const returnValue = new StandardExamplePayload()
         returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
@@ -100,12 +105,12 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...linkReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
-                .map((key) => ({ referenceType: 'Link' as const, key })),
+                .map((key) => ({ referenceType: 'Link' as const, key: new StandardKey(key) })),
             ...dependencyReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
-                .map((key) => ({ referenceType: 'Dependency' as const, key }))
+                .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey(key) }))
         ]
     }
 

@@ -14,6 +14,7 @@ import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
 import { StandardExportItem, StandardImportItem } from "./metaData"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardKey } from "./reference"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
@@ -97,7 +98,11 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+    subset(): this {
+        return new StandardCharacterPayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
         return []
     }
 

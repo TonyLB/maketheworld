@@ -16,7 +16,7 @@ import { ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/s
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import StandardReference from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 
@@ -81,9 +81,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    subset(): this {
+        return new StandardMessagePayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this._rooms.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global }))
+            ...this._rooms.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
