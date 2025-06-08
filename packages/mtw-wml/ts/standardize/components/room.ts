@@ -129,14 +129,25 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency", global?: boolean }[] {
+    subset({ requestType }): this {
+        if (requestType === 'Full') {
+            return new StandardRoomPayload(this) as this
+        }
+        const returnValue = new StandardRoomPayload()
+        if (requestType === 'Short') {
+            returnValue._shortName = this._shortName ? new StandardLiteral(this._shortName) : undefined
+        }
+        return returnValue as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency", global?: boolean }[] {
         return [
             ...dependencyReferenceKeys(this.exits.filter(excludeUndefined))
-                .map((key) => ({ referenceType: 'Dependency' as const, key })),
+                .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey({ key, tag: 'Room' }) })),
             ...exitReferenceKeys(this.exits)
-                .map((key) => ({ referenceType: 'Exit' as const, key })),
-            ...this.features.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global })),
-            ...this.examples.map(({ key, global }) => ({ referenceType: 'Direct' as const, key: key ?? '', global }))
+                .map((key) => ({ referenceType: 'Exit' as const, key: new StandardKey({ key, tag: 'Room' }) })),
+            ...this.features.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
+            ...this.examples.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 

@@ -47,7 +47,7 @@ export class StandardRemove implements StandardComponent {
     get export() { return this._match.export }
     get global() { return this._match.global }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this._match.referencedKeys()
     }
 
@@ -110,6 +110,10 @@ export class StandardRemove implements StandardComponent {
 
     diff(incoming: StandardComponent): StandardComponent | undefined {
         return undefined
+    }
+
+    subset(request): StandardComponent {
+        return new StandardRemove(this._match.subset(request))
     }
 
     withKey(key: string): StandardComponent {
@@ -280,7 +284,14 @@ export class StandardReplace implements StandardComponent {
         return undefined
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    subset(request): StandardComponent {
+        const returnValue = new StandardReplace(this)
+        returnValue._match = this._match.subset(request)
+        returnValue._payload = this._payload.subset(request)
+        return returnValue
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...this._match.referencedKeys(),
             ...this._payload.referencedKeys()

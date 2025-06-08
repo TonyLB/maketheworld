@@ -6,6 +6,7 @@ import { StandardVariableData } from "./dataTypes/variable"
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation";
+import { StandardKey } from "./reference";
 
 export class StandardVariablePayload implements ComponentConstructorMethods<StandardVariableData> {
     _default?: string;
@@ -50,8 +51,12 @@ export class StandardVariablePayload implements ComponentConstructorMethods<Stan
         returnValue._default = incoming.default ?? this.default
         return returnValue as this
     }
-    
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+
+    subset(): this {
+        return new StandardVariablePayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
         return []
     }
 

@@ -6,6 +6,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
+import { StandardKey } from "./reference";
 
 export class StandardComputedPayload implements ComponentConstructorMethods<StandardComputedData> {
     _src?: string;
@@ -56,8 +57,12 @@ export class StandardComputedPayload implements ComponentConstructorMethods<Stan
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
-        return (this.dependencies ?? []).map((key) => ({ key, referenceType: 'Dependency' }))
+    subset(): this {
+        return new StandardComputedPayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+        return (this.dependencies ?? []).map((key) => ({ key: new StandardKey(key), referenceType: 'Dependency' }))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {

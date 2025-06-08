@@ -6,6 +6,7 @@ import { StandardComponentExport, StandardComponentImport } from "./dataTypes/me
 import { StandardExportItem, StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
+import { StandardKey } from "./reference";
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
     tag = 'Image' as const;
@@ -41,7 +42,11 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    subset(): this {
+        return new StandardImagePayload() as this
+    }
+
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return []
     }
 

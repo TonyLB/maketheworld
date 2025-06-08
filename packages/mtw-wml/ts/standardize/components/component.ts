@@ -25,7 +25,7 @@ import { ComponentUUID, isSchemaComponent, isSchemaComponentTag, isSchemaCompone
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
-import { StandardComponentData } from "../baseClasses";
+import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
@@ -40,6 +40,7 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 export interface ComponentConstructorMethods<D> {
     fromJSON(line: D): void;
     fromSchema(node: GenericTreeNode<SchemaTag>): void;
+    subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
     schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
@@ -208,6 +209,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
                 return new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
             }
+        }
+
+        subset(options: StandardFormSubsetRequest): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._key = this._key
+            returnValue._payload = this._payload.subset(options)
+            return returnValue
         }
 
         withKey(key: string): StandardComponent {
