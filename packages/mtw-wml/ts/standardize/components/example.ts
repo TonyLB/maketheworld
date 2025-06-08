@@ -93,8 +93,12 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    subset(): this {
-        return new StandardExamplePayload() as this
+    subset({ requestType }): this {
+        if (requestType === 'Full') {
+            return new StandardExamplePayload(this) as this
+        }
+        const returnValue = new StandardExamplePayload()
+        return returnValue as this
     }
 
     merge(incoming: this): this {

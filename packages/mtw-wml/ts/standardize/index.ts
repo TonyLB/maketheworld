@@ -13,7 +13,7 @@ import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardComponent } from "./components/baseClasses"
+import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import { objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
@@ -713,32 +713,65 @@ export class StandardForm {
         // itself with the cascadeList as the new requests, and the merged requests as the prior requests.
         //
         const cascadeRequests = (newRequests: StandardFormSubsetRequest[], priorRequests: StandardFormSubsetRequest[] = []): StandardFormSubsetRequest[] => {
+            console.log(`cascadeRequests: [${JSON.stringify(newRequests, null, 4)}] x [${JSON.stringify(priorRequests, null, 4)}]`)
             const mergedRequests = newRequests.reduce(mergeIntoRequestList, priorRequests)
+            console.log(`mergedRequests: ${JSON.stringify(mergedRequests, null, 4)}`)
             const cascadeList = newRequests.reduce<StandardFormSubsetRequest[]>((previous, request) => {
                 if (request.requestType !== 'Full' && request.requestType !== 'Exit') {
                     return previous
                 }
-                if (request.cascadeConditions && request.cascadeConditions.length) {
-                    return request.cascadeConditions.map(({ conditionType, cascadeType, chainCascade }) => ({
-                        requestType: cascadeType,
-                        keys: request.keys
-                            .map((key) => (this._lookup(key)))
-                            .filter(excludeUndefined)
-                            .map((component) => (
-                                component.referencedKeys()
-                                    .filter(({ referenceType }) => (referenceType === conditionType))
-                                    .map(({ key }) => (key))
-                            ))
-                            .flat(1),
-                        cascadeConditions: chainCascade ? request.cascadeConditions : undefined
-                    })).reduce(mergeIntoRequestList, previous)
-                }
-                return previous
+                const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] =  (request.cascadeConditions && request.cascadeConditions.length)
+                    ? (key) => (
+                        request.cascadeConditions?.map(({ conditionType, cascadeType, chainCascade }) => {
+                            const returnValue = {
+                                requestType: cascadeType,
+                                keys: [this._lookup(key)]
+                                    .filter(excludeUndefined)
+                                    .map((component) => (
+                                        component.referencedKeys()
+                                            .filter(({ referenceType }) => (referenceType === conditionType))
+                                            .map(({ key }) => (key))
+                                    ))
+                                    .flat(1),
+                                cascadeConditions: chainCascade ? request.cascadeConditions : undefined
+                            }
+                            if (returnValue.keys.length === 0) {
+                                return []
+                            }
+                            return returnValue
+                        }).flat(1).filter(excludeUndefined) ?? [])
+                    : (key) => ([this._lookup(key)]
+                        .filter(excludeUndefined)
+                        .map((component) => (
+                            component.referencedKeys().map(({ key, referenceType }) => {
+                                if (referenceType === 'Direct') {
+                                    return {
+                                        requestType: 'Full' as const,
+                                        keys: [key],
+                                    }
+                                }
+                                if (referenceType === 'Link' || referenceType === 'Position') {
+                                    return {
+                                        requestType: 'ShortName' as const,
+                                        keys: [key]
+                                    }
+                                }
+                                return {
+                                    requestType: 'Stub' as const,
+                                    keys: [key]
+                                }
+                            })
+                        ))
+                        .flat(1)
+                    )
+                return request.keys.map(cascadeFunction).flat(1).reduce(mergeIntoRequestList, [])
             }, [])
+            console.log(`cascadeList: ${JSON.stringify(cascadeList, null, 4)}`)
             if (cascadeList.length === 0) {
                 return mergedRequests
             }
             const newCascadeList = cascadeList.filter((request) => (!mergedRequests.find(standardFormSubsetRequestMatch(request))))
+            console.log(`newCascadeList: ${JSON.stringify(newCascadeList, null, 4)}`)
             if (newCascadeList.length === 0) {
                 return mergedRequests
             }
@@ -746,6 +779,7 @@ export class StandardForm {
         }
 
         const allRequests = cascadeRequests(requests)
+        console.log(`allRequests: ${JSON.stringify(allRequests, null, 4)}`)
         const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent): StandardComponent[] => {
             if (request.requestType === 'Full') {
                 //
@@ -784,6 +818,8 @@ export class StandardForm {
                 const components = request.keys
                     .map((key) => (this._lookup(key)))
                     .filter(excludeUndefined)
+                    .map((component) => (requestOutput(request, component)))
+                    .flat(1)
                 return [...previous, ...components]
             }, [])
 

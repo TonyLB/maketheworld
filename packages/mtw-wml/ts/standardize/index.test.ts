@@ -1997,7 +1997,7 @@ describe('StandardForm', () => {
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
-                        <Example key=(base)>
+                        <Example uuid=(001)>
                             <Description><Link to=(testFeature)>link</Link></Description>
                         </Example>
                         <Exit to=(testRoomTwo)>exit</Exit>
@@ -2007,15 +2007,19 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }]).schema])).toEqual(deIndentWML(`
+            const subset = test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }])
+            console.log(`Subset: ${JSON.stringify(subset.toJSON(), null, 2)}`)
+            expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
-                        <Example key=(base)>
+                        <Example uuid=(001)>
                             <Description><Link to=(testFeature)>link</Link></Description>
                         </Example>
                         <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
+                    <Room key=(testRoomTwo) />
+                    <Feature key=(testFeature) />
                 </Asset>
             `))
         })    
