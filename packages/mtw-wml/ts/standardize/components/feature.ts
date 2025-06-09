@@ -63,8 +63,10 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         const { key, context } = options
         const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
         const newContext = [...(context ?? []), contextKey]
+        console.log(`StandardFeature.nestedSchema: ${JSON.stringify(this.toJSON(), null, 4)}`)
+        console.log(`Examples: ${JSON.stringify(this.examples.map((ref) => (lookup(ref._payload.plain)?.toJSON())), null, 4)}`)
         return {
-            data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
+            data: key.schema[0].data,
             children: this.examples.map((reference) => (
                 reference.global
                     ? reference.schema[0]

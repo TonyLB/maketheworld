@@ -98,22 +98,22 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key, context } = options
-        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
-        const newContext = [...(context ?? []), contextKey]
+        const { key } = options
+        console.log(`StandardRoom.nestedSchema: ${JSON.stringify(this.toJSON(), null, 4)}`)
+        console.log(`Examples: ${JSON.stringify(this.examples.map((ref) => (lookup(ref._payload.plain)?.toJSON())), null, 4)}`)
         return {
-            data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
+            data: key.schema[0].data,
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map((reference) => (
                     reference.global
                         ? reference.schema[0]
-                        : lookup(`${key.key}.${reference.key}`)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: [...context ?? [], contextKey] })
+                        : lookup(`${key.key}.${reference.key}`)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain) })
                 )).filter(excludeUndefined),
                 ...this.examples.map((reference) => (
                     reference.global
                         ? reference.schema[0]
-                        : lookup(`${(newContext ?? []).map(ref => ref.key).join('.')}.${reference.key}`)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
+                        : lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain) })
                 )).filter(excludeUndefined),
                 ...this.exits
             ]

@@ -462,7 +462,7 @@ export class StandardForm {
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
         const children = this._components
-            .filter(({ key }) => (!(key ?? '').includes('.')))
+            .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
             .map((component) => (component.nestedSchema(this._lookup.bind(this), {})))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))

@@ -2372,7 +2372,7 @@ describe('StandardForm', () => {
             <Asset key=(test)>
                 <Room uuid=(001) key=(testRoom)>
                     <Feature uuid=(004) key=(testLocal)>
-                        <Example uuid=(004b) key=(base)>
+                        <Example uuid=(004b)>
                             <Name>Clocktower</Name>
                             <Description>
                                 A tower built of white sandstone blocks, with an ornate
@@ -2381,17 +2381,16 @@ describe('StandardForm', () => {
                         </Example>
                     </Feature>
                     <Feature uuid=(003) global key=(testGlobal) />
-                    <Example uuid=(001b) key=(base)><Name>Vortex</Name></Example>
+                    <Example uuid=(001b)><Name>Vortex</Name></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
                 <Feature uuid=(003) key=(testGlobal)>
-                    <Example uuid=(003b) key=(base)>
-                        <Description>Global</Description>
-                    </Example>
+                    <Example uuid=(003b)><Description>Global</Description></Example>
                 </Feature>
             </Asset>
         `)
         const test = new StandardForm(testWML)
+        console.log(`Test: ${JSON.stringify(test.toJSON(), null, 2)}`)
 
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })

@@ -22,6 +22,7 @@ export type NestedSchemaOptions = {
     key: StandardReferenceSimple;
     context: StandardReferenceSimple[];
     removeContext?: boolean;
+    inLeastCommonContext?: boolean;
 }
 
 export type StandardDiffOptions = {
