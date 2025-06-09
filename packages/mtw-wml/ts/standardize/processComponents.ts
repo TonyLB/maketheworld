@@ -172,7 +172,6 @@ export const processComponents = (props: {
                 //
                 const localizedComponent = (parentTag && !(component.global ?? false))
                     ? component
-                        .withKey(`${parentTag.key}.${component.key}`)
                         .withLeastCommonContext(componentContext)
                     : component
 
