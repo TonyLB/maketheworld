@@ -114,7 +114,7 @@ export class StandardForm {
 
             const { importItemById, exportItemById } = importExportFromTree(args.metaData)
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
-            this._components = Object.values(args.byId).reduce<StandardComponent[]>((previous, standardData) => {
+            this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
                     return [
@@ -440,12 +440,7 @@ export class StandardForm {
         return {
             key: this._key,
             metaData: this.metaData,
-            byId: this._components.reduce<Record<string, StandardComponentData>>((previous, component) => {
-                return {
-                    ...previous,
-                    [component.key ?? '']: component.toJSON(options) as StandardComponentData
-                }
-            }, {})
+            components: this._components.map((component) => (component.toJSON(options) as StandardComponentData))
         }
     }
 
@@ -532,10 +527,8 @@ export class StandardForm {
         console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
         const mergedForKeys = new StandardForm({
             key: this.key,
-            byId: [...this._components, ...incoming._components]
-                .reduce<Record<string, StandardComponentData>>((previous, component) => {
-                    return { ...previous, [component.key ?? '']: defaultComponentFromTag(component.tag, component.key, component.universalKey) }
-                }, {}),
+            components: [...this._components, ...incoming._components]
+                .map((component) => (defaultComponentFromTag(component.tag, component.key, component.universalKey))),
             metaData: []
         })
         //
