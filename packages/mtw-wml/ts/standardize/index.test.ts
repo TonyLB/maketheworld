@@ -80,8 +80,8 @@ describe('StandardForm', () => {
         const test = new StandardForm({
             key: 'test',
             metaData: [],
-            byId: {
-                testReplace: {
+            components: [
+                {
                     tag: 'Replace',
                     key: 'testRoom',
                     universalKey: 'ROOM#testRoom',
@@ -97,7 +97,7 @@ describe('StandardForm', () => {
                         exits: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testRoomTwo', key: 'testRoom#testRoomTwo' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }],
                     }
                 },
-                testRemove: {
+                {
                     tag: 'Remove',
                     key: 'testRoomTwo',
                     universalKey: 'ROOM#testRoomTwo',
@@ -108,7 +108,7 @@ describe('StandardForm', () => {
                         exits: []
                     }
                 }
-            }
+            ]
         })
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(test)>
@@ -1663,21 +1663,21 @@ describe('StandardForm', () => {
         `)
         const testStandard = new StandardForm({
             key: 'Test',
-            byId: {
-                testRoomOne: {
+            components: [
+                {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
                     examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomOneBase' }],
                     exits: [],
                 },
-                'testRoomOne.base': {
+                {
                     tag: 'Example',
                     key: 'testRoomOne.base',
                     universalKey: 'EXAMPLE#testRoomOneBase',
                     name: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
                 },
-            },
+            ],
             metaData: []
         })
         const standardizer = inherited.merge(testStandard)
@@ -1702,8 +1702,8 @@ describe('StandardForm', () => {
         const inherited = new StandardForm(`<Asset key=(Test) />`)
         const testStandard = new StandardForm({
             key: 'Test',
-            byId: {
-                testRoomOne: {
+            components: [
+                {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
@@ -1714,7 +1714,7 @@ describe('StandardForm', () => {
                         payload: 'Replace'
                     }
                 }
-            },
+            ],
             metaData: []
         })
         const standardizer = inherited.merge(testStandard)

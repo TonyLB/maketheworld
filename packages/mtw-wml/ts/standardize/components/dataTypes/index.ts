@@ -103,7 +103,7 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 
 export type StandardFormData = {
     key?: string;
-    byId: Record<string, StandardComponentData>;
+    components: StandardComponentData[];
     metaData: GenericTree<SchemaTag>;
 }
 
@@ -113,13 +113,9 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
     if (typeof arg !== 'object') {
         return false
     }
-    // const firstErrorComponent = Object.values(arg.byId ?? {}).find((value) => !isStandardComponent(value))
-    // if (firstErrorComponent) {
-    //     console.error(`Invalid component in byId: ${JSON.stringify(firstErrorComponent, null, 4)}`)
-    // }
     return checkAll(
         ('key' in arg && typeof arg.key === 'string'),
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
-        ('byId' in arg && typeof arg.byId === 'object' && Object.values(arg.byId).every(isStandardComponent))
+        ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponent))
     )
 }
