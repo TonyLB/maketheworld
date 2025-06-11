@@ -26,9 +26,9 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
-import { ReferenceFormat } from "./utils/references";
+import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
+import StandardReference, { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -155,12 +155,29 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             const { context } = options
-            const contextKey = new StandardReferenceSimple(this._key)
+            const contextKey = new StandardKey(this._key)
             const newContext = [...(context ?? []), contextKey]
+            //
+            // inLeastCommonContext should not actually check the *whole* context, because while a sub-element of (say)
+            // a global-level element might have a leastCommonContext that shows that it was defined in the context of a
+            // room where its parent was referenced, the only relevant questions are whether:
+            //   (a) the element is being rendered in the context of its highest-level direct parent, and
+            //   (b) the parent has determined that *it* is in the correct context to render
+            //
+            const inLeastCommonContext = context?.length > 0
+                ? Boolean(
+                    this.leastCommonContext.length > 0 &&
+                    this.leastCommonContext.slice(-1)[0].payload.equals(context.slice(-1)[0])
+                )
+                : Boolean((this.leastCommonContext?.length ?? 0) === 0)
 
+            if (!inLeastCommonContext) {
+                const reference = (new StandardReference(this.key ?? this.universalKey))
+                return reference.schema[0]
+            }
             return this._payload.nestedSchema
-                ? this._payload.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(this._key), context: newContext })
-                : this._payload.schema(options.key?.key ?? this.key, options.key?.universalKey ?? this.universalKey)
+                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
+                : this._payload.schema(this.key, this.universalKey)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {

@@ -459,7 +459,7 @@ export class StandardForm {
         const children = this._components
             .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .map((component) => (component.nestedSchema(this._lookup.bind(this), {})))
+            .map((component) => (component.nestedSchema(this._lookup.bind(this), { context: [] })))
         const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
         const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {

@@ -15,6 +15,7 @@ import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
+import { renderReference } from "./utils/schema"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _examples: StandardReference[] = [];
@@ -60,18 +61,10 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key, context } = options
-        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
-        const newContext = [...(context ?? []), contextKey]
-        console.log(`StandardFeature.nestedSchema: ${JSON.stringify(this.toJSON(), null, 4)}`)
-        console.log(`Examples: ${JSON.stringify(this.examples.map((ref) => (lookup(ref._payload.plain)?.toJSON())), null, 4)}`)
+        const { key } = options
         return {
             data: key.schema[0].data,
-            children: this.examples.map((reference) => (
-                reference.global
-                    ? reference.schema[0]
-                    : lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
-            )).filter(excludeUndefined),
+            children: this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined),
         }
     }
 

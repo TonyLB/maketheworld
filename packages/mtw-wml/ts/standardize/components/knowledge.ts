@@ -14,6 +14,7 @@ import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
+import { renderReference } from "./utils/schema"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
     _examples: StandardReference[] = [];
@@ -55,16 +56,10 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key, context } = options
-        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
-        const newContext = [...(context ?? []), contextKey]
+        const { key } = options
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
-            children: this.examples.map((reference) => (
-                reference.global
-                    ? reference.schema[0]
-                    : lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
-            )).filter(excludeUndefined)
+            children: this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined)
         }
     }
 
