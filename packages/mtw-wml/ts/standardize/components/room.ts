@@ -22,7 +22,7 @@ import { deepEqual } from "../../lib/objects"
 import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
 import { isSchemaString } from "../../schema/baseClasses"
-import { isStandardRoom } from "../baseClasses"
+import { renderReference } from "./utils/schema"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -99,22 +99,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
-        console.log(`StandardRoom.nestedSchema: ${JSON.stringify(this.toJSON(), null, 4)}`)
-        console.log(`Examples: ${JSON.stringify(this.examples.map((ref) => (lookup(ref._payload.plain)?.toJSON())), null, 4)}`)
         return {
             data: key.schema[0].data,
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...this.features.map((reference) => (
-                    reference.global
-                        ? reference.schema[0]
-                        : lookup(`${key.key}.${reference.key}`)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain) })
-                )).filter(excludeUndefined),
-                ...this.examples.map((reference) => (
-                    reference.global
-                        ? reference.schema[0]
-                        : lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain) })
-                )).filter(excludeUndefined),
+                ...this.features.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.exits
             ]
         }

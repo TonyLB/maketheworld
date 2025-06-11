@@ -100,7 +100,7 @@ export class StandardRemove implements StandardComponent {
         }
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
+            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardKey({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
         }
     }
 

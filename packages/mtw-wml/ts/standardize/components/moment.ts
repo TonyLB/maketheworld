@@ -13,6 +13,7 @@ import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
+import { renderReference } from "./utils/schema"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _messages: StandardReference[] = [];
@@ -58,17 +59,10 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { key, context } = options
-        const contextKey = new StandardReferenceSimple(key?.plain ?? { tag: 'Room', key: key.key ?? '', uuid: key.universalKey })
-        const newContext = [...(context ?? []), contextKey]
+        const { key } = options
         return {
             data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
-            children: this.messages.map((reference) => {
-                if (reference.global) {
-                    return reference.schema
-                }
-                return lookup(reference._payload.plain)?.nestedSchema(lookup, { ...options, key: new StandardReferenceSimple(reference._payload.plain), context: newContext })
-            }).filter(excludeUndefined).flat(1)
+            children: this.messages.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
         }
     }
     

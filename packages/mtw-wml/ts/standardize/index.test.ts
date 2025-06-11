@@ -586,18 +586,19 @@ describe('StandardForm', () => {
 
     it('should correctly return schema for features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
+            <Feature uuid=(testGlobal) key=(testGlobal) />
             <Room uuid=(test) key=(test)>
                 <Feature uuid=(testLocal) key=(testLocal)>
-                    <Example uuid=(base) key=(base)>
+                    <Example uuid=(testFeatureExample)>
                         <Description>Local</Description>
                     </Example>
                 </Feature>
-                <Feature global uuid=(testGlobal) key=(testGlobal)>
-                    <Example uuid=(testGlobalBase) key=(base)>
+                <Feature key=(testGlobal)>
+                    <Example uuid=(testGlobalExample)>
                         <Description>Global</Description>
                     </Example>
                 </Feature>
-                <Example uuid=(testBase) key=(base)><Description>One</Description></Example>
+                <Example uuid=(testBase)><Description>One</Description></Example>
             </Room>
             <Room uuid=(testTwo) key=(testTwo) />
         </Asset>`)
@@ -605,18 +606,16 @@ describe('StandardForm', () => {
             <Asset key=(Test)>
                 <Room uuid=(test) key=(test)>
                     <Feature uuid=(testLocal) key=(testLocal)>
-                        <Example uuid=(base) key=(base)>
+                        <Example uuid=(testFeatureExample)>
                             <Description>Local</Description>
                         </Example>
                     </Feature>
-                    <Feature uuid=(testGlobal) global key=(testGlobal) />
-                    <Example uuid=(testBase) key=(base)>
-                        <Description>One</Description>
-                    </Example>
+                    <Feature key=(testGlobal) />
+                    <Example uuid=(testBase)><Description>One</Description></Example>
                 </Room>
                 <Room uuid=(testTwo) key=(testTwo) />
                 <Feature uuid=(testGlobal) key=(testGlobal)>
-                    <Example uuid=(testGlobalBase) key=(base)>
+                    <Example uuid=(testGlobalExample)>
                         <Description>Global</Description>
                     </Example>
                 </Feature>
@@ -1649,13 +1648,13 @@ describe('StandardForm', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Lobby</Name>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
+                    <Example uuid=(testRoomTwoBase)>
                         <Name>Test Two</Name>
                     </Example>
                 </Room>
@@ -1668,12 +1667,11 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomOneBase' }],
+                    examples: ['EXAMPLE#testRoomOneBase'],
                     exits: [],
                 },
                 {
                     tag: 'Example',
-                    key: 'testRoomOne.base',
                     universalKey: 'EXAMPLE#testRoomOneBase',
                     name: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
                 },
@@ -1684,15 +1682,13 @@ describe('StandardForm', () => {
         expect(schemaToWML([standardizer.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Lobby: Night</Name>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
-                        <Name>Test Two</Name>
-                    </Example>
+                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
                 </Room>
             </Asset>
         `))
@@ -1791,7 +1787,7 @@ describe('StandardForm', () => {
     it('should deserialize empty NDJSON correctly', () => {
         expect((new StandardForm([{ tag: 'Asset', key: 'Test', universalKey: 'ASSET#Test' }])).toJSON()).toEqual({
             key: 'Test',
-            byId: {},
+            components: [],
             metaData: []
         })
     })
@@ -2380,7 +2376,7 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature uuid=(003) global key=(testGlobal) />
+                    <Feature key=(testGlobal) />
                     <Example uuid=(001b)><Name>Vortex</Name></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />

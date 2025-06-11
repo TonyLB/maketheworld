@@ -19,8 +19,8 @@ export type StandardComponentReferenceKey = {
 }
 
 export type NestedSchemaOptions = {
-    key: StandardReferenceSimple;
-    context: StandardReferenceSimple[];
+    key: StandardKey;
+    context: StandardKey[];
     removeContext?: boolean;
     inLeastCommonContext?: boolean;
 }

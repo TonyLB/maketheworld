@@ -25,10 +25,10 @@ export const isStandardExample = (arg: any): arg is StandardExampleData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Example'),
-        checkTypes(arg, {
-            key: 'string',
-        },
+        checkTypes(arg, {},
         {
+            key: 'string',
+            universalKey: 'string',
             name: 'renderTree',
             summary: 'renderTree',
             description: 'renderTree'
