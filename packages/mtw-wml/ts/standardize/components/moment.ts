@@ -61,7 +61,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
         return {
-            data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
+            data: key.schema[0].data,
             children: this.messages.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
         }
     }
