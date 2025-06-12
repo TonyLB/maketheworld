@@ -1673,6 +1673,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomOneBase',
+                    context: [{ tag: 'Room', key: 'testRoomOne', universalKey: 'ROOM#testRoomOne' }],
                     name: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
                 },
             ],
