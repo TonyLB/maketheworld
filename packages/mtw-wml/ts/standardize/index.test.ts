@@ -722,20 +722,20 @@ describe('StandardForm', () => {
     it('should render features and links correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(test) key=(test)>
-                <Example uuid=(testBase) key=(base)>
+                <Example uuid=(testBase)>
                     <Description>
                         <Link to=(testFeatureOne)>test</Link>
                     </Description>
                 </Example>
             </Room>
             <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
-                <Example uuid=(testFeatureOneBase) key=(base)>
+                <Example uuid=(testFeatureOneBase)>
                     <Name>TestOne</Name>
                     <Description><Link to=(testFeatureTwo)>two</Link></Description>
                 </Example>
             </Feature>
             <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
-                <Example uuid=(testFeatureTwoBase) key=(base)>
+                <Example uuid=(testFeatureTwoBase)>
                     <Name>TestTwo</Name>
                     <Description>Test</Description>
                 </Example>
@@ -744,18 +744,18 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(test) key=(test)>
-                    <Example uuid=(testBase) key=(base)>
+                    <Example uuid=(testBase)>
                         <Description><Link to=(testFeatureOne)>test</Link></Description>
                     </Example>
                 </Room>
                 <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
-                    <Example uuid=(testFeatureOneBase) key=(base)>
+                    <Example uuid=(testFeatureOneBase)>
                         <Name>TestOne</Name>
                         <Description><Link to=(testFeatureTwo)>two</Link></Description>
                     </Example>
                 </Feature>
                 <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
-                    <Example uuid=(testFeatureTwoBase) key=(base)>
+                    <Example uuid=(testFeatureTwoBase)>
                         <Name>TestTwo</Name>
                         <Description>Test</Description>
                     </Example>
@@ -767,20 +767,20 @@ describe('StandardForm', () => {
     it('should render knowledge correctly', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(test) key=(test)>
-                <Example uuid=(testBase) key=(base)>
+                <Example uuid=(testBase)>
                     <Description>
                         <Link to=(testKnowledgeOne)>test</Link>
                     </Description>
                 </Example>
             </Room>
             <Knowledge uuid=(testKnowledgeOne) key=(testKnowledgeOne)>
-                <Example uuid=(testKnowledgeOneBase) key=(base)>
+                <Example uuid=(testKnowledgeOneBase)>
                     <Name>TestOne</Name>
                     <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
                 </Example>
             </Knowledge>
             <Knowledge uuid=(testKnowledgeTwo) key=(testKnowledgeTwo)>
-                <Example uuid=(testKnowledgeTwoBase) key=(base)>
+                <Example uuid=(testKnowledgeTwoBase)>
                     <Name>TestTwo</Name>
                     <Description>Test</Description>
                 </Example>
@@ -789,18 +789,18 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(test) key=(test)>
-                    <Example uuid=(testBase) key=(base)>
+                    <Example uuid=(testBase)>
                         <Description><Link to=(testKnowledgeOne)>test</Link></Description>
                     </Example>
                 </Room>
                 <Knowledge uuid=(testKnowledgeOne) key=(testKnowledgeOne)>
-                    <Example uuid=(testKnowledgeOneBase) key=(base)>
+                    <Example uuid=(testKnowledgeOneBase)>
                         <Name>TestOne</Name>
                         <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
                     </Example>
                 </Knowledge>
                 <Knowledge uuid=(testKnowledgeTwo) key=(testKnowledgeTwo)>
-                    <Example uuid=(testKnowledgeTwoBase) key=(base)>
+                    <Example uuid=(testKnowledgeTwoBase)>
                         <Name>TestTwo</Name>
                         <Description>Test</Description>
                     </Example>
@@ -815,7 +815,7 @@ describe('StandardForm', () => {
                 <Name>Test map</Name>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Position x="0" y="0" />
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
@@ -824,7 +824,7 @@ describe('StandardForm', () => {
                     <Room uuid=(testRoomOne) key=(testRoomOne) />
                     <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                         <Position x="-100" y="0" />
-                        <Example uuid=(testRoomTwoBase) key=(base)>
+                        <Example uuid=(testRoomTwoBase)>
                             <Description>Test Room Two</Description>
                         </Example>
                         <Exit to=(testRoomOne)>one</Exit>
@@ -839,14 +839,14 @@ describe('StandardForm', () => {
             <Asset key=(Test)>
                 <Image key=(mapBackground) />
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room uuid=(testRoomThree) key=(testRoomThree) />
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
+                    <Example uuid=(testRoomTwoBase)>
                         <Description><If {false}>Test Room Two</If></Description>
                     </Example>
                     <If {false}><Exit to=(testRoomOne)>one</Exit></If>
@@ -874,13 +874,13 @@ describe('StandardForm', () => {
             <Message uuid=(testMessage) key=(testMessage)>
                 Test message
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
+                    <Example uuid=(testRoomTwoBase)>
                         <Description>Test Room Two</Description>
                     </Example>
                     <Exit to=(testRoomOne)>one</Exit>
@@ -890,13 +890,13 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
+                    <Example uuid=(testRoomTwoBase)>
                         <Description>Test Room Two</Description>
                     </Example>
                     <Exit to=(testRoomOne)>one</Exit>
@@ -916,7 +916,7 @@ describe('StandardForm', () => {
                 <Message uuid=(testMessage) key=(testMessage)>
                     Test message
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
-                        <Example uuid=(testRoomOneBase) key=(base)>
+                        <Example uuid=(testRoomOneBase)>
                             <Description>Test Room One</Description>
                         </Example>
                         <Exit to=(testRoomTwo)>two</Exit>
@@ -927,7 +927,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
