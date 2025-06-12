@@ -923,6 +923,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Message>
             </Moment>
+            <Room uuid=(testRoomTwo) key=(testRoomTwo) />
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
@@ -932,6 +933,7 @@ describe('StandardForm', () => {
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
+                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
                 <Message uuid=(testMessage) key=(testMessage)>
                     <Room uuid=(testRoomOne) key=(testRoomOne) />Test message
                 </Message>
