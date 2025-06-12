@@ -19,6 +19,7 @@ import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
+import { StandardReferenceData } from "./components/dataTypes/reference";
 
 type StandardBase = {
     key: string;
@@ -59,6 +60,7 @@ export type StandardRemove = {
     key?: string;
     universalKey?: string;
     tag: 'Remove';
+    context?: StandardReferenceData[];
     component: StandardComponentDataNonEdit;
 }
 
@@ -66,6 +68,7 @@ export type StandardReplace = {
     key?: string;
     universalKey?: string;
     tag: 'Replace';
+    context?: StandardReferenceData[];
     match: StandardComponentDataNonEdit;
     payload: StandardComponentDataNonEdit;
 }

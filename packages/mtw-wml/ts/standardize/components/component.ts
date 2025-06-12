@@ -29,6 +29,7 @@ import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses
 import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
+import { excludeUndefined } from "../../lib/lists";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -99,7 +100,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             this._key = isStandardReferenceData(props) ? new StandardKey(props) : (typeof props === 'string' ? new StandardKey(props) : new StandardKey(''))
             this._payload.fromJSON(props)
-            this.leastCommonContext = []
+            this.leastCommonContext = props.context?.map((context) => {
+                if (typeof context === 'string') {
+                    return new StandardReferenceSimple(context)
+                }
+                if (isStandardReferenceData(context)) {
+                    return new StandardReferenceSimple({ key: context.key, universalKey: context.universalKey, tag: context.tag, global: context.global })
+                }
+                throw new Error(`Invalid context data in ${label} constructor: ${JSON.stringify(context)}`)
+            }).filter(excludeUndefined) ?? []
         }
 
         get key(): string | undefined { return this._key.key }
@@ -143,6 +152,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return {
                 key: this.key,
                 universalKey: this.universalKey,
+                context: this.leastCommonContext?.length > 0 ? this.leastCommonContext.map((context) => context.toJSON()): undefined,
                 ...this._payload.toJSON(options),
                 ...(this.import ? { from: this.import.toJSON() } : {}),
                 ...(this.export ? { exportAs: this.export.toJSON() } : {})

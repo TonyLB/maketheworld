@@ -2,10 +2,18 @@ import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { ComponentUUID, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
+type StandardReferenceData = string | ({
+    key?: string;
+    universalKey?: ComponentUUID;
+    tag: ComponentTag;
+    global?: boolean;
+})
+
 export type StandardBaseData = {
     key?: string;
     universalKey?: ComponentUUID;
     update?: boolean;
+    context?: StandardReferenceData[];
 }
 
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = GenericTreeNodeFiltered<T, ChildType>
