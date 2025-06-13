@@ -251,21 +251,22 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             key: 'Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
-            byId: {
-                testRoom: {
+            components: [
+                {
                     tag: 'Room',
                     key: 'testRoom',
                     universalKey: 'ROOM#testRoom',
                     examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomBase' }],
                     exits: [],
                 },
-                'testRoom.base': {
+                {
                     tag: 'Example',
-                    key: 'testRoom.base',
+                    key: 'base',
+                    context: [{ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' }],
                     universalKey: 'EXAMPLE#testRoomBase',
                     description: ['Test Description']
                 }
-            }
+            ]
         })
     })
 
@@ -410,12 +411,12 @@ describe('StandardForm', () => {
     it('should correctly return JSON for features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(testRoom) key=(test)>
-                <Example uuid=(testRoomBase) key=(base)><Description>One</Description></Example>
+                <Example uuid=(testRoomBase)><Description>One</Description></Example>
                 <Feature uuid=(testLocal) key=(testLocal)>
-                    <Example uuid=(testLocalBase) key=(base)><Description>Local</Description></Example>
+                    <Example uuid=(testLocalBase)><Description>Local</Description></Example>
                 </Feature>
                 <Feature global uuid=(testGlobal) key=(testGlobal)>
-                    <Example uuid=(testGlobalBase) key=(base)><Description>Global</Description></Example>
+                    <Example uuid=(testGlobalBase)><Description>Global</Description></Example>
                 </Feature>
             </Room>
             <Room uuid=(testTwo) key=(testTwo) />
@@ -423,63 +424,62 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             key: 'Test',
             metaData: [],
-            byId: {
-                test: {
-                    tag: 'Room',
-                    key: 'test',
-                    universalKey: 'ROOM#testRoom',
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomBase' }],
-                    exits: [],
-                    features: [
-                        { tag: 'Feature', key: 'testLocal', universalKey: 'FEATURE#testLocal' },
-                        { tag: 'Feature', global: true, key: 'testGlobal', universalKey: 'FEATURE#testGlobal' }
-                    ]
-                },
-                'test.base': {
-                    tag: 'Example',
-                    key: 'test.base',
-                    universalKey: 'EXAMPLE#testRoomBase',
-                    description: ['One']
-                },
-                ['test.testLocal']: {
-                    tag: 'Feature',
-                    key: 'test.testLocal',
-                    universalKey: 'FEATURE#testLocal',
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testLocalBase' }]
-                },
-                ['test.testLocal.base']: {
-                    tag: 'Example',
-                    key: 'test.testLocal.base',
-                    universalKey: 'EXAMPLE#testLocalBase',
-                    description: ['Local']
-                },
-                testGlobal: {
-                    tag: 'Feature',
-                    key: 'testGlobal',
-                    universalKey: 'FEATURE#testGlobal',
-                    global: true,
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testGlobalBase' }]
-                },
-                ['testGlobal.base']: {
-                    tag: 'Example',
-                    key: 'testGlobal.base',
-                    universalKey: 'EXAMPLE#testGlobalBase',
-                    description: ['Global']
-                },
-                testTwo: {
-                    tag: 'Room',
-                    key: 'testTwo',
-                    universalKey: 'ROOM#testTwo',
-                    exits: []
-                }
-            }
+            components: [{
+                tag: 'Room',
+                key: 'test',
+                universalKey: 'ROOM#testRoom',
+                examples: ['EXAMPLE#testRoomBase'],
+                exits: [],
+                features: [
+                    { tag: 'Feature', key: 'testLocal', universalKey: 'FEATURE#testLocal' },
+                    { tag: 'Feature', global: true, key: 'testGlobal', universalKey: 'FEATURE#testGlobal' }
+                ]
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' }],
+                universalKey: 'EXAMPLE#testRoomBase',
+                description: ['One']
+            },
+            {
+                tag: 'Feature',
+                key: 'testLocal',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' }],
+                universalKey: 'FEATURE#testLocal',
+                examples: ['EXAMPLE#testLocalBase']
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' }, { key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#testLocal' }],
+                universalKey: 'EXAMPLE#testLocalBase',
+                description: ['Local']
+            },
+            {
+                tag: 'Feature',
+                key: 'testGlobal',
+                universalKey: 'FEATURE#testGlobal',
+                global: true,
+                examples: ['EXAMPLE#testGlobalBase']
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' }, { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#testGlobal' }],
+                universalKey: 'EXAMPLE#testGlobalBase',
+                description: ['Global']
+            },
+            {
+                tag: 'Room',
+                key: 'testTwo',
+                universalKey: 'ROOM#testTwo',
+                exits: []
+            }]
         })
     })
 
     it('should correctly return JSON for examples nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(test) key=(test)>
-                <Example uuid=(testLocal) key=(testLocal)>
+                <Example uuid=(testLocal)>
                     <Description>Description Test</Description>
                 </Example>
             </Room>
@@ -488,34 +488,32 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             key: 'Test',
             metaData: [],
-            byId: {
-                test: {
-                    tag: 'Room',
-                    key: 'test',
-                    universalKey: 'ROOM#test',
-                    exits: [],
-                    examples: [{ tag: 'Example', key: 'testLocal', universalKey: 'EXAMPLE#testLocal' }]
-                },
-                ['test.testLocal']: {
-                    tag: 'Example',
-                    key: 'test.testLocal',
-                    universalKey: 'EXAMPLE#testLocal',
-                    description: ['Description Test']
-                },
-                testTwo: {
-                    tag: 'Room',
-                    key: 'testTwo',
-                    universalKey: 'ROOM#testTwo',
-                    exits: []
-                }
-            }
+            components: [{
+                tag: 'Room',
+                key: 'test',
+                universalKey: 'ROOM#test',
+                exits: [],
+                examples: ['EXAMPLE#testLocal']
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#test' }],
+                universalKey: 'EXAMPLE#testLocal',
+                description: ['Description Test']
+            },
+            {
+                tag: 'Room',
+                key: 'testTwo',
+                universalKey: 'ROOM#testTwo',
+                exits: []
+            }]
         })
     })
 
     it('should correctly return JSON for examples nested in Knowledge', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Knowledge uuid=(test) key=(test)>
-                <Example uuid=(testLocal) key=(testLocal)>
+                <Example uuid=(testLocal)>
                     <Description>Description Test</Description>
                 </Example>
             </Knowledge>
@@ -523,20 +521,18 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             key: 'Test',
             metaData: [],
-            byId: {
-                test: {
-                    tag: 'Knowledge',
-                    key: 'test',
-                    universalKey: 'KNOWLEDGE#test',
-                    examples: [{ tag: 'Example', key: 'testLocal', universalKey: 'EXAMPLE#testLocal' }]
-                },
-                ['test.testLocal']: {
-                    tag: 'Example',
-                    key: 'test.testLocal',
-                    universalKey: 'EXAMPLE#testLocal',
-                    description: ['Description Test']
-                }
-            }
+            components: [{
+                tag: 'Knowledge',
+                key: 'test',
+                universalKey: 'KNOWLEDGE#test',
+                examples: ['EXAMPLE#testLocal']
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Knowledge', universalKey: 'KNOWLEDGE#test' }],
+                universalKey: 'EXAMPLE#testLocal',
+                description: ['Description Test']
+            }]
         })
     })
 
@@ -554,33 +550,31 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             key: 'Test',
             metaData: [],
-            byId: {
-                test: {
-                    tag: 'Room',
-                    key: 'test',
-                    universalKey: 'ROOM#test',
-                    exits: [],
-                    features: [{ tag: 'Feature', key: 'testFeature', universalKey: 'FEATURE#testFeature' }]
-                },
-                ['test.testFeature']: {
-                    tag: 'Feature',
-                    key: 'test.testFeature',
-                    universalKey: 'FEATURE#testFeature',
-                    examples: [{ tag: 'Example', key: 'testLocal', universalKey: 'EXAMPLE#testLocal' }]
-                },
-                ['test.testFeature.testLocal']: {
-                    tag: 'Example',
-                    key: 'test.testFeature.testLocal',
-                    universalKey: 'EXAMPLE#testLocal',
-                    description: ['Description Test']
-                },
-                testTwo: {
-                    tag: 'Room',
-                    key: 'testTwo',
-                    universalKey: 'ROOM#testTwo',
-                    exits: []
-                }
-            }
+            components: [{
+                tag: 'Room',
+                key: 'test',
+                universalKey: 'ROOM#test',
+                exits: [],
+                features: [{ tag: 'Feature', key: 'testFeature', universalKey: 'FEATURE#testFeature' }]
+            },
+            {
+                tag: 'Feature',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#test' }],
+                universalKey: 'FEATURE#testFeature',
+                examples: ['EXAMPLE#testLocal']
+            },
+            {
+                tag: 'Example',
+                context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#test' }, { key: 'testFeature', tag: 'Feature', universalKey: 'FEATURE#testFeature' }],
+                universalKey: 'EXAMPLE#testLocal',
+                description: ['Description Test']
+            },
+            {
+                tag: 'Room',
+                key: 'testTwo',
+                universalKey: 'ROOM#testTwo',
+                exits: []
+            }]
         })
     })
 
@@ -2007,7 +2001,6 @@ describe('StandardForm', () => {
                 </Asset>
             `)
             const subset = test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }])
-            console.log(`Subset: ${JSON.stringify(subset.toJSON(), null, 2)}`)
             expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
@@ -2379,7 +2372,7 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature key=(testGlobal) />
+                    <Feature uuid=(003) key=(testGlobal) />
                     <Example uuid=(001b)><Name>Vortex</Name></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
@@ -2389,7 +2382,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testWML)
-        console.log(`Test: ${JSON.stringify(test.toJSON(), null, 2)}`)
 
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
