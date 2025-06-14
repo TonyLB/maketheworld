@@ -713,57 +713,64 @@ export class StandardForm {
                 if (request.requestType !== 'Full' && request.requestType !== 'Exit') {
                     return previous
                 }
-                const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] =  (request.cascadeConditions && request.cascadeConditions.length)
-                    ? (key) => (
-                        request.cascadeConditions?.map(({ conditionType, cascadeType, chainCascade }) => {
-                            const returnValue = {
-                                requestType: cascadeType,
-                                keys: [this._lookup(key)]
-                                    .filter(excludeUndefined)
-                                    .map((component) => (
-                                        component.referencedKeys()
-                                            .filter(({ referenceType }) => (referenceType === conditionType))
-                                            .map(({ key }) => (key))
-                                    ))
-                                    .flat(1),
-                                cascadeConditions: chainCascade ? request.cascadeConditions : undefined
-                            }
-                            if (returnValue.keys.length === 0) {
-                                return []
-                            }
-                            return returnValue
-                        }).flat(1).filter(excludeUndefined) ?? [])
-                    : (key) => ([this._lookup(key)]
-                        .filter(excludeUndefined)
-                        .map((component) => (
-                            component.referencedKeys().map(({ key, referenceType }) => {
-                                if (referenceType === 'Direct') {
-                                    return {
-                                        requestType: 'Full' as const,
-                                        keys: [key],
+                const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] = (key) => ([
+                        ...([this._lookup(key)]
+                            .filter(excludeUndefined)
+                            .map((component) => (
+                                component.referencedKeys().map(({ key, referenceType }) => {
+                                    if (request.requestType === 'Full') {
+                                        if (referenceType === 'Direct') {
+                                            return {
+                                                requestType: 'Full' as const,
+                                                keys: [key],
+                                            }
+                                        }
+                                        if (referenceType === 'Position') {
+                                            return {
+                                                requestType: 'ShortName' as const,
+                                                keys: [key]
+                                            }
+                                        }
                                     }
-                                }
-                                if (referenceType === 'Link' || referenceType === 'Position') {
                                     return {
-                                        requestType: 'ShortName' as const,
+                                        requestType: 'Stub' as const,
                                         keys: [key]
                                     }
+                                })
+                            ))
+                            .flat(1)
+                        ),
+                        ...(request.cascadeConditions && request.cascadeConditions.length)
+                            ? request.cascadeConditions?.map(({ conditionType, cascadeType, chainCascade }) => {
+                                const returnValue = {
+                                    requestType: cascadeType,
+                                    keys: [this._lookup(key)]
+                                        .filter(excludeUndefined)
+                                        .map((component) => (
+                                            component.referencedKeys()
+                                                .filter(({ referenceType }) => (referenceType === conditionType))
+                                                .map(({ key }) => (key))
+                                        ))
+                                        .flat(1),
+                                    cascadeConditions: chainCascade ? request.cascadeConditions : undefined
                                 }
-                                return {
-                                    requestType: 'Stub' as const,
-                                    keys: [key]
+                                if (returnValue.keys.length === 0) {
+                                    return []
                                 }
-                            })
-                        ))
-                        .flat(1)
-                    )
+                                return returnValue
+                            }).flat(1).filter(excludeUndefined) ?? []
+                            : []
+                    ])
                 return request.keys.map(cascadeFunction).flat(1).reduce(mergeIntoRequestList, [])
             }, [])
             console.log(`cascadeList: ${JSON.stringify(cascadeList, null, 4)}`)
             if (cascadeList.length === 0) {
                 return mergedRequests
             }
-            const newCascadeList = cascadeList.filter((request) => (!mergedRequests.find(standardFormSubsetRequestMatch(request))))
+            const newCascadeList = cascadeList.filter((request) => (!mergedRequests.find((checkRequest) => (
+                standardFormSubsetRequestMatch(request) &&
+                (!request.keys.some((key) => (!checkRequest.keys.some((checkKey) => (key.equals(checkKey))))))
+            ))))
             console.log(`newCascadeList: ${JSON.stringify(newCascadeList, null, 4)}`)
             if (newCascadeList.length === 0) {
                 return mergedRequests
@@ -780,7 +787,7 @@ export class StandardForm {
                 // in the output.
                 //
                 if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
-                    return [component, ...component.examples.map(({ key }) => (this.byId[`${component.key}.${key}`]))]
+                    return [component, ...component.examples.map((reference) => (this._lookup(reference._payload.plain)))].filter(excludeUndefined)
                 }
                 return [component]
             }

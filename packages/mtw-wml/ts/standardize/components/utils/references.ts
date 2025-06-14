@@ -9,12 +9,12 @@ import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/component
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardReferenceData } from "../dataTypes/reference"
 
-export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
+export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
         .map(({ data, children }) => {
             if (isSchemaLink(data)) {
                 return [
-                    data.to,
+                    new StandardKey(data.to),
                     ...linkReferenceKeys(children)
                 ]
             }
@@ -43,23 +43,23 @@ export const dependencyReferenceKeys = (tree: GenericTree<SchemaTag>): string[] 
     )
 }
 
-export const directReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
-    return unique(tree
-        .map(({ data, children }) => {
-            if (isImportable(data)) {
-                return [
-                    data.key,
-                    ...linkReferenceKeys(children)
-                ]
-            }
-            else {
-                return linkReferenceKeys(children)
-            }
-        })
-        .flat(1)
-        .filter(excludeUndefined)
-    )
-}
+// export const directReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
+//     return unique(tree
+//         .map(({ data, children }) => {
+//             if (isImportable(data)) {
+//                 return [
+//                     data.key,
+//                     ...linkReferenceKeys(children)
+//                 ]
+//             }
+//             else {
+//                 return linkReferenceKeys(children)
+//             }
+//         })
+//         .flat(1)
+//         .filter(excludeUndefined)
+//     )
+// }
 
 export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     const tagTree = new SchemaTagTree(tree)
