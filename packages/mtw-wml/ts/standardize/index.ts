@@ -210,14 +210,14 @@ export class StandardForm {
                 ]
 
                 const componentFragments = processComponents({ componentTemplates, schema: node.children })
-                const universalKeyMappings: { universalKey?: ComponentUUID; key?: string }[] = componentFragments
-                    .reduce<{ universalKey?: ComponentUUID; key?: string }[]>((previous, component) => {
+                const universalKeyMappings: StandardKey[] = componentFragments
+                    .reduce<StandardKey[]>((previous, component) => {
                         const previousMatchIndex = previous.findIndex(({ key, universalKey }) => (
                             (key && key === component.key) ||
                             (universalKey && universalKey === component.universalKey)
                         ))
                         if (previousMatchIndex === -1) {
-                            return [...previous, { universalKey: component.universalKey, key: component.key }]
+                            return [...previous, new StandardKey(component._key)]
                         }
                         const previousMatch = previous[previousMatchIndex]
                         if (previousMatch && (
@@ -227,10 +227,11 @@ export class StandardForm {
                         }
                         return [
                             ...previous.slice(0, previousMatchIndex),
-                            {
+                            new StandardKey({
                                 universalKey: previousMatch.universalKey ?? component.universalKey,
-                                key: previousMatch.key ?? component.key
-                            },
+                                key: previousMatch.key ?? component.key,
+                                tag: previousMatch.tag ?? component.tag
+                            }),
                             ...previous.slice(previousMatchIndex + 1)
                         ]
                     }, [])
@@ -484,12 +485,9 @@ export class StandardForm {
         return returnValue
     }
 
-    get _universalKeyMapping(): UniversalKeyMapping[] {
+    get _keys(): StandardKey[] {
         return this._components
-            .map((component) => ({
-                key: component.key,
-                universalKey: component.universalKey
-            }))
+            .map((component) => (component._key))
     }
 
     _lookup(reference: StandardReferenceData): StandardComponent | undefined {
@@ -507,7 +505,7 @@ export class StandardForm {
     // and merges all contents in place
     //
     merge(incoming: StandardForm): StandardForm {
-        const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._universalKeyMapping, ...incoming._universalKeyMapping])
+        const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
         const returnValue = this._clone()
         returnValue._components = [...this._clone()._components, ...incoming._clone()._components].reduce(mergeToComponentList(mergedUniversalKeyMappings), [])
 
@@ -589,7 +587,7 @@ export class StandardForm {
                                 ? incomingExport
                                 : undefined
                     if (diffedComponent) {
-                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                        return mergeToComponentList(mergedForKeys._keys)(
                             previous,
                             diffedComponent.withImport(diffImport).withExport(diffExport)
                         )
@@ -599,13 +597,13 @@ export class StandardForm {
                 }
                 else {
                     if (baseComponent) {
-                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                        return mergeToComponentList(mergedForKeys._keys)(
                             previous,
                             new StandardRemove(baseComponent)
                         )
                     }
                     if (incomingComponent) {
-                        return mergeToComponentList(mergedForKeys._universalKeyMapping)(
+                        return mergeToComponentList(mergedForKeys._keys)(
                             previous,
                             incomingComponent
                         )
@@ -706,64 +704,72 @@ export class StandardForm {
         // itself with the cascadeList as the new requests, and the merged requests as the prior requests.
         //
         const cascadeRequests = (newRequests: StandardFormSubsetRequest[], priorRequests: StandardFormSubsetRequest[] = []): StandardFormSubsetRequest[] => {
-            console.log(`cascadeRequests: [${JSON.stringify(newRequests, null, 4)}] x [${JSON.stringify(priorRequests, null, 4)}]`)
             const mergedRequests = newRequests.reduce(mergeIntoRequestList, priorRequests)
-            console.log(`mergedRequests: ${JSON.stringify(mergedRequests, null, 4)}`)
             const cascadeList = newRequests.reduce<StandardFormSubsetRequest[]>((previous, request) => {
                 if (request.requestType !== 'Full' && request.requestType !== 'Exit') {
                     return previous
                 }
                 const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] = (key) => ([
-                        ...([this._lookup(key)]
+                    ...([this._lookup(key)]
+                        .filter(excludeUndefined)
+                        .map((component) => (
+                            component.referencedKeys().map(({ key, referenceType }) => {
+                                if (request.requestType === 'Full') {
+                                    if (referenceType === 'Direct') {
+                                        return {
+                                            requestType: 'Full' as const,
+                                            keys: [key],
+                                            cascadeConditions: request.cascadeConditions?.filter(({ chainCascade }) => (chainCascade))
+                                        }
+                                    }
+                                    if (referenceType === 'Position') {
+                                        return {
+                                            requestType: 'ShortName' as const,
+                                            keys: [key],
+                                            cascadeConditions: request.cascadeConditions?.filter(({ chainCascade }) => (chainCascade))
+                                        }
+                                    }
+                                }
+                                return {
+                                    requestType: 'Stub' as const,
+                                    keys: [key],
+                                    cascadeConditions: request.cascadeConditions?.filter(({ chainCascade }) => (chainCascade))
+                                }
+                            })
+                        ))
+                        .flat(1)
+                    ),
+                    ...(request.cascadeConditions && request.cascadeConditions.length)
+                        ? request.cascadeConditions?.map(({ conditionType, cascadeType, chainCascade }) => {
+                            const returnValue = {
+                                requestType: cascadeType,
+                                keys: [this._lookup(key)]
+                                    .filter(excludeUndefined)
+                                    .map((component) => (
+                                        component.referencedKeys()
+                                            .filter(({ referenceType }) => (referenceType === conditionType))
+                                            .map(({ key }) => (key))
+                                    ))
+                                    .flat(1),
+                                cascadeConditions: chainCascade ? request.cascadeConditions : undefined
+                            }
+                            if (returnValue.keys.length === 0) {
+                                return []
+                            }
+                            return returnValue
+                        }).flat(1).filter(excludeUndefined) ?? []
+                        : []
+                ])
+                return request.keys.map(cascadeFunction)
+                    .flat(1)
+                    .map((request) => ({
+                        ...request,
+                        keys: request.keys.map(this._lookup.bind(this))
                             .filter(excludeUndefined)
-                            .map((component) => (
-                                component.referencedKeys().map(({ key, referenceType }) => {
-                                    if (request.requestType === 'Full') {
-                                        if (referenceType === 'Direct') {
-                                            return {
-                                                requestType: 'Full' as const,
-                                                keys: [key],
-                                            }
-                                        }
-                                        if (referenceType === 'Position') {
-                                            return {
-                                                requestType: 'ShortName' as const,
-                                                keys: [key]
-                                            }
-                                        }
-                                    }
-                                    return {
-                                        requestType: 'Stub' as const,
-                                        keys: [key]
-                                    }
-                                })
-                            ))
-                            .flat(1)
-                        ),
-                        ...(request.cascadeConditions && request.cascadeConditions.length)
-                            ? request.cascadeConditions?.map(({ conditionType, cascadeType, chainCascade }) => {
-                                const returnValue = {
-                                    requestType: cascadeType,
-                                    keys: [this._lookup(key)]
-                                        .filter(excludeUndefined)
-                                        .map((component) => (
-                                            component.referencedKeys()
-                                                .filter(({ referenceType }) => (referenceType === conditionType))
-                                                .map(({ key }) => (key))
-                                        ))
-                                        .flat(1),
-                                    cascadeConditions: chainCascade ? request.cascadeConditions : undefined
-                                }
-                                if (returnValue.keys.length === 0) {
-                                    return []
-                                }
-                                return returnValue
-                            }).flat(1).filter(excludeUndefined) ?? []
-                            : []
-                    ])
-                return request.keys.map(cascadeFunction).flat(1).reduce(mergeIntoRequestList, [])
+                            .map(({ _key }) => (_key))
+                    }))
+                    .reduce(mergeIntoRequestList, [])
             }, [])
-            console.log(`cascadeList: ${JSON.stringify(cascadeList, null, 4)}`)
             if (cascadeList.length === 0) {
                 return mergedRequests
             }
@@ -771,7 +777,6 @@ export class StandardForm {
                 standardFormSubsetRequestMatch(request) &&
                 (!request.keys.some((key) => (!checkRequest.keys.some((checkKey) => (key.equals(checkKey))))))
             ))))
-            console.log(`newCascadeList: ${JSON.stringify(newCascadeList, null, 4)}`)
             if (newCascadeList.length === 0) {
                 return mergedRequests
             }
@@ -779,16 +784,8 @@ export class StandardForm {
         }
 
         const allRequests = cascadeRequests(requests)
-        console.log(`allRequests: ${JSON.stringify(allRequests, null, 4)}`)
         const requestOutput = (request: StandardFormSubsetRequest, component: StandardComponent): StandardComponent[] => {
             if (request.requestType === 'Full') {
-                //
-                // If the request is for a component that can contain local examples, then also include the examples
-                // in the output.
-                //
-                if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
-                    return [component, ...component.examples.map((reference) => (this._lookup(reference._payload.plain)))].filter(excludeUndefined)
-                }
                 return [component]
             }
             if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'Exit') {
@@ -813,15 +810,21 @@ export class StandardForm {
             return []
         }
 
-        returnValue._components = allRequests
-            .reduce<StandardComponent[]>((previous, request) => {
-                const components = request.keys
-                    .map((key) => (this._lookup(key)))
-                    .filter(excludeUndefined)
-                    .map((component) => (requestOutput(request, component)))
-                    .flat(1)
-                return [...previous, ...components]
-            }, [])
+        returnValue._components = []
+        //
+        // Use a sequential update rather than a reduce, so that we can leverage the capability
+        // of the StandardForm._keys method to provide up to the moment universal key mappings
+        //
+        allRequests.forEach((request) => {
+            const components = request.keys
+                .map((key) => (this._lookup(key)))
+                .filter(excludeUndefined)
+                .map((component) => (requestOutput(request, component)))
+                .flat(1)
+            components.forEach((component) => {
+                returnValue._components = mergeToComponentList(returnValue._keys)(returnValue._components, component)
+            })
+        })
 
         return returnValue
     }
