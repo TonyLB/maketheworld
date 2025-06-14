@@ -2,6 +2,7 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "./components/baseClasses"
 import { mergeWithEdits } from "./components/edits"
 import { excludeUndefined } from "../lib/lists"
+import { StandardKey } from "./components/reference"
 
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
     const merged = mergeWithEdits(base, value)
@@ -20,7 +21,7 @@ export type UniversalKeyMapping = {
     key?: string
 }
 
-export const mergeToComponentList = (universalKeyMappings: UniversalKeyMapping[]) => (previous: StandardComponent[], component: StandardComponent): StandardComponent[] => {
+export const mergeToComponentList = (universalKeyMappings: StandardKey[]) => (previous: StandardComponent[], component: StandardComponent): StandardComponent[] => {
     const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
         (matchKey && matchKey === component.key) ||
         (universalKey && universalKey === component.universalKey)
@@ -43,17 +44,18 @@ export const mergeToComponentList = (universalKeyMappings: UniversalKeyMapping[]
     ].filter(excludeUndefined)
 }
 
-export const mergeUniversalKeyMappings = (universalKeyMappings: UniversalKeyMapping[]): UniversalKeyMapping[] => {
-    return universalKeyMappings.reduce<UniversalKeyMapping[]>((acc: UniversalKeyMapping[], current: UniversalKeyMapping) => {
+export const mergeUniversalKeyMappings = (universalKeyMappings: StandardKey[]): StandardKey[] => {
+    return universalKeyMappings.reduce<StandardKey[]>((acc: StandardKey[], current: StandardKey) => {
         const existingIndex = acc.findIndex(item => (item.universalKey === current.universalKey || item.key === current.key))
         if (existingIndex === -1) {
             return [...acc, current]
         }
         const existingItem = acc[existingIndex]
-        const mergedItem: UniversalKeyMapping = {
+        const mergedItem = new StandardKey({
             universalKey: existingItem.universalKey || current.universalKey,
-            key: existingItem.key || current.key
-        }
+            key: existingItem.key || current.key,
+            tag: existingItem.tag || current.tag,
+        })
         return [...acc.slice(0, existingIndex), mergedItem, ...acc.slice(existingIndex + 1)]
     }, [])
 }
