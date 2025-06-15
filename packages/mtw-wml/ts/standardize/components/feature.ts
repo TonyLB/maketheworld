@@ -89,7 +89,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._examples = returnValue._examples.map(mapReference)

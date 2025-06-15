@@ -87,7 +87,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return this
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID }[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMomentPayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._messages = returnValue._messages.map(mapReference)

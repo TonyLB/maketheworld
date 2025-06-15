@@ -132,9 +132,9 @@ export const uniqueReferences = (references: StandardReference[]): StandardRefer
 //
 export type ReferenceFormat = 'key' | 'universal' | 'both';
 
-export const mapReferenceToFormat = (mappings: { key: string; universalKey: ComponentUUID }[], format: ReferenceFormat) =>
+export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceFormat) =>
     (reference: StandardReference): StandardReference => {
-        const mapKey = (reference: StandardReferenceData): { key: string; universalKey: ComponentUUID } | undefined => {
+        const mapKey = (reference: StandardReferenceData): StandardKey | undefined => {
             if (typeof reference === 'string') {
                 return mappings.find(({ universalKey }) => (universalKey === reference))
             }
