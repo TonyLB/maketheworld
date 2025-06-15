@@ -4,6 +4,7 @@ import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
+import { StandardKey } from "./reference"
 
 const mergeTest = (base: string, incoming: string): string => {
     const baseStandard = new StandardExample(deIndentWML(base))
@@ -216,5 +217,26 @@ describe('StandardExample class', () => {
                 ]
             }],
         })
+    })
+
+    it('should correctly remap contents', () => {
+        const testExample = new StandardExample(`
+            <Example uuid=(123)>
+                <Name>Name Test</Name>
+                <Summary>Summary Test</Summary>
+                <Description>Description Test<Link to=(feature1)>Link Text</Link></Description>
+            </Example>
+        `)
+        const mappings = [new StandardKey({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' })]
+        const remapped = testExample.remapReferences({ mappings, mapTo: 'universal' })
+        expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
+            <Example uuid=(123)>
+                <Name>Name Test</Name>
+                <Summary>Summary Test</Summary>
+                <Description>
+                    Description Test<Link to=(FEATURE#feature1)>Link Text</Link>
+                </Description>
+            </Example>
+        `))
     })
 })
