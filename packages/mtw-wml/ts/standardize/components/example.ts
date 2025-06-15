@@ -6,7 +6,7 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import linkReferenceKeys, { dependencyReferenceKeys } from "./utils/references"
+import linkReferenceKeys, { dependencyReferenceKeys, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -131,6 +131,15 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
         return returnValue as this
     }
+    
+    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+        const returnValue = new StandardExamplePayload(this)
+        returnValue._name = returnValue._name?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
+        returnValue._summary = returnValue._summary?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
+        returnValue._description = returnValue._description?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
+        return returnValue as this
+    }
+
 }
 
 export class StandardExample extends componentClassFactory(StandardExamplePayload, 'StandardExample') {
