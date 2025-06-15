@@ -3,7 +3,8 @@ import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isSchemaLink, SchemaLinkTag } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
-import { StandardKey } from "../components/reference";
+import StandardReference, { StandardKey } from "../components/reference";
+import { mapReferenceToFormat, ReferenceFormat } from "../components/utils/references";
 
 export class StandardRenderLink extends StandardRenderAbstract implements StandardRenderElement {
     _to: string | StandardKey;
@@ -14,6 +15,7 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
         if (arg instanceof StandardRenderLink) {
             this._to = arg._to
             this._text = arg._text
+            return
         }
         if (isRenderTreeNode(arg) && (typeof arg !== 'string') && isSchemaLink(arg.data)) {
             this._to = arg.data.to
@@ -44,6 +46,24 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
 
     override clone() {
         return new StandardRenderLink(this)
+    }
+
+    override remapReferences({ mapping, mapTo }: { mapping: StandardKey[]; mapTo: ReferenceFormat }): this {
+        const returnValue = this.clone() as this
+        if (this._to instanceof StandardKey) {
+            const mappedReference = mapReferenceToFormat(mapping, mapTo)(new StandardReference(this._to))
+            returnValue._to = mappedReference._payload.plain
+        }
+        else {
+            const findMatch = mapping.find(({ key, universalKey }) => (key === this._to || universalKey === this._to))
+            if (findMatch) {
+                returnValue._to = mapReferenceToFormat(mapping, mapTo)(new StandardReference(findMatch))._payload.plain
+            }
+            else {
+                throw new Error(`Could not remap reference ${this._to} to format ${mapTo}`)
+            }
+        }
+        return returnValue
     }
 }
 
