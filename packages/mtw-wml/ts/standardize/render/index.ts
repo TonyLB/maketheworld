@@ -11,8 +11,27 @@ import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "../../schema/baseClasses"
 
 export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
+
+const renderTreeToSimpleElements = (data: RenderTree): StandardRenderSimpleElement[] => {
+    return data.map((element) => {
+        if (typeof element === 'string' || isSchemaString(element.data)) {
+            return new StandardRenderString(element)
+        }
+        if (isSchemaLineBreak(element.data)) {
+            return new StandardRenderLineBreak(element)
+        }
+        if (isSchemaSpacer(element.data)) {
+            return new StandardRenderSpace(element)
+        }
+        if (isSchemaLink(element.data)) {
+            return new StandardRenderLink(element)
+        }
+        throw new Error(`Unknown render tree element: ${JSON.stringify(element)}`)
+    })
+}
 
 export enum StandardRenderSimpleCompareDirection {
     Forward = 'forward',
