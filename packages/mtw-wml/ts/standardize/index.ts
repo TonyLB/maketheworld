@@ -938,4 +938,9 @@ export class StandardForm {
         return returnValue
     }
 
+    finalize(): StandardForm {
+        const returnValue = this._clone()
+        return returnValue
+    }
+
 }
