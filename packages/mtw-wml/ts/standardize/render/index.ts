@@ -12,6 +12,8 @@ import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, rende
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "../../schema/baseClasses"
+import { StandardKey } from "../components/reference"
+import { ReferenceFormat } from "../components/utils/references"
 
 export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
 
@@ -50,6 +52,11 @@ export class StandardRenderSimpleBase implements StandardEditablePayload<RenderT
         return new StandardRenderSimpleBase(JSON.parse(JSON.stringify(this.data)))
     }
     toJSON: () => RenderTree = () => this.data
+    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderSimpleBase = (props) => {
+        const simpleElements = renderTreeToSimpleElements(this.data)
+        const remappedElements = simpleElements.map((element) => (element.remapReferences(props)))
+        return new StandardRenderSimpleBase(remappedElements.map((element) => element.toJSON()))
+    }
 }
 
 const payloadFactory = (props: RenderTree | GenericTree<SchemaTag>): StandardRenderSimpleBase | undefined => {
@@ -346,6 +353,9 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
+    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderSimple = (props) => {
+        return new StandardRenderSimple(this.payload.remapReferences(props))
+    }
 }
 
 export class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimpleBase> {
@@ -385,6 +395,9 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
     }
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
+    }
+    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderRemove = (props) => {
+        return new StandardRenderRemove(this.match.remapReferences(props))
     }
 }
 
@@ -443,6 +456,12 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
     }
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
+    }
+    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderReplace = (props) => {
+        return new StandardRenderReplace(
+            this.match.remapReferences(props),
+            this.payload.remapReferences(props)
+        )
     }
 }
 
@@ -534,6 +553,10 @@ export class StandardRender {
             return new StandardRender(new StandardRenderReplace((new StandardRenderSimple(callback(this._payload.match.schema))).payload, (new StandardRenderSimple(callback(this._payload.payload.schema))).payload))
         }
         throw new Error('Invalid StandardRender payload')
+    }
+
+    remapReferences(props: { mapping: StandardKey[], mapTo: ReferenceFormat }): StandardRender {
+        return new StandardRender(this._payload.remapReferences(props))
     }
 
 }
