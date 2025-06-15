@@ -72,7 +72,7 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: ReferenceFormat; }): StandardRemove {
+    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardRemove {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.remapReferences(props)
         return returnValue
@@ -234,7 +234,7 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: { key: string; universalKey: string; }[]; mapTo: ReferenceFormat; }): StandardReplace {
+    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardReplace {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.remapReferences(props)
         returnValue._payload = returnValue._payload.remapReferences(props)

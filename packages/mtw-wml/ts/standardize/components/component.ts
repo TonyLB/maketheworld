@@ -48,7 +48,7 @@ export interface ComponentConstructorMethods<D> {
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(): StandardComponentReferenceKey[];
-    remapReferences?: (props: { mappings: { key: string; universalKey: ComponentUUID }[], mapTo: ReferenceFormat }) => this;
+    remapReferences?: (props: { mappings: StandardKey[], mapTo: ReferenceFormat }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
 }
 
@@ -139,7 +139,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        remapReferences(props: { mappings: { key: string; universalKey: ComponentUUID; }[]; mapTo: ReferenceFormat; }): StandardComponent {
+        remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardComponent {
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.(props) ?? returnValue._payload

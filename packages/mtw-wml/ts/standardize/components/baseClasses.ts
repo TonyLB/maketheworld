@@ -51,7 +51,7 @@ export interface StandardComponent {
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     subset(options: StandardFormSubsetRequest): StandardComponent;
     referencedKeys(): StandardComponentReferenceKey[];
-    remapReferences(props: { mappings: { key: string; universalKey: string }[], mapTo: ReferenceFormat }): StandardComponent;
+    remapReferences(props: { mappings: StandardKey[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     referenceData: StandardReferenceData;
     leastCommonContext: StandardReferenceSimple[];

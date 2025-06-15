@@ -5,6 +5,7 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
+import { StandardKey } from "./reference"
 
 describe('StandardRoom class', () => {
 
@@ -148,7 +149,15 @@ describe('StandardRoom class', () => {
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `)
-        expect(schemaToWML([test.remapReferences({ mappings: [{ universalKey: 'ROOM#Room1', key: 'testRoomOne'}, { universalKey: 'EXAMPLE#Example1', key: 'base' }], mapTo: 'universal' }).schema])).toEqual(deIndentWML(`
+        expect(schemaToWML([
+            test.remapReferences({
+                mappings: [
+                    new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
+                    new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' })
+                ],
+                mapTo: 'universal'
+            }).schema
+        ])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
                 <Example uuid=(Example1) />
                 <Exit to=(testRoomTwo)>exit</Exit>
@@ -165,9 +174,9 @@ describe('StandardRoom class', () => {
         `)
         expect(schemaToWML([test.remapReferences({
             mappings: [
-                { universalKey: 'ROOM#Room1', key: 'testRoomOne'},
-                { universalKey: 'EXAMPLE#Example1', key: 'base' },
-                { universalKey: 'FEATURE#Feature1', key: 'featureOne' }
+                new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
+                new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
+                new StandardKey({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
             ],
             mapTo: 'key'
         }).schema])).toEqual(deIndentWML(`
