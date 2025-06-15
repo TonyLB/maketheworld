@@ -15,7 +15,7 @@ export type SchemaExitTag = {
 export type SchemaRoomTag = {
     tag: 'Room';
     uuid?: ComponentUUID;
-    key: string;
+    key?: string;
     x?: number;
     y?: number;
 } & SchemaImportableBase
@@ -65,7 +65,7 @@ export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
 )
 
 export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Room' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Room' } })(schema)
 )
 
 export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
@@ -73,7 +73,7 @@ export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
 )
 
 export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING}, optional: { key: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
+    checkTypes({ required: { tag: CheckTypes.STRING}, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
 )
 
 export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (

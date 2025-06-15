@@ -200,7 +200,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Room',
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ROOM')(tag.uuid) : '' },
-                { key: 'key', type: 'key', value: tag.key },
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 //
                 // Render x/y properties from integers into strings
                 //
@@ -225,7 +225,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('FEATURE')(tag.uuid) : '' },
                 { key: 'global', type: 'boolean', value: tag.global ?? false },
-                { key: 'key', type: 'key', value: tag.key ?? '' },
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
