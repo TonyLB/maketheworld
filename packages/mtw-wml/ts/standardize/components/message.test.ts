@@ -5,6 +5,7 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMessageData } from "./dataTypes/message"
 import StandardMessage from './message'
 import { mergeTest } from './utils/testing'
+import { StandardKey } from "./reference"
 
 describe('StandardMessage class', () => {
 
@@ -89,6 +90,22 @@ describe('StandardMessage class', () => {
         }
         expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
             <Message key=(test)><Room key=(testRoom) />Message test.Narf!</Message>
+        `))
+    })
+
+    it('should remap references', () => {
+        const test = new StandardMessage(`
+            <Message key=(test)>
+                Message test.<Link to=(feature1) />
+                <Room key=(testRoom) />
+            </Message>
+        `)
+        const mappings = [new StandardKey({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' }), new StandardKey({ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' })]
+        const remapped = test.remapReferences({ mappings, mapTo: 'universal' })
+        expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
+            <Message key=(test)>
+                <Room uuid=(testRoom) />Message test.<Link to=(FEATURE#feature1) />
+            </Message>
         `))
     })
 })

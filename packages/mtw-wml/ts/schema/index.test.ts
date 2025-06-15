@@ -4,6 +4,8 @@ import SourceStream from '../parser/tokenizer/sourceStream'
 
 import { schemaFromParse, schemaToWML } from '.'
 import { deIndentWML } from './utils'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
+import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 
 describe('schemaFromParse', () => {
     beforeEach(() => {
@@ -723,6 +725,14 @@ describe('schemaToWML', () => {
     it('should correctly rount-trip a top-level render item', () => {
         const testWML = 'Test'
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly render a component with only uuid', () => {
+        const testSchema: GenericTree<SchemaTag> = [{
+            data: { tag: 'Room', uuid: 'ROOM#test' },
+            children: []
+        }]
+        expect(schemaToWML(testSchema)).toEqual('<Room uuid=(test) />'  )
     })
 
     it('should correctly round-trip a content update', () => {
