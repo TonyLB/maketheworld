@@ -96,6 +96,17 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardCharacter)
 }
 
+const lookupInComponentList = (componentList: StandardComponent[], key: StandardKey): StandardComponent | undefined => {
+    if (typeof key === 'string') {
+        return componentList.find((component) => (component.universalKey === key))
+    }
+    return componentList.find((component) => (
+        (component.key && component.key === key.key) ||
+        (component.universalKey && component.universalKey === key.universalKey)
+    ))
+}
+
+
 export class StandardForm {
     _key?: string;
     _components: StandardComponent[];
@@ -492,13 +503,7 @@ export class StandardForm {
     }
 
     _lookup(reference: StandardReferenceData): StandardComponent | undefined {
-        if (typeof reference === 'string') {
-            return this._components.find((component) => (component.universalKey === reference))
-        }
-        return this._components.find((component) => (
-            (component.key && component.key === reference.key) ||
-            (component.universalKey && component.universalKey === reference.universalKey)
-        ))
+        return lookupInComponentList(this._components, new StandardKey(reference))
     }
 
     //
