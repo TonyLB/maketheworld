@@ -13,7 +13,7 @@ import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
+import { StandardComponent } from "./components/baseClasses"
 import { objectMap } from "../lib/objects"
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
@@ -29,11 +29,12 @@ import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
-import { mergeToComponentList, mergeUniversalKeyMappings, UniversalKeyMapping } from "./mergeToComponentList"
+import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { StandardReferenceData } from "./components/dataTypes/reference"
 import { uniqueReferences } from "./components/utils/references"
 import StandardReference, { StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
+import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -940,6 +941,15 @@ export class StandardForm {
 
     finalize(): StandardForm {
         const returnValue = this._clone()
+        const uuidGenerator = new UUIDGenerator()
+        const uuidDefaultedComponents = returnValue._components
+            .map((component) => {
+                if (!component.universalKey) {
+                    return component.withUniversalKey(uuidGenerator.next())
+                }
+                return component
+            })
+        returnValue._components = uuidDefaultedComponents
         return returnValue
     }
 
