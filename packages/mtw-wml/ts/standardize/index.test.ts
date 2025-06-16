@@ -338,6 +338,34 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
+    it('should correctly relocate nested components to rendering level', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Feature key=(testFeature)>
+                        <Example key=(testFeatureExample)>
+                            <Description>Test Feature</Description>
+                        </Example>
+                    </Feature>
+                </Room>
+                <Feature uuid=(testFeature) key=(testFeature) />
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                </Room>
+                <Feature uuid=(testFeature) key=(testFeature)>
+                    <Example key=(testFeatureExample)>
+                        <Description>Test Feature</Description>
+                    </Example>
+                </Feature>
+            </Asset>
+        `))
+    })
+
     it('should combine descriptions in rooms and features', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(test) key=(test)>
