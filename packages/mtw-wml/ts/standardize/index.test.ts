@@ -7,6 +7,12 @@ import StandardRoom from './components/room'
 import { ExportItemContent, ImportItemContent } from './components/metaData'
 import StandardCharacter from './components/character'
 import { StandardKey } from './components/reference'
+jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
+    return {
+        ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
+    }
+})
+
 
 describe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
@@ -2589,6 +2595,23 @@ describe('StandardForm', () => {
             `))
         })
 
+    })
+
+    describe('finalize', () => {
+        it('should add UUID on finalize', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)><Room key=(testRoom) /></Asset>
+            `))
+            const finalized = test.finalize()
+            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)><Room uuid=(mock-uuid-1) key=(testRoom) /></Asset>
+            `))
+        })
     })
 
 })
