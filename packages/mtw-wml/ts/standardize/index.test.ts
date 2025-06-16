@@ -2640,6 +2640,31 @@ describe('StandardForm', () => {
                 <Asset key=(test)><Room uuid=(mock-uuid-1) key=(testRoom) /></Asset>
             `))
         })
+
+        it('should rebuild context on finalize', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Feature key=(testFeature)>
+                            <Example key=(base) uuid=(testFeatureBase)>
+                                <Description>Test Feature</Description>
+                            </Example>
+                        </Feature>
+                    </Room>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                </Asset>
+            `)
+            const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
+            expect(findBaseExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
+                { key: 'testRoom', tag: 'Room' },
+                { key: 'testFeature', tag: 'Feature' }
+            ])
+            const finalized = test.finalize()
+            const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
+            expect(findFinalizedExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
+                { key: 'testFeature', tag: 'Feature', universalKey: 'FEATURE#testFeature' }
+            ])
+        })
     })
 
 })

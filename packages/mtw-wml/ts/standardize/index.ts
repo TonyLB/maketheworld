@@ -32,7 +32,7 @@ import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { StandardReferenceData } from "./components/dataTypes/reference"
 import { uniqueReferences } from "./components/utils/references"
-import StandardReference, { StandardKey } from "./components/reference"
+import StandardReference, { StandardKey, StandardReferenceSimple } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 
@@ -954,7 +954,21 @@ export class StandardForm {
                 }
                 return component
             })
-        returnValue._components = uuidDefaultedComponents
+        const rebuiltContextComponents = uuidDefaultedComponents
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyB, keyA)))
+            .reduce<StandardComponent[]>((previous, component) => {
+                console.log(`Rebuilding context for component: ${component.key}, ${JSON.stringify(previous.map(({ universalKey, leastCommonContext }) => ({ universalKey, leastCommonContext })), null, 4)}`)
+                if (component.leastCommonContext && component.leastCommonContext.length > 0) {
+                    const directParentKey = component.leastCommonContext.slice(-1)[0]
+                    const directParent = lookupInComponentList(previous, new StandardKey(directParentKey))
+                    if (directParent) {
+                        const newContext = [...(directParent.leastCommonContext ?? []), new StandardReferenceSimple(directParent._key)]
+                        return [...previous, component.withLeastCommonContext(newContext)]
+                    }
+                }
+                return [...previous, component]
+            }, [])
+        returnValue._components = rebuiltContextComponents
         return returnValue
     }
 
