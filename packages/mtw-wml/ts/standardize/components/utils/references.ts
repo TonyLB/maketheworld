@@ -71,6 +71,7 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
         .map(({ data }) => (data))
         .filter(isSchemaRoom)
         .map(({ key }) => (key)))
+        .filter(excludeUndefined)
 }
 
 export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {

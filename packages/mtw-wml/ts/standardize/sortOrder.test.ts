@@ -1,5 +1,5 @@
 import { standardComponentSortOrder } from './sortOrder'
-import StandardReference, { StandardReferenceSimple, StandardKey } from './components/reference'
+import { StandardReferenceSimple, StandardKey } from './components/reference'
 import { ComponentTag } from './components/dataTypes/abstract'
 
 describe('standardComponentSortOrder', () => {
@@ -22,22 +22,22 @@ describe('standardComponentSortOrder', () => {
 
     it('should order subcomponents after their parent', () => {
         const parent = new StandardReferenceSimple({ key: 'Room1', tag: 'Room' })
-        const child = new StandardReferenceSimple({ key: 'Room1.Feature1', tag: 'Feature' })
+        const child = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
         expect(sortOrder(parent, child)).toBeLessThan(0)
         expect(sortOrder(child, parent)).toBeGreaterThan(0)
     })
 
     it('should order siblings by tag order', () => {
         const room = new StandardReferenceSimple({ key: 'Room1', tag: 'Room' })
-        const feature = new StandardReferenceSimple({ key: 'Room1.Feature1', tag: 'Feature' })
+        const feature = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' })
         // Room comes before Feature in componentKeys
-        expect(sortOrder(room, feature)).toBeLessThan(0)
-        expect(sortOrder(feature, room)).toBeGreaterThan(0)
+        expect(sortOrder(room, feature)).toBeGreaterThan(0)
+        expect(sortOrder(feature, room)).toBeLessThan(0)
     })
 
     it('should order siblings with same tag by key', () => {
-        const featureA = new StandardReferenceSimple({ key: 'Room1.Feature1', tag: 'Feature' })
-        const featureB = new StandardReferenceSimple({ key: 'Room1.Feature2', tag: 'Feature' })
+        const featureA = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
+        const featureB = new StandardReferenceSimple({ key: 'Feature2', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
         expect(sortOrder(featureA, featureB)).toBeLessThan(0)
         expect(sortOrder(featureB, featureA)).toBeGreaterThan(0)
     })
@@ -51,8 +51,8 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order deeply nested subcomponents after their ancestors', () => {
-        const parent = new StandardReferenceSimple({ key: 'Room1.Feature1', tag: 'Feature' })
-        const child = new StandardReferenceSimple({ key: 'Room1.Feature1.Sub1', tag: 'Action' })
+        const parent = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
+        const child = new StandardReferenceSimple({ key: 'Feature1.Sub1', tag: 'Action' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
         expect(sortOrder(parent, child)).toBeLessThan(0)
         expect(sortOrder(child, parent)).toBeGreaterThan(0)
     })

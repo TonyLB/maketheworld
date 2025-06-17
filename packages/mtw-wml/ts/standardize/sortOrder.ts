@@ -12,21 +12,21 @@ export const standardComponentSortOrder = (referenceA: StandardReferenceSimple |
     const baseA = referenceA instanceof StandardReferenceSimple ? referenceA.payload : referenceA
     const baseB = referenceB instanceof StandardReferenceSimple ? referenceB.payload : referenceB
     if ((baseA.context ?? []).some(baseB.equals.bind(baseB))) {
-        return -1
+        return 1
     }
     if ((baseB.context ?? []).some(baseA.equals.bind(baseA))) {
-        return 1
+        return -1
     }
     const differingA: StandardKey | undefined = (referenceA.context ?? []).find((reference) => (!referenceB.context?.some(reference.equals.bind(reference))))
     const differingB: StandardKey | undefined = (referenceB.context ?? []).find((reference) => (!referenceA.context?.some(reference.equals.bind(reference))))
     const elementToCompareA = differingA
-        ? new StandardReferenceSimple(differingA.toJSON())
+        ? differingA
         : referenceA
     const elementToCompareB = differingB
-        ? new StandardReferenceSimple(differingB.toJSON())
+        ? differingB
         : referenceB
     
-    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action']
     const indexA = componentKeys.indexOf(elementToCompareA.tag)
     const indexB = componentKeys.indexOf(elementToCompareB.tag)
     if (indexA !== indexB) {
