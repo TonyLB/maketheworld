@@ -821,21 +821,16 @@ export class StandardForm {
             return []
         }
 
-        returnValue._components = []
-        //
-        // Use a sequential update rather than a reduce, so that we can leverage the capability
-        // of the StandardForm._keys method to provide up to the moment universal key mappings
-        //
-        allRequests.forEach((request) => {
-            const components = request.keys
-                .map((key) => (this._lookup(key)))
-                .filter(excludeUndefined)
-                .map((component) => (requestOutput(request, component)))
-                .flat(1)
-            components.forEach((component) => {
-                returnValue._components = mergeToComponentList(returnValue._keys)(returnValue._components, component)
-            })
-        })
+        returnValue._components = allRequests
+            .reduce<StandardComponent[]>((previous, request) => {
+                return request.keys.reduce<StandardComponent[]>((accumulator, key) => {
+                    const component = lookupInComponentList(this._components, key)
+                    if (!component) {
+                        return accumulator
+                    }
+                    return requestOutput(request, component).reduce<StandardComponent[]>((innerAccumulator, output) => (mergeToComponentList(returnValue._keys)(innerAccumulator, output)), accumulator)
+                }, previous)
+            }, [])
 
         return returnValue
     }

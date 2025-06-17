@@ -2022,6 +2022,7 @@ describe('StandardForm', () => {
         it('should properly subset an asset with full content without cascade', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
+                    <Knowledge key=(testKnowledge) />
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
                         <Example uuid=(001)>
@@ -2031,12 +2032,12 @@ describe('StandardForm', () => {
                     </Room>
                     <Room key=(testRoomTwo) />
                     <Feature uuid=(testFeature) key=(testFeature) />
-                    <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
             const subset = test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }])
             expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
                         <Example uuid=(001)>
@@ -2047,7 +2048,6 @@ describe('StandardForm', () => {
                         <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
                     <Room key=(testRoomTwo) />
-                    <Feature uuid=(testFeature) key=(testFeature) />
                 </Asset>
             `))
         })    
@@ -2135,6 +2135,7 @@ describe('StandardForm', () => {
             `)
             expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Stub' }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
                     <Room key=(testRoom)>
                         <Example uuid=(testRoomBase)>
                             <Description>
@@ -2142,7 +2143,6 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Room>
-                    <Feature uuid=(testFeature) key=(testFeature) />
                 </Asset>
             `))
         })
@@ -2170,13 +2170,6 @@ describe('StandardForm', () => {
             `)
             expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ conditionType: 'Link', cascadeType: 'Full', chainCascade: true }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
-                    <Room key=(testRoom)>
-                        <Example uuid=(roomExample)>
-                            <Description>
-                                <Link to=(FEATURE#testFeature)>link</Link>
-                            </Description>
-                        </Example>
-                    </Room>
                     <Feature uuid=(testFeature) key=(testFeature)>
                         <Example uuid=(featureExample)>
                             <Description>
@@ -2185,6 +2178,13 @@ describe('StandardForm', () => {
                         </Example>
                     </Feature>
                     <Feature uuid=(testFeatureTwo) key=(testFeatureTwo) />
+                    <Room key=(testRoom)>
+                        <Example uuid=(roomExample)>
+                            <Description>
+                                <Link to=(FEATURE#testFeature)>link</Link>
+                            </Description>
+                        </Example>
+                    </Room>
                 </Asset>
             `))
         })    
