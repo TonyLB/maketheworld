@@ -469,6 +469,11 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
+        console.log(`Sorted top level schema: ${JSON.stringify(this._components
+            .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+            .map((component => (component._key.toJSON()))), null, 4
+        )}`)
         const children = this._components
             .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
@@ -562,7 +567,7 @@ export class StandardForm {
                 const lookupA = mergedForKeys._lookup(a)
                 const lookupB = mergedForKeys._lookup(b)
                 if (lookupA && lookupB) {
-                    return standardComponentSortOrder(lookupA._key, lookupB._key)
+                    return standardComponentSortOrder(lookupB._key, lookupA._key)
                 }
                 else {
                     return 0
@@ -955,9 +960,8 @@ export class StandardForm {
                 return component
             })
         const rebuiltContextComponents = uuidDefaultedComponents
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyB, keyA)))
+            .sort(({ leastCommonContext: contextA }, { leastCommonContext: contextB }) => ((contextA ?? []).length - (contextB ?? []).length))
             .reduce<StandardComponent[]>((previous, component) => {
-                console.log(`Rebuilding context for component: ${component.key}, ${JSON.stringify(previous.map(({ universalKey, leastCommonContext }) => ({ universalKey, leastCommonContext })), null, 4)}`)
                 if (component.leastCommonContext && component.leastCommonContext.length > 0) {
                     const directParentKey = component.leastCommonContext.slice(-1)[0]
                     const directParent = lookupInComponentList(previous, new StandardKey(directParentKey))
@@ -968,6 +972,7 @@ export class StandardForm {
                 }
                 return [...previous, component]
             }, [])
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
         returnValue._components = rebuiltContextComponents
         return returnValue
     }

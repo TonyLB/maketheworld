@@ -2642,21 +2642,22 @@ describe('StandardForm', () => {
         })
 
         it('should rebuild context on finalize', () => {
-            const test = new StandardForm(`
+            const testWML = deIndentWML(`
                 <Asset key=(test)>
-                    <Room key=(testRoom)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Room uuid=(testRoom) key=(testRoom)>
                         <Feature key=(testFeature)>
-                            <Example key=(base) uuid=(testFeatureBase)>
+                            <Example uuid=(testFeatureBase)>
                                 <Description>Test Feature</Description>
                             </Example>
                         </Feature>
                     </Room>
-                    <Feature uuid=(testFeature) key=(testFeature) />
                 </Asset>
             `)
+            const test = new StandardForm(testWML)
             const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
             expect(findBaseExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
-                { key: 'testRoom', tag: 'Room' },
+                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
                 { key: 'testFeature', tag: 'Feature' }
             ])
             const finalized = test.finalize()
@@ -2664,6 +2665,18 @@ describe('StandardForm', () => {
             expect(findFinalizedExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
                 { key: 'testFeature', tag: 'Feature', universalKey: 'FEATURE#testFeature' }
             ])
+            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature)>
+                        <Example uuid=(testFeatureBase)>
+                            <Description>Test Feature</Description>
+                        </Example>
+                    </Feature>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                    </Room>
+                </Asset>
+            `))
         })
     })
 

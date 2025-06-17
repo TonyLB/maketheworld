@@ -263,7 +263,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
-            returnValue.leastCommonContext = leastCommonContext.map((context) => (context.clone()))
+            const newContext = leastCommonContext.map((context) => (context.clone()))
+            returnValue.leastCommonContext = newContext.length > 0 ? newContext : []
+            returnValue._key.context = newContext.length > 0 ? newContext.map((context) => (context.payload)) : undefined
             return returnValue
         }
 
