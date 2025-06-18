@@ -2413,6 +2413,9 @@ describe('StandardForm', () => {
     it('should round-trip nested subcomponents', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
+                <Feature uuid=(003) key=(testGlobal)>
+                    <Example uuid=(003b)><Description>Global</Description></Example>
+                </Feature>
                 <Room uuid=(001) key=(testRoom)>
                     <Feature uuid=(004) key=(testLocal)>
                         <Example uuid=(004b)>
@@ -2423,13 +2426,10 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature uuid=(003) key=(testGlobal) />
+                    <Feature key=(testGlobal) />
                     <Example uuid=(001b)><Name>Vortex</Name></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
-                <Feature uuid=(003) key=(testGlobal)>
-                    <Example uuid=(003b)><Description>Global</Description></Example>
-                </Feature>
             </Asset>
         `)
         const test = new StandardForm(testWML)
@@ -2672,9 +2672,7 @@ describe('StandardForm', () => {
                             <Description>Test Feature</Description>
                         </Example>
                     </Feature>
-                    <Room uuid=(testRoom) key=(testRoom)>
-                        <Feature uuid=(testFeature) key=(testFeature) />
-                    </Room>
+                    <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
                 </Asset>
             `))
         })
