@@ -2676,6 +2676,23 @@ describe('StandardForm', () => {
                 </Asset>
             `))
         })
+
+        it('should remap references to UUIDs on finalize', () => {
+            const testWML = deIndentWML(`
+                <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature key=(testFeature) />
+                    </Room>
+                </Asset>
+            `)
+            const test = new StandardForm(testWML).finalize()
+            const findRoom = test._lookup('ROOM#testRoom')
+            expect(findRoom).toBeInstanceOf(StandardRoom)
+            expect((findRoom as StandardRoom).features.map((feature) => feature.toJSON())).toEqual([
+                'FEATURE#testFeature'
+            ])
+        })
     })
 
 })

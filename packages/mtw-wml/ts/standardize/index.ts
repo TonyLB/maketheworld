@@ -968,7 +968,9 @@ export class StandardForm {
                 return [...previous, component]
             }, [])
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-        returnValue._components = rebuiltContextComponents
+        const mappings: StandardKey[] = rebuiltContextComponents
+            .map((component) => (component._key))
+        returnValue._components = rebuiltContextComponents.map((component) => (component.remapReferences({ mappings, mapTo: 'universal' })))
         return returnValue
     }
 
