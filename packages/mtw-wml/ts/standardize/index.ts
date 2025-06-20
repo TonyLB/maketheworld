@@ -469,11 +469,6 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        console.log(`Sorted top level schema: ${JSON.stringify(this._components
-            .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .map((component => (component._key.toJSON()))), null, 4
-        )}`)
         const children = this._components
             .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
