@@ -1400,11 +1400,18 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+        const merged = inherited.merge(test)
+        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example></Replace>
-                    <With><Example uuid=(testRoomOneBase)><Name>Changed again</Name></Example></With>
+                    <Replace>
+                        <Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example>
+                    </Replace>
+                    <With>
+                        <Example uuid=(testRoomOneBase)>
+                            <Name>Changed again</Name>
+                        </Example>
+                    </With>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
             </Asset>

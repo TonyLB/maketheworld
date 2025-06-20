@@ -35,7 +35,8 @@ export class StandardRemove implements StandardComponent {
         if (!isSchemaComponentTag(tag)) {
             throw new Error(`Invalid tag provided to StandardRemove constructor: ${tag}`)
         }
-        this._key = new StandardKey({ tag, key: props.key, universalKey: props.universalKey })
+        this._key = new StandardKey(props._key)
+        this.leastCommonContext = props.leastCommonContext || []
         this._match = props as StandardComponent
         return
     }
@@ -185,7 +186,12 @@ export class StandardReplace implements StandardComponent {
             if (!isSchemaComponentTag(tag)) {
                 throw new Error(`Invalid tag provided to StandardReplace constructor: ${tag}`)
             }
-            this._key = new StandardKey({ tag, key: match.key, universalKey: match.universalKey })
+            this._key = new StandardKey(match._key)
+            this.leastCommonContext = payload.leastCommonContext.filter((reference) => (
+                match.leastCommonContext.some((incomingReference) => (
+                    reference.equals(incomingReference)
+                ))
+            ))
             return
         }
         const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
@@ -301,7 +307,7 @@ export class StandardReplace implements StandardComponent {
     withKey(key: string): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
-        returnValue._payload = this._match.withKey(key)
+        returnValue._payload = this._payload.withKey(key)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
@@ -309,7 +315,7 @@ export class StandardReplace implements StandardComponent {
     withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
-        returnValue._payload = this._match.withUniversalKey(key)
+        returnValue._payload = this._payload.withUniversalKey(key)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }

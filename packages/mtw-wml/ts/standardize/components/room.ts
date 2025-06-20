@@ -10,7 +10,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
@@ -60,8 +60,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .reorderedSiblings([['Room', 'Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._exits = defaultSelected(exitTagTree.tree)
-            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (new StandardReference([node]))))
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference([node]))))
+            this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (childReferenceFactory([node]))))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
