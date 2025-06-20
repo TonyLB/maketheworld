@@ -1,15 +1,14 @@
-import { objectMerge } from "../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
-import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove } from "./components/metaData"
+import { ImportItemContent, ImportItemRemove } from "./components/metaData"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaExport, isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardReferenceSimple } from "./components/reference"
+import { StandardKey } from "./components/reference"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
@@ -32,7 +31,7 @@ export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
     conditionalContext?: ConditionalContextItem[];
-    componentContext?: StandardReferenceSimple[];
+    componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
     metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
 }): StandardComponent[] => {
@@ -54,12 +53,6 @@ export const processComponents = (props: {
         //
         if (treeNodeTypeguard(isSchemaImport)(item)) {
             return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } })]
-        }
-        //
-        // If the item is an export, set metaDataContext to 'Export'
-        //
-        if (treeNodeTypeguard(isSchemaExport)(item)) {
-            return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Export' } })]
         }
 
         //
@@ -153,9 +146,7 @@ export const processComponents = (props: {
                 const temp = standardComponentFactory(item)
                 const component = metaDataContext
                     ? metaDataContext.type === 'Import'
-                        ? inContextOfRemove
-                            ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key ?? ''))
-                            : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key ?? ''))
+                        ? temp?.withKey(dynamicRename)
                         : temp
                     : temp
 
@@ -203,7 +194,7 @@ export const processComponents = (props: {
                 return [
                     ...previous,
                     editWrappedComponent,
-                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, new StandardReferenceSimple(localizedComponent.referenceData)] })
+                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, localizedComponent._key.plain] })
                 ]
             }
         }

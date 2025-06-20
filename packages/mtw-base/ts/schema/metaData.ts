@@ -44,16 +44,6 @@ export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
     })(schema)
 )
 
-export const isSchemaExport = (schema: any): schema is SchemaExportTag => (
-    checkTypes({
-        required: { tag: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
-        values: {
-            tag: 'Export',
-            mapping: (mapping: Record<string, any>) => Object.values(mapping).every(isSchemaImportMapping)
-         }
-    })(schema)
-)
-
 export const isSchemaMeta = (schema: any): schema is SchemaMetaTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, time: CheckTypes.NUMBER },

@@ -1,8 +1,8 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardExportItem, StandardImportItem } from "./metaData";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardComponent } from "./baseClasses";
@@ -92,10 +92,6 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
 
     override withFileName(key: string): StandardComponent {
         return new StandardAction(super.withFileName(key) as StandardAction)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardAction(super.withImport(importData) as StandardAction)
     }
 
 }

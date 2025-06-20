@@ -6,14 +6,13 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaPronouns, SchemaPronounsTag } from "@tonylb/mtw-base/ts/schema/character"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
 import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
-import { StandardExportItem, StandardImportItem } from "./metaData"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardImportItem } from "./metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
 import { StandardKey } from "./reference"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
@@ -138,7 +137,7 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
-        const base = new StandardCharacter(this.key ?? '').withImport(this.import) as StandardCharacter
+        const base = new StandardCharacter(this.key ?? '')
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
@@ -158,10 +157,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
 
     override withFileName(key: string): StandardComponent {
         return new StandardCharacter(super.withFileName(key) as StandardCharacter)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardCharacter(super.withImport(importData) as StandardCharacter)
     }
 
 }

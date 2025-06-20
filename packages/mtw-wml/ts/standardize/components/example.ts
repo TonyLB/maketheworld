@@ -4,8 +4,8 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
+import { StandardImportItem } from "./metaData"
 import linkReferenceKeys, { dependencyReferenceKeys, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
@@ -169,7 +169,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
-        const base = new StandardExample(this.key ?? 's').withImport(this.import) as StandardExample
+        const base = new StandardExample(this.key ?? '')
         base._payload._name = this._payload._name
             ? this._payload._name.diff(incoming._payload._name)
             : incoming._payload._name
@@ -192,10 +192,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withFileName(key: string): StandardComponent {
         return new StandardExample(super.withFileName(key) as StandardExample)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardExample(super.withImport(importData) as StandardExample)
     }
 
 }

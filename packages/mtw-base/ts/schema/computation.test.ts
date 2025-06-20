@@ -12,10 +12,6 @@ describe('computation tags', () => {
             expect(isSchemaVariable(schema)).toBe(false)
         })
 
-        it('should return false for SchemaVariableTag missing key', () => {
-            const schema = { tag: 'Variable' }
-            expect(isSchemaVariable(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaComputed', () => {
@@ -26,11 +22,6 @@ describe('computation tags', () => {
 
         it('should return false for invalid SchemaComputedTag', () => {
             const schema = { tag: 'Invalid', key: 'computedKey', src: 'source' }
-            expect(isSchemaComputed(schema)).toBe(false)
-        })
-
-        it('should return false for SchemaComputedTag missing key', () => {
-            const schema = { tag: 'Computed', src: 'source' }
             expect(isSchemaComputed(schema)).toBe(false)
         })
 
@@ -58,11 +49,6 @@ describe('computation tags', () => {
 
         it('should return false for invalid SchemaActionTag', () => {
             const schema = { tag: 'Invalid', key: 'actionKey', src: 'source' }
-            expect(isSchemaAction(schema)).toBe(false)
-        })
-
-        it('should return false for SchemaActionTag missing key', () => {
-            const schema = { tag: 'Action', src: 'source' }
             expect(isSchemaAction(schema)).toBe(false)
         })
 

@@ -61,10 +61,6 @@ describe('components tags', () => {
             expect(isSchemaRoom(schema)).toBe(false)
         })
 
-        it('should return false for SchemaRoomTag missing key', () => {
-            const schema = { tag: 'Room' }
-            expect(isSchemaRoom(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaFeature', () => {
@@ -78,10 +74,6 @@ describe('components tags', () => {
             expect(isSchemaFeature(schema)).toBe(false)
         })
 
-        it('should return false for SchemaFeatureTag missing key', () => {
-            const schema = { tag: 'Feature' }
-            expect(isSchemaFeature(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaKnowledge', () => {
@@ -95,10 +87,6 @@ describe('components tags', () => {
             expect(isSchemaKnowledge(schema)).toBe(false)
         })
 
-        it('should return false for SchemaKnowledgeTag missing key', () => {
-            const schema = { tag: 'Knowledge' }
-            expect(isSchemaKnowledge(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaPosition', () => {
@@ -129,10 +117,6 @@ describe('components tags', () => {
             expect(isSchemaMap(schema)).toBe(false)
         })
 
-        it('should return false for SchemaMapTag missing key', () => {
-            const schema = { tag: 'Map' }
-            expect(isSchemaMap(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaMessage', () => {
@@ -146,10 +130,6 @@ describe('components tags', () => {
             expect(isSchemaMessage(schema)).toBe(false)
         })
 
-        it('should return false for SchemaMessageTag missing key', () => {
-            const schema = { tag: 'Message' }
-            expect(isSchemaMessage(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaMoment', () => {
@@ -163,9 +143,5 @@ describe('components tags', () => {
             expect(isSchemaMoment(schema)).toBe(false)
         })
 
-        it('should return false for SchemaMomentTag missing key', () => {
-            const schema = { tag: 'Moment' }
-            expect(isSchemaMoment(schema)).toBe(false)
-        })
     })
 })

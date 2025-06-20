@@ -5,8 +5,8 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
+import { StandardImportItem } from "./metaData"
 import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
@@ -135,10 +135,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
 
     override withFileName(key: string): StandardComponent {
         return new StandardMessage(super.withFileName(key) as StandardMessage)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardMessage(super.withImport(importData) as StandardMessage)
     }
 
 }

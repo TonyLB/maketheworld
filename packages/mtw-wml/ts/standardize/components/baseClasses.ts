@@ -1,8 +1,8 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardExportItem, StandardImportItem } from "./metaData";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
 import { SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
@@ -31,6 +31,7 @@ export type StandardDiffOptions = {
 
 export interface StandardComponent {
     _key: StandardKey;
+    _from?: AssetUUID;
     key?: string;
     universalKey?: ComponentUUID;
     clone(): StandardComponent;
@@ -39,8 +40,6 @@ export interface StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
-    import?: StandardImportItem;
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;
@@ -52,6 +51,6 @@ export interface StandardComponent {
     remapReferences(props: { mappings: StandardKey[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     referenceData: StandardReferenceData;
-    leastCommonContext: StandardReferenceSimple[];
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent;
+    leastCommonContext: StandardKey[];
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
 }

@@ -1,3 +1,5 @@
+import { AssetUUID } from ".";
+
 export type SchemaBase = {
 }
 
@@ -6,5 +8,6 @@ export type SchemaWrapper = {
 }
 
 export type SchemaImportableBase = SchemaBase & {
+    from?: AssetUUID;
     as?: string;
 }

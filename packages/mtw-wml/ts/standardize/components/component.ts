@@ -17,16 +17,16 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { ComponentKey } from "./dataTypes/key"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import { ImportItemContent, ImportItemRemove, ImportItemReplace, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
-import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
-import { StandardReferenceData } from "./dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
 import { excludeUndefined } from "../../lib/lists";
 
@@ -56,13 +56,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _key: StandardKey;
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
-        leastCommonContext: StandardReferenceSimple[];
+        _from?: AssetUUID;
+        leastCommonContext: StandardKey[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
                 this._key = new StandardKey(props._key)
                 this._payload = props._payload
                 this._import = props._import
+                this._from = props._from
                 this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
@@ -83,29 +85,24 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const node = typeof props === 'string'
                     ? nodeFromWML(props)
                     : props
-                if (!treeNodeTypeguard(isSchemaWithKey)(node)) {
-                    throw new Error(`No key found in ${label} constructor call.`)
-                }
-                const tag = node.data.tag
-                if (!isSchemaComponentTag(tag)) {
+                if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                     throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
                 }
+                const tag = node.data.tag
                 this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                this._from = node.data.from
                 this._payload.fromSchema(node)
                 this.leastCommonContext = []
                 return
             }
-            this._key = isStandardReferenceData(props) ? new StandardKey(props) : (typeof props === 'string' ? new StandardKey(props) : new StandardKey(''))
+            this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
             this.leastCommonContext = props.context?.map((context) => {
-                if (typeof context === 'string') {
-                    return new StandardReferenceSimple(context)
-                }
-                if (isStandardReferenceData(context)) {
-                    return new StandardReferenceSimple({ key: context.key, universalKey: context.universalKey, tag: context.tag, global: context.global })
+                if (typeof context === 'string' || isStandardReferencePayloadData(context)) {
+                    return new StandardKey(context)
                 }
                 throw new Error(`Invalid context data in ${label} constructor: ${JSON.stringify(context)}`)
-            }).filter(excludeUndefined) ?? []
+            }) ?? []
         }
 
         get key(): string | undefined { return this._key.key }
@@ -150,17 +147,21 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 universalKey: this.universalKey,
                 context: this.leastCommonContext?.length > 0 ? this.leastCommonContext.map((context) => context.toJSON()): undefined,
                 ...this._payload.toJSON(options),
-                ...(this.import ? { from: this.import.toJSON() } : {})
+                ...(this._from ? { from: this._from } : {}),
             } as D
         }
 
         get schema(): GenericTreeNode<SchemaTag> {
-            return this._payload.schema(this.key, this.universalKey)
+            const payload = this._payload.schema(this.key, this.universalKey)
+            if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
+                throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
+            }
+            return { ...payload, data: { ...payload.data, from: this._from } }
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             const { context } = options
-            const contextKey = new StandardKey(this._key)
+            const contextKey = this._key.plain
             const newContext = [...(context ?? []), contextKey]
             //
             // inLeastCommonContext should not actually check the *whole* context, because while a sub-element of (say)
@@ -172,7 +173,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const inLeastCommonContext = context?.length > 0
                 ? Boolean(
                     this.leastCommonContext.length > 0 &&
-                    this.leastCommonContext.slice(-1)[0].payload.equals(context.slice(-1)[0])
+                    this.leastCommonContext.slice(-1)[0].equals(context.slice(-1)[0])
                 )
                 : Boolean((this.leastCommonContext?.length ?? 0) === 0)
 
@@ -180,9 +181,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const reference = mapReferenceToFormat([this._key], 'key')(new StandardReference(this._key))
                 return reference.schema[0]
             }
-            return this._payload.nestedSchema
-                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
-                : this._payload.schema(this.key, this.universalKey)
+            if (this._payload.nestedSchema) {
+                const payload = this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
+                if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
+                    throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
+                }
+                return { ...payload, data: { ...payload.data, from: this._from } }
+            }
+                
+            return this._payload.schema(this.key, this.universalKey)
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
@@ -203,12 +210,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.key && incoming.key && this.key !== incoming.key) {
                 throw new MergeConflictError(`Merge of two unequal keys in ${label}`)
             }
+            if (this._from && incoming._from && this._from !== incoming._from) {
+                throw new MergeConflictError(`Merge of two unequal 'from' values in ${label}`)
+            }
             returnValue._key = this._key.merge(incoming._key)
+            returnValue._from = this._from ?? incoming._from
             returnValue._payload = this._payload.merge((incoming as any)._payload)
-            //
-            // Merge base and incoming import
-            //
-            returnValue._import = (this.import && incoming.import) ? this.import.merge(incoming.import) : this.import ?? incoming.import
             returnValue.leastCommonContext = this.leastCommonContext.filter((reference) => (
                 incoming.leastCommonContext.some((incomingReference) => (
                     reference.equals(incomingReference)
@@ -255,51 +262,17 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+        withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             const newContext = leastCommonContext.map((context) => (context.clone()))
             returnValue.leastCommonContext = newContext.length > 0 ? newContext : []
-            returnValue._key.context = newContext.length > 0 ? newContext.map((context) => (context.payload)) : undefined
+            returnValue._key.context = newContext.length > 0 ? newContext : undefined
             return returnValue
         }
 
         withFileName(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             // returnValue._key._fileName = key
-            return returnValue
-        }
-
-        withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this)
-            if (importData) {
-                let importItem: StandardImportItem | undefined = undefined
-
-                if (importData instanceof ImportItemContent || importData instanceof ImportItemRemove || importData instanceof ImportItemReplace) {
-                    importItem = importData
-                }
-                else if ('action' in importData) {
-                    switch(importData.action) {
-                        case 'Content':
-                            importItem = new ImportItemContent(importData.payload.assetId, importData.payload.fromKey)
-                            break
-                        case 'Remove':
-                            importItem = new ImportItemRemove(importData.match.assetId, importData.match.fromKey)
-                            break
-                        case 'Replace':
-                            importItem = new ImportItemReplace(
-                                { assetId: importData.match.assetId, fromKey: importData.match.fromKey },
-                                { assetId: importData.payload.assetId, fromKey: importData.payload.fromKey }
-                            )
-                            break
-                    }
-                }
-                if (importItem) {
-                    returnValue._import = importItem
-                }
-            }
-            else {
-                returnValue._import = undefined
-            }
             return returnValue
         }
 

@@ -7,9 +7,9 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
 import { StandardRoomData } from "./dataTypes/room"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardImportItem } from "./metaData"
 import { childReferenceFactory, dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -196,7 +196,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key ?? '').withImport(this.import) as StandardRoom
+        const base = new StandardRoom(this.key ?? '')
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
@@ -216,10 +216,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withFileName(key: string): StandardComponent {
         return new StandardRoom(super.withFileName(key) as StandardRoom)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardRoom(super.withImport(importData) as StandardRoom)
     }
 
 }

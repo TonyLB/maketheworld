@@ -5,6 +5,7 @@ import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID } from "@ton
 export type StandardReferenceData = string | ({
     key?: string;
     universalKey?: ComponentUUID;
+    context?: StandardReferenceData[]
     tag: ComponentTag;
     global?: boolean;
 })

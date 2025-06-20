@@ -13,7 +13,7 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
         if (required && !matchedKey) {
             throw new Error(`Property '${key}' is required in '${parse.tag}' items.`)
         }
-        if (matchedKey && matchedKey.type !== type) {
+        if (matchedKey && (matchedKey.type !== type && !(type === ParsePropertyTypes.Asset && matchedKey.type === ParsePropertyTypes.Key))) {
             const typeLabel = type === ParsePropertyTypes.Boolean ? 'Boolean' : type === ParsePropertyTypes.Expression ? 'Expression' : type === ParsePropertyTypes.Literal ? 'Literal' : 'Key'
             throw new Error(`Property '${key}' must be of ${typeLabel} type in '${parse.tag}' items.`)
         }

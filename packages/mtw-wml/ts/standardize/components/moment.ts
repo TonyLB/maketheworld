@@ -1,9 +1,9 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardImportItem } from "./metaData"
 import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
@@ -118,7 +118,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
             return undefined
         }
-        const base = new StandardMoment(this.key ?? '').withImport(this.import) as StandardMoment
+        const base = new StandardMoment(this.key ?? '')
         base._payload._messages = messagesDiff
         return base
     }
@@ -133,10 +133,6 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
 
     override withFileName(key: string): StandardComponent {
         return new StandardMoment(super.withFileName(key) as StandardMoment)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardMoment(super.withImport(importData) as StandardMoment)
     }
 
 }

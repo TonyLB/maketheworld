@@ -2,8 +2,8 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardComputedData } from "./dataTypes/computed"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import { StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardKey } from "./reference";
@@ -94,10 +94,6 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
 
     override withFileName(key: string): StandardComponent {
         return new StandardComputed(super.withFileName(key) as StandardComputed)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardComputed(super.withImport(importData) as StandardComputed)
     }
 
 }

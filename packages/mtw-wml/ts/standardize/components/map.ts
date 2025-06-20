@@ -7,13 +7,13 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
+import { StandardImportItem } from "./metaData"
 import { standardFieldToOutputNode } from "./utils"
 import { outputNodeToStandardItem } from "./utils/constructor"
 import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
-import { positionReferenceKeys, ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
@@ -158,10 +158,6 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
 
     override withFileName(key: string): StandardComponent {
         return new StandardMap(super.withFileName(key) as StandardMap)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardMap(super.withImport(importData) as StandardMap)
     }
 
 }

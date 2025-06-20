@@ -20,21 +20,3 @@ export type StandardComponentImportReplace = {
 }
 
 export type StandardComponentImport = StandardComponentImportContent | StandardComponentImportRemove | StandardComponentImportReplace
-
-export type StandardComponentExportContent = {
-    action: 'Content';
-    payload: string;
-}
-
-export type StandardComponentExportRemove = {
-    action: 'Remove';
-    match: string;
-}
-
-export type StandardComponentExportReplace = {
-    action: 'Replace';
-    match: string;
-    payload: string;
-}
-
-export type StandardComponentExport = StandardComponentExportContent | StandardComponentExportRemove | StandardComponentExportReplace

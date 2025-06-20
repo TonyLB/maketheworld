@@ -1,4 +1,4 @@
-import { SchemaTag, SchemaToWMLTopLevelOptions } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, SchemaTag, SchemaToWMLTopLevelOptions } from "@tonylb/mtw-base/ts/schema"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap";
@@ -20,7 +20,7 @@ export type ValidationTemplateItem = {
 export type ValidationTemplate = Record<string, ValidationTemplateItem>
 
 export type ValidationTemplateRemap<V extends ValidationTemplate>  ={
-    [K in keyof V]: V[K] extends { type: ParsePropertyTypes.Boolean } ? boolean : string
+    [K in keyof V]: V[K] extends { type: ParsePropertyTypes.Boolean } ? boolean : V[K] extends { type: ParsePropertyTypes.Asset } ? AssetUUID : string
 }
 
 export type ValidationRequiredKeys<V extends ValidationTemplate> = {[K in keyof V]: V[K] extends { required: true } ? K : never}[keyof V]

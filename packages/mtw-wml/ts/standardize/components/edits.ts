@@ -3,9 +3,8 @@ import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { KeyPayload } from "./key";
-import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import {  StandardImportItem } from "./metaData";
 import { removeNDJSONOnlyProperties } from "../utils";
 import { ComponentUUID, isSchemaComponentTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
@@ -22,7 +21,7 @@ import { StandardReferenceSimple, StandardKey } from "./reference";
 export class StandardRemove implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
-    leastCommonContext: StandardReferenceSimple[] = [];
+    leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
@@ -44,7 +43,6 @@ export class StandardRemove implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get import() { return this._match.import }
     get global() { return this._match.global }
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
@@ -137,14 +135,7 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withImport(importData)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
         return returnValue
@@ -163,7 +154,7 @@ export class StandardReplace implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
     _payload: StandardComponent;
-    leastCommonContext: StandardReferenceSimple[] = [];
+    leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -200,10 +191,9 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get import() { return this._match.import }
     get global() { return this._match.global }
 
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
         return returnValue
@@ -315,14 +305,6 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._payload = this._payload.withFileName(key)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withImport(importData)
-        returnValue._payload = this._payload.withImport(importData)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }

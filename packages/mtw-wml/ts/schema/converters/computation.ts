@@ -11,21 +11,21 @@ const computationTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         default: { type: ParsePropertyTypes.Expression },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Computed: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         src: { required: true, type: ParsePropertyTypes.Expression },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Action: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         src: { required: true, type: ParsePropertyTypes.Expression },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
 } as const
@@ -71,8 +71,9 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Variable',
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('VARIABLE')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'default', type: 'expression', value: tag.default ?? '' },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }
@@ -86,8 +87,9 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Computed',
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('COMPUTED')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'src', type: 'expression', value: tag.src },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }
@@ -101,8 +103,9 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Action',
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ACTION')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'src', type: 'expression', value: tag.src },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children: [] }

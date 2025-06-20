@@ -4,8 +4,8 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
-import { StandardExportItem, StandardImportItem } from "./metaData"
+import { StandardComponentImport } from "./dataTypes/metaData"
+import { StandardImportItem } from "./metaData"
 import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
@@ -13,7 +13,6 @@ import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardRemove, StandardReplace } from "./edits"
 import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 
@@ -116,7 +115,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardFeature(this.key ?? '').withImport(this.import) as StandardFeature
+        const base = new StandardFeature(this.key ?? '')
         base._payload._examples = examplesDiff
         return base
     }
@@ -135,10 +134,6 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
 
     override withFileName(key: string): StandardComponent {
         return new StandardFeature(super.withFileName(key) as StandardFeature)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardFeature(super.withImport(importData) as StandardFeature)
     }
 
 }

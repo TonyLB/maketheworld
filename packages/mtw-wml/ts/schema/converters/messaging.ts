@@ -14,13 +14,13 @@ const messagingTemplates = {
     Message: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Moment: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
 } as const
@@ -67,6 +67,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children }
@@ -81,6 +82,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MOMENT')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 node: { data: tag, children }

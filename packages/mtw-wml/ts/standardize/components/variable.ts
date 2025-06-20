@@ -1,9 +1,9 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
 import { StandardVariableData } from "./dataTypes/variable"
-import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardKey } from "./reference";
@@ -88,10 +88,6 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
 
     override withFileName(key: string): StandardComponent {
         return new StandardVariable(super.withFileName(key) as StandardVariable)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardVariable(super.withImport(importData) as StandardVariable)
     }
 
 }

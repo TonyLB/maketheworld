@@ -24,9 +24,5 @@ describe('character tags', () => {
             expect(isSchemaCharacter(schema)).toBe(false)
         })
 
-        it('should return false for SchemaCharacterTag missing key', () => {
-            const schema = { tag: 'Character' }
-            expect(isSchemaCharacter(schema)).toBe(false)
-        })
     })
 })

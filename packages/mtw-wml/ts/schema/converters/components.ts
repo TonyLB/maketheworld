@@ -24,22 +24,20 @@ const componentTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
-        x: { type: ParsePropertyTypes.Literal },
-        y: { type: ParsePropertyTypes.Literal },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Feature: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         global: { required: false, type: ParsePropertyTypes.Boolean },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Knowledge: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
     Position: {
@@ -49,7 +47,7 @@ const componentTemplates = {
     Map: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     }
 } as const
@@ -84,18 +82,10 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     ShortName: shortNameConverter,
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
-            const { x, y, uuid, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)   
-            if (typeof x !== 'undefined' && Number.isNaN(parseInt(x))) {
-                throw new Error(`Property 'x' must be a number`)
-            }
-            if (typeof y !== 'undefined' && Number.isNaN(parseInt(y))) {
-                throw new Error(`Property 'x' must be a number`)
-            }
+            const { uuid, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)   
             return {
                 tag: 'Room',
                 uuid: uuid ? enforceTypedKey('ROOM')(uuid) : undefined,
-                x: typeof x !== 'undefined' ? parseInt(x) : undefined,
-                y: typeof y !== 'undefined' ? parseInt(y) : undefined,
                 ...rest
             }
         }
@@ -201,11 +191,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ROOM')(tag.uuid) : '' },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
-                //
-                // Render x/y properties from integers into strings
-                //
-                { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
-                { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -226,6 +212,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('FEATURE')(tag.uuid) : '' },
                 { key: 'global', type: 'boolean', value: tag.global ?? false },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
+                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -244,6 +231,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('KNOWLEDGE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }
@@ -276,6 +264,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             node: { data: tag, children }

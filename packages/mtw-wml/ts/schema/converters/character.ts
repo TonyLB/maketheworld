@@ -7,11 +7,14 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const characterTemplates = {
     Pronouns: {},
     Character: {
-        key: { required: true, type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        uuid: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
         update: { type: ParsePropertyTypes.Boolean }
     }
 } as const
@@ -22,10 +25,11 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: pronounsConverter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
-            const properties = validateProperties(characterTemplates.Character)(parseOpen)
+            const { uuid, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
             return {
                 tag: 'Character',
-                ...properties
+                uuid: uuid ? enforceTypedKey('CHARACTER')(uuid) : undefined,
+                ...rest
             }
         },
         typeCheckContents: isSchemaCharacterContents,
@@ -39,7 +43,9 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Character',
                 properties: [
-                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('CHARACTER')(tag.uuid) : '' },
+                    { key: 'key', type: 'key', value: tag.key ?? '' },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'update', type: 'boolean', value: tag.update ?? false }
                 ],
                 node: { data: tag, children }
