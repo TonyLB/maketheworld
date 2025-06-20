@@ -1,11 +1,9 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardFeatureData } from "./dataTypes/feature"
 import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
-import { StandardReferenceSimple } from "./reference"
+import { StandardKey } from "./reference"
 
 describe('StandardFeature class', () => {
 
@@ -59,8 +57,8 @@ describe('StandardFeature class', () => {
     })
 
     it('should properly merge leastCommonContext on two nested features', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardReferenceSimple('ROOM#testRoom')])
-        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardReferenceSimple('ROOM#testRoom')])
+        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
+        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
 
         const merged = testOne.merge(testTwo)
         if (!merged) {
@@ -77,8 +75,8 @@ describe('StandardFeature class', () => {
     })
 
     it('should properly reduce leastCommonContext on two nested features without common context', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardReferenceSimple('ROOM#testRoom')])
-        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardReferenceSimple('ROOM#testRoomTwo')])
+        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
+        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoomTwo')])
 
         const merged = testOne.merge(testTwo)
         if (!merged) {
@@ -95,7 +93,7 @@ describe('StandardFeature class', () => {
     })
 
     it('should properly retain leastCommonContext on merging a non-nested feature', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardReferenceSimple('ROOM#testRoom')])
+        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
         const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`)
 
         const merged = testOne.merge(testTwo)

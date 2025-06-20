@@ -17,18 +17,16 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { ComponentKey } from "./dataTypes/key"
-import { StandardComponentImport } from "./dataTypes/metaData";
-import { ImportItemContent, ImportItemRemove, ImportItemReplace, StandardImportItem } from "./metaData";
+import { StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
-import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
-import StandardReference, { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
-import { excludeUndefined } from "../../lib/lists";
+import StandardReference, { StandardKey } from "./reference";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -145,7 +143,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return {
                 key: this.key,
                 universalKey: this.universalKey,
-                context: this.leastCommonContext?.length > 0 ? this.leastCommonContext.map((context) => context.toJSON()): undefined,
+                context: (this._key?.context ?? []).length > 0 ? (this._key.context ?? []).map((context) => context.toJSON()) : undefined,
                 ...this._payload.toJSON(options),
                 ...(this._from ? { from: this._from } : {}),
             } as D
@@ -172,10 +170,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             //
             const inLeastCommonContext = context?.length > 0
                 ? Boolean(
-                    this.leastCommonContext.length > 0 &&
-                    this.leastCommonContext.slice(-1)[0].equals(context.slice(-1)[0])
+                    (this._key?.context ?? []).length > 0 &&
+                    (this._key?.context ?? []).slice(-1)[0].equals(context.slice(-1)[0])
                 )
-                : Boolean((this.leastCommonContext?.length ?? 0) === 0)
+                : Boolean((this._key?.context?.length ?? 0) === 0)
 
             if (!inLeastCommonContext) {
                 const reference = mapReferenceToFormat([this._key], 'key')(new StandardReference(this._key))
@@ -233,8 +231,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return undefined
             }
             else {
-                const leastCommonContext = this.leastCommonContext.filter((reference) => (
-                    incoming.leastCommonContext.some((incomingReference) => (
+                const leastCommonContext = (this._key?.context ?? []).filter((reference) => (
+                    (incoming._key?.context ?? []).some((incomingReference) => (
                         reference.equals(incomingReference)
                     ))
                 ))
