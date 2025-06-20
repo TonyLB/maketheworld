@@ -1,4 +1,4 @@
-import { ComponentUUID } from ".";
+import { ComponentUUID, isSchemaAssetUUID } from ".";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { SchemaBase, SchemaImportableBase } from "./baseClasses";
 
@@ -35,7 +35,7 @@ export const isSchemaSummary = (schema: any): schema is SchemaSummaryTag => (
 export const isSchemaExample = (schema: any): schema is SchemaExampleTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { as: CheckTypes.STRING, key: CheckTypes.STRING, uuid: CheckTypes.STRING },
-        values: { tag: 'Example' }
+        optional: { as: CheckTypes.STRING, key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Example', from: isSchemaAssetUUID }
     })(schema)
 )

@@ -48,9 +48,5 @@ describe('example tags', () => {
             expect(isSchemaExample(schema)).toBe(false)
         })
 
-        it('should return false for SchemaExampleTag missing key', () => {
-            const schema = { tag: 'Example' }
-            expect(isSchemaExample(schema)).toBe(false)
-        })
     })
 })

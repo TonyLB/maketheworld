@@ -1,6 +1,6 @@
 import { SchemaImportableBase } from "./baseClasses";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
-import { ComponentUUID } from ".";
+import { ComponentUUID, isSchemaAssetUUID } from ".";
 
 export type SchemaImageTag = {
     tag: 'Image';
@@ -12,6 +12,6 @@ export type SchemaImageTag = {
 export const isSchemaImage = (schema: any): schema is SchemaImageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
-        optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING, uuid: CheckTypes.STRING },
-        values: { tag: 'Image' } })(schema)
+        optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Image', from: isSchemaAssetUUID } })(schema)
 )

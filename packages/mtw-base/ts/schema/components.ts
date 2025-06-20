@@ -1,7 +1,7 @@
 import { SchemaBase, SchemaImportableBase } from "./baseClasses"
 import checkTypes, { CheckTypes } from "../utils/checkTypes"
 import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
-import { ComponentUUID } from ".";
+import { ComponentUUID, isSchemaAssetUUID } from ".";
 
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
@@ -61,19 +61,40 @@ const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
 
 export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING }, values: { tag: 'Exit' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Exit' }
+    })(schema)
 )
 
 export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Room' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: {
+            tag: 'Room',
+            from: isSchemaAssetUUID
+        }
+    })(schema)
 )
 
 export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Feature' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: {
+            tag: 'Feature',
+            from: isSchemaAssetUUID
+        }
+    })(schema)
 )
 
 export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING}, optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING }, values: { tag: 'Knowledge' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING},
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Knowledge', from: isSchemaAssetUUID }
+    })(schema)
 )
 
 export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (
@@ -81,13 +102,25 @@ export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (
 )
 
 export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING }, values: { tag: 'Map' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Map', from: isSchemaAssetUUID }
+    })(schema)
 )
 
 export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, optional: { key: CheckTypes.STRING }, values: { tag: 'Message' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Message', from: isSchemaAssetUUID }
+    })(schema)
 )
 
 export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING, key: CheckTypes.STRING }, values: { tag: 'Moment' } })(schema)
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        values: { tag: 'Moment', from: isSchemaAssetUUID }
+    })(schema)
 )
