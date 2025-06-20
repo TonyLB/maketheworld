@@ -124,8 +124,13 @@ export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"]
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
 )
-export type ComponentUUID = `${Uppercase<SchemaComponent["tag"]> | 'ASSET'}#${string}`
+export type AssetUUID = `ASSET#${string}`
+export const isSchemaAssetUUID = (value: string): value is AssetUUID => {
+    return value.startsWith('ASSET#') && value.length > 6 && /^[A-Za-z0-9-]+$/.test(value.slice(6))
+}
+export type ComponentUUID = `${Uppercase<SchemaComponent["tag"]>}#${string}` | AssetUUID
 export const isSchemaComponentUUID = (value: string): value is ComponentUUID => {
+    if (isSchemaAssetUUID(value)) return true
     const [tag, ...rest] = value.split('#')
     const componentTag = `${tag[0]}${tag.slice(1).toLowerCase()}`
     return isSchemaComponentTag(componentTag) && rest.length === 1 && rest[0].length > 0
