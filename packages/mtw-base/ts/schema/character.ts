@@ -1,4 +1,4 @@
-import { SchemaBase } from "./baseClasses";
+import { SchemaBase, SchemaImportableBase } from "./baseClasses";
 import { SchemaNameTag } from "./example";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
@@ -17,7 +17,7 @@ export type SchemaCharacterTag = {
     key?: string;
     uuid?: ComponentUUID;
     update?: boolean;
-} & SchemaBase
+} & SchemaImportableBase
 
 export const { typeGuard: isSchemaPronouns } = literalTagFactory('Pronouns')
 

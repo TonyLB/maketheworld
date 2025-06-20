@@ -1,8 +1,11 @@
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
+
 export enum ParsePropertyTypes {
     Key,
     Literal,
     Expression,
-    Boolean
+    Boolean,
+    Asset
 }
 
 type ParsePropertyBase = {
@@ -29,7 +32,12 @@ export type ParsePropertyBoolean = {
     value: boolean;
 } & ParsePropertyBase
 
-export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression | ParsePropertyBoolean
+export type ParsePropertyAsset = {
+    type: ParsePropertyTypes.Asset;
+    value: AssetUUID;
+} & ParsePropertyBase
+
+export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression | ParsePropertyBoolean | ParsePropertyAsset
 
 export enum ParseTypes {
     Open,

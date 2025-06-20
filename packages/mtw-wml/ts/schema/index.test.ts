@@ -63,11 +63,6 @@ describe('schemaFromParse', () => {
                         <Room key=(ABC) />
                     </Message>
                 </Moment>
-                <Export>
-                    <Room key=(ABC) as=(QRS) />
-                    <Room key=(DEF) />
-                    <Knowledge key=(GHI) />
-                </Export>
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
@@ -246,21 +241,6 @@ describe('schemaFromParse', () => {
                             children: [],
                         }],
                     }],
-                },
-                {
-                    data: {
-                        tag: "Export",
-                        mapping: {
-                            QRS: { key: 'ABC', type: 'Room' },
-                            DEF: { key: 'DEF', type: 'Room' },
-                            GHI: { key: 'GHI', type: 'Knowledge' }
-                        },
-                    },
-                    children: [
-                        { data: { tag: 'Room', key: 'ABC', as: 'QRS' }, children: [] },
-                        { data: { tag: 'Room', key: 'DEF' }, children: [] },
-                        { data: { tag: 'Knowledge', key: 'GHI' }, children: [] }
-                    ]
                 }
             ]
         }])
@@ -1023,7 +1003,7 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schema)).toEqual('<Asset key=(Test)>\n    <Room key=(test)><Description>Test \\\\ \\< \\></Description></Room>\n</Asset>')
     })
 
-    it('should correctly round-trip import and export', () => {
+    it('should correctly round-trip import', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(BASE)>
@@ -1032,7 +1012,6 @@ describe('schemaToWML', () => {
                 </Import>
                 <Variable key=(testVar) default={false} />
                 <Room key=(test)><Description>Test</Description></Room>
-                <Export><Room key=(test) as=(Room2) /></Export>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
