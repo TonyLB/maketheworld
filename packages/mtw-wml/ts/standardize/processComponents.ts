@@ -1,11 +1,10 @@
-import { objectMerge } from "../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
-import { ExportItemContent, ExportItemRemove, ImportItemContent, ImportItemRemove } from "./components/metaData"
+import { ImportItemContent, ImportItemRemove } from "./components/metaData"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaExport, isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
@@ -54,12 +53,6 @@ export const processComponents = (props: {
         //
         if (treeNodeTypeguard(isSchemaImport)(item)) {
             return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } })]
-        }
-        //
-        // If the item is an export, set metaDataContext to 'Export'
-        //
-        if (treeNodeTypeguard(isSchemaExport)(item)) {
-            return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Export' } })]
         }
 
         //

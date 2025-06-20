@@ -2,8 +2,8 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import { StandardImportItem } from "./metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
 import { StandardKey } from "./reference";

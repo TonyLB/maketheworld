@@ -15,7 +15,7 @@ import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/baseClasses"
 import { objectMap } from "../lib/objects"
-import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
+import { ImportItemContent, ImportItemRemove, ImportItemReplace } from "./components/metaData"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
@@ -23,7 +23,7 @@ import importExportFromTree from "./importExportFromTree"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { ComponentUUID, isImportable, isSchemaAsset, isSchemaWithKey, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { isSchemaExport, isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -124,7 +124,7 @@ export class StandardForm {
         if (isStandardForm(args)) {
             this._key = args.key
 
-            const { importItemById, exportItemById } = importExportFromTree(args.metaData)
+            const { importItemById } = importExportFromTree(args.metaData)
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
@@ -437,7 +437,6 @@ export class StandardForm {
                 // Don't include a separate schema entry for an import that doesn't change the component
                 //
                 ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
-                ...metaData.filter(wrappedNodeTypeGuard(isSchemaExport))
             ]
         }
     }

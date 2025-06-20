@@ -3,9 +3,8 @@ import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { KeyPayload } from "./key";
-import { StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import {  StandardImportItem } from "./metaData";
 import { removeNDJSONOnlyProperties } from "../utils";
 import { ComponentUUID, isSchemaComponentTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"

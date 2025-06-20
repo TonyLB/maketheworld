@@ -1,8 +1,8 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardExportItem, StandardImportItem } from "./metaData";
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
+import { StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
 import { SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";

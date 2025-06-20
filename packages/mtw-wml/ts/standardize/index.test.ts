@@ -4,7 +4,7 @@ import { deIndentWML } from '../schema/utils'
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
-import { ExportItemContent, ImportItemContent } from './components/metaData'
+import { ImportItemContent } from './components/metaData'
 import StandardCharacter from './components/character'
 import { StandardKey } from './components/reference'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {

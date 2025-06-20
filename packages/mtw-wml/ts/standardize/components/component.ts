@@ -17,8 +17,8 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { ComponentKey } from "./dataTypes/key"
-import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
+import { StandardComponentImport } from "./dataTypes/metaData";
+import { ImportItemContent, ImportItemRemove, ImportItemReplace, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";

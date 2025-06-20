@@ -1,4 +1,4 @@
-import { isSchemaExport, isSchemaImport, isSchemaMeta, SchemaExportTag, SchemaImportTag, SchemaMetaTag } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "@tonylb/mtw-base/ts/schema/metaData"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -42,7 +42,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
                     ...initialTag,
                     mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
                         ...previous,
-                        [as ?? key]: { key, type: tag }
+                        [as ?? key ?? '']: { key, type: tag }
                     }), {})
                 },
                 children
@@ -59,29 +59,6 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
                 tag: 'Meta',
                 ...rest,
                 time: parseInt(time)
-            }
-        }
-    },
-    Export: {
-        initialize: ({ parseOpen }): SchemaExportTag => ({
-            tag: 'Export',
-            mapping: {},
-            ...validateProperties(importExportTemplates.Export)(parseOpen)
-        }),
-        typeCheckContents: (data) => (isImportable(data) || isSchemaRemove(data) || isSchemaReplace(data)),
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => {
-            if (!isSchemaExport(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: {
-                    ...initialTag,
-                    mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
-                        ...previous,
-                        [as || key]: { key, type: tag }
-                    }), {})
-                },
-                children
             }
         }
     },
@@ -121,16 +98,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'time', type: 'literal', value: `${tag.time}` }
                 ],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Export: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
-        isSchemaExport(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Export',
-                properties: [],
                 node: { data: tag, children }
             })
             : [{ printMode: PrintMode.naive, output: '' }]
