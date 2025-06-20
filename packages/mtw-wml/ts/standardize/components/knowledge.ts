@@ -6,7 +6,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -33,7 +33,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (new StandardReference([node]))))
+            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')

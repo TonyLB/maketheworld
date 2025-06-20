@@ -4,7 +4,7 @@ import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./b
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardMomentData } from "./dataTypes/moment"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
@@ -33,7 +33,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
             this._messages = node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
                 if (treeNodeTypeguard(isSchemaMessage)(reference) || treeNodeTypeguard(isSchemaRemove)(reference)) {
-                    return new StandardReference([reference])
+                    return childReferenceFactory([reference])
                 }
                 throw new Error('Schema mismatch in StandardMoment constructor')
             })

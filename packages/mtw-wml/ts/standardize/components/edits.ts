@@ -307,7 +307,7 @@ export class StandardReplace implements StandardComponent {
     withKey(key: string): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withKey(key)
-        returnValue._payload = this._match.withKey(key)
+        returnValue._payload = this._payload.withKey(key)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
@@ -315,7 +315,7 @@ export class StandardReplace implements StandardComponent {
     withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withUniversalKey(key)
-        returnValue._payload = this._match.withUniversalKey(key)
+        returnValue._payload = this._payload.withUniversalKey(key)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }

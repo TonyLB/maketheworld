@@ -109,7 +109,7 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]
             ]
         }, previous)
     ), [])
-    return Object.values(referencesById).filter(excludeUndefined)
+    return referencesById.filter(excludeUndefined)
 }
 
 export const uniqueReferences = (references: StandardReference[]): StandardReference[] => {
@@ -175,6 +175,17 @@ export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceF
         
         throw new Error('Unsupported reference type')
     }
+
+export const childReferenceFactory = (props: any): StandardReference => {
+    const reference = new StandardReference(props)
+    if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.equals(reference._payload.payload)) {
+        // If the match and payload are the same, this is a reference to a child node that is being
+        // modified, and *for this particular method* we include a plain reference (so that parents
+        // will know to render the change)
+        return new StandardReference(reference._payload.plain)
+    }
+    return reference
+}
 
 export default linkReferenceKeys
 

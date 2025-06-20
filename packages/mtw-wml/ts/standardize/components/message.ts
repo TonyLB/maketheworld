@@ -7,7 +7,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData"
 import { StandardExportItem, StandardImportItem } from "./metaData"
-import { mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -43,7 +43,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
             this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
             const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            this._rooms = roomTagTree.tree.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (new StandardReference([node]))))
+            this._rooms = roomTagTree.tree.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (childReferenceFactory([node]))))
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
