@@ -182,7 +182,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 : Boolean((this.leastCommonContext?.length ?? 0) === 0)
 
             if (!inLeastCommonContext) {
-                const reference = (new StandardReference(this.key ? { key: this.key, tag: this.tag } : { universalKey: this.universalKey }))
+                const reference = mapReferenceToFormat([this._key], 'key')(new StandardReference(this._key))
                 return reference.schema[0]
             }
             return this._payload.nestedSchema
