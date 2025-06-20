@@ -40,8 +40,6 @@ export interface StandardComponent {
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
     withFileName(key: string | undefined): StandardComponent;
-    import?: StandardImportItem;
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;

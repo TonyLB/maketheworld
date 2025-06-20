@@ -7,8 +7,7 @@ import { StandardKey } from "./components/reference"
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
     const merged = mergeWithEdits(base, value)
     if (merged) {
-        const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-        return merged.withImport(mergedImport)
+        return merged
     }
     else {
         return undefined

@@ -94,10 +94,6 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
         return new StandardAction(super.withFileName(key) as StandardAction)
     }
 
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardAction(super.withImport(importData) as StandardAction)
-    }
-
 }
 
 export default StandardAction

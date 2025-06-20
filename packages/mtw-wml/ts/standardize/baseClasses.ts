@@ -15,7 +15,7 @@ import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { StandardVariableData } from "./components/dataTypes/variable";
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
@@ -197,7 +197,7 @@ export type StandardAsset = {
 } & StandardBase
 
 export type SerializeNDJSONMixin = {
-    from?: StandardComponentImport;
+    from?: AssetUUID;
     universalKey?: string;
     fileName?: string;
 }
@@ -228,12 +228,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
                 universalKey: 'string',
             }
         ),
-        (
-            (!line?.from) ||
-            (line.from.action === 'Content' && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' })) ||
-            (line.from.action === 'Remove' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' })) ||
-            (line.from.action === 'Replace' && checkTypes(line.from.match, { assetId: 'string' }, { fromKey: 'string' }) && checkTypes(line.from.payload, { assetId: 'string' }, { fromKey: 'string' }))
-        )
+        (!line?.from || isSchemaAssetUUID(line.from))
     )
 }
 

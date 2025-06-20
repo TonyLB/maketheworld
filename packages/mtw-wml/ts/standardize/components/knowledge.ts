@@ -113,7 +113,7 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardKnowledge(this.key ?? '').withImport(this.import) as StandardKnowledge
+        const base = new StandardKnowledge(this.key ?? '')
         base._payload._examples = examplesDiff
         return base
     }
@@ -132,10 +132,6 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
 
     override withFileName(key: string): StandardComponent {
         return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardKnowledge(super.withImport(importData) as StandardKnowledge)
     }
 
 }

@@ -160,10 +160,6 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.withFileName(key) as StandardMap)
     }
 
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardMap(super.withImport(importData) as StandardMap)
-    }
-
 }
 
 export default StandardMap

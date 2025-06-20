@@ -26,6 +26,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         else {
             this.key = data.key
             this.universalKey = data.universalKey
+            this.context = data.context ? data.context.map(item => new StandardKey(item)) : undefined
             this.tag = data.tag
             this.global = data.global
         }
@@ -46,7 +47,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
     }
     toJSON: () => StandardReferenceData = () => {
         if (typeof this.key !== 'undefined') {
-            return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global } as StandardReferenceData
+            return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global, context: this.context?.map((item) => (item.toJSON())) } as StandardReferenceData
         }
         else {
             if (typeof this.universalKey === 'undefined') {
@@ -96,8 +97,14 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         if (other.universalKey) {
             returnValue.universalKey = other.universalKey
         }
-        const newContext = (this.context ?? []).filter((reference) => (!(other.context ?? []).some((otherReference) => ((new StandardKey(otherReference).equals(new StandardKey(reference)))))))
+        const newContext = (this.context ?? []).filter((reference) => ((other.context ?? []).some((otherReference) => ((otherReference.equals(new StandardKey(reference)))))))
         returnValue.context = newContext.length > 0 ? newContext : undefined
+        return returnValue
+    }
+
+    get plain(): StandardKey {
+        const returnValue = this.clone()
+        returnValue.context = undefined
         return returnValue
     }
 }

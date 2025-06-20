@@ -43,7 +43,6 @@ export class StandardRemove implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get import() { return this._match.import }
     get global() { return this._match.global }
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
@@ -136,13 +135,6 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withImport(importData)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
     withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
@@ -199,7 +191,6 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get import() { return this._match.import }
     get global() { return this._match.global }
 
     withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
@@ -314,14 +305,6 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._payload = this._payload.withFileName(key)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
-    withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withImport(importData)
-        returnValue._payload = this._payload.withImport(importData)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }

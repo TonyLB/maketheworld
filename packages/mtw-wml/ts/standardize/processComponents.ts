@@ -146,9 +146,7 @@ export const processComponents = (props: {
                 const temp = standardComponentFactory(item)
                 const component = metaDataContext
                     ? metaDataContext.type === 'Import'
-                        ? inContextOfRemove
-                            ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key ?? ''))
-                            : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key ?? ''))
+                        ? temp?.withKey(dynamicRename)
                         : temp
                     : temp
 

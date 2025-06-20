@@ -169,7 +169,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
-        const base = new StandardExample(this.key ?? 's').withImport(this.import) as StandardExample
+        const base = new StandardExample(this.key ?? '')
         base._payload._name = this._payload._name
             ? this._payload._name.diff(incoming._payload._name)
             : incoming._payload._name
@@ -192,10 +192,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withFileName(key: string): StandardComponent {
         return new StandardExample(super.withFileName(key) as StandardExample)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardExample(super.withImport(importData) as StandardExample)
     }
 
 }

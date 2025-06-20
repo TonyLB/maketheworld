@@ -147,7 +147,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 universalKey: this.universalKey,
                 context: this.leastCommonContext?.length > 0 ? this.leastCommonContext.map((context) => context.toJSON()): undefined,
                 ...this._payload.toJSON(options),
-                ...(this.import ? { from: this.import.toJSON() } : {})
+                ...(this._from ? { from: this._from } : {}),
             } as D
         }
 
@@ -161,7 +161,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
             const { context } = options
-            const contextKey = new StandardKey(this._key)
+            const contextKey = this._key.plain
             const newContext = [...(context ?? []), contextKey]
             //
             // inLeastCommonContext should not actually check the *whole* context, because while a sub-element of (say)
@@ -216,10 +216,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._key = this._key.merge(incoming._key)
             returnValue._from = this._from ?? incoming._from
             returnValue._payload = this._payload.merge((incoming as any)._payload)
-            //
-            // Merge base and incoming import
-            //
-            returnValue._import = (this.import && incoming.import) ? this.import.merge(incoming.import) : this.import ?? incoming.import
             returnValue.leastCommonContext = this.leastCommonContext.filter((reference) => (
                 incoming.leastCommonContext.some((incomingReference) => (
                     reference.equals(incomingReference)
@@ -277,40 +273,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withFileName(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             // returnValue._key._fileName = key
-            return returnValue
-        }
-
-        withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this)
-            if (importData) {
-                let importItem: StandardImportItem | undefined = undefined
-
-                if (importData instanceof ImportItemContent || importData instanceof ImportItemRemove || importData instanceof ImportItemReplace) {
-                    importItem = importData
-                }
-                else if ('action' in importData) {
-                    switch(importData.action) {
-                        case 'Content':
-                            importItem = new ImportItemContent(importData.payload.assetId, importData.payload.fromKey)
-                            break
-                        case 'Remove':
-                            importItem = new ImportItemRemove(importData.match.assetId, importData.match.fromKey)
-                            break
-                        case 'Replace':
-                            importItem = new ImportItemReplace(
-                                { assetId: importData.match.assetId, fromKey: importData.match.fromKey },
-                                { assetId: importData.payload.assetId, fromKey: importData.payload.fromKey }
-                            )
-                            break
-                    }
-                }
-                if (importItem) {
-                    returnValue._import = importItem
-                }
-            }
-            else {
-                returnValue._import = undefined
-            }
             return returnValue
         }
 

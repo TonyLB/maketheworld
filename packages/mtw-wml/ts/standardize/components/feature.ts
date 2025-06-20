@@ -115,7 +115,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardFeature(this.key ?? '').withImport(this.import) as StandardFeature
+        const base = new StandardFeature(this.key ?? '')
         base._payload._examples = examplesDiff
         return base
     }
@@ -134,10 +134,6 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
 
     override withFileName(key: string): StandardComponent {
         return new StandardFeature(super.withFileName(key) as StandardFeature)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardFeature(super.withImport(importData) as StandardFeature)
     }
 
 }

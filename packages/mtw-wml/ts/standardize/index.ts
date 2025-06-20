@@ -124,14 +124,13 @@ export class StandardForm {
         if (isStandardForm(args)) {
             this._key = args.key
 
-            const { importItemById } = importExportFromTree(args.metaData)
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
                     return [
                         ...previous,
-                        standardItem.withImport(importItemById[standardItem.key ?? ''])
+                        standardItem
                     ]
                 }
                 else {
@@ -156,10 +155,8 @@ export class StandardForm {
             this._components = args.filter(isStandardComponent).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
-                    return [
-                        ...previous,
-                        standardItem.withImport(standardData.from)
-                    ]
+                    standardItem._from = standardData.from
+                    return [...previous, standardItem]
                 }
                 else {
                     return previous
@@ -244,7 +241,9 @@ export class StandardForm {
                         ]
                     }, [])
                     .filter(({ key, universalKey }) => (key || universalKey))
-                this._components = componentFragments.reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
+                this._components = componentFragments
+                    .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
+                    .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
                 this._byId = this._components
                     .reduce<Record<string, StandardComponent>>((previous, component) => {
                         return {
@@ -265,96 +264,9 @@ export class StandardForm {
     }
 
     get metaData(): GenericTree<SchemaTag> {
-
-        const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
-            .filter((component) => (Boolean(component.import)))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .reduce<Record<string, GenericTree<SchemaTag>>>((previous, component): Record<string, GenericTree<SchemaTag>> => {
-                const maybeAddAsKey = (data: SchemaTag, from: string): SchemaTag => {
-                    const originalKey = (data as SchemaWithKey).key
-                    if (from === originalKey) {
-                        return data
-                    }
-                    else {
-                        return {
-                            ...data,
-                            as: originalKey,
-                            key: from
-                        } as SchemaWithKey
-                    }
-                }
-                const schema = component.schema
-                if (component.import instanceof ImportItemRemove) {
-                    return {
-                        ...previous,
-                        [component.import.assetId]: [
-                            ...(previous[component.import.assetId] ?? []),
-                            {
-                                data: { tag: 'Remove' as const },
-                                children: [{ data: maybeAddAsKey(schema.data, component.import.fromKey), children: [] }]
-                            }
-                        ]
-                    }
-                }
-                if (component.import instanceof ImportItemReplace) {
-                    return {
-                        ...previous,
-                        [component.import.assetId]: [
-                            ...(previous[component.import.assetId] ?? []),
-                            {
-                                data: { tag: 'Replace' as const },
-                                children: [
-                                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: maybeAddAsKey(schema.data, component.import.fromKey), children: [] }] },
-                                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: maybeAddAsKey(schema.data, component.import._payload.fromKey), children: [] }] }
-                                ]
-                            }
-                        ]
-                    }
-                }
-                if (!component.import) {
-                    return previous
-                }
-                if (!(component.import instanceof ImportItemContent)) {
-                    throw new Error('Type mismatch in StandardForm metadata')
-                }
-                return {
-                    ...previous,
-                    [component.import.assetId]: [
-                        ...(previous[component.import.assetId] ?? []),
-                        {
-                            data: maybeAddAsKey(schema.data, component.import.fromKey),
-                            children: []
-                        }
-                    ]
-                }
-            }, {})
-
-        const importItems: GenericTree<SchemaTag> = Object.entries(importsByAssetId)
-            .map(([key, importData]) => {
-                if (importData.length === 0) {
-                    return []
-                }
-                if (importData.every(treeNodeTypeguard(isSchemaRemove))) {
-                    return [{
-                        data: { tag: 'Remove' as const },
-                        children: [{
-                            data: { tag: 'Import' as const, mapping: {}, from: key },
-                            children: importData.map(({ children }) => (children[0]))
-                        }]
-                    }]
-                }
-                return [{
-                    data: { tag: 'Import' as const, mapping: {}, from: key },
-                    children: importData
-                }]
-            })
-            .flat(1)
-    
-        return [
-            ...this._metaData,
-            ...importItems
-        ]
+        return [...this._metaData]
     }
+
     get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
         return {
             tag: 'Asset',
@@ -422,21 +334,16 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        const children = this._components
+        const sortedChildren = this._components
             .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+        const children = sortedChildren
             .map((component) => (component.nestedSchema(this._lookup.bind(this), { context: [] })))
-        const imports = metaData.filter(wrappedNodeTypeGuard(isSchemaImport))
-        const importKeys = unique(imports.map(({ children }) => (children.map(({ data }) => (data)).filter(isImportable).map(({ key, as }) => (as ?? key)))).flat(1))
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
-                ...imports,
-                //
-                // Don't include a separate schema entry for an import that doesn't change the component
-                //
-                ...children.filter(({ data, children }) => (children.length || !(isImportable(data) && importKeys.includes(data.key)))),
+                ...children
             ]
         }
     }
@@ -479,8 +386,9 @@ export class StandardForm {
         // This provides a base for standardComponentSortOrder to merge the two key lists in the correct order
         // (without risking the possibility of merge conflicts that are irrelevant at this stage).
         //
-        console.log(`diff base: ${JSON.stringify(this.toJSON(), null, 4)}`)
-        console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
+
+        // console.log(`diff base: ${JSON.stringify(this.toJSON(), null, 4)}`)
+        // console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
         const mergedForKeys = new StandardForm({
             key: this.key,
             components: [...this._components, ...incoming._components]
@@ -526,19 +434,10 @@ export class StandardForm {
                 if (baseComponent && incomingComponent) {
                     console.log(`bothMatch: ${JSON.stringify(reference, null, 4)}`)
                     const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous.find(({ key }) => (key === subKey)))) })
-                    const baseImport = baseComponent.import
-                    const incomingImport = incomingComponent.import
-                    const diffImport = (baseImport && incomingImport)
-                        ? baseImport.diff(incomingImport)
-                        : baseImport
-                            ? new ImportItemRemove(baseImport.assetId, baseImport.fromKey)
-                            : incomingImport
-                                ? incomingImport
-                                : undefined
                     if (diffedComponent) {
                         return mergeToComponentList(mergedForKeys._keys)(
                             previous,
-                            diffedComponent.withImport(diffImport)
+                            diffedComponent
                         )
                     } else {
                         return previous

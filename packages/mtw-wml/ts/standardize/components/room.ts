@@ -196,7 +196,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key ?? '').withImport(this.import) as StandardRoom
+        const base = new StandardRoom(this.key ?? '')
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
@@ -216,10 +216,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withFileName(key: string): StandardComponent {
         return new StandardRoom(super.withFileName(key) as StandardRoom)
-    }
-
-    override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
-        return new StandardRoom(super.withImport(importData) as StandardRoom)
     }
 
 }
