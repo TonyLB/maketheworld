@@ -94,10 +94,6 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
         return new StandardVariable(super.withImport(importData) as StandardVariable)
     }
 
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardVariable(super.withExport(exportData) as StandardVariable)
-    }
-
 }
 
 export default StandardVariable

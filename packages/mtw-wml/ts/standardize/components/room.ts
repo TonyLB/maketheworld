@@ -162,7 +162,6 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._examples = returnValue._examples.map(mapReference)
         returnValue._features = returnValue._features.map(mapReference)
-        console.log(`Remapped features: ${JSON.stringify(returnValue._features.map((reference) => (reference.toJSON())), null, 2)}`)
         return returnValue as this
     }
 }
@@ -197,7 +196,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key ?? '').withImport(this.import).withExport(this.export) as StandardRoom
+        const base = new StandardRoom(this.key ?? '').withImport(this.import) as StandardRoom
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
@@ -221,10 +220,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
         return new StandardRoom(super.withImport(importData) as StandardRoom)
-    }
-
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardRoom(super.withExport(exportData) as StandardRoom)
     }
 
 }

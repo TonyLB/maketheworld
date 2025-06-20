@@ -1131,17 +1131,6 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should render exports correctly', () => {
-        const testSource = deIndentWML(`
-            <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne) />
-                <Export><Room uuid=(testRoomOne) key=(testRoomOne) as=(Room2) /></Export>
-            </Asset>
-        `)
-        const test = new StandardForm(testSource)
-        expect(schemaToWML([test.schema])).toEqual(testSource)
-    })
-
     it('should render Remove tags correctly', () => {
         const testSource = deIndentWML(`
             <Asset key=(Test)>
@@ -1994,26 +1983,6 @@ describe('StandardForm', () => {
             `))
         })
 
-        it('should diff an export change correctly', () => {
-            const base = new StandardForm(`
-                <Asset key=(test)>
-                    <Room uuid=(Room1) key=(Room1) />
-                    <Export><Room uuid=(Room1) key=(Room1) as=(testOne) /></Export>
-                </Asset>
-            `)
-            const incoming = base._clone()
-            incoming._byId['Room1'] = incoming._byId['Room1'].withExport(new ExportItemContent('testTwo'))
-            const diff = base.diff(incoming)
-            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-                <Asset key=(test)>
-                    <Room key=(Room1) />
-                    <Export>
-                        <Replace><Room key=(Room1) as=(testOne) /></Replace>
-                        <With><Room key=(Room1) as=(testTwo) /></With>
-                    </Export>
-                </Asset>
-            `))
-        })
     })
 
     describe('subset method', () => {
@@ -2457,19 +2426,6 @@ describe('StandardForm', () => {
         const test = new StandardForm(testSource.toNDJSON())
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
-
-    it('should round-trip exports through NDJSON', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(test)>
-                <Room key=(testRoom)><ShortName>Test</ShortName></Room>
-                <Export><Room key=(testRoom) as=(Room3) /></Export>
-            </Asset>
-        `)
-        const testSource = new StandardForm(testWML)
-        const test = new StandardForm(testSource.toNDJSON())
-        expect(schemaToWML([test.schema])).toEqual(testWML)
-    })
-
 
     xdescribe('renameKey', () => {
         it('should retarget links to the renamed key', () => {

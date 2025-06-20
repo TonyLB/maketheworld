@@ -141,10 +141,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withImport(importData) as StandardMessage)
     }
 
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardMessage(super.withExport(exportData) as StandardMessage)
-    }
-
 }
 
 export default StandardMessage

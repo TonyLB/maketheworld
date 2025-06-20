@@ -41,8 +41,6 @@ export interface StandardComponent {
     withFileName(key: string | undefined): StandardComponent;
     import?: StandardImportItem;
     withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent;
-    export?: StandardExportItem;
-    withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;

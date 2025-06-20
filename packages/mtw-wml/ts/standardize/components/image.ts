@@ -83,10 +83,6 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withImport(importData) as StandardImage)
     }
 
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardImage(super.withExport(exportData) as StandardImage)
-    }
-
 }
 
 export default StandardImage

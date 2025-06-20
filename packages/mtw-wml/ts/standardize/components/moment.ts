@@ -118,7 +118,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
             return undefined
         }
-        const base = new StandardMoment(this.key ?? '').withImport(this.import).withExport(this.export) as StandardMoment
+        const base = new StandardMoment(this.key ?? '').withImport(this.import) as StandardMoment
         base._payload._messages = messagesDiff
         return base
     }
@@ -137,10 +137,6 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
 
     override withImport(importData: StandardImportItem | StandardComponentImport | undefined): StandardComponent {
         return new StandardMoment(super.withImport(importData) as StandardMoment)
-    }
-
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardMoment(super.withExport(exportData) as StandardMoment)
     }
 
 }
