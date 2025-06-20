@@ -516,7 +516,7 @@ describe("processComponents", () => {
         ])
     })
 
-    it('should correctly process leastCommonContext', () => {
+    it('should correctly process context', () => {
         const testSource = `
             <Asset key=(Test)>
                 <Room key=(testRoom)>
@@ -542,7 +542,7 @@ describe("processComponents", () => {
                 <Feature key=(testFeatureGlobal) />
             `),
         ])
-        expect(result[1].leastCommonContext.map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
-        expect(result[2].leastCommonContext).toEqual([])
+        expect((result[1]._key?.context ?? []).map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
+        expect(result[2]._key?.context).toBeUndefined()
     })
 })

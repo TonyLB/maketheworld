@@ -137,6 +137,8 @@ export class StandardRemove implements StandardComponent {
 
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
+        returnValue._match._key.context = leastCommonContext
+        returnValue._key = new StandardKey(this._match._key)
         returnValue.leastCommonContext = leastCommonContext
         return returnValue
     }
@@ -195,6 +197,9 @@ export class StandardReplace implements StandardComponent {
 
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
+        returnValue._match._key.context = leastCommonContext
+        returnValue._payload._key.context = leastCommonContext
+        returnValue._key = new StandardKey(this._match._key)
         returnValue.leastCommonContext = leastCommonContext
         return returnValue
     }

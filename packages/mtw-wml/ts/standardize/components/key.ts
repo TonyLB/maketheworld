@@ -3,7 +3,7 @@
 // that are only relevant in serialization) for a StandardComponent class
 //
 
-import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { SerializeNDJSONMixin } from "../baseClasses";
 import { ComponentKey } from "./dataTypes/key"
 import { isLegalKey } from "../utils";

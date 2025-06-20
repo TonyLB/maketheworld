@@ -335,7 +335,7 @@ export class StandardForm {
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
         const sortedChildren = this._components
-            .filter(({ leastCommonContext }) => ((leastCommonContext ?? []).length === 0))
+            .filter(({ _key }) => ((_key.context ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
         const children = sortedChildren
             .map((component) => (component.nestedSchema(this._lookup.bind(this), { context: [] })))
@@ -786,13 +786,13 @@ export class StandardForm {
                 return component
             })
         const rebuiltContextComponents = uuidDefaultedComponents
-            .sort(({ leastCommonContext: contextA }, { leastCommonContext: contextB }) => ((contextA ?? []).length - (contextB ?? []).length))
+            .sort(({ _key: keyA }, { _key: keyB }) => ((keyA.context ?? []).length - (keyB.context ?? []).length))
             .reduce<StandardComponent[]>((previous, component) => {
-                if (component.leastCommonContext && component.leastCommonContext.length > 0) {
-                    const directParentKey = component.leastCommonContext.slice(-1)[0]
+                if (component._key.context && component._key.context.length > 0) {
+                    const directParentKey = component._key.context.slice(-1)[0]
                     const directParent = lookupInComponentList(previous, directParentKey)
                     if (directParent) {
-                        const newContext = [...(directParent.leastCommonContext ?? []), directParent._key.plain]
+                        const newContext = [...(directParent._key.context ?? []), directParent._key.plain]
                         return [...previous, component.withLeastCommonContext(newContext)]
                     }
                 }
