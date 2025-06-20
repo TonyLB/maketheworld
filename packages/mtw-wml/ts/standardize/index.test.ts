@@ -228,14 +228,15 @@ describe('StandardForm', () => {
                 },
                 {
                     tag: 'Replace',
-                    universalKey: 'EXAMPLE#testRoomReplaceBase',
                     match: {
                         tag: 'Example',
+                        context: [{ key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }],
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
                         name: ['Name Test']
                     },
                     payload: {
                         tag: 'Example',
+                        context: [{ key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }],
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
                         name: ['Name Changed']
                     }

@@ -488,22 +488,30 @@ describe("processComponents", () => {
                     <Example uuid=(testRoomExample)><Description>Test</Description></Example>
                 </Replace>
                 <With>
-                    <Example uuid=(testRoomExample)><Description>Changed</Description></Example>
+                    <Example uuid=(testRoomExample)>
+                        <Description>Changed</Description>
+                    </Example>
                 </With>
             `),
             deIndentWML(`
-                <Remove><Feature key=(toRemove)><Example uuid=(testFeatureExample) /></Feature></Remove>
-            `),
-            deIndentWML(`
                 <Remove>
-                    <Example uuid=(testFeatureExample)><Description>Test</Description></Example>
+                    <Feature key=(toRemove)><Example uuid=(testFeatureExample) /></Feature>
                 </Remove>
             `),
             deIndentWML(`
-                <Feature key=(toAdd)><Example uuid=(testFeatureExample) /></Feature>
+                <Replace>
+                    <Example uuid=(testFeatureExample)>
+                        <Description>Test</Description>
+                    </Example>
+                </Replace>
+                <With>
+                    <Example uuid=(testFeatureExample)>
+                        <Description>Added</Description>
+                    </Example>
+                </With>
             `),
             deIndentWML(`
-                <Example uuid=(testFeatureExample)><Description>Added</Description></Example>
+                <Feature key=(toAdd)><Example uuid=(testFeatureExample) /></Feature>
             `)
         ])
     })
