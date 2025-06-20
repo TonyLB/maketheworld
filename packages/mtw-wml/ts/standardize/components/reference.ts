@@ -43,18 +43,16 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         }]
     }
     clone() {
-        return new StandardKey(this.toJSON())
+        return new StandardKey(this)
     }
     toJSON: () => StandardReferenceData = () => {
-        if (typeof this.key !== 'undefined') {
-            return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global, context: this.context?.map((item) => (item.toJSON())) } as StandardReferenceData
-        }
-        else {
+        if (typeof this.key === 'undefined' && (typeof this.context === 'undefined' || this.context.length === 0)) {
             if (typeof this.universalKey === 'undefined') {
                 throw new Error('StandardKey must have a universalKey or key')
             }
             return this.universalKey
         }
+        return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global, context: this.context?.map((item) => (item.toJSON())) } as StandardReferenceData
     }
     withKey(key: string): StandardKey {
         const returnValue = this.clone()

@@ -2472,13 +2472,13 @@ describe('StandardForm', () => {
             `)
             const test = new StandardForm(testWML)
             const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
-            expect(findBaseExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
+            expect(findBaseExample?.leastCommonContext.map((context) => (context.plain.toJSON()))).toEqual([
                 { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
                 { key: 'testFeature', tag: 'Feature' }
             ])
             const finalized = test.finalize()
             const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
-            expect(findFinalizedExample?.leastCommonContext.map((context) => (context.toJSON()))).toEqual([
+            expect(findFinalizedExample?.leastCommonContext.map((context) => (context.plain.toJSON()))).toEqual([
                 { key: 'testFeature', tag: 'Feature', universalKey: 'FEATURE#testFeature' }
             ])
             expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`

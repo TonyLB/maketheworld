@@ -26,7 +26,7 @@ import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
-import { StandardReferenceData } from "./dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { isStandardReferenceData, StandardReferenceSimple, StandardKey } from "./reference";
 import { excludeUndefined } from "../../lib/lists";
 
@@ -57,7 +57,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _from?: AssetUUID;
-        leastCommonContext: StandardReferenceSimple[];
+        leastCommonContext: StandardKey[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -95,11 +95,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this.leastCommonContext = []
                 return
             }
-            this._key = isStandardReferenceData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
+            this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
             this.leastCommonContext = props.context?.map((context) => {
-                if (typeof context === 'string' || isStandardReferenceData(context)) {
-                    return new StandardReferenceSimple(context)
+                if (typeof context === 'string' || isStandardReferencePayloadData(context)) {
+                    return new StandardKey(context)
                 }
                 throw new Error(`Invalid context data in ${label} constructor: ${JSON.stringify(context)}`)
             }) ?? []
@@ -173,7 +173,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const inLeastCommonContext = context?.length > 0
                 ? Boolean(
                     this.leastCommonContext.length > 0 &&
-                    this.leastCommonContext.slice(-1)[0].payload.equals(context.slice(-1)[0])
+                    this.leastCommonContext.slice(-1)[0].equals(context.slice(-1)[0])
                 )
                 : Boolean((this.leastCommonContext?.length ?? 0) === 0)
 
@@ -262,11 +262,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+        withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             const newContext = leastCommonContext.map((context) => (context.clone()))
             returnValue.leastCommonContext = newContext.length > 0 ? newContext : []
-            returnValue._key.context = newContext.length > 0 ? newContext.map((context) => (context.payload)) : undefined
+            returnValue._key.context = newContext.length > 0 ? newContext : undefined
             return returnValue
         }
 

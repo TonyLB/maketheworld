@@ -51,6 +51,6 @@ export interface StandardComponent {
     remapReferences(props: { mappings: StandardKey[], mapTo: ReferenceFormat }): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     referenceData: StandardReferenceData;
-    leastCommonContext: StandardReferenceSimple[];
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent;
+    leastCommonContext: StandardKey[];
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
 }

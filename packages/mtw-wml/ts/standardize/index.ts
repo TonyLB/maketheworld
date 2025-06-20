@@ -790,9 +790,9 @@ export class StandardForm {
             .reduce<StandardComponent[]>((previous, component) => {
                 if (component.leastCommonContext && component.leastCommonContext.length > 0) {
                     const directParentKey = component.leastCommonContext.slice(-1)[0]
-                    const directParent = lookupInComponentList(previous, new StandardKey(directParentKey))
+                    const directParent = lookupInComponentList(previous, directParentKey)
                     if (directParent) {
-                        const newContext = [...(directParent.leastCommonContext ?? []), new StandardReferenceSimple(directParent._key)]
+                        const newContext = [...(directParent.leastCommonContext ?? []), directParent._key.plain]
                         return [...previous, component.withLeastCommonContext(newContext)]
                     }
                 }

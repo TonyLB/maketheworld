@@ -21,7 +21,7 @@ import { StandardReferenceSimple, StandardKey } from "./reference";
 export class StandardRemove implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
-    leastCommonContext: StandardReferenceSimple[] = [];
+    leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
@@ -135,7 +135,7 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
         return returnValue
@@ -154,7 +154,7 @@ export class StandardReplace implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
     _payload: StandardComponent;
-    leastCommonContext: StandardReferenceSimple[] = [];
+    leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -193,7 +193,7 @@ export class StandardReplace implements StandardComponent {
     get fileName() { return undefined }
     get global() { return this._match.global }
 
-    withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
+    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
         return returnValue

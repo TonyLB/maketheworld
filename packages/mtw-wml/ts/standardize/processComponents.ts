@@ -8,7 +8,7 @@ import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardReferenceSimple } from "./components/reference"
+import { StandardKey } from "./components/reference"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
@@ -31,7 +31,7 @@ export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
     conditionalContext?: ConditionalContextItem[];
-    componentContext?: StandardReferenceSimple[];
+    componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
     metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
 }): StandardComponent[] => {
@@ -194,7 +194,7 @@ export const processComponents = (props: {
                 return [
                     ...previous,
                     editWrappedComponent,
-                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, new StandardReferenceSimple(localizedComponent.referenceData)] })
+                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, localizedComponent._key.plain] })
                 ]
             }
         }
