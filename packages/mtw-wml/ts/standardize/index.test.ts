@@ -132,7 +132,7 @@ describe('StandardForm', () => {
                 {
                     data: { tag: 'Room', key: 'testRoom', uuid: 'ROOM#testRoom' },
                     children: [{
-                        data: { tag: 'Example', key: 'base', uuid: 'EXAMPLE#testRoomBase' },
+                        data: { tag: 'Example', uuid: 'EXAMPLE#testRoomBase' },
                         children: [{
                             data: { tag: 'Replace' },
                             children: [{
@@ -160,8 +160,8 @@ describe('StandardForm', () => {
                 {
                     data: { tag: 'Replace' },
                     children: [
-                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace', uuid: 'ROOM#testRoomReplace' }, children: [{ data: { tag: 'Example', key: 'base', uuid: 'EXAMPLE#testRoomReplaceBase' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] }] }] }] },
-                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace' }, children: [{ data: { tag: 'Example', key: 'base' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }] }] }] }] }
+                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace', uuid: 'ROOM#testRoomReplace' }, children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#testRoomReplaceBase' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] }] }] }] },
+                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace', uuid: 'ROOM#testRoomReplace' }, children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#testRoomReplaceBase' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }] }] }] }] }
                     ]
                 }
             ]
@@ -171,20 +171,20 @@ describe('StandardForm', () => {
         expect(standard.toJSON()).toEqual({
             key: 'Test',
             metaData: [],
-            byId: {
-                testRoom: {
+            components: [
+                {
                     tag: 'Room',
                     key: 'testRoom',
                     universalKey: 'ROOM#testRoom',
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomBase' }],
+                    examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
                         data: { tag: 'Remove' },
                         children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }]
                 },
-                'testRoom.base': {
+                {
                     tag: 'Example',
-                    key: 'testRoom.base',
+                    context: [{ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' }],
                     universalKey: 'EXAMPLE#testRoomBase',
                     name: [{
                         data: { tag: 'Replace' },
@@ -198,7 +198,7 @@ describe('StandardForm', () => {
                         }]
                     }]
                 },
-                testRoomRemove: {
+                {
                     tag: 'Remove',
                     key: 'testRoomRemove',
                     component: {
@@ -208,39 +208,40 @@ describe('StandardForm', () => {
                         exits: []
                     }
                 },
-                testRoomReplace: {
+                {
                     tag: 'Replace',
                     key: 'testRoomReplace',
                     match: {
                         tag: 'Room',
                         key: 'testRoomReplace',
                         universalKey: 'ROOM#testRoomReplace',
-                        examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomReplaceBase' }],
+                        examples: ['EXAMPLE#testRoomReplaceBase'],
                         exits: []
                     },
                     payload: {
                         tag: 'Room',
                         key: 'testRoomReplace',
-                        examples: [{ key: 'base', tag: 'Example' }],
+                        universalKey: 'ROOM#testRoomReplace',
+                        examples: ['EXAMPLE#testRoomReplaceBase'],
                         exits: []
                     }
                 },
-                'testRoomReplace.base': {
+                {
                     tag: 'Replace',
-                    key: 'testRoomReplace.base',
                     match: {
                         tag: 'Example',
-                        key: 'testRoomReplace.base',
+                        context: [{ key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }],
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
                         name: ['Name Test']
                     },
                     payload: {
                         tag: 'Example',
-                        key: 'testRoomReplace.base',
+                        context: [{ key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }],
+                        universalKey: 'EXAMPLE#testRoomReplaceBase',
                         name: ['Name Changed']
                     }
                 }
-            }
+            ]
         })
     })
 

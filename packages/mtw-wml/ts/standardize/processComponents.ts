@@ -80,17 +80,23 @@ export const processComponents = (props: {
             const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
             const replacePayload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
             if (replaceMatch && replacePayload) {
-                const matchById = processComponents({ ...props, schema: replaceMatch.children })
-                const payloadById = processComponents({ ...props, schema: replacePayload.children })
-                const reduceToKeys = (previous: Record<string, StandardComponent>, item: StandardComponent) => {
-                    const key = item.key
-                    if (key) {
-                        return { ...previous, [key]: item }
-                    }
-                    return previous
-                }
-                const mergedById = Object.values(objectMerge(matchById.reduce(reduceToKeys, {}), payloadById.reduce(reduceToKeys, {})))
-                const replaceById = mergedById.reduce<StandardComponent[]>((previous, { itemA: matchComponent, itemB: payloadComponent }) => {
+                const matchComponents = processComponents({ ...props, schema: replaceMatch.children })
+                const payloadComponents = processComponents({ ...props, schema: replacePayload.children })
+                //
+                // TODO: In order to merge the two lists, we need to create a zippered list of the two,
+                // matching by StandardKey.
+                //
+                const mergedComponents = [
+                    ...(matchComponents.map((item) => {
+                        const payloadMatch = payloadComponents.find(({ _key }) => (_key.equals(item._key)))
+                        return { matchComponent: item, payloadComponent: payloadMatch }
+                    })),
+                    ...(payloadComponents
+                        .filter(({ _key }) => (!matchComponents.some(({ _key: matchKey }) => (matchKey.equals(_key)))))
+                        .map((item) => ({ matchComponent: undefined, payloadComponent: item }))
+                    )
+                ]
+                const replaceComponents = mergedComponents.reduce<StandardComponent[]>((previous, { matchComponent, payloadComponent }) => {
                     if (matchComponent && payloadComponent) {
                         return [...previous, new StandardReplace(matchComponent, payloadComponent)]
                     }
@@ -102,7 +108,7 @@ export const processComponents = (props: {
                     }
                     return previous
                 }, [])
-                return [...previous, ...replaceById]
+                return [...previous, ...replaceComponents]
             }
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
