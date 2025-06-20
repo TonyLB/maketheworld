@@ -17,7 +17,6 @@ export interface ComponentInterface {
     merge(incoming: this): this | undefined;
     withUniversalKey(key: string): this;
     referenceData: StandardReferenceData;
-    leastCommonContext: StandardReferenceSimple[];
     withLeastCommonContext(leastCommonContext: StandardKey[]): this;
 }
 
