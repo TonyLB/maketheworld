@@ -71,7 +71,7 @@ describe('StandardFeature class', () => {
                 <Example key=(Example2) />
             </Feature>
         `))
-        expect(merged.leastCommonContext.map((ref) => ref.toJSON())).toEqual(['ROOM#testRoom'])
+        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual(['ROOM#testRoom'])
     })
 
     it('should properly reduce leastCommonContext on two nested features without common context', () => {
@@ -89,7 +89,7 @@ describe('StandardFeature class', () => {
                 <Example key=(Example2) />
             </Feature>
         `))
-        expect(merged.leastCommonContext.map((ref) => ref.toJSON())).toEqual([])
+        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
     })
 
     it('should properly retain leastCommonContext on merging a non-nested feature', () => {
@@ -107,7 +107,7 @@ describe('StandardFeature class', () => {
                 <Example key=(Example2) />
             </Feature>
         `))
-        expect(merged.leastCommonContext.map((ref) => ref.toJSON())).toEqual([])
+        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
     })
 
 })

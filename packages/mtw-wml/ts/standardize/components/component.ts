@@ -55,7 +55,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
         _from?: AssetUUID;
-        leastCommonContext: StandardKey[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -63,7 +62,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._payload = props._payload
                 this._import = props._import
                 this._from = props._from
-                this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -71,12 +69,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                     tag: this._payload.tag,
                     key: props
                 })
-                this.leastCommonContext = []
                 return
             }
             if (typeof props === 'string' && isSchemaComponentUUID(props)) {
                 this._key = new StandardKey(props)
-                this.leastCommonContext = []
                 return
             }
             if (isSchemaTreeNode(props) || typeof props === 'string') {
@@ -90,17 +86,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._from = node.data.from
                 this._payload.fromSchema(node)
-                this.leastCommonContext = []
                 return
             }
             this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
-            this.leastCommonContext = props.context?.map((context) => {
-                if (typeof context === 'string' || isStandardReferencePayloadData(context)) {
-                    return new StandardKey(context)
-                }
-                throw new Error(`Invalid context data in ${label} constructor: ${JSON.stringify(context)}`)
-            }) ?? []
         }
 
         get key(): string | undefined { return this._key.key }
@@ -214,11 +203,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._key = this._key.merge(incoming._key)
             returnValue._from = this._from ?? incoming._from
             returnValue._payload = this._payload.merge((incoming as any)._payload)
-            returnValue.leastCommonContext = this.leastCommonContext.filter((reference) => (
-                incoming.leastCommonContext.some((incomingReference) => (
-                    reference.equals(incomingReference)
-                ))
-            ))
 
             return returnValue as StandardComponent
         }
@@ -263,7 +247,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             const newContext = leastCommonContext.map((context) => (context.clone()))
-            returnValue.leastCommonContext = newContext.length > 0 ? newContext : []
             returnValue._key.context = newContext.length > 0 ? newContext : undefined
             return returnValue
         }

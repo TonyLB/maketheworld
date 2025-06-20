@@ -21,13 +21,11 @@ import { StandardReferenceSimple, StandardKey } from "./reference";
 export class StandardRemove implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
-    leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
-            this.leastCommonContext = props.leastCommonContext
             return
         }
         const tag = props.tag
@@ -35,7 +33,6 @@ export class StandardRemove implements StandardComponent {
             throw new Error(`Invalid tag provided to StandardRemove constructor: ${tag}`)
         }
         this._key = new StandardKey(props._key)
-        this.leastCommonContext = props.leastCommonContext || []
         this._match = props as StandardComponent
         return
     }
@@ -139,7 +136,6 @@ export class StandardRemove implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match._key.context = leastCommonContext
         returnValue._key = new StandardKey(this._match._key)
-        returnValue.leastCommonContext = leastCommonContext
         return returnValue
     }
 }
@@ -172,11 +168,6 @@ export class StandardReplace implements StandardComponent {
                 throw new Error(`Invalid tag provided to StandardReplace constructor: ${tag}`)
             }
             this._key = new StandardKey(match._key)
-            this.leastCommonContext = payload.leastCommonContext.filter((reference) => (
-                match.leastCommonContext.some((incomingReference) => (
-                    reference.equals(incomingReference)
-                ))
-            ))
             return
         }
         const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
@@ -184,7 +175,6 @@ export class StandardReplace implements StandardComponent {
             this._key = props._key
             this._match = props._match.clone()
             this._payload = props._payload.clone()
-            this.leastCommonContext = props.leastCommonContext
             return
         }
         throw new Error('StandardReplace constructor called with invalid arguments')
@@ -200,7 +190,6 @@ export class StandardReplace implements StandardComponent {
         returnValue._match._key.context = leastCommonContext
         returnValue._payload._key.context = leastCommonContext
         returnValue._key = new StandardKey(this._match._key)
-        returnValue.leastCommonContext = leastCommonContext
         return returnValue
     }
 
