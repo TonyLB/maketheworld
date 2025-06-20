@@ -657,7 +657,7 @@ describe('TagTree', () => {
                     <Map key=(testMap)>
                         <Name>Test Map</Name>
                         <If {true}>
-                            <Room key=(room1) x="0" y="0"><Description>Test room</Description></Room>
+                            <Room key=(room1)><Description>Test room</Description></Room>
                         </If>
                         <Image key=(testImage) />
                     </Map>
@@ -669,7 +669,7 @@ describe('TagTree', () => {
                 <Asset key=(test)>
                     <Map key=(testMap)>
                         <Name>Test Map</Name>
-                        <If {true}><Room key=(room1) x="0" y="0" /></If>
+                        <If {true}><Room key=(room1) /></If>
                         <Image key=(testImage) />
                     </Map>
                 </Asset>

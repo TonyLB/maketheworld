@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { StandardImportItem } from "./metaData";
 import { StandardComponentImport } from "./dataTypes/metaData";
@@ -31,6 +31,7 @@ export type StandardDiffOptions = {
 
 export interface StandardComponent {
     _key: StandardKey;
+    _from?: AssetUUID;
     key?: string;
     universalKey?: ComponentUUID;
     clone(): StandardComponent;

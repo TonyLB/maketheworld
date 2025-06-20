@@ -1566,17 +1566,14 @@ describe('StandardForm', () => {
     it('should merge metadata correctly', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
-                <Import from=(primitives)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                </Import>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Lobby</Name>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
+                    <Example uuid=(testRoomTwoBase)>
                         <Name>Test Two</Name>
                     </Example>
                 </Room>
@@ -1584,17 +1581,14 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset key=(Test)>
-                <Import from=(primitives)>
-                    <Room uuid=(testRoomThree) key=(testRoomThree) />
-                </Import>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name><Space />(at night)</Name>
                         <Description><Space />Shadows cling to the corners of the room.</Description>
                     </Example>
                 </Room>
-                <Room uuid=(testRoomThree) key=(testRoomThree)>
-                    <Example uuid=(testRoomThreeBase) key=(base)>
+                <Room uuid=(testRoomThree) key=(testRoomThree) from=(ASSET#primitives)>
+                    <Example uuid=(testRoomThreeBase)>
                         <Name>Test Three</Name>
                     </Example>
                 </Room>
@@ -1602,27 +1596,19 @@ describe('StandardForm', () => {
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Import from=(primitives)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                    <Room uuid=(testRoomThree) key=(testRoomThree) />
-                </Import>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Lobby (at night)</Name>
                         <Description>
                             A plain lobby. Shadows cling to the corners of the room.
                         </Description>
                     </Example>
                 </Room>
-                <Room uuid=(testRoomThree) key=(testRoomThree)>
-                    <Example uuid=(testRoomThreeBase) key=(base)>
-                        <Name>Test Three</Name>
-                    </Example>
+                <Room uuid=(testRoomThree) key=(testRoomThree) from=(ASSET#primitives)>
+                    <Example uuid=(testRoomThreeBase)><Name>Test Three</Name></Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase) key=(base)>
-                        <Name>Test Two</Name>
-                    </Example>
+                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
                 </Room>
             </Asset>
         `))
@@ -1631,31 +1617,29 @@ describe('StandardForm', () => {
     it('should merge edited metadata correctly', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
-                <Import from=(primitives)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                </Import>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)><Name>Test</Name></Example>
+                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
+                    <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
                 </Room>
             </Asset>
         `)
         const test = new StandardForm(`
             <Asset key=(Test)>
-                <Remove>
-                    <Import from=(primitives)>
-                        <Room uuid=(testRoomOne) key=(testRoomOne) />
-                    </Import>
-                </Remove>
-                <Import from=(test)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                </Import>
+                <Replace>
+                    <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
+                        <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
+                    </Room>
+                </Replace>
+                <With>
+                    <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test)>
+                        <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
+                    </Room>
+                </With>
             </Asset>
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Import from=(test)><Room uuid=(testRoomOne) key=(testRoomOne) /></Import>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)><Name>Test</Name></Example>
+                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test)>
+                    <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
                 </Room>
             </Asset>
         `))
