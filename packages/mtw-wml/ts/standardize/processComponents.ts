@@ -150,16 +150,13 @@ export const processComponents = (props: {
                 // Decode the key and import/export fields for the component
                 //
                 const dynamicRename: string = (!(metaDataContext?.type === 'Import') || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
-                const exportRename: string = (metaDataContext?.type === 'Export' || treeNodeTypeguard(isSchemaAsset)(item)) ? (item.data as any).as ?? item.data.key : item.data.key
                 const temp = standardComponentFactory(item)
                 const component = metaDataContext
                     ? metaDataContext.type === 'Import'
                         ? inContextOfRemove
                             ? temp?.withKey(dynamicRename)?.withImport(new ImportItemRemove(metaDataContext.from, item.data.key ?? ''))
                             : temp?.withKey(dynamicRename)?.withImport(new ImportItemContent(metaDataContext.from, item.data.key ?? ''))
-                        : inContextOfRemove
-                            ? temp?.withExport(new ExportItemRemove(exportRename))
-                            : temp?.withExport(new ExportItemContent(exportRename))
+                        : temp
                     : temp
 
                 //

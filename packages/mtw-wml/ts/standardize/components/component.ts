@@ -16,12 +16,11 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
-import { ComponentKey, hasComponentKey } from "./dataTypes/key"
+import { ComponentKey } from "./dataTypes/key"
 import { StandardComponentExport, StandardComponentImport } from "./dataTypes/metaData";
-import { KeyPayload } from "./key";
 import { ExportItemContent, ExportItemRemove, ExportItemReplace, ImportItemContent, ImportItemRemove, ImportItemReplace, StandardExportItem, StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
-import { ComponentUUID, isSchemaComponent, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
@@ -57,7 +56,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _key: StandardKey;
         _payload: InstanceType<typeof Base>;
         _import?: StandardImportItem;
-        _export?: StandardExportItem;
         leastCommonContext: StandardReferenceSimple[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
@@ -65,7 +63,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._key = new StandardKey(props._key)
                 this._payload = props._payload
                 this._import = props._import
-                this._export = props._export
                 this.leastCommonContext = props.leastCommonContext.map((context) => (context.clone()))
                 return
             }
@@ -116,7 +113,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get import(): StandardImportItem | undefined { return this._import }
-        get export(): StandardExportItem | undefined { return this._export }
         get global(): boolean | undefined { return true }
         get referenceData(): StandardReferenceData {
             if (this.universalKey && !this.key) {
@@ -154,8 +150,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 universalKey: this.universalKey,
                 context: this.leastCommonContext?.length > 0 ? this.leastCommonContext.map((context) => context.toJSON()): undefined,
                 ...this._payload.toJSON(options),
-                ...(this.import ? { from: this.import.toJSON() } : {}),
-                ...(this.export ? { exportAs: this.export.toJSON() } : {})
+                ...(this.import ? { from: this.import.toJSON() } : {})
             } as D
         }
 
@@ -211,10 +206,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._key = this._key.merge(incoming._key)
             returnValue._payload = this._payload.merge((incoming as any)._payload)
             //
-            // Merge base and incoming import and export
+            // Merge base and incoming import
             //
             returnValue._import = (this.import && incoming.import) ? this.import.merge(incoming.import) : this.import ?? incoming.import
-            returnValue._export = (this.export && incoming.export) ? this.export.merge(incoming.export) : this.export ?? incoming.export
             returnValue.leastCommonContext = this.leastCommonContext.filter((reference) => (
                 incoming.leastCommonContext.some((incomingReference) => (
                     reference.equals(incomingReference)
@@ -309,38 +303,5 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this)
-            if (exportData) {
-                let exportItem: StandardExportItem | undefined = undefined
-
-                if (typeof exportData === 'string') {
-                    exportItem = new ExportItemContent(exportData)
-                }
-                else if (exportData instanceof ExportItemContent || exportData instanceof ExportItemRemove || exportData instanceof ExportItemReplace) {
-                    exportItem = exportData
-                }
-                else if ('action' in exportData) {
-                    switch(exportData.action) {
-                        case 'Content':
-                            exportItem = new ExportItemContent(exportData.payload)
-                            break
-                        case 'Remove':
-                            exportItem = new ExportItemRemove(exportData.match)
-                            break
-                        case 'Replace':
-                            exportItem = new ExportItemReplace(exportData.match, exportData.payload)
-                            break
-                    }
-                }
-                if (exportItem) {
-                    returnValue._export = exportItem
-                }
-            }
-            else {
-                returnValue._export = undefined
-            }
-            return returnValue
-        }
     }
 }

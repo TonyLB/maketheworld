@@ -8,8 +8,7 @@ const mergeHelper = (base: StandardComponent, value: StandardComponent): Standar
     const merged = mergeWithEdits(base, value)
     if (merged) {
         const mergedImport = base.import && value.import ? base.import.merge(value.import) : base.import ?? value.import
-        const mergedExport = base.export && value.export ? base.export.merge(value.export) : base.export ?? value.export
-        return merged.withImport(mergedImport).withExport(mergedExport)
+        return merged.withImport(mergedImport)
     }
     else {
         return undefined

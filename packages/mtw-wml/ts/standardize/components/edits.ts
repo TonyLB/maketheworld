@@ -45,7 +45,6 @@ export class StandardRemove implements StandardComponent {
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
     get import() { return this._match.import }
-    get export() { return this._match.export }
     get global() { return this._match.global }
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
@@ -145,13 +144,6 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withExport(exportData)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
     withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
         const returnValue = this.clone()
         returnValue.leastCommonContext = leastCommonContext
@@ -209,7 +201,6 @@ export class StandardReplace implements StandardComponent {
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
     get import() { return this._match.import }
-    get export() { return this._match.export }
     get global() { return this._match.global }
 
     withLeastCommonContext(leastCommonContext: StandardReferenceSimple[]): StandardComponent {
@@ -332,14 +323,6 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withImport(importData)
         returnValue._payload = this._payload.withImport(importData)
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
-    withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match = this._match.withExport(exportData)
-        returnValue._payload = this._payload.withExport(exportData)
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }

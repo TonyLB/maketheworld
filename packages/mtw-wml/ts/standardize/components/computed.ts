@@ -100,10 +100,6 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         return new StandardComputed(super.withImport(importData) as StandardComputed)
     }
 
-    override withExport(exportData: StandardExportItem | StandardComponentExport | string | undefined): StandardComponent {
-        return new StandardComputed(super.withExport(exportData) as StandardComputed)
-    }
-
 }
 
 export default StandardComputed

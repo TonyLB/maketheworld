@@ -131,9 +131,7 @@ export class StandardForm {
                 if (standardItem) {
                     return [
                         ...previous,
-                        standardItem
-                            .withImport(importItemById[standardItem.key ?? ''])
-                            .withExport(exportItemById[standardItem.key ?? ''])
+                        standardItem.withImport(importItemById[standardItem.key ?? ''])
                     ]
                 }
                 else {
@@ -160,9 +158,7 @@ export class StandardForm {
                 if (standardItem) {
                     return [
                         ...previous,
-                        standardItem
-                            .withImport(standardData.from)
-                            .withExport(standardData.exportAs)
+                        standardItem.withImport(standardData.from)
                     ]
                 }
                 else {
@@ -269,48 +265,6 @@ export class StandardForm {
     }
 
     get metaData(): GenericTree<SchemaTag> {
-        const exportContents: GenericTree<SchemaTag> = this._components
-            .filter((component) => (Boolean(component.export)))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .map((component): GenericTreeNode<SchemaTag> => {
-                const schema = component.schema
-                if (component.export instanceof ExportItemRemove) {
-                    return {
-                        data: { tag: 'Remove' as const },
-                        children: [{ data: { ...schema.data, as: component.export.exportAs } as SchemaTag, children: [] }]
-                    }
-                }
-                if (component.export instanceof ExportItemReplace) {
-                    return {
-                        data: { tag: 'Replace' as const },
-                        children: [
-                            { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { ...schema.data, as: component.export.exportAs } as SchemaTag, children: [] }] },
-                            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { ...schema.data, as: component.export._payload } as SchemaTag, children: [] }] }
-                        ]
-                    }
-                }
-                if (!(component.export instanceof ExportItemContent)) {
-                    throw new Error('Type mismatch in StandardForm metaData')
-                }
-                return {
-                    data: { ...schema.data, as: component.export.exportAs } as SchemaTag,
-                    children: []
-                }
-            })
-        const exportItem: GenericTree<SchemaTag> = exportContents.length === 0
-            ? []
-            : exportContents.every(treeNodeTypeguard(isSchemaRemove))
-                ? [{
-                    data: { tag: 'Remove' as const },
-                    children: [{
-                        data: { tag: 'Export' as const, mapping: {} },
-                        children: exportContents.map(({ children }) => (children[0]))
-                    }]
-                }]
-                : [{
-                    data: { tag: 'Export' as const, mapping: {} },
-                    children: exportContents
-                }]
 
         const importsByAssetId: Record<string, GenericTree<SchemaTag>> = Object.values(this._byId)
             .filter((component) => (Boolean(component.import)))
@@ -398,8 +352,7 @@ export class StandardForm {
     
         return [
             ...this._metaData,
-            ...importItems,
-            ...exportItem
+            ...importItems
         ]
     }
     get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
@@ -583,19 +536,10 @@ export class StandardForm {
                             : incomingImport
                                 ? incomingImport
                                 : undefined
-                    const baseExport = baseComponent.export
-                    const incomingExport = incomingComponent.export
-                    const diffExport = (baseExport && incomingExport)
-                        ? baseExport.diff(incomingExport)
-                        : baseExport
-                            ? new ExportItemRemove(baseExport.exportAs)
-                            : incomingExport
-                                ? incomingExport
-                                : undefined
                     if (diffedComponent) {
                         return mergeToComponentList(mergedForKeys._keys)(
                             previous,
-                            diffedComponent.withImport(diffImport).withExport(diffExport)
+                            diffedComponent.withImport(diffImport)
                         )
                     } else {
                         return previous
@@ -895,18 +839,12 @@ export class StandardForm {
                     if (previous[matchKey.toKey]) {
                         throw new Error('renameKey collision')
                     }
-                    const exportItem = component.export
-                        ? (component.export.exportAs === matchKey.toKey) ? undefined: component.export.exportAs
-                        : matchKey.retainOldExportAs
-                            ? matchKey.fromKey
-                            : undefined
 
                     return {
                         ...previous,
                         [matchKey.toKey]: component
                             .mapContents(renameContentsCallback)
                             .withKey(matchKey.toKey)
-                            .withExport(exportItem)
                     }
                 }
                 if (previous[component.key ?? '']) {
