@@ -19,8 +19,9 @@ import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
-import { isSchemaString } from "../../schema/baseClasses"
+
 import { renderReference } from "./utils/schema"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
