@@ -1,12 +1,10 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
-import { StandardImportItem } from "./metaData";
-import { StandardComponentImport } from "./dataTypes/metaData";
-import { SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
+import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple, StandardKey } from "./reference";
+import { StandardKey } from "./reference";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;

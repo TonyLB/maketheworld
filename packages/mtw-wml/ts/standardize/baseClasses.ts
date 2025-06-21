@@ -10,7 +10,6 @@ import { StandardImageData } from "./components/dataTypes/image";
 import { StandardKnowledgeData } from "./components/dataTypes/knowledge";
 import { StandardMapData } from "./components/dataTypes/map";
 import { StandardMessageData } from "./components/dataTypes/message";
-import { StandardComponentImport } from "./components/dataTypes/metaData";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";

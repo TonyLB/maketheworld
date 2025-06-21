@@ -1,8 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardImportItem } from "./metaData";
-import { StandardComponentImport } from "./dataTypes/metaData";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardComponent } from "./baseClasses";

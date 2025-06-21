@@ -17,7 +17,6 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { isLegalKey } from "../utils";
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses";
 import { ComponentKey } from "./dataTypes/key"
-import { StandardImportItem } from "./metaData";
 import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
@@ -53,14 +52,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
     return class GeneratedComponentClass implements StandardComponent {
         _key: StandardKey;
         _payload: InstanceType<typeof Base>;
-        _import?: StandardImportItem;
         _from?: AssetUUID;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
                 this._key = new StandardKey(props._key)
                 this._payload = props._payload
-                this._import = props._import
                 this._from = props._from
                 return
             }
@@ -96,7 +93,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
-        get import(): StandardImportItem | undefined { return this._import }
         get global(): boolean | undefined { return true }
         get referenceData(): StandardReferenceData {
             if (this.universalKey && !this.key) {
