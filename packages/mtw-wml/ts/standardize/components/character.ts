@@ -11,8 +11,6 @@ import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
 import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
-import { StandardImportItem } from "./metaData"
-import { StandardComponentImport } from "./dataTypes/metaData"
 import { StandardKey } from "./reference"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {

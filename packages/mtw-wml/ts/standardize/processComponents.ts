@@ -1,7 +1,6 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
-import { ImportItemContent, ImportItemRemove } from "./components/metaData"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"

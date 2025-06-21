@@ -1,17 +1,14 @@
 import { deepEqual } from "../../lib/objects";
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
-import { SerializeNDJSONMixin, StandardComponentData } from "../baseClasses";
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
-import { StandardComponentImport } from "./dataTypes/metaData";
-import {  StandardImportItem } from "./metaData";
 import { removeNDJSONOnlyProperties } from "../utils";
 import { ComponentUUID, isSchemaComponentTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardReferenceSimple, StandardKey } from "./reference";
+import { StandardKey } from "./reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
