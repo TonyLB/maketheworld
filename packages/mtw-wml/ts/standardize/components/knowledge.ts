@@ -94,7 +94,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     withChild(child: StandardReference): this {
         const returnValue = new StandardKnowledgePayload(this)
         if (child._payload.plain.tag === 'Example') {
-            returnValue._examples = [...returnValue._examples, child]
+            returnValue._examples = mergeUniqueReferences([...returnValue._examples, child])
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardKnowledge`)

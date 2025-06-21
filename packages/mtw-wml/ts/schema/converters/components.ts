@@ -22,7 +22,7 @@ const componentTemplates = {
     ShortName: {},
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
-        key: { required: true, type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
         from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
