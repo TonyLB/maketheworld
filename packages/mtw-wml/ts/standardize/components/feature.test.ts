@@ -110,7 +110,7 @@ describe('StandardFeature class', () => {
         expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
     })
 
-    it('should correctly add an example reference to a room', () => {
+    it('should correctly add an example reference to a feature', () => {
         const test = new StandardFeature(`
             <Feature key=(testFeature)>
                 <Example uuid=(Example1) />

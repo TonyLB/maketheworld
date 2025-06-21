@@ -91,6 +91,16 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         return returnValue as this
     }
     
+    withChild(child: StandardReference): this {
+        const returnValue = new StandardKnowledgePayload(this)
+        if (child._payload.plain.tag === 'Example') {
+            returnValue._examples = [...returnValue._examples, child]
+        }
+        else {
+            throw new Error(`Invalid child type ${child._payload.tag} for StandardKnowledge`)
+        }
+        return returnValue as this
+    }
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
