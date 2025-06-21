@@ -8,6 +8,7 @@ import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { ReferenceFormat } from "./utils/references";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -113,6 +114,26 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
     get plain(): StandardKey {
         const returnValue = this.clone()
         returnValue.context = undefined
+        return returnValue
+    }
+
+    toFormat(format: ReferenceFormat): StandardKey {
+        if (format === 'both') {
+            return this.clone()
+        }
+        const returnValue = this.clone()
+        if (format === 'key') {
+            if (returnValue.key) {
+                returnValue._tag = returnValue.tag
+                returnValue.universalKey = undefined
+            }
+        }
+        else {
+            if (returnValue.universalKey) {
+                returnValue._tag = undefined
+                returnValue.key = undefined
+            }
+        }
         return returnValue
     }
 }
