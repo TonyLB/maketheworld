@@ -4,7 +4,7 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardKey } from "./reference";
+import StandardReference, { StandardKey } from "./reference";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -50,4 +50,5 @@ export interface StandardComponent {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     referenceData: StandardReferenceData;
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
+    withChild(child: StandardReference): StandardComponent;
 }

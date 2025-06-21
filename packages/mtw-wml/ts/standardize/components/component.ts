@@ -46,6 +46,7 @@ export interface ComponentConstructorMethods<D> {
     referencedKeys(): StandardComponentReferenceKey[];
     remapReferences?: (props: { mappings: StandardKey[], mapTo: ReferenceFormat }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
+    withChild?(child: StandardReference): this;
 }
 
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -253,5 +254,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
+        withChild(child: StandardReference): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            if (returnValue._payload.withChild) {
+                returnValue._payload = returnValue._payload.withChild(child)
+            }
+            return returnValue
+        }
     }
 }
