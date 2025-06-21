@@ -1,11 +1,11 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaExit, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import { StandardKey } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
+import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
 describe('StandardRoom class', () => {
 
@@ -187,12 +187,40 @@ describe('StandardRoom class', () => {
         `))
     })
 
-    it('should correctly derive key from as in an import', () => {
+    it('should correctly add a feature reference to a room', () => {
         const test = new StandardRoom(`
-            <Room key=(base) as=(testRoomOne) />
+            <Room key=(testRoomOne)>
+                <Example uuid=(Example1) />
+                <Feature uuid=(Feature1) />
+            </Room>
         `)
-        expect(test.key).toEqual('testRoomOne')
+        const feature = new StandardKey({ tag: 'Feature', key: 'featureTwo' })
+        const added = test.withChild(new StandardReference(feature))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Feature uuid=(Feature1) />
+                <Feature key=(featureTwo) />
+                <Example uuid=(Example1) />
+            </Room>
+        `))
+    })
 
+    it('should correctly add an example reference to a room', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Example uuid=(Example1) />
+                <Feature uuid=(Feature1) />
+            </Room>
+        `)
+        const example = new StandardKey("EXAMPLE#Example2")
+        const added = test.withChild(new StandardReference(example))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Feature uuid=(Feature1) />
+                <Example uuid=(Example1) />
+                <Example uuid=(Example2) />
+            </Room>
+        `))
     })
 
 })

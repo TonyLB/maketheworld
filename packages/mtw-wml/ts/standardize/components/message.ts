@@ -107,6 +107,16 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
+    withChild(child: StandardReference): this {
+        const returnValue = new StandardMessagePayload(this)
+        if (child._payload.plain.tag === 'Room') {
+            returnValue._rooms = mergeUniqueReferences([...returnValue._rooms, child])
+        }
+        else {
+            throw new Error(`Invalid child type ${child._payload.tag} for StandardMessage`)
+        }
+        return returnValue as this
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {

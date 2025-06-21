@@ -1,11 +1,11 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMessageData } from "./dataTypes/message"
 import StandardMessage from './message'
 import { mergeTest } from './utils/testing'
-import { StandardKey } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 describe('StandardMessage class', () => {
 
@@ -108,4 +108,23 @@ describe('StandardMessage class', () => {
             </Message>
         `))
     })
+
+    it('should correctly add a room reference to a message', () => {
+        const test = new StandardMessage(`
+            <Message key=(testMessage)>
+                Message test.<Link to=(feature1) />
+                <Room key=(testRoomOne) />
+            </Message>
+        `)
+        const room = new StandardKey({ tag: 'Room', key: 'testRoomTwo' })
+        const added = test.withChild(new StandardReference(room))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Message key=(testMessage)>
+                <Room key=(testRoomOne) />
+                <Room key=(testRoomTwo) />
+                Message test.<Link to=(feature1) />
+            </Message>
+        `))
+    })
+
 })

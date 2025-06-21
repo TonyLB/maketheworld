@@ -92,6 +92,17 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
     
+    withChild(child: StandardReference): this {
+        const returnValue = new StandardMomentPayload(this)
+        if (child._payload.plain.tag === 'Message') {
+            returnValue._messages = mergeUniqueReferences([...returnValue._messages, child])
+        }
+        else {
+            throw new Error(`Invalid child type ${child._payload.tag} for StandardMoment`)
+        }
+        return returnValue as this
+    }
+
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

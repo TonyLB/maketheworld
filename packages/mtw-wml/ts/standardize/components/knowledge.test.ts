@@ -1,11 +1,9 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaDescription, isSchemaName, isSchemaString } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
-import StandardReference from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 
 describe('StandardKnowledge class', () => {
 
@@ -53,6 +51,22 @@ describe('StandardKnowledge class', () => {
             <Knowledge key=(testKnowledge)>
                 <Example key=(Example1) />
                 <Example key=(Example2) />
+            </Knowledge>
+        `))
+    })
+
+    it('should correctly add an example reference to knowledge', () => {
+        const test = new StandardKnowledge(`
+            <Knowledge key=(testKnowledge)>
+                <Example uuid=(Example1) />
+            </Knowledge>
+        `)
+        const example = new StandardKey("EXAMPLE#Example2")
+        const added = test.withChild(new StandardReference(example))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Knowledge key=(testKnowledge)>
+                <Example uuid=(Example1) />
+                <Example uuid=(Example2) />
             </Knowledge>
         `))
     })

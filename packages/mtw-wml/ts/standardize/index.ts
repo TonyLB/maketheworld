@@ -377,11 +377,6 @@ export class StandardForm {
     }
 
     diff(incoming: StandardForm): StandardForm {
-        //
-        // Merge the two forms, but only include stub components with the keys and tags in the merged form.
-        // This provides a base for standardComponentSortOrder to merge the two key lists in the correct order
-        // (without risking the possibility of merge conflicts that are irrelevant at this stage).
-        //
 
         // console.log(`diff base: ${JSON.stringify(this.toJSON(), null, 4)}`)
         // console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)

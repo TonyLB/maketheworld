@@ -8,7 +8,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardKey } from "./reference";
+import StandardReference, { StandardKey } from "./reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -134,6 +134,10 @@ export class StandardRemove implements StandardComponent {
         returnValue._match._key.context = leastCommonContext
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
+    }
+
+    withChild(): StandardComponent {
+        return this.clone()        
     }
 }
 
@@ -300,6 +304,9 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
+    withChild(): StandardComponent {
+        return this.clone()        
+    }
 }
 
 export const mergeWithEdits = (base: StandardComponent, incomingComponent: StandardComponent): StandardComponent | undefined => {

@@ -2,6 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMomentData } from "./dataTypes/moment"
 import StandardMoment from './moment'
+import StandardReference, { StandardKey } from "./reference"
 import { mergeTest } from './utils/testing'
 
 describe('StandardMoment class', () => {
@@ -98,4 +99,19 @@ describe('StandardMoment class', () => {
             <Moment key=(test)><Remove><Message key=(testMessageTwo) /></Remove></Moment>
         `)).schema)
     })
+
+    it('should correctly add a message reference to a moment', () => {
+        const test = new StandardMoment(`
+            <Moment key=(test)><Message uuid=(Message1) /></Moment>
+        `)
+        const message = new StandardKey("MESSAGE#Message2")
+        const added = test.withChild(new StandardReference(message))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Moment key=(test)>
+                <Message uuid=(Message1) />
+                <Message uuid=(Message2) />
+            </Moment>
+        `))
+    })
+    
 })

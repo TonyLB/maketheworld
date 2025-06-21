@@ -92,6 +92,17 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         returnValue._examples = returnValue._examples.map(mapReference)
         return returnValue as this
     }
+
+    withChild(child: StandardReference): this {
+        const returnValue = new StandardFeaturePayload(this)
+        if (child._payload.plain.tag === 'Example') {
+            returnValue._examples = mergeUniqueReferences([...returnValue._examples, child])
+        }
+        else {
+            throw new Error(`Invalid child type ${child._payload.tag} for StandardFeature`)
+        }
+        return returnValue as this
+    }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {

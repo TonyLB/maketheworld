@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardFeatureData } from "./dataTypes/feature"
 import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
-import { StandardKey } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 
 describe('StandardFeature class', () => {
 
@@ -110,4 +110,20 @@ describe('StandardFeature class', () => {
         expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
     })
 
+    it('should correctly add an example reference to a feature', () => {
+        const test = new StandardFeature(`
+            <Feature key=(testFeature)>
+                <Example uuid=(Example1) />
+            </Feature>
+        `)
+        const example = new StandardKey("EXAMPLE#Example2")
+        const added = test.withChild(new StandardReference(example))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Feature key=(testFeature)>
+                <Example uuid=(Example1) />
+                <Example uuid=(Example2) />
+            </Feature>
+        `))
+    })
+    
 })

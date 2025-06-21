@@ -163,6 +163,20 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._features = returnValue._features.map(mapReference)
         return returnValue as this
     }
+
+    withChild(child: StandardReference): this {
+        const returnValue = new StandardRoomPayload(this)
+        if (child._payload.plain.tag === 'Feature') {
+            returnValue._features = mergeUniqueReferences([...returnValue._features, child])
+        }
+        else if (child._payload.plain.tag === 'Example') {
+            returnValue._examples = mergeUniqueReferences([...returnValue._examples, child])
+        }
+        else {
+            throw new Error(`Invalid child type ${child._payload.tag} for StandardRoom`)
+        }
+        return returnValue as this
+    }
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
