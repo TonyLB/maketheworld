@@ -8,28 +8,39 @@ import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { ReferenceFormat } from "./utils/references";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
     global?: boolean;
     context?: StandardKey[];
-    tag: ComponentTag;
+    _tag?: ComponentTag;
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
             if (!isSchemaComponentUUID(data)) {
                 throw new Error('Invalid StandardReferenceData passed to StandardKey')
             }
-            this.tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
+            this._tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
             this.universalKey = data
         }
         else {
             this.key = data.key
             this.universalKey = data.universalKey
             this.context = data.context ? data.context.map(item => new StandardKey(item)) : undefined
-            this.tag = data.tag
+            this._tag = data.tag
             this.global = data.global
         }
+    }
+    get tag(): ComponentTag {
+        if (this._tag) {
+            return this._tag
+        }
+        if (typeof this.universalKey === 'undefined') {
+            throw new Error('StandardKey must have a universalKey or tag')
+        }
+        const [upcaseTag] = this.universalKey.split('#')
+        return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
     }
     get schema() {
         return [{
@@ -103,6 +114,26 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
     get plain(): StandardKey {
         const returnValue = this.clone()
         returnValue.context = undefined
+        return returnValue
+    }
+
+    toFormat(format: ReferenceFormat): StandardKey {
+        if (format === 'both') {
+            return this.clone()
+        }
+        const returnValue = this.clone()
+        if (format === 'key') {
+            if (returnValue.key) {
+                returnValue._tag = returnValue.tag
+                returnValue.universalKey = undefined
+            }
+        }
+        else {
+            if (returnValue.universalKey) {
+                returnValue._tag = undefined
+                returnValue.key = undefined
+            }
+        }
         return returnValue
     }
 }
