@@ -32,7 +32,6 @@ export const processComponents = (props: {
     conditionalContext?: ConditionalContextItem[];
     componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
-    metaDataContext?: { type: 'Import', from: string } | { type: 'Export' };
 }): StandardComponent[] => {
     //
     // Loop through each tag in standard order
@@ -43,17 +42,9 @@ export const processComponents = (props: {
         conditionalContext = [],
         componentContext = [],
         inContextOfRemove = false,
-        metaDataContext
     } = props
 
     const recursiveById = schema.reduce<StandardComponent[]>((previous, item) => {
-        //
-        // If the item is an import, set metaDataContext to 'Import'
-        //
-        if (treeNodeTypeguard(isSchemaImport)(item)) {
-            return [...previous, ...processComponents({ ...props, schema: item.children, metaDataContext: { type: 'Import', from: item.data.from } })]
-        }
-
         //
         // If the item is a remove, set inContextOfRemove to true
         //
@@ -138,16 +129,8 @@ export const processComponents = (props: {
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
-                //
-                // Decode the key and import/export fields for the component
-                //
-                const dynamicRename: string = (!(metaDataContext?.type === 'Import') || treeNodeTypeguard(isSchemaAsset)(item)) ? item.data.key : (item.data as any).as ?? item.data.key
-                const temp = standardComponentFactory(item)
-                const component = metaDataContext
-                    ? metaDataContext.type === 'Import'
-                        ? temp?.withKey(dynamicRename)
-                        : temp
-                    : temp
+
+                const component = standardComponentFactory(item)
 
                 //
                 // If the template has legalParents, extract the nearest legal parent tags from the componentContext
@@ -189,11 +172,11 @@ export const processComponents = (props: {
                         }
                     })
                 }, localizedComponent)
-                const editWrappedComponent = (!metaDataContext && inContextOfRemove) ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
+                const editWrappedComponent = inContextOfRemove ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
                 return [
                     ...previous,
                     editWrappedComponent,
-                    ...processComponents({ ...props, metaDataContext: undefined, schema: item.children, componentContext: [...componentContext, localizedComponent._key.plain] })
+                    ...processComponents({ ...props, schema: item.children, componentContext: [...componentContext, localizedComponent._key.plain] })
                 ]
             }
         }
