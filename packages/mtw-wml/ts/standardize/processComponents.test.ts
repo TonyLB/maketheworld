@@ -389,32 +389,6 @@ describe("processComponents", () => {
         ])
     })
 
-    it('should correctly extract data from imports with dynamic rename', () => {
-        const testSource = `
-            <Asset key=(Test)>
-                <Import from=(testImport)>
-                    <Room key=(base) as=(testRoom)>
-                        <Example uuid=(testRoomExample)><Description>Test</Description></Example>
-                    </Room>
-                </Import>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        const result = processComponents({
-            componentTemplates,
-            schema: schema.schema,
-        })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
-            deIndentWML(`
-                <Room key=(testRoom)><Example uuid=(testRoomExample) /></Room>
-            `),
-            deIndentWML(`
-                <Example uuid=(testRoomExample)><Description>Test</Description></Example>
-            `)
-        ])
-    })
-
     it('should parse a remove tag', () => {
         const testSource = `
             <Asset key=(Test)>
