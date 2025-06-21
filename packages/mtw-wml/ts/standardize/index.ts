@@ -792,7 +792,7 @@ export class StandardForm {
                     const directParentKey = component._key.context.slice(-1)[0]
                     const directParent = lookupInComponentList(previous, directParentKey)
                     if (directParent) {
-                        const newContext = [...(directParent._key.context ?? []), directParent._key.plain]
+                        const newContext = [...(directParent._key.context ?? []), directParent._key.plain.toFormat('universal')]
                         return [...previous, component.withLeastCommonContext(newContext)]
                     }
                 }

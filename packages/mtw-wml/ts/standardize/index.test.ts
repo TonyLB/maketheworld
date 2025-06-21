@@ -2479,7 +2479,7 @@ describe('StandardForm', () => {
             const finalized = test.finalize()
             const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
             expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                { key: 'testFeature', tag: 'Feature', universalKey: 'FEATURE#testFeature' }
+                'FEATURE#testFeature'
             ])
             expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
@@ -2507,6 +2507,28 @@ describe('StandardForm', () => {
             expect(findRoom).toBeInstanceOf(StandardRoom)
             expect((findRoom as StandardRoom).features.map((feature) => feature.toJSON())).toEqual([
                 'FEATURE#testFeature'
+            ])
+        })
+
+        it('should remap context to UUIDs on finalize', () => {
+            const testWML = deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature)>
+                            <Example uuid=(testExample) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const test = new StandardForm(testWML).finalize()
+            const findExample = test._lookup('EXAMPLE#testExample')
+            expect(findExample?._key?.context?.map((context) => context.plain.toJSON())).toEqual([
+                'ROOM#testRoom',
+                'FEATURE#testFeature'
+            ])
+            const findFeature = test._lookup('FEATURE#testFeature')
+            expect(findFeature?._key?.context?.map((context) => context.plain.toJSON())).toEqual([
+                'ROOM#testRoom'
             ])
         })
     })
