@@ -2,10 +2,10 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
-import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
-import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
@@ -95,7 +95,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     withChild(child: StandardReference): this {
         const returnValue = new StandardMomentPayload(this)
         if (child._payload.plain.tag === 'Message') {
-            returnValue._messages = mergeUniqueReferences([...returnValue._messages, child])
+            returnValue._messages = assureItemInReferenceList(returnValue._messages, child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardMoment`)

@@ -4,7 +4,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -96,7 +96,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     withChild(child: StandardReference): this {
         const returnValue = new StandardFeaturePayload(this)
         if (child._payload.plain.tag === 'Example') {
-            returnValue._examples = mergeUniqueReferences([...returnValue._examples, child])
+            returnValue._examples = assureItemInReferenceList(returnValue._examples, child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardFeature`)

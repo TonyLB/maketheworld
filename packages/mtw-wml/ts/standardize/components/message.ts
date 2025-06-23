@@ -5,7 +5,7 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
-import { childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -110,7 +110,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     withChild(child: StandardReference): this {
         const returnValue = new StandardMessagePayload(this)
         if (child._payload.plain.tag === 'Room') {
-            returnValue._rooms = mergeUniqueReferences([...returnValue._rooms, child])
+            returnValue._rooms = assureItemInReferenceList(returnValue._rooms, child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardMessage`)
