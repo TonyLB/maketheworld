@@ -1,10 +1,10 @@
 import { Schema, schemaToWML } from "../../schema"
-import { isSchemaName, isSchemaPosition } from "../../schema/baseClasses"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMapData } from "./dataTypes/map"
 import StandardMap from './map'
 import { mergeTest } from "./utils/testing"
+import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 describe('StandardMap class', () => {
 
