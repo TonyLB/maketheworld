@@ -118,6 +118,17 @@ export const uniqueReferences = (references: StandardReference[]): StandardRefer
     ), [])
 }
 
+export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
+    const findMatch = previous.find((check) => (check._payload.plain.equals(item._payload.plain)))
+    if (findMatch) {
+        return previous
+    }
+    return [
+        ...previous,
+        item
+    ]
+}
+
 //
 // mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
 // a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.
