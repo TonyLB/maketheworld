@@ -13,7 +13,6 @@ import { ReferenceFormat } from "./utils/references";
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
-    global?: boolean;
     context?: StandardKey[];
     _tag?: ComponentTag;
     constructor(data: string | StandardReferenceData) {
@@ -29,7 +28,6 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
             this.universalKey = data.universalKey
             this.context = data.context ? data.context.map(item => new StandardKey(item)) : undefined
             this._tag = data.tag
-            this.global = data.global
         }
     }
     get tag(): ComponentTag {
@@ -47,8 +45,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
             data: {
                 tag: this.tag,
                 key: this.key,
-                uuid: this.universalKey,
-                global: this.global
+                uuid: this.universalKey
             } as SchemaTag,
             children: []
         }]
@@ -63,7 +60,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
             }
             return this.universalKey
         }
-        return { key: this.key, tag: this.tag, universalKey: this.universalKey, global: this.global, context: this.context?.map((item) => (item.toJSON())) } as StandardReferenceData
+        return { key: this.key, tag: this.tag, universalKey: this.universalKey, context: this.context?.map((item) => (item.toJSON())) } as StandardReferenceData
     }
     withKey(key: string): StandardKey {
         const returnValue = this.clone()
@@ -148,8 +145,7 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
             throw new Error('Invalid argument in StandardKey constructor')
         }
         const { tag, key, uuid } = node.data
-        const global = 'global' in node.data ? node.data.global : undefined
-        return new StandardKey({ tag, key, universalKey: uuid, global })
+        return new StandardKey({ tag, key, universalKey: uuid })
     }
     throw new Error('Invalid argument in StandardKey constructor')
 }
@@ -241,9 +237,6 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     get key() {
         return this.payload.key
     }
-    get global() {
-        return this.payload.global
-    }
     get tag() {
         return this.payload.tag
     }
@@ -309,9 +302,6 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     get universalKey() {
         return this.match.universalKey
     }
-    get global() {
-        return this.match.global
-    }
     get context() {
         return this.match.context
     }
@@ -373,9 +363,6 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
     }
     get universalKey() {
         return this.payload.universalKey
-    }
-    get global() {
-        return this.payload.global
     }
     get context() {
         return this.payload.context
@@ -460,9 +447,6 @@ export class StandardReference {
     }
     get universalKey(): string | undefined {
         return this._payload.universalKey
-    }
-    get global(): boolean | undefined {
-        return this._payload.global
     }
     get tag(): ComponentTag {
         return this._payload.tag
@@ -554,7 +538,7 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
     const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
         if (baseReference) {
             const payload = baseReference._payload
-            const lookupKey = baseReference.global || (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
+            const lookupKey = (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
             if (!incomingReference) {
                 if (payload instanceof StandardReferenceRemove) {
                     return new StandardReference(payload.match)

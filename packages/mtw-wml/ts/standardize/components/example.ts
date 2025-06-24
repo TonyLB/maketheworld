@@ -144,7 +144,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get name() { return this._payload.name }
     get summary() { return this._payload.summary }
     get description() { return this._payload.description }
-    override get global() { return false }
 
     constructor(props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample) {
         super(props)

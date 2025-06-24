@@ -54,7 +54,7 @@ describe('mergeUniversalKeyMappings', () => {
         ]
         const result = mergeUniversalKeyMappings(mappings)
         expect(result.length).toBe(1)
-        expect(result[0]).toEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
+        expect(result[0].toJSON()).toEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
     })
 
     it('should keep distinct mappings', () => {
@@ -64,8 +64,8 @@ describe('mergeUniversalKeyMappings', () => {
         ]
         const result = mergeUniversalKeyMappings(mappings)
         expect(result.length).toBe(2)
-        expect(result).toContainEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
-        expect(result).toContainEqual({ key: 'bar', tag: 'Room', universalKey: 'ROOM#uuid-bar' })
+        expect(result.map((key) => (key.toJSON()))).toContainEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
+        expect(result.map((key) => (key.toJSON()))).toContainEqual({ key: 'bar', tag: 'Room', universalKey: 'ROOM#uuid-bar' })
     })
 
     it('should merge multiple duplicates', () => {
@@ -76,6 +76,6 @@ describe('mergeUniversalKeyMappings', () => {
         ]
         const result = mergeUniversalKeyMappings(mappings)
         expect(result.length).toBe(1)
-        expect(result[0]).toEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
+        expect(result[0].toJSON()).toEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
     })
 })

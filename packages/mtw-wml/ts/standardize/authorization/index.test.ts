@@ -231,13 +231,13 @@ describe('StandardAuthorizationCollection', () => {
         `)
         expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
             <Asset key=(test)>
-                <Room key=(Room1)><Grant player=(Player1) actions="action3" /></Room>
                 <Feature key=(FeatureOne)>
                     <Grant player=(Player1) actions="action1" />
                 </Feature>
                 <Feature key=(FeatureTwo)>
                     <Grant player=(Player1) actions="action2" />
                 </Feature>
+                <Room key=(Room1)><Grant player=(Player1) actions="action3" /></Room>
             </Asset>
         `))
     })

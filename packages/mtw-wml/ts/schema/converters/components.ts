@@ -30,7 +30,6 @@ const componentTemplates = {
     Feature: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
-        global: { required: false, type: ParsePropertyTypes.Boolean },
         from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },
@@ -210,7 +209,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Feature',
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('FEATURE')(tag.uuid) : '' },
-                { key: 'global', type: 'boolean', value: tag.global ?? false },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 { key: 'as', type: 'key', value: tag.as ?? '' }

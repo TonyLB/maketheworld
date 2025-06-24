@@ -443,12 +443,13 @@ describe('StandardForm', () => {
 
     it('should correctly return JSON for features nested in rooms', () => {
         const test = new StandardForm(`<Asset key=(Test)>
+            <Feature uuid=(testGlobal) key=(testGlobal) />
             <Room uuid=(testRoom) key=(test)>
                 <Example uuid=(testRoomBase)><Description>One</Description></Example>
                 <Feature uuid=(testLocal) key=(testLocal)>
                     <Example uuid=(testLocalBase)><Description>Local</Description></Example>
                 </Feature>
-                <Feature global uuid=(testGlobal) key=(testGlobal)>
+                <Feature uuid=(testGlobal) key=(testGlobal)>
                     <Example uuid=(testGlobalBase)><Description>Global</Description></Example>
                 </Feature>
             </Room>
@@ -460,7 +461,6 @@ describe('StandardForm', () => {
             components: [{
                 tag: 'Feature',
                 key: 'testGlobal',
-                global: true,
                 universalKey: 'FEATURE#testGlobal',
                 examples: ['EXAMPLE#testGlobalBase']
             },
@@ -472,7 +472,7 @@ describe('StandardForm', () => {
                 exits: [],
                 features: [
                     { tag: 'Feature', key: 'testLocal', universalKey: 'FEATURE#testLocal' },
-                    { tag: 'Feature', global: true, key: 'testGlobal', universalKey: 'FEATURE#testGlobal' }
+                    { tag: 'Feature', key: 'testGlobal', universalKey: 'FEATURE#testGlobal' }
                 ]
             },
             {
@@ -867,6 +867,9 @@ describe('StandardForm', () => {
                 <Room uuid=(testRoomThree) key=(testRoomThree) />
                 <Image key=(mapBackground) />
             </Map>
+            <Room uuid=(testRoomOne) />
+            <Room uuid=(testRoomTwo) />
+            <Room uuid=(testRoomThree) />
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
@@ -919,6 +922,8 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomOne)>one</Exit>
                 </Room>
             </Message>
+            <Room uuid=(testRoomOne) />
+            <Room uuid=(testRoomTwo) />
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
@@ -956,6 +961,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Message>
             </Moment>
+            <Room uuid=(testRoomOne) />
             <Room uuid=(testRoomTwo) key=(testRoomTwo) />
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
@@ -967,11 +973,10 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-                <Message uuid=(testMessage) key=(testMessage)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />Test message
-                </Message>
                 <Moment uuid=(testMoment) key=(testMoment)>
-                    <Message key=(testMessage) />
+                    <Message uuid=(testMessage) key=(testMessage)>
+                        <Room uuid=(testRoomOne) key=(testRoomOne) />Test message
+                    </Message>
                 </Moment>
             </Asset>
         `))
@@ -1048,6 +1053,7 @@ describe('StandardForm', () => {
             </Map>
         </Asset>`)
         expect(mapTest._byId.testRoomOne.toJSON()).toEqual({
+            context: [{ key: 'testMap', tag: 'Map', universalKey: 'MAP#testMap' }],
             exits: [],
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
@@ -2197,7 +2203,7 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature uuid=(003) global key=(testGlobal) />
+                    <Feature uuid=(003) key=(testGlobal) />
                     <Example uuid=(001b)>
                         <Name>Vortex</Name>
                     </Example>
@@ -2226,7 +2232,7 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testRoom',
                 universalKey: 'ROOM#001',
-                features: [{ key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#004' }, { key: 'testGlobal', global: true, tag: 'Feature', universalKey: 'FEATURE#003' }],
+                features: [{ key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#004' }, { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' }],
                 examples: ['EXAMPLE#001b'],
                 exits: []
             },

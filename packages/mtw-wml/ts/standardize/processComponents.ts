@@ -144,9 +144,9 @@ export const processComponents = (props: {
                 }
 
                 //
-                // Localize the key for the component if it is not global, and has a parent tag
+                // Localize the key for the component if it has a parent tag
                 //
-                const localizedComponent = (parentTag && !(component.global ?? false))
+                const localizedComponent = parentTag
                     ? component
                         .withLeastCommonContext(componentContext)
                     : component

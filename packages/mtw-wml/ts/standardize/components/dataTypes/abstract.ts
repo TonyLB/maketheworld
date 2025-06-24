@@ -6,7 +6,6 @@ type StandardReferenceData = string | ({
     key?: string;
     universalKey?: ComponentUUID;
     tag: ComponentTag;
-    global?: boolean;
 })
 
 export type StandardBaseData = {

@@ -129,7 +129,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency", global?: boolean }[] {
+    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...dependencyReferenceKeys(this.exits.filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey({ key, tag: 'Room' }) })),
