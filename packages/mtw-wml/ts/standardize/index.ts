@@ -799,7 +799,7 @@ export class StandardForm {
         const uuidDefaultedComponents = returnValue._components
             .map((component) => {
                 if (!component.universalKey) {
-                    return component.withUniversalKey(uuidGenerator.next())
+                    return component.withUniversalKey(`${component.tag.toUpperCase()}#${uuidGenerator.next()}`)
                 }
                 return component
             })

@@ -6,6 +6,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
 import { StandardKey } from './components/reference'
+import StandardFeature from './components/feature'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
         ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
@@ -2512,6 +2513,7 @@ describe('StandardForm', () => {
             expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)><Room uuid=(mock-uuid-1) key=(testRoom) /></Asset>
             `))
+            expect(finalized.byId.testRoom.universalKey).toEqual('ROOM#mock-uuid-1')
         })
 
         it('should rebuild context on finalize', () => {
@@ -2587,6 +2589,24 @@ describe('StandardForm', () => {
             expect(findFeature?._key?.context?.map((context) => context.plain.toJSON())).toEqual([
                 'ROOM#testRoom'
             ])
+        })
+
+        it('should assure components are correctly placed in hierarchy', () => {
+            const testWML = deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            const test = new StandardForm(testWML)
+            test._components = [...test._components, new StandardFeature(`<Feature uuid=(testFeature) key=(testFeature) />`).withLeastCommonContext([new StandardKey({ key: 'testRoom', tag: 'Room' })])]
+            const finalized = test.finalize()
+            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(mock-uuid-1) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                    </Room>
+                </Asset>
+            `))
         })
     })
 
