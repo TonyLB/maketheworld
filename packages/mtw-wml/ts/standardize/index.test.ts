@@ -2441,6 +2441,63 @@ describe('StandardForm', () => {
 
     })
 
+    describe('assureComponent', () => {
+        it('should return unchanged if component exists', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            expect(test.assureComponent(new StandardKey({ key: 'testRoom', tag: 'Room' })).toJSON()).toEqual(test.toJSON())
+        })
+
+        it('should add component if it does not exist', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            const assured = test.assureComponent(new StandardKey({ key: 'testFeature', tag: 'Feature' }))
+            expect(schemaToWML([assured.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature key=(testFeature) />
+                    <Room key=(testRoom) />
+                </Asset>
+            `))
+        })
+
+        it('should add component but not context if it does not exist and context does', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            const assured = test.assureComponent(new StandardKey({ key: 'testFeature', tag: 'Feature', context: [{ key: 'testRoom', tag: 'Room' }] }))
+            expect(schemaToWML([assured.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)><Feature key=(testFeature) /></Room>
+                </Asset>
+            `))
+        })
+
+        it('should add component context if needed', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            const assured = test.assureComponent(new StandardKey({ key: 'testExample', tag: 'Example', context: [{ key: 'testRoom', tag: 'Room' }, { key: 'testFeature', tag: 'Feature' }] }))
+            expect(schemaToWML([assured.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <Feature key=(testFeature)><Example key=(testExample) /></Feature>
+                    </Room>
+                </Asset>
+            `))
+        })
+
+    })
+
     describe('finalize', () => {
         it('should add UUID on finalize', () => {
             const test = new StandardForm(`
