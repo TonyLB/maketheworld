@@ -127,7 +127,8 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
             return undefined
         }
-        const base = new StandardMoment(this.key ?? '')
+        const base = this.clone()
+        base._payload = new StandardMomentPayload()
         base._payload._messages = messagesDiff
         return base
     }

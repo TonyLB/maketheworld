@@ -376,87 +376,6 @@ export class StandardForm {
         return returnValue
     }
 
-    diff(incoming: StandardForm): StandardForm {
-
-        // console.log(`diff base: ${JSON.stringify(this.toJSON(), null, 4)}`)
-        // console.log(`diff incoming: ${JSON.stringify(incoming.toJSON(), null, 4)}`)
-        const mergedForKeys = new StandardForm({
-            key: this.key,
-            components: [...this._components, ...incoming._components]
-                .map((component) => (defaultComponentFromTag(component.tag, component.key, component.universalKey))),
-            metaData: []
-        })
-        //
-        // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
-        // to diff the components in each StandardForm against each other.
-        //
-        const allKeys = uniqueReferences(
-            [...this._components, ...incoming._components]
-            .map((component) => (new StandardReference(component.referenceData)))
-        ).map((reference) => (reference._payload.plain.toJSON()))
-        const returnValue = this._clone()
-        //
-        // TODO: It is important that all of the keys be sorted in *reverse* standardComponentSortOrder,
-        // so that when you come to (for instance) a parent room with child features and examples,
-        // those children would *already* have been diffed and be in the `previous` variable of the
-        // reduce. That, in turn, powers the `hasDiff` function in the options of the diff method,
-        // to make sure that the relevant parent components are provided as context for the structure
-        // of the diff StandardForm.
-        //
-        // The problem with this (at the moment) is that the standardComponentSortOrder function is
-        // deeply entangled with the way that parent-child information is encoded in the string structure
-        // of keys. Long-term, we want to disentangle that. Short-term, we should get a fix that works
-        // in cases where the keys are organized as they are, in order to get back to a more stable state.
-        //
-        returnValue._components = allKeys
-            .sort((a, b) => {
-                const lookupA = mergedForKeys._lookup(a)
-                const lookupB = mergedForKeys._lookup(b)
-                if (lookupA && lookupB) {
-                    return standardComponentSortOrder(lookupB._key, lookupA._key)
-                }
-                else {
-                    return 0
-                }
-            })
-            .reduce<StandardComponent[]>((previous, reference) => {
-                const baseComponent = this._lookup(reference)
-                const incomingComponent = incoming._lookup(reference)
-                if (baseComponent && incomingComponent) {
-                    console.log(`bothMatch: ${JSON.stringify(reference, null, 4)}`)
-                    const diffedComponent = baseComponent.diff(incomingComponent, { hasDiff: (subKey) => (Boolean(previous.find(({ key }) => (key === subKey)))) })
-                    if (diffedComponent) {
-                        return mergeToComponentList(mergedForKeys._keys)(
-                            previous,
-                            diffedComponent
-                        )
-                    } else {
-                        return previous
-                    }
-                }
-                else {
-                    if (baseComponent) {
-                        return mergeToComponentList(mergedForKeys._keys)(
-                            previous,
-                            new StandardRemove(baseComponent)
-                        )
-                    }
-                    if (incomingComponent) {
-                        return mergeToComponentList(mergedForKeys._keys)(
-                            previous,
-                            incomingComponent
-                        )
-                    }
-                    throw new Error('diff error')
-                }
-            }, [])
-
-        const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
-        returnValue._metaData = applyEdits(combinedMetaData.tree)
-
-        return returnValue
-    }
-
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = this._clone()
         returnValue._metaData = [...this._metaData]
@@ -838,6 +757,91 @@ export class StandardForm {
             .map((component) => (component._key))
         returnValue._components = hierarchyAssuredStandardForm._components.map((component) => (component.remapReferences({ mappings, mapTo: 'universal' })))
         return returnValue
+    }
+
+    diff(incoming: StandardForm): StandardForm {
+
+        //
+        // In order to have a baseline between two StandardForms, we first merge the keys of both forms
+        // (to draw associations between local keys and universal keys wherever they exist in either
+        // data structure). This importantly simplifies the resulting diff, and makes it more useful.
+        //
+        const mergedForKeys = [...this._components, ...incoming._components]
+            .reduce<StandardKey[]>((previous, component) => {
+                const existingIndex = previous.findIndex((key) => (key.plain.equals(component._key.plain)))
+                if (existingIndex === -1) {
+                    return [...previous, component._key]
+                }
+                else {
+                    return previous.map((key, index) => {
+                        if (index === existingIndex) {
+                            return key.merge(component._key)
+                        }
+                        return key
+                    })
+                }
+            }, [])
+
+        //
+        // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
+        // to diff the components in each StandardForm against each other.
+        //
+
+        const allKeys = uniqueReferences(
+            [...this._components, ...incoming._components]
+            .map((component) => (new StandardReference(component.referenceData)))
+        ).map((reference) => (reference._payload.plain.toJSON()))
+
+        //
+        // Next, we need a zippered version of the components in the two forms, with an
+        // incoming component (if it exists) and a previous component (if it exists).
+        //
+
+        const zipperedComponents = allKeys
+            .map((reference) => ({
+                reference,
+                previous: this._lookup(reference)?.remapReferences({ mappings: mergedForKeys, mapTo: 'both' }),
+                incoming: incoming._lookup(reference)?.remapReferences({ mappings: mergedForKeys, mapTo: 'both' })
+            }))
+            .filter(({ previous, incoming }) => (previous || incoming))
+
+        //
+        // Now we can diff the components in the two forms against each other, using the
+        // zipperedComponents as the basis for the diff.
+        //
+
+        const diffedValue = this._clone()
+        diffedValue._components = zipperedComponents
+            .reduce<StandardComponent[]>((previous, { reference, previous: previousComponent, incoming: incomingComponent }) => {
+                if (previousComponent && incomingComponent) {
+                    const diffedComponent = previousComponent.diff(incomingComponent, { hasDiff: () => (false) })
+                    if (diffedComponent) {
+                        return [...previous, diffedComponent]
+                    } else {
+                        return previous
+                    }
+                }
+                else {
+                    if (previousComponent) {
+                        return [
+                            ...previous,
+                            new StandardRemove(previousComponent)
+                        ]
+                    }
+                    if (incomingComponent) {
+                        return [
+                            ...previous,
+                            incomingComponent
+                        ]
+                    }
+                    throw new Error('diff error')
+                }
+            }, [])
+
+        const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
+        diffedValue._metaData = applyEdits(combinedMetaData.tree)
+
+        return diffedValue.finalize()
     }
 
 }

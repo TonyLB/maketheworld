@@ -124,7 +124,8 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardFeature(this.key ?? '')
+        const base = this.clone()
+        base._payload = new StandardFeaturePayload()
         base._payload._examples = examplesDiff
         return base
     }
