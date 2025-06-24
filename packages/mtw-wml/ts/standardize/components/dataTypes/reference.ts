@@ -7,7 +7,6 @@ export type StandardReferenceData = string | ({
     universalKey?: ComponentUUID;
     context?: StandardReferenceData[]
     tag: ComponentTag;
-    global?: boolean;
 })
 
 export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => {
@@ -15,7 +14,7 @@ export const isStandardReferencePayloadData = (arg: any): arg is StandardReferen
         (
             checkTypes({
                 required: { tag: CheckTypes.STRING },
-                optional: { global: CheckTypes.BOOLEAN, key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
+                optional: { key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
             })(arg) &&
             isSchemaComponentTag(arg.tag) &&
             (!arg.universalKey || isSchemaComponentUUID(arg.universalKey))

@@ -33,7 +33,6 @@ export interface StandardComponent {
     key?: string;
     universalKey?: ComponentUUID;
     clone(): StandardComponent;
-    global?: boolean;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;

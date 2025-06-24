@@ -9,11 +9,10 @@ describe('StandardFeature class', () => {
 
     it('should construct StandardFeature from WML', () => {
         const testSource = deIndentWML(`
-            <Feature global key=(test)><Example key=(base) /></Feature>
+            <Feature key=(test)><Example key=(base) /></Feature>
         `)
         const testFeature = new StandardFeature(testSource)
         expect(testFeature.key).toEqual('test')
-        expect(testFeature.global).toBe(true)
         expect(schemaToWML([testFeature.schema])).toEqual(testSource)
     })
 

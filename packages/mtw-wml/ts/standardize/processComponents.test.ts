@@ -97,7 +97,7 @@ describe("processComponents", () => {
                     <Feature key=(testLocal)>
                         <Example uuid=(testLocalExample)><Description>Local</Description></Example>
                     </Feature>
-                    <Feature global key=(testGlobal)>
+                    <Feature key=(testGlobal)>
                         <Example uuid=(testGlobalExample)><Description>Global</Description></Example>
                     </Feature>
                 </Room>
@@ -113,7 +113,7 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Room key=(test)>
                     <Feature key=(testLocal) />
-                    <Feature global key=(testGlobal) />
+                    <Feature key=(testGlobal) />
                     <Example uuid=(testRoomExample) />
                 </Room>
             `),
@@ -131,7 +131,7 @@ describe("processComponents", () => {
                 <Example uuid=(testLocalExample)><Description>Local</Description></Example>
             `),
             deIndentWML(`
-                <Feature global key=(testGlobal)><Example uuid=(testGlobalExample) /></Feature>
+                <Feature key=(testGlobal)><Example uuid=(testGlobalExample) /></Feature>
             `),
             deIndentWML(`
                 <Example uuid=(testGlobalExample)><Description>Global</Description></Example>

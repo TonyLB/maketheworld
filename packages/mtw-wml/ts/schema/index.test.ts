@@ -752,7 +752,7 @@ describe('schemaToWML', () => {
                     </Example>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
-                <Feature global key=(doors)>
+                <Feature key=(doors)>
                     <Name>Drifting doors</Name>
                     <Description>Doors drifting in space</Description>
                 </Feature>

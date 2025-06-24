@@ -1,7 +1,8 @@
 import { StandardRenderLink } from './link';
 import { GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree';
-import { SchemaLinkTag, SchemaOutputTag } from '../../schema/baseClasses';
 import { StandardKey } from '../components/reference';
+import { SchemaLinkTag } from '@tonylb/mtw-base/ts/schema/renderTree';
+import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 
 describe('StandardRenderLink', () => {
     it('should create an instance with valid arguments', () => {

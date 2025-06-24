@@ -37,7 +37,6 @@ export class StandardRemove implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get global() { return this._match.global }
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this._match.referencedKeys()
@@ -184,7 +183,6 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-    get global() { return this._match.global }
 
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         const returnValue = this.clone()

@@ -94,7 +94,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
-        get global(): boolean | undefined { return true }
         get referenceData(): StandardReferenceData {
             if (this.universalKey && !this.key) {
                 return this.universalKey

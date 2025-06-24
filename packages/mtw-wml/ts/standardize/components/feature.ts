@@ -16,7 +16,6 @@ import { renderReference } from "./utils/schema"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
     _examples: StandardReference[] = [];
-    _global?: boolean;
     tag = 'Feature' as const
 
     constructor(previous?: StandardFeaturePayload) {
@@ -27,32 +26,28 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     fromJSON(props: StandardFeatureData) {
         this._examples = props.examples?.map((example) => new StandardReference(example)) ?? []
-        this._global = props.global
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
             this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node) => (childReferenceFactory([node])))
-            this._global = node.data.global
             return
         }
         throw new Error('Schema mismatch in StandardFeature constructor')
     }
 
     get examples() { return this._examples }
-    get global() { return this._global }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',
-            ...(this.global ? { global: true } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Feature', key, global: this.global, uuid: universalKey },
+            data: { tag: 'Feature', key, uuid: universalKey },
             children: this.examples.map((reference) => (reference.schema)).flat(1)
         }
     }
@@ -107,7 +102,6 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
     get examples() { return this._payload.examples }
-    override get global() { return this._payload.global }
 
     override clone(): StandardFeature {
         const returnValue = new StandardFeature(this)

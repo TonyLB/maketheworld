@@ -6,7 +6,6 @@ import { StandardRemoveData } from ".";
 export type StandardFeatureData = {
     tag: 'Feature';
     examples?: (StandardReferenceData | StandardRemoveData)[];
-    global?: boolean;
 } & StandardBaseData
 
 export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
@@ -16,11 +15,10 @@ export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Feature'),
-        checkTypes(arg, {
-            key: 'string'
-        },
+        checkTypes(arg, {},
         {
-            global: 'boolean'
+            key: 'string',
+            universalKey: 'string'
         })
     )
 }
