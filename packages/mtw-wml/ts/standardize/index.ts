@@ -799,7 +799,7 @@ export class StandardForm {
         const uuidDefaultedComponents = returnValue._components
             .map((component) => {
                 if (!component.universalKey) {
-                    return component.withUniversalKey(uuidGenerator.next())
+                    return component.withUniversalKey(`${component.tag.toUpperCase()}#${uuidGenerator.next()}`)
                 }
                 return component
             })
@@ -817,9 +817,26 @@ export class StandardForm {
                 return [...previous, component]
             }, [])
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-        const mappings: StandardKey[] = rebuiltContextComponents
+        returnValue._components = rebuiltContextComponents
+        const hierarchyAssuredStandardForm = returnValue._components
+            .reduce<StandardForm>((previous, component) => {
+                const parentComponent = component._key.context?.slice(-1)[0]?.withContext(component._key.context?.slice(0, -1) ?? [])
+                if (parentComponent) {
+                    const assuredComponent = previous.assureComponent(parentComponent)
+                    assuredComponent._components = assuredComponent._components
+                        .map((existingComponent) => {
+                            if (existingComponent._key.plain.equals(parentComponent.plain)) {
+                                return existingComponent.withChild(new StandardReference(component._key.plain))
+                            }
+                            return existingComponent
+                        })
+                    return assuredComponent
+                }
+                return previous
+            }, returnValue)
+        const mappings: StandardKey[] = hierarchyAssuredStandardForm._components
             .map((component) => (component._key))
-        returnValue._components = rebuiltContextComponents.map((component) => (component.remapReferences({ mappings, mapTo: 'universal' })))
+        returnValue._components = hierarchyAssuredStandardForm._components.map((component) => (component.remapReferences({ mappings, mapTo: 'universal' })))
         return returnValue
     }
 
