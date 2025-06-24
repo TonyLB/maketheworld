@@ -766,6 +766,33 @@ export class StandardForm {
         return returnValue
     }
 
+    assureComponent(reference: StandardKey): StandardForm {
+        const returnValue = this._clone()
+        const existingComponent = returnValue._lookup(reference)
+        if (existingComponent) {
+            return returnValue
+        }
+        const newComponent = standardComponentFactory(defaultComponentFromTag(reference.tag, reference.key, reference.universalKey))?.withLeastCommonContext(reference.context ?? [])
+        if (!newComponent) {
+            throw new Error(`Unable to create component for tag ${reference.tag} with key ${reference.key} and universalKey ${reference.universalKey}`)
+        }
+        returnValue._components = [...returnValue._components, newComponent]
+        const parentContext = reference.context?.slice(-1) ?? []
+        if (parentContext.length > 0) {
+            const parentComponent = parentContext[0].withContext(reference.context?.slice(0, -1) ?? [])
+            const assuredValue = returnValue.assureComponent(parentComponent)
+            assuredValue._components = assuredValue._components
+                .map((component) => {
+                    if (component._key.plain.equals(parentComponent.plain)) {
+                        return component.withChild(new StandardReference(reference.plain))
+                    }
+                    return component
+                })
+            return assuredValue
+        }
+        return returnValue
+    }
+
     finalize(): StandardForm {
         const returnValue = this._clone()
         const uuidGenerator = new UUIDGenerator()
