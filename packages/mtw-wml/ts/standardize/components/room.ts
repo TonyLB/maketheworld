@@ -209,7 +209,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardRoom(this.key ?? '')
+        const base = this.clone()
+        base._payload = new StandardRoomPayload()
         base._payload._shortName = this._payload._shortName
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName

@@ -167,7 +167,8 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (deepEqual(this.toJSON(), incoming.toJSON())) {
             return undefined
         }
-        const base = new StandardExample(this.key ?? '')
+        const base = this.clone()
+        base._payload = new StandardExamplePayload()
         base._payload._name = this._payload._name
             ? this._payload._name.diff(incoming._payload._name)
             : incoming._payload._name

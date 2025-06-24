@@ -121,7 +121,8 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }
-        const base = new StandardKnowledge(this.key ?? '')
+        const base = this.clone()
+        base._payload = new StandardKnowledgePayload()
         base._payload._examples = examplesDiff
         return base
     }
