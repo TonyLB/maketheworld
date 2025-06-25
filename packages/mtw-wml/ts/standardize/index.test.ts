@@ -7,6 +7,7 @@ import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
 import { StandardKey } from './components/reference'
 import StandardFeature from './components/feature'
+import { StandardLiteral } from './literal'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
         ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
@@ -297,6 +298,12 @@ describe('StandardForm', () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const test = new StandardForm(schema.schema[0])
+        expect(schemaToWML([test.byId.test.schema])).toEqual(deIndentWML(`
+            <Room uuid=(test) key=(test)><Example uuid=(testRoomBase) /></Room>
+        `))
+        expect(schemaToWML([test.byUniversalId['ROOM#test'].schema])).toEqual(deIndentWML(`
+            <Room uuid=(test) key=(test)><Example uuid=(testRoomBase) /></Room>
+        `))
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -2450,6 +2457,76 @@ describe('StandardForm', () => {
             `))
         })
 
+    })
+
+    describe('byId', () => {
+        it('should update a component byId', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            expect(test.byId.testRoom).toBeInstanceOf(StandardRoom)
+            const room = test.byId.testRoom.clone() as StandardRoom
+            room._payload._shortName = new StandardLiteral('Updated Room')
+            test.byId.testRoom = room
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom)><ShortName>Updated Room</ShortName></Room>
+                </Asset>
+            `))
+        })
+
+        it('should add a component byId', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) />
+                </Asset>
+            `)
+            test.byId.testFeature = new StandardFeature(`<Feature uuid=(testFeature) key=(testFeature) />`)
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Room key=(testRoom) />
+                </Asset>
+            `))
+        })
+    })
+
+    describe('byUniversalId', () => {
+        it('should update a component byUniversalId', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room uuid=(testRoom) key=(testRoom) />
+                </Asset>
+            `)
+            expect(test.byUniversalId[`ROOM#testRoom`]).toBeInstanceOf(StandardRoom)
+            const room = test.byUniversalId[`ROOM#testRoom`].clone() as StandardRoom
+            room._payload._shortName = new StandardLiteral('Updated Room')
+            test.byUniversalId[`ROOM#testRoom`] = room
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <ShortName>Updated Room</ShortName>
+                    </Room>
+                </Asset>
+            `))
+        })
+
+        it('should add a component byUniversalId', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Room uuid=(testRoom) key=(testRoom) />
+                </Asset>
+            `)
+            test.byUniversalId[`FEATURE#testFeature`] = new StandardFeature(`<Feature uuid=(testFeature) key=(testFeature) />`)
+            expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Room uuid=(testRoom) key=(testRoom) />
+                </Asset>
+            `))
+        })
     })
 
     describe('assureComponent', () => {
