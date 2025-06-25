@@ -18,7 +18,7 @@ import processComponents, { ComponentProcessingTemplate } from "./processCompone
 import { StandardRemove } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
-import { isSchemaAsset, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isSchemaAsset, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
@@ -284,6 +284,45 @@ export class StandardForm {
         })
         return returnProxy as unknown as Record<string, StandardComponent>
     }
+
+        get byUniversalId(): Record<ComponentUUID, StandardComponent> {
+        const returnProxy = new Proxy(this._components, {
+            get: (target, prop: ComponentUUID) => {
+                const findComponent = target.find((component) => (component.universalKey === prop))
+                if (findComponent) {
+                    return findComponent
+                }
+                return undefined
+            },
+            has(target, prop: ComponentUUID): boolean {
+                const findComponent = target.find((component) => (component.universalKey === prop))
+                if (findComponent) {
+                    return true
+                }
+                return false
+            },
+            set: (target, prop: ComponentUUID, value: StandardComponent): boolean => {
+                if (isStandardComponent(value)) {
+                    const findComponentIndex = target.findIndex((component) => (component.universalKey === prop))
+                    if (findComponentIndex === -1) {
+                        target.push(value)
+                    }
+                    else {
+                        target = [
+                            ...target.slice(0, findComponentIndex),
+                            value,
+                            ...target.slice(findComponentIndex + 1)
+                        ]
+                    }
+                    return true
+                }
+                throw new Error('Invalid value in StandardForm byUniversalId setter')
+            }
+
+        })
+        return returnProxy as unknown as Record<ComponentUUID, StandardComponent>
+    }
+
     get key(): string { return this._key ?? '' }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {

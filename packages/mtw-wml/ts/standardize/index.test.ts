@@ -297,6 +297,12 @@ describe('StandardForm', () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const test = new StandardForm(schema.schema[0])
+        expect(schemaToWML([test.byId.test.schema])).toEqual(deIndentWML(`
+            <Room uuid=(test) key=(test)><Example uuid=(testRoomBase) /></Room>
+        `))
+        expect(schemaToWML([test.byUniversalId['ROOM#test'].schema])).toEqual(deIndentWML(`
+            <Room uuid=(test) key=(test)><Example uuid=(testRoomBase) /></Room>
+        `))
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
