@@ -1039,7 +1039,7 @@ describe('StandardForm', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test) />
         </Asset>`)
-        const firstRoom = test._byId.testRoomOne
+        const firstRoom = test.byId.testRoomOne
         expect(firstRoom.toJSON()).toEqual({
             exits: [],
             key: 'testRoomOne',
@@ -1052,7 +1052,7 @@ describe('StandardForm', () => {
                 <Room uuid=(testRoomOne) key=(testRoomOne)><Position x="0" y="100" /></Room>
             </Map>
         </Asset>`)
-        expect(mapTest._byId.testRoomOne.toJSON()).toEqual({
+        expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
             context: [{ key: 'testMap', tag: 'Map', universalKey: 'MAP#testMap' }],
             exits: [],
             key: 'testRoomOne',
@@ -1853,7 +1853,7 @@ describe('StandardForm', () => {
         //         </Asset>
         //     `)
         //     const incoming = base._clone()
-        //     incoming._byId['Room1'] = incoming._byId['Room1'].withImport(new ImportItemContent('base', 'testRoom'))
+        //     incoming.byId['Room1'] = incoming.byId['Room1'].withImport(new ImportItemContent('base', 'testRoom'))
         //     const diff = base.diff(incoming)
         //     expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
         //         <Asset key=(test)>
