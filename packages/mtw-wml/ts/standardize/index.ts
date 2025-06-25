@@ -106,13 +106,11 @@ const lookupInComponentList = (componentList: StandardComponent[], key: Standard
 export class StandardForm {
     _key?: string;
     _components: StandardComponent[];
-    _byId: Record<string, StandardComponent>;
     _metaData: GenericTree<SchemaTag>;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
             this._key = args
-            this._byId = {}
             this._components = []
             this._metaData = []
             return
@@ -133,13 +131,6 @@ export class StandardForm {
                     return previous
                 }
             }, [])
-            this._byId = this._components
-                .reduce<Record<string, StandardComponent>>((previous, component) => {
-                    return {
-                        ...previous,
-                        [component.key ?? '']: component
-                    }
-                }, {})
             return
         }
         if (isStandardNDJSON(args)) {
@@ -158,13 +149,6 @@ export class StandardForm {
                     return previous
                 }
             }, [])
-            this._byId = this._components
-                .reduce<Record<string, StandardComponent>>((previous, component) => {
-                    return {
-                        ...previous,
-                        [component.key ?? '']: component
-                    }
-                }, {})
 
             this._metaData = []
 
@@ -240,19 +224,11 @@ export class StandardForm {
                 this._components = componentFragments
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-                this._byId = this._components
-                    .reduce<Record<string, StandardComponent>>((previous, component) => {
-                        return {
-                            ...previous,
-                            [component.key ?? '']: component
-                        }
-                    }, {})
                 return
             }
             else {
                 this._metaData = []
                 this._components = []
-                this._byId = {}
             }
         }
         console.log(`Invalid arguments: ${JSON.stringify(args, null, 4)}`)
@@ -347,7 +323,6 @@ export class StandardForm {
     _clone(): StandardForm {
         const returnValue = new StandardForm(this.key)
         returnValue._metaData = [...this._metaData]
-        returnValue._byId = objectMap(this._byId, (component) => (component.clone()))
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }
@@ -640,42 +615,42 @@ export class StandardForm {
                 }
             })
         )
-        returnValue._byId = Object.values(returnValue._byId)
-            .reduce<Record<string, StandardComponent>>((previous, component) => {
-                const matchKey = findMatchingRename(component.key ?? '')
-                if (matchKey) {
-                    if (previous[matchKey.toKey]) {
-                        throw new Error('renameKey collision')
-                    }
+        // returnValue._components = returnValue._components
+        //     .reduce<StandardComponent[]>((previous, component) => {
+        //         const matchKey = findMatchingRename(component.key ?? '')
+        //         if (matchKey) {
+        //             if (lookupInComponentList(previous, matchKey.toKey)) {
+        //                 throw new Error('renameKey collision')
+        //             }
 
-                    return {
-                        ...previous,
-                        [matchKey.toKey]: component
-                            .mapContents(renameContentsCallback)
-                            .withKey(matchKey.toKey)
-                    }
-                }
-                if (previous[component.key ?? '']) {
-                    throw new Error('renameKey collision')
-                }
-                return {
-                    ...previous,
-                    [component.key ?? '']: component.mapContents(renameContentsCallback)
-                }
-            }, {})
+        //             return [
+        //                 ...previous,
+        //                 component
+        //                     .mapContents(renameContentsCallback)
+        //                     .withKey(matchKey.toKey)
+        //             ]
+        //         }
+        //         if (previous[component.key ?? '']) {
+        //             throw new Error('renameKey collision')
+        //         }
+        //         return {
+        //             ...previous,
+        //             [component.key ?? '']: component.mapContents(renameContentsCallback)
+        //         }
+        //     }, {})
 
         return returnValue
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardForm {
         const returnValue = this._clone()
-        returnValue._byId = objectMap(returnValue.byId, (component) => (component.mapContents(callback)))
+        returnValue._components = returnValue._components.map((component) => (component.mapContents(callback)))
         return returnValue
     }
 
     withUpdatedUniversalKeys(callback: (key: string) => string | undefined): StandardForm {
         const returnValue = this._clone()
-        returnValue._byId = objectMap(returnValue.byId, (component) => {
+        returnValue._components = returnValue._components.map((component) => {
             const updatedUniversalKey = callback(component.key ?? '')
             if (updatedUniversalKey && !(component.universalKey === updatedUniversalKey)) {
                 return component.withUniversalKey(updatedUniversalKey)
