@@ -1,7 +1,7 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
-import { isStandardComponent, isStandardForm, StandardFormData } from "./components/dataTypes"
+import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import SchemaTagTree from "../tagTree/schema"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import StandardRoom, { StandardRoomPayload } from "./components/room"
@@ -13,9 +13,8 @@ import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/baseClasses"
-import { objectMap } from "../lib/objects"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
-import { StandardRemove } from "./components/edits"
+import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { ComponentUUID, isSchemaAsset, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -31,6 +30,28 @@ import { uniqueReferences } from "./components/utils/references"
 import StandardReference, { StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
+import StandardAction from "./components/action"
+import StandardComputed from "./components/computed"
+import StandardImage from "./components/image"
+import StandardMessage from "./components/message"
+import StandardMoment from "./components/moment"
+import StandardVariable from "./components/variable"
+
+export const isStandardComponent = (value: any): value is StandardComponent => {
+    return (value instanceof StandardRemove) ||
+        (value instanceof StandardReplace) ||
+        (value instanceof StandardAction) ||
+        (value instanceof StandardCharacter) ||
+        (value instanceof StandardComputed) ||
+        (value instanceof StandardFeature) ||
+        (value instanceof StandardImage) ||
+        (value instanceof StandardKnowledge) ||
+        (value instanceof StandardMap) ||
+        (value instanceof StandardMessage) ||
+        (value instanceof StandardMoment) ||
+        (value instanceof StandardRoom) ||
+        (value instanceof StandardVariable)
+}
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -139,7 +160,7 @@ export class StandardForm {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
             this._key = assetLine.key
-            this._components = args.filter(isStandardComponent).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
+            this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
                     standardItem._from = standardData.from
@@ -248,16 +269,16 @@ export class StandardForm {
     }
 
     get byId(): Record<string, StandardComponent> {
-        const returnProxy = new Proxy(this._components, {
+        const returnProxy = new Proxy(this, {
             get: (target, prop: string) => {
-                const findComponent = target.find((component) => (component.key === prop))
+                const findComponent = target._components.find((component) => (component.key === prop))
                 if (findComponent) {
                     return findComponent
                 }
                 return undefined
             },
             has(target, prop: string): boolean {
-                const findComponent = target.find((component) => (component.key === prop))
+                const findComponent = target._components.find((component) => (component.key === prop))
                 if (findComponent) {
                     return true
                 }
@@ -265,15 +286,15 @@ export class StandardForm {
             },
             set: (target, prop: string, value: StandardComponent): boolean => {
                 if (isStandardComponent(value)) {
-                    const findComponentIndex = target.findIndex((component) => (component.key === prop))
+                    const findComponentIndex = target._components.findIndex((component) => (component.key === prop))
                     if (findComponentIndex === -1) {
-                        target.push(value)
+                        target._components.push(value)
                     }
                     else {
-                        target = [
-                            ...target.slice(0, findComponentIndex),
+                        target._components = [
+                            ...target._components.slice(0, findComponentIndex),
                             value,
-                            ...target.slice(findComponentIndex + 1)
+                            ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
                     return true
@@ -285,17 +306,17 @@ export class StandardForm {
         return returnProxy as unknown as Record<string, StandardComponent>
     }
 
-        get byUniversalId(): Record<ComponentUUID, StandardComponent> {
-        const returnProxy = new Proxy(this._components, {
+    get byUniversalId(): Record<ComponentUUID, StandardComponent> {
+        const returnProxy = new Proxy(this, {
             get: (target, prop: ComponentUUID) => {
-                const findComponent = target.find((component) => (component.universalKey === prop))
+                const findComponent = target._components.find((component) => (component.universalKey === prop))
                 if (findComponent) {
                     return findComponent
                 }
                 return undefined
             },
             has(target, prop: ComponentUUID): boolean {
-                const findComponent = target.find((component) => (component.universalKey === prop))
+                const findComponent = target._components.find((component) => (component.universalKey === prop))
                 if (findComponent) {
                     return true
                 }
@@ -303,15 +324,15 @@ export class StandardForm {
             },
             set: (target, prop: ComponentUUID, value: StandardComponent): boolean => {
                 if (isStandardComponent(value)) {
-                    const findComponentIndex = target.findIndex((component) => (component.universalKey === prop))
+                    const findComponentIndex = target._components.findIndex((component) => (component.universalKey === prop))
                     if (findComponentIndex === -1) {
-                        target.push(value)
+                        target._components.push(value)
                     }
                     else {
-                        target = [
-                            ...target.slice(0, findComponentIndex),
+                        target._components = [
+                            ...target._components.slice(0, findComponentIndex),
                             value,
-                            ...target.slice(findComponentIndex + 1)
+                            ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
                     return true

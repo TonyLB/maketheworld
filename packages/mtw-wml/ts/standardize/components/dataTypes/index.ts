@@ -107,7 +107,7 @@ export type StandardFormData = {
     metaData: GenericTree<SchemaTag>;
 }
 
-export const isStandardComponent = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))
+export const isStandardComponentData = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))
 
 export const isStandardForm = (arg: any): arg is StandardFormData => {
     if (typeof arg !== 'object') {
@@ -116,6 +116,6 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
     return checkAll(
         ('key' in arg && typeof arg.key === 'string'),
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
-        ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponent))
+        ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponentData))
     )
 }

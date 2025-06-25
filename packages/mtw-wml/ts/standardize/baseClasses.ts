@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
-import { isStandardComponent, StandardComponentNonEditData } from "./components/dataTypes";
+import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardCharacterData } from "./components/dataTypes/character";
@@ -219,7 +219,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
         )
     }
     return checkAll(
-        isStandardComponent(line),
+        isStandardComponentData(line),
         checkTypes(
             line,
             {},
