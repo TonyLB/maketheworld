@@ -16,8 +16,12 @@ describe('mapReferenceToFormat', () => {
             new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }),
             new StandardReference({ tag: 'Room', key: 'Room2', universalKey: 'ROOM#002' }),
             new StandardReference({ tag: 'Feature', key: 'Feature3', universalKey: 'FEATURE#003' }),
-            new StandardReference({ tag: 'Example', key: 'Example4', universalKey: 'EXAMPLE#004' }),
-            new StandardReference({ tag: 'Example', key: 'Example5', universalKey: 'EXAMPLE#005' })
+            new StandardReference({ tag: 'Remove', match: { tag: 'Example', key: 'Example4', universalKey: 'EXAMPLE#004' } }),
+            new StandardReference({
+                tag: 'Replace',
+                match: { tag: 'Example', key: 'Example5', universalKey: 'EXAMPLE#005' },
+                payload: { tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }
+            })
         ]
         // console.log(`reference payloads: ${
         //     references.map(reference => (

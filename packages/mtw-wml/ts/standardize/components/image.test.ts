@@ -53,51 +53,6 @@ describe('StandardImage class', () => {
         )).toEqual(deIndentWML('<Image key=(test) />'))
     })
 
-    it('should merge base component with fileAssociation', () => {
-        const base = new StandardImage(deIndentWML(`<Image key=(test) />`)).withFileName('testOne.png')
-        const incoming = new StandardImage(deIndentWML(`<Image key=(test) />`))
-        const merge = base.merge(incoming)
-        if (!merge) {
-            expect(true).toBe(false)
-        }
-        else {
-            expect(merge.fileName).toEqual('testOne.png')
-            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Image key=(test) />
-            `))
-        }
-    })
-
-    it('should merge incoming component with fileAssociation', () => {
-        const base = new StandardImage(deIndentWML(`<Image key=(test) />`))
-        const incoming = new StandardImage(deIndentWML(`<Image key=(test) />`)).withFileName('testTwo.png')
-        const merge = base.merge(incoming)
-        if (!merge) {
-            expect(true).toBe(false)
-        }
-        else {
-            expect(merge.fileName).toEqual('testTwo.png')
-            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Image key=(test) />
-            `))
-        }
-    })
-
-    it('should choose incoming on conflicting fileAssociations', () => {
-        const base = new StandardImage(deIndentWML(`<Image key=(test) />`)).withFileName('testOne.png')
-        const incoming = new StandardImage(deIndentWML(`<Image key=(test) />`)).withFileName('testTwo.png')
-        const merge = base.merge(incoming)
-        if (!merge) {
-            expect(true).toBe(false)
-        }
-        else {
-            expect(merge.fileName).toEqual('testTwo.png')
-            expect(schemaToWML([merge.schema])).toEqual(deIndentWML(`
-                <Image key=(test) />
-            `))
-        }
-    })
-
     it('should no-op on diff', () => {
         const testImage = new StandardImage({
             key: 'test',

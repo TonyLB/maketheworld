@@ -46,9 +46,9 @@ Array [
   Object {
     "properties": Array [
       Object {
-        "key": "key",
+        "key": "uuid",
         "type": 0,
-        "value": "base",
+        "value": "example1",
       },
     ],
     "tag": "Example",
@@ -356,9 +356,9 @@ Array [
   Object {
     "properties": Array [
       Object {
-        "key": "key",
+        "key": "uuid",
         "type": 0,
-        "value": "base",
+        "value": "example2",
       },
     ],
     "tag": "Example",
@@ -397,9 +397,9 @@ Array [
   Object {
     "properties": Array [
       Object {
-        "key": "key",
+        "key": "uuid",
         "type": 0,
-        "value": "passageCleared",
+        "value": "example3",
       },
     ],
     "tag": "Example",
@@ -453,9 +453,9 @@ Array [
   Object {
     "properties": Array [
       Object {
-        "key": "key",
+        "key": "uuid",
         "type": 0,
-        "value": "base",
+        "value": "example4",
       },
     ],
     "tag": "Example",
@@ -539,9 +539,9 @@ Array [
   Object {
     "properties": Array [
       Object {
-        "key": "key",
+        "key": "uuid",
         "type": 0,
-        "value": "base",
+        "value": "example5",
       },
     ],
     "tag": "Example",
@@ -693,74 +693,18 @@ Array [
 `;
 
 exports[`large WML test should standardize properly 1`] = `
-Object {
-  "VORTEX": Object {
-    "examples": Array [
-      Object {
-        "fileName": undefined,
-        "key": "base",
-        "tag": "Example",
-        "universalKey": undefined,
-      },
-    ],
-    "exits": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "cave",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "VORTEX",
-          "key": "VORTEX#cave",
-          "tag": "Exit",
-          "to": "cave",
-        },
-        "wrapperTag": undefined,
-      },
-    ],
-    "fileName": undefined,
-    "key": "VORTEX",
-    "shortName": undefined,
-    "tag": "Room",
+Array [
+  Object {
+    "context": undefined,
+    "key": "dungeonImage",
+    "tag": "Image",
+    "universalKey": undefined,
   },
-  "VORTEX.base": Object {
-    "description": Array [
-      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      Object {
-        "children": Array [],
-        "data": Object {
-          "tag": "br",
-        },
-      },
-      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-    ],
-    "fileName": undefined,
-    "key": "VORTEX.base",
-    "name": Array [
-      "Cave entrance",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-  },
-  "cave": Object {
+  Object {
+    "context": undefined,
     "examples": Array [
-      Object {
-        "fileName": undefined,
-        "key": "base",
-        "tag": "Example",
-        "universalKey": undefined,
-      },
-      Object {
-        "fileName": undefined,
-        "key": "passageCleared",
-        "tag": "Example",
-        "universalKey": undefined,
-      },
+      "EXAMPLE#example2",
+      "EXAMPLE#example3",
     ],
     "exits": Array [
       Object {
@@ -800,43 +744,55 @@ Object {
         "wrapperTag": undefined,
       },
     ],
-    "fileName": undefined,
     "key": "cave",
     "shortName": undefined,
     "tag": "Room",
+    "universalKey": undefined,
   },
-  "cave.base": Object {
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "cave",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
     "description": Array [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
-    "fileName": undefined,
-    "key": "cave.base",
+    "key": undefined,
     "name": Array [
       "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
+    "universalKey": "EXAMPLE#example2",
   },
-  "cave.passageCleared": Object {
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "cave",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
     "description": Array [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
-    "fileName": undefined,
-    "key": "cave.passageCleared",
+    "key": undefined,
     "name": Array [
       "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
+    "universalKey": "EXAMPLE#example3",
   },
-  "chamber": Object {
+  Object {
+    "context": undefined,
     "examples": Array [
-      Object {
-        "fileName": undefined,
-        "key": "base",
-        "tag": "Example",
-        "universalKey": undefined,
-      },
+      "EXAMPLE#example5",
     ],
     "exits": Array [
       Object {
@@ -860,57 +816,69 @@ Object {
     ],
     "features": Array [
       Object {
-        "fileName": undefined,
-        "global": undefined,
+        "context": undefined,
         "key": "orc",
         "tag": "Feature",
         "universalKey": undefined,
       },
       Object {
-        "fileName": undefined,
-        "global": undefined,
+        "context": undefined,
         "key": "pie",
         "tag": "Feature",
         "universalKey": undefined,
       },
     ],
-    "fileName": undefined,
     "key": "chamber",
     "shortName": undefined,
     "tag": "Room",
+    "universalKey": undefined,
   },
-  "chamber.base": Object {
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "chamber",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
     "description": undefined,
-    "fileName": undefined,
-    "key": "chamber.base",
+    "key": undefined,
     "name": undefined,
     "summary": undefined,
     "tag": "Example",
+    "universalKey": "EXAMPLE#example5",
   },
-  "chamber.orc": Object {
-    "fileName": undefined,
-    "key": "chamber.orc",
-    "tag": "Feature",
-  },
-  "chamber.pie": Object {
-    "fileName": undefined,
-    "key": "chamber.pie",
-    "tag": "Feature",
-  },
-  "clearPassage": Object {
-    "fileName": undefined,
-    "key": "clearPassage",
-    "src": " passageCleared = true ",
-    "tag": "Action",
-  },
-  "curvingPassage": Object {
-    "examples": Array [
+  Object {
+    "context": Array [
       Object {
-        "fileName": undefined,
-        "key": "base",
-        "tag": "Example",
+        "context": undefined,
+        "key": "chamber",
+        "tag": "Room",
         "universalKey": undefined,
       },
+    ],
+    "key": "orc",
+    "tag": "Feature",
+    "universalKey": undefined,
+  },
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "chamber",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
+    "key": "pie",
+    "tag": "Feature",
+    "universalKey": undefined,
+  },
+  Object {
+    "context": undefined,
+    "examples": Array [
+      "EXAMPLE#example4",
     ],
     "exits": Array [
       Object {
@@ -950,30 +918,90 @@ Object {
         "wrapperTag": undefined,
       },
     ],
-    "fileName": undefined,
     "key": "curvingPassage",
     "shortName": undefined,
     "tag": "Room",
+    "universalKey": undefined,
   },
-  "curvingPassage.base": Object {
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "curvingPassage",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
     "description": Array [
       "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
-    "fileName": undefined,
-    "key": "curvingPassage.base",
+    "key": undefined,
     "name": Array [
       "Curving Passage",
     ],
     "summary": undefined,
     "tag": "Example",
+    "universalKey": "EXAMPLE#example4",
   },
-  "dungeonImage": Object {
-    "fileName": undefined,
-    "key": "dungeonImage",
-    "tag": "Image",
+  Object {
+    "context": undefined,
+    "examples": Array [
+      "EXAMPLE#example1",
+    ],
+    "exits": Array [
+      Object {
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "cave",
+            },
+          },
+        ],
+        "data": Object {
+          "from": "VORTEX",
+          "key": "VORTEX#cave",
+          "tag": "Exit",
+          "to": "cave",
+        },
+        "wrapperTag": undefined,
+      },
+    ],
+    "key": "VORTEX",
+    "shortName": undefined,
+    "tag": "Room",
+    "universalKey": undefined,
   },
-  "dungeonMap": Object {
-    "fileName": undefined,
+  Object {
+    "context": Array [
+      Object {
+        "context": undefined,
+        "key": "VORTEX",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
+    ],
+    "description": Array [
+      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
+      Object {
+        "children": Array [],
+        "data": Object {
+          "tag": "br",
+        },
+      },
+      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
+    ],
+    "key": undefined,
+    "name": Array [
+      "Cave entrance",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example1",
+  },
+  Object {
+    "context": undefined,
     "images": Array [
       Object {
         "children": Array [],
@@ -987,112 +1015,84 @@ Object {
     "name": undefined,
     "positions": Array [
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "Position",
-              "x": 0,
-              "y": 250,
-            },
-          },
-        ],
-        "data": Object {
+        "room": Object {
+          "context": undefined,
           "key": "VORTEX",
           "tag": "Room",
-          "uuid": undefined,
-          "x": undefined,
-          "y": undefined,
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
+        "x": 0,
+        "y": 250,
       },
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "Position",
-              "x": 0,
-              "y": 150,
-            },
-          },
-        ],
-        "data": Object {
+        "room": Object {
+          "context": undefined,
           "key": "cave",
           "tag": "Room",
-          "uuid": undefined,
-          "x": undefined,
-          "y": undefined,
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
+        "x": 0,
+        "y": 150,
       },
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "Position",
-              "x": -150,
-              "y": 100,
-            },
-          },
-        ],
-        "data": Object {
+        "room": Object {
+          "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
-          "uuid": undefined,
-          "x": undefined,
-          "y": undefined,
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
+        "x": -150,
+        "y": 100,
       },
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "Position",
-              "x": -150,
-              "y": 0,
-            },
-          },
-        ],
-        "data": Object {
+        "room": Object {
+          "context": undefined,
           "key": "chamber",
           "tag": "Room",
-          "uuid": undefined,
-          "x": undefined,
-          "y": undefined,
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
+        "x": -150,
+        "y": 0,
       },
     ],
     "tag": "Map",
+    "universalKey": undefined,
   },
-  "orcAppeased": Object {
+  Object {
+    "context": undefined,
     "default": "false",
-    "fileName": undefined,
     "key": "orcAppeased",
     "tag": "Variable",
+    "universalKey": undefined,
   },
-  "orcDefeated": Object {
+  Object {
+    "context": undefined,
     "default": "false",
-    "fileName": undefined,
     "key": "orcDefeated",
     "tag": "Variable",
+    "universalKey": undefined,
   },
-  "passageCleared": Object {
+  Object {
+    "context": undefined,
     "default": "false",
-    "fileName": undefined,
     "key": "passageCleared",
     "tag": "Variable",
+    "universalKey": undefined,
   },
-  "pieAccessible": Object {
+  Object {
+    "context": undefined,
     "dependencies": undefined,
-    "fileName": undefined,
     "key": "pieAccessible",
     "src": "orcAppeased || orcDefeated",
     "tag": "Computed",
+    "universalKey": undefined,
   },
-}
+  Object {
+    "context": undefined,
+    "key": "clearPassage",
+    "src": " passageCleared = true ",
+    "tag": "Action",
+    "universalKey": undefined,
+  },
+]
 `;
