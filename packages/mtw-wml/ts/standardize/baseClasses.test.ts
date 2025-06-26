@@ -1,5 +1,5 @@
 import { isStandardNDJSONLine } from './baseClasses'
-import { isStandardComponent, isStandardRoom } from './components/dataTypes'
+import { isStandardComponentData } from './components/dataTypes'
 
 describe('StandardForm baseClasses', () => {
     it('should correctly identify an NDJSON line with additional fields', () => {
@@ -18,7 +18,7 @@ describe('StandardForm baseClasses', () => {
                 children: [{ data: { tag: "String", value: "market square" }, children: [] }]
             }],
             examples: [{ key: "base", tag: "Example" }],
-            from: { action: "Content", payload: { assetId: "primitives", fromKey: "VORTEX" } }
+            from: "ASSET#primitives"
         }
         expect(isStandardNDJSONLine(line)).toBe(true)        
     })
@@ -39,9 +39,9 @@ describe('StandardForm baseClasses', () => {
                 children: [{ data: { tag: "String", value: "market square" }, children: [] }]
             }],
             examples: [{ key: "base", tag: "Example" }],
-            from: { action: "Content", payload: { assetId: "primitives", fromKey: "VORTEX" } }
+            from: "ASSET#primitives"
         }
-        expect(isStandardComponent(line)).toBe(true)
+        expect(isStandardComponentData(line)).toBe(true)
     })
 
 })
