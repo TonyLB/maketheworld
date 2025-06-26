@@ -113,8 +113,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Mismatched component types in diff')
         }
-        const { hasDiff } = options ?? {}
-        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
+        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples })
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
             return undefined
         }

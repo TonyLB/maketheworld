@@ -8,7 +8,7 @@ import { excludeUndefined } from "../../lib/lists";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { ReferenceFormat } from "./utils/references";
+import { mergeUniqueReferences, ReferenceFormat } from "./utils/references";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -531,14 +531,11 @@ export class StandardReference {
 type DiffStandardReferenceListParams = {
     base: StandardReference[];
     incoming: StandardReference[];
-    hasDiff?: (key: string) => boolean;
-    parentKey?: string;
 }
-export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }: DiffStandardReferenceListParams): StandardReference[] => {
+export const diffStandardReferenceList = ({ base, incoming }: DiffStandardReferenceListParams): StandardReference[] => {
     const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
         if (baseReference) {
             const payload = baseReference._payload
-            const lookupKey = (!parentKey) ? `${baseReference.key}` : `${parentKey}.${baseReference.key}`
             if (!incomingReference) {
                 if (payload instanceof StandardReferenceRemove) {
                     return new StandardReference(payload.match)
@@ -554,28 +551,18 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
             }
             if (payload instanceof StandardReferenceSimple) {
                 if (incomingPayload instanceof StandardReferenceSimple) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        return baseReference
-                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (payload instanceof StandardReferenceRemove) {
                 if (incomingPayload instanceof StandardReferenceRemove) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        const match = payload.match
-                        return new StandardReference(match)
-                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
             }
             if (payload instanceof StandardReferenceReplace) {
                 if (incomingPayload instanceof StandardReferenceReplace) {
-                    if (hasDiff && hasDiff(lookupKey)) {
-                        return baseReference
-                    }
                     return undefined
                 }
                 throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
@@ -585,8 +572,8 @@ export const diffStandardReferenceList = ({ base, incoming, hasDiff, parentKey }
             return incomingReference
         }
     }
-    const allKeys = unique([...base.map(reference => reference.key), ...incoming.map(reference => reference.key)])
-    return allKeys.map(key => diffReference(base.find(reference => reference.key === key), incoming.find(reference => reference.key === key))).filter(excludeUndefined)
+    const allKeys = mergeUniqueReferences([...base, ...incoming])
+    return allKeys.map(key => diffReference(base.find(reference => reference.equal(key)), incoming.find(reference => reference.equal(key)))).filter(excludeUndefined)
 }
 
 export default StandardReference

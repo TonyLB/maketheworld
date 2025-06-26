@@ -203,9 +203,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (!(incoming instanceof StandardRoom)) {
             throw new Error('Mismatched component types in diff')
         }
-        const { hasDiff } = options ?? {}
-        const featuresDiff = diffStandardReferenceList({ base: this.features, incoming: incoming.features, hasDiff, parentKey: this.key })
-        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples, hasDiff, parentKey: this.key })
+        const featuresDiff = diffStandardReferenceList({ base: this.features, incoming: incoming.features })
+        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples })
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !featuresDiff.length && !examplesDiff.length) {
             return undefined
         }
