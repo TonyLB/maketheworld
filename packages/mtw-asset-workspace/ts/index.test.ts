@@ -88,7 +88,7 @@ describe('AssetWorkspace', () => {
                     tag: 'Room',
                     key: 'testRoom',
                     universalKey: 'ROOM#001',
-                    shortName: { data: { tag: 'ShortName' }, children: [] },
+                    shortName: 'Test Room',
                     exits: []
                 }
             ]
@@ -122,7 +122,7 @@ describe('AssetWorkspace', () => {
                 player: 'Test'
             })
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', metaData: [], byId: {} })
+            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', metaData: [], components: [] })
         })
 
     })
@@ -189,7 +189,7 @@ describe('AssetWorkspace', () => {
                 key: 'Test',
                 grants: [
                     {
-                        referenceStack: [{ tag: 'Room', key: 'Room1', exits: [] }],
+                        referenceStack: [{ tag: 'Room', key: 'Room1' }],
                         grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
                     }
                 ]
@@ -295,7 +295,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.authStatus.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.auth.ndjson',
-                Body: `{"tag":"Asset","key":"test"}\n{"referenceStack":[{"key":"Room1","tag":"Room","exits":[]}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
+                Body: `{"tag":"Asset","key":"test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
             })
         })
 
@@ -310,8 +310,8 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
-                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
+                    <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -361,8 +361,8 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset key=(Test)>
-                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
+                    <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
+                    <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
