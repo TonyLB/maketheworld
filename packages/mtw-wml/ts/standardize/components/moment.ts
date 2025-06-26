@@ -122,8 +122,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Mismatched component types in diff')
         }
-        const { hasDiff } = options ?? {}
-        const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages, hasDiff, parentKey: this.key })
+        const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages })
         if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
             return undefined
         }

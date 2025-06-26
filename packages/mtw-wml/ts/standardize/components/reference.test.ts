@@ -195,10 +195,4 @@ describe('diffStandardReferenceList', () => {
         expect(result).toEqual([])
     })
 
-    it('should retain content references with nested changes', () => {
-        const base = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
-        const incoming = [new StandardReference({ key: 'test1', tag: 'Variable' }), new StandardReference({ key: 'test2', tag: 'Variable' })]
-        const result = diffStandardReferenceList({ base, incoming, hasDiff: (key) => (key === 'test1') })
-        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ key: 'test1', tag: 'Variable' }])
-    })
 })

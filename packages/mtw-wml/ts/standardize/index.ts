@@ -847,9 +847,9 @@ export class StandardForm {
 
         const diffedValue = this._clone()
         diffedValue._components = zipperedComponents
-            .reduce<StandardComponent[]>((previous, { reference, previous: previousComponent, incoming: incomingComponent }) => {
+            .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
-                    const diffedComponent = previousComponent.diff(incomingComponent, { hasDiff: () => (false) })
+                    const diffedComponent = previousComponent.diff(incomingComponent, {})
                     if (diffedComponent) {
                         return [...previous, diffedComponent]
                     } else {
