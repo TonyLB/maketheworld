@@ -14,14 +14,8 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         const assetKey = address.zone === 'Draft' ? `${standard.key}[${address.player}]` : standard.key
         const graphUpdate = new GraphUpdate({ internalCache: graphCache, dbHandler: graphStorageDB })
         const allImportAssetIds = unique(
-            Object.values(standard.byId)
-                .map((component) => {
-                    const from = component.import
-                    if (from) {
-                        return from.assetId
-                    }
-                    return undefined
-                })
+            standard._components
+                .map((component) => (component._from))
                 .filter(excludeUndefined)
         )
         graphUpdate.setEdges([{

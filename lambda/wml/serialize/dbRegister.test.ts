@@ -71,10 +71,7 @@ describe('dbRegister', () => {
             namespaceIdToDB: [],
             standard: new StandardForm(`
                 <Asset key=(test)>
-                    <Import from=(primitives)>
-                        <Room key=(VORTEX) />
-                    </Import>
-                    <Room key=(VORTEX)>
+                    <Room key=(VORTEX) from=(ASSET#primitives)>
                         <ShortName>Welcome</ShortName>
                     </Room>
                 </Asset>
