@@ -795,6 +795,17 @@ describe('schemaToWML', () => {
         `))
     })
 
+    it('should correctly parse exits with universalKey targets', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(VORTEX)><Exit to=(ROOM#target)>Exit to nowhere</Exit></Room>
+                <Room uuid=(target)><Name>Nowhere</Name></Room>
+            </Asset>
+        `)
+        const parsed = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(parsed)).toEqual(testWML)
+    })
+
     it('should correctly round-trip variables and actions', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>

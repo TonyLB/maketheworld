@@ -100,6 +100,21 @@ describe('StandardRoom class', () => {
         `))
     })
 
+    it('should correctly parse exits with universalKey targets', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Exit to=(ROOM#testRoomTwo)>exit</Exit>
+            </Room>
+        `)
+        expect(test.exits).toEqual([
+            {
+                data: { tag: 'Exit', from: 'testRoomOne', to: 'ROOM#testRoomTwo', key: 'testRoomOne#ROOM#testRoomTwo' },
+                children: [{ data: { tag: 'String', value: 'exit' }, children: [] }]
+            }
+        ])
+        expect(test.referencedKeys().map(({ key, ...rest }) => ({ key: key.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
+    })
+
     it('should map contents on exits correctly', () => {
         const test = new StandardRoom(`
             <Room key=(testRoomOne)>

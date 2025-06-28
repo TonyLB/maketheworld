@@ -13,7 +13,7 @@ import { stripUIFields } from "../render/utils"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
@@ -134,7 +134,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...dependencyReferenceKeys(this.exits.filter(excludeUndefined))
                 .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey({ key, tag: 'Room' }) })),
             ...exitReferenceKeys(this.exits)
-                .map((key) => ({ referenceType: 'Exit' as const, key: new StandardKey({ key, tag: 'Room' }) })),
+                .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key, tag: 'Room' }) })),
             ...this.features.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
             ...this.examples.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
