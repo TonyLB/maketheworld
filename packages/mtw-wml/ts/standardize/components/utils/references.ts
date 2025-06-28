@@ -144,6 +144,16 @@ export const assureItemInReferenceList = (previous: StandardReference[], item: S
 //
 export type ReferenceFormat = 'key' | 'universal' | 'both';
 
+export const mapKeyToFormat = (format: ReferenceFormat) =>
+    (key: StandardKey): StandardKey => {
+        return new StandardKey({
+                tag: key.tag,
+                key: ['key', 'both'].includes(format) ? key.key : undefined,
+                universalKey: ['universal', 'both'].includes(format) ? key.universalKey : undefined,
+                context: key.context?.map(mapKeyToFormat(format))
+            })
+    }
+
 export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceFormat) =>
     (reference: StandardReference): StandardReference => {
         const mapKey = (reference: StandardReferenceData): StandardKey | undefined => {

@@ -3,6 +3,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
+import { mapKeyToFormat, mapReferenceToFormat } from "@tonylb/mtw-wml/ts/standardize/components/utils/references"
 
 type RecursiveFetchImportArgument = {
     assetId: AssetUUID;
@@ -12,7 +13,7 @@ type RecursiveFetchImportArgument = {
     removeLocalKeys?: boolean;
 }
 
-export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stubKeys }: RecursiveFetchImportArgument): Promise<StandardForm> => {
+export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stubKeys, removeLocalKeys }: RecursiveFetchImportArgument): Promise<StandardForm> => {
     const standard = await jsonHelper.get(assetId)
 
     const subsetStandard = standard.subset([
@@ -29,12 +30,21 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     ])
 
     //
-    // TODO: If removeLocalKeys is true then remove all non-universal keys from the subsetStandard
+    // If removeLocalKeys is true then remove all non-universal keys from the subsetStandard
     // in order to create newStandard. Beyond the first level of recursion, we are not interested
     // in the local keys, as they are not relevant to the import process.
     //
-
     const newStandard = subsetStandard
+    if (removeLocalKeys) {
+        const allKeys = newStandard._components
+            .map((component) => (component._key))
+        newStandard._components = newStandard._components
+            .map((component) => {
+                const returnValue = component.clone()
+                returnValue._key = mapKeyToFormat('universal')(returnValue._key)
+                return returnValue.remapReferences({ mappings: allKeys, mapTo: 'universal' })
+            })
+    }
     const allStubKeys = standard._components
         .filter((component) => (!fullKeys.find((checkKey) => (new StandardKey(checkKey).equals(component._key)))))
         .map((component) => (component.universalKey))
@@ -75,17 +85,19 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
         ))
 
     //
-    // TODO: Merge all localized imports forward to the current level
+    // Merge all localized imports forward to the current level
     //
+    newStandard._components.forEach((component) => { component._from = undefined })
     const merged = recursiveImports.reduce<StandardForm>(
         (previous, incoming) => {
+            incoming._components.forEach((component) => { component._from = undefined })
             return incoming.merge(previous)
         },
         newStandard
     )
 
     newStandard._components = merged._components
-    return newStandard
+    return newStandard.finalize()
 
 }
 

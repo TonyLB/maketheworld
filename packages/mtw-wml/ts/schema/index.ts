@@ -183,6 +183,7 @@ class SchemaAggregator {
             validateItem: (closingItem) => {
                 const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, this.contextStack)))
                 if (illegalTag) {
+                    console.log(`Illegal item: ${JSON.stringify(illegalTag, null, 4)}`)
                     throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.data.tag}' item contents`)
                 }
                 if (converter.validateContents) {
