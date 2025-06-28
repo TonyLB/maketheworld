@@ -29,13 +29,13 @@ describe('recursiveFetchImports', () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`
                 <Asset key=(testFinal)>
-                    <Room key=(testNonImport)>
-                        <Example key=(base)>
+                    <Room uuid=(testNonImport)>
+                        <Example uuid=(base)>
                             <Description>DescriptionOne</Description>
                         </Example>
                         <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
-                    <Room key=(testNonImportStub)>
+                    <Room uuid=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
                     </Room>
                 </Asset>
@@ -50,36 +50,32 @@ describe('recursiveFetchImports', () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`
                 <Asset key=(testFinal)>
-                    <Room key=(testNonImport)>
-                        <Example key=(base)>
+                    <Room uuid=(testNonImport)>
+                        <Example uuid=(testNonImportBase)>
                             <Description>DescriptionOne</Description>
                         </Example>
                         <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
-                    <Room key=(testNonImportStub)>
+                    <Room uuid=(testNonImportStub) key=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
                     </Room>
-                    <Room key=(testImportOne)>
-                        <Example key=(base)>
+                    <Room uuid=(testImportOne) from=(ASSET#testImportAssetOne)>
+                        <Example uuid=(testImportOneBase)>
                             <Description>Two</Description>
                         </Example>
                         <Exit to=(testImportStubOne)>test exit one</Exit>
                     </Room>
-                    <Room key=(testImportStubOne) />
-                    <Import from=(testImportAssetOne)>
-                        <Room key=(testImportOne) />
-                        <Room key=(testImportStubOne) />
-                    </Import>
+                    <Room uuid=(testImportStubOne) key=(testImportStubOne) from=(ASSET#testImportAssetOne) />
                 </Asset>
             `)
         ])
-        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testNonImport'], stubKeys: []  })).toEqual(deIndentWML(`
+        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testNonImport'], stubKeys: []  })).toEqual(deIndentWML(`
             <Asset key=(testFinal)>
-                <Room key=(testNonImport)>
-                    <Example key=(base)><Description>DescriptionOne</Description></Example>
-                    <Exit to=(testNonImportStub)>test exit</Exit>
+                <Room uuid=(testNonImport)>
+                    <Example uuid=(testNoneImportBase)><Description>DescriptionOne</Description></Example>
+                    <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
                 </Room>
-                <Room key=(testNonImportStub)><ShortName>StubOne</ShortName></Room>
+                <Room uuid=(testNonImportStub)><ShortName>StubOne</ShortName></Room>
             </Asset>
         `))
     })
@@ -126,7 +122,7 @@ describe('recursiveFetchImports', () => {
                     </Room>
                 </Asset>
             `)])
-        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testImportOne'], stubKeys: [] }))
+        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testImportOne'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(testImportOne)>
@@ -162,7 +158,7 @@ describe('recursiveFetchImports', () => {
                 </Room>
             </Asset>`)
         ])
-        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testNonImport'], stubKeys: [] }))
+        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testNonImport'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(testImport)><ShortName>StubFoo</ShortName></Room>
@@ -208,7 +204,7 @@ describe('recursiveFetchImports', () => {
                 </Asset>
             `)
         ])
-        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testImport'], stubKeys: [] }))
+        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testImport'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(Stub1)><ShortName>Asset Two</ShortName></Room>
@@ -243,7 +239,7 @@ describe('recursiveFetchImports', () => {
                 </Room>
             </Asset>`)
         ])
-        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['testRoomWithFeatures'], stubKeys: [] }))
+        expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testRoomWithFeatures'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
                     <Room key=(testRoomWithFeatures)>
