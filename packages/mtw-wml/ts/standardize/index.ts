@@ -643,14 +643,12 @@ export class StandardForm {
                 }
                 else {
                     if (treeNodeTypeguard(isSchemaExit)(node)) {
-                        const matchFrom = findMatchingRename(node.data.from)
                         const matchTo = findMatchingRename(node.data.to)
-                        if (matchFrom || matchTo) {
+                        if (matchTo) {
                             return {
                                 data: {
                                     ...node.data,
-                                    to: matchTo ? matchTo.toKey : node.data.to,
-                                    from: matchFrom ? matchFrom.toKey : node.data.from
+                                    to: matchTo.toKey
                                 },
                                 children: renameContentsCallback(node.children)
                             }

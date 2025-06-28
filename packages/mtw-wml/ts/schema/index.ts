@@ -308,9 +308,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
         case 'Exit':
             return {
                 tag,
-                key: '',
                 to: '',
-                from: '',
             }
         default:
             return {

@@ -101,7 +101,7 @@ describe('StandardForm', () => {
                     payload: {
                         tag: 'Room',
                         key: 'testRoom',
-                        exits: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testRoomTwo', key: 'testRoom#testRoomTwo' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }],
+                        exits: [{ data: { tag: 'Exit', to: 'testRoomTwo' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }],
                     }
                 },
                 {
@@ -154,7 +154,7 @@ describe('StandardForm', () => {
                     },
                     {
                         data: { tag: 'Remove' },
-                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                        children: [{ data: { tag: 'Exit', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }]
                 },
                 { data: { tag: 'Remove' }, children: [{ data: { tag: 'Room', key: 'testRoomRemove', uuid: 'ROOM#testRoomRemove' }, children: [] }] },
@@ -180,7 +180,7 @@ describe('StandardForm', () => {
                     examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
                         data: { tag: 'Remove' },
-                        children: [{ data: { tag: 'Exit', from: 'testRoom', to: 'testDestination', key: 'testRoom#testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                        children: [{ data: { tag: 'Exit', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }]
                 },
                 {

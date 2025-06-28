@@ -718,8 +718,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "cave",
-          "key": "cave#curvingPassage",
           "tag": "Exit",
           "to": "curvingPassage",
         },
@@ -736,8 +734,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "cave",
-          "key": "cave#VORTEX",
           "tag": "Exit",
           "to": "VORTEX",
         },
@@ -806,8 +802,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "chamber",
-          "key": "chamber#curvingPassage",
           "tag": "Exit",
           "to": "curvingPassage",
         },
@@ -892,8 +886,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#cave",
           "tag": "Exit",
           "to": "cave",
         },
@@ -910,8 +902,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#chamber",
           "tag": "Exit",
           "to": "chamber",
         },
@@ -960,8 +950,6 @@ Array [
           },
         ],
         "data": Object {
-          "from": "VORTEX",
-          "key": "VORTEX#cave",
           "tag": "Exit",
           "to": "cave",
         },

@@ -7,9 +7,7 @@ export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
 export type SchemaExitTag = {
     tag: 'Exit';
-    key: string;
     to: string;
-    from: string;
 } & SchemaBase
 
 export type SchemaRoomTag = {
@@ -62,7 +60,7 @@ export const isSchemaShortName = typeGuard
 
 export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
     checkTypes({
-        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, to: CheckTypes.STRING, from: CheckTypes.STRING },
+        required: { tag: CheckTypes.STRING, to: CheckTypes.STRING },
         values: { tag: 'Exit' }
     })(schema)
 )

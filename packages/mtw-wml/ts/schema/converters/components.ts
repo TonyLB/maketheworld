@@ -56,13 +56,9 @@ const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTa
 export const componentConverters: Record<string, ConverterMapEntry> = {
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
-            const roomContextList = contextStack.map(({ data }) => (data)).filter(isSchemaRoom)
-            const roomContext = roomContextList.length > 0 ? roomContextList.slice(-1)[0] : undefined
             const { to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             return {
                 tag: 'Exit',
-                key: `${roomContext?.key ?? roomContext?.uuid ?? ''}#${to}`,
-                from: roomContext?.key ?? roomContext?.uuid ?? '',
                 to: to ?? '',
                 ...rest
             }
@@ -170,8 +166,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             // Do not render to/from properties when they can be derived from the room context
             //
             properties: [
-                ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
-                ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
+                { key: 'to', type: 'key' as 'key', value: tag.to },
             ],
             node: { data: tag, children }
         })

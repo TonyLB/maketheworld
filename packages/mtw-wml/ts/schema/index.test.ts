@@ -152,12 +152,7 @@ describe('schemaFromParse', () => {
                                 key: "ABC"
                             },
                             children: [{
-                                data: {
-                                    tag: "Exit",
-                                    key: "ABC#DEF",
-                                    from: "ABC",
-                                    to: "DEF"
-                                },
+                                data: { tag: "Exit", to: "DEF" },
                                 children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
                             }],
                         }],
@@ -174,12 +169,7 @@ describe('schemaFromParse', () => {
                         children: [{ data: { tag: 'String', value: 'Welcome' }, children: [] }]
                     },
                     {
-                        data: {
-                            tag: "Exit",
-                            key: "DEF#DEF",
-                            from: "DEF",
-                            to: "DEF"
-                        },
+                        data: { tag: "Exit", to: "DEF" },
                         children: [{ data: { tag: "String", value: "vortex" }, children: [] }],
                     }],
                 },
@@ -521,7 +511,7 @@ describe('schemaFromParse', () => {
                     data: { tag: 'Room', key: 'room1' },
                     children: [{
                         data: { tag: 'Remove' },
-                        children: [{ data: { tag: 'Exit', from: 'room1', key: 'room1#room2', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                        children: [{ data: { tag: 'Exit', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                     }]
                 }
             ]
@@ -546,7 +536,7 @@ describe('schemaFromParse', () => {
                 data: { tag: 'Remove' },
                 children: [{
                     data: { tag: 'Room', key: 'room1' },
-                    children: [{ data: { tag: 'Exit', from: 'room1', key: 'room1#room2', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                    children: [{ data: { tag: 'Exit', to: 'room2' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
                 }]
             }]
         }])

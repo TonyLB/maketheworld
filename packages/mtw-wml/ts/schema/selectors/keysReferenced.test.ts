@@ -19,7 +19,7 @@ describe('keyReferenced selector', () => {
                 <Feature key=(feature1) />
             </Asset>
         `)
-        expect(selectKeysReferenced(selectItemsByKey('room1')(testOne.schema))).toEqual(['feature1', 'room2', 'room1'])
+        expect(selectKeysReferenced(selectItemsByKey('room1')(testOne.schema))).toEqual(['feature1', 'room2'])
     })
 
     it('should select keys referenced in a map', () => {
