@@ -61,8 +61,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             const { to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             return {
                 tag: 'Exit',
-                key: `${roomContext?.key}#${to}`,
-                from: roomContext?.key ?? '',
+                key: `${roomContext?.key ?? roomContext?.uuid ?? ''}#${to}`,
+                from: roomContext?.key ?? roomContext?.uuid ?? '',
                 to: to ?? '',
                 ...rest
             }
