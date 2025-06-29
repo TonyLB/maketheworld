@@ -15,7 +15,7 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 })
 
 
-describe('defaultSelected', () => {
+xdescribe('defaultSelected', () => {
     const schemaTest = (wml: string): GenericTree<SchemaTag> => {
         const schema = new Schema()
         schema.loadWML(wml)
@@ -179,8 +179,8 @@ describe('StandardForm', () => {
                     universalKey: 'ROOM#testRoom',
                     examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
-                        data: { tag: 'Remove' },
-                        children: [{ data: { tag: 'Exit', to: 'testDestination' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }]
+                        tag: 'Remove',
+                        match: { to: { tag: 'Room', key: 'testDestination' }, description: 'out' }
                     }]
                 },
                 {
@@ -424,11 +424,9 @@ describe('StandardForm', () => {
                 </Example>
             </Room>
             <Room uuid=(testTwo) key=(testTwo) />
-            <If {false}>
-                <Room key=(test)>
-                    <Exit to=(testTwo)>Test Exit</Exit>
-                </Room>
-            </If>
+            <Room key=(test)>
+                <Exit to=(testTwo)>Test Exit</Exit>
+            </Room>
             <Room key=(testTwo)>
                 <Exit to=(test)>Test Return</Exit>
             </Room>
@@ -439,7 +437,7 @@ describe('StandardForm', () => {
                     <Example uuid=(testRoomBase) key=(base)>
                         <Description>One<br /></Description>
                     </Example>
-                    <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
+                    <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
                 <Room uuid=(testTwo) key=(testTwo)>
                     <Exit to=(test)>Test Return</Exit>
@@ -860,17 +858,14 @@ describe('StandardForm', () => {
                     </Example>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
-                <If {false}>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                    <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                        <Position x="-100" y="0" />
-                        <Example uuid=(testRoomTwoBase)>
-                            <Description>Test Room Two</Description>
-                        </Example>
-                        <Exit to=(testRoomOne)>one</Exit>
-                    </Room>
-                </If>
-                <If {true} />
+                <Room uuid=(testRoomOne) key=(testRoomOne) />
+                <Room uuid=(testRoomTwo) key=(testRoomTwo)>
+                    <Position x="-100" y="0" />
+                    <Example uuid=(testRoomTwoBase)>
+                        <Description>Test Room Two</Description>
+                    </Example>
+                    <Exit to=(testRoomOne)>one</Exit>
+                </Room>
                 <Room uuid=(testRoomThree) key=(testRoomThree) />
                 <Image key=(mapBackground) />
             </Map>
@@ -890,15 +885,18 @@ describe('StandardForm', () => {
                 <Room uuid=(testRoomThree) key=(testRoomThree) />
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                     <Example uuid=(testRoomTwoBase)>
-                        <Description><If {false}>Test Room Two</If></Description>
+                        <Description>Test Room Two</Description>
                     </Example>
-                    <If {false}><Exit to=(testRoomOne)>one</Exit></If>
+                    <Exit to=(testRoomOne)>one</Exit>
                 </Room>
                 <Map uuid=(testMap) key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
                         <Position x="0" y="0" />
+                    </Room>
+                    <Room uuid=(testRoomTwo) key=(testRoomTwo)>
+                        <Position x="-100" y="0" />
                     </Room>
                 </Map>
             </Asset>

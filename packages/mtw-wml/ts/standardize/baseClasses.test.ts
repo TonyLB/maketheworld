@@ -9,13 +9,11 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                data: {
-                    tag: "Exit",
-                    key: "VORTEX#marketSquare",
-                    from: "VORTEX",
-                    to: "marketSquare"
+                to: {
+                    tag: 'Room',
+                    key: "marketSquare"
                 },
-                children: [{ data: { tag: "String", value: "market square" }, children: [] }]
+                description: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],
             from: "ASSET#primitives"
@@ -30,13 +28,11 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                data: {
-                    tag: "Exit",
-                    key: "VORTEX#marketSquare",
-                    from: "VORTEX",
-                    to: "marketSquare"
+                to: {
+                    tag: "Room",
+                    key: "marketSquare"
                 },
-                children: [{ data: { tag: "String", value: "market square" }, children: [] }]
+                description: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],
             from: "ASSET#primitives"

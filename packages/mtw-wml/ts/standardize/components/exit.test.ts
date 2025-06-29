@@ -40,7 +40,7 @@ describe('StandardExit', () => {
         const testExitData = {
             tag: 'Remove',
             match: {
-                to: { key: 'test', tag: 'Exit' },
+                to: { key: 'test', tag: 'Room' },
                 description: 'Test Exit'
             }
         } as const

@@ -4,7 +4,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { isStandardPositionData, StandardPositionData } from "./dataTypes/position";
+import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
 import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 
@@ -50,7 +50,7 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
 }
 
 const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): StandardPositionSimpleBase | undefined => {
-    if (isStandardPositionData(props)) {
+    if (isSimplePositionData(props)) {
         return new StandardPositionSimpleBase(props)
     }
     if (props.length === 1) {
@@ -108,8 +108,8 @@ const standardPositionDiff = (base: StandardPositionData, incoming: StandardPosi
     }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardReferenceData, merge, diff } = standardEditableFactory({
-    typeguard: isStandardPositionData,
+export const { constructorDelta: factory, typeguard: isStandardPositionData, merge, diff } = standardEditableFactory({
+    typeguard: isSimplePositionData,
     payloadFactory: payloadFactory,
     payload: StandardPositionSimpleBase,
     add: standardPositionAdd,

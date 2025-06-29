@@ -5,15 +5,19 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { StandardReferenceData } from "../components/dataTypes/reference"
-import { StandardKey } from "../components/reference"
+import { isStandardReferenceData, StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardLiteral } from "../literal"
+import { isStandardLiteralData, StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
 import { excludeUndefined, zipperList } from "../../lib/lists"
 
 export type StandardExitData = {
     to: StandardReferenceData;
     description?: StandardEditableData<string>;
+}
+
+const isSimpleExitData = (value: any): value is StandardExitData => {
+    return (typeof value === 'object' && value !== null && 'to' in value && isStandardReferenceData(value.to) && (!value.description || isStandardLiteralData(value.description)))
 }
 
 //
@@ -41,7 +45,7 @@ export class StandardExitBase implements StandardEditablePayload<StandardExitDat
 }
 
 const payloadFactory = (props: GenericTree<SchemaTag> | StandardExitData): StandardExitBase | undefined => {
-    if (isStandardExitData(props)) {
+    if (isSimpleExitData(props)) {
         return new StandardExitBase(props)
     }
     if (props.length === 1 && isSchemaExit(props[0].data)) {
@@ -65,7 +69,7 @@ const standardExitAdd = (base: StandardExitData, incoming: StandardExitData): St
 }
 
 const standardExitSubtract = (base: StandardExitData, incoming: StandardExitData): { add?: StandardExitData, remove?: StandardExitData } => {
-    if (base.to !== incoming.to) {
+    if (!deepEqual(base.to, incoming.to)) {
         throw new MergeConflictError('Cannot subtract exit with different target')
     }
     if (deepEqual(base.description ?? '', incoming.description ?? '')) {
@@ -75,7 +79,7 @@ const standardExitSubtract = (base: StandardExitData, incoming: StandardExitData
 }
 
 const standardExitDiff = (base: StandardExitData, incoming: StandardExitData): { add?: StandardExitData, remove?: StandardExitData } => {
-    if (base.to !== incoming.to) {
+    if (!deepEqual(base.to, incoming.to)) {
         throw new MergeConflictError('Cannot subtract exit with different target')
     }
     if (deepEqual(base.description ?? '', incoming.description ?? '')) {
@@ -85,7 +89,7 @@ const standardExitDiff = (base: StandardExitData, incoming: StandardExitData): {
 }
 
 export const { constructorDelta: factory, typeguard: isStandardExitData, merge, diff } = standardEditableFactory({
-    typeguard: (value: any): value is StandardExitData => (typeof value === 'object' && value !== null && 'to' in value),
+    typeguard: isSimpleExitData,
     payloadFactory: payloadFactory,
     payload: StandardExitBase,
     add: standardExitAdd,
