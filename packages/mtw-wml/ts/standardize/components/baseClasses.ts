@@ -32,6 +32,7 @@ export interface StandardComponent {
     key?: string;
     universalKey?: ComponentUUID;
     clone(): StandardComponent;
+    withMapping(mapping: StandardKey[]): StandardComponent;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
@@ -44,7 +45,7 @@ export interface StandardComponent {
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     subset(options: StandardFormSubsetRequest): StandardComponent;
     referencedKeys(): StandardComponentReferenceKey[];
-    remapReferences(props: { mappings: StandardKey[], mapTo: ReferenceFormat }): StandardComponent;
+    remapReferences(mapTo: ReferenceFormat): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     referenceData: StandardReferenceData;
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;

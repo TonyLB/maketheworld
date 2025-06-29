@@ -183,19 +183,17 @@ describe('recursiveFetchImports', () => {
     it('should properly stub out features in room description', async () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`<Asset key=(testFinal)>
-                <Import from=(testImport)>
-                    <Feature key=(testFeature) as=(featureImport) />
-                    <Room key=(testRoomWithFeatures) />
-                </Import>
+                <Feature uuid=(testFeature) key=(testFeature) from=(ASSET#testImport) />
+                <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures) from=(ASSET#testImport) />
             </Asset>`),
             new StandardForm(`<Asset key=(testImport)>
-                <Feature key=(testFeature)>
-                    <Example key=(base)>
+                <Feature uuid=(testFeature) key=(testFeature)>
+                    <Example uuid=(testFeatureBase)>
                         <Description>Feature test</Description>
                     </Example>
                 </Feature>
-                <Room key=(testRoomWithFeatures)>
-                    <Example key=(base)>
+                <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
+                    <Example uuid=(testRoomBase)>
                         <Description><Link to=(testFeature)>Test</Link></Description>
                     </Example>
                 </Room>
@@ -204,12 +202,12 @@ describe('recursiveFetchImports', () => {
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testRoomWithFeatures'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset key=(testFinal)>
+                    <Feature key=(featureImport) />
                     <Room key=(testRoomWithFeatures)>
                         <Example key=(base)>
                             <Description><Link to=(featureImport)>Test</Link></Description>
                         </Example>
                     </Room>
-                    <Feature key=(featureImport) />
                 </Asset>
             `))
     })

@@ -92,6 +92,10 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
         return new StandardAction(super.withFileName(key) as StandardAction)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardAction(super.withMapping(mapping) as StandardAction)
+    }
+
 }
 
 export default StandardAction

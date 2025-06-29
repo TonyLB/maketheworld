@@ -192,6 +192,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withFileName(key) as StandardExample)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardExample(super.withMapping(mapping) as StandardExample)
+    }
+
 }
 
 export default StandardExample

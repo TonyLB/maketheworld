@@ -156,15 +156,11 @@ describe('StandardRoom class', () => {
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `)
-        const remapped = test.remapReferences({
-            mappings: [
-                new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
-                new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base', context: ['ROOM#Room1'] }),
-                new StandardKey({ universalKey: 'ROOM#testRoomTwo', tag: 'Room', key: 'testRoomTwo' })
-            ],
-            mapTo: 'universal'
-        })
-        console.log(`remapped: ${JSON.stringify(remapped.toJSON(), null, 4)}`)
+        const remapped = test.withMapping([
+            new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
+            new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base', context: ['ROOM#Room1'] }),
+            new StandardKey({ universalKey: 'ROOM#testRoomTwo', tag: 'Room', key: 'testRoomTwo' })
+        ]).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
                 <Example uuid=(Example1) />
@@ -180,14 +176,13 @@ describe('StandardRoom class', () => {
                 <Feature uuid=(Feature1) />
             </Room>
         `)
-        expect(schemaToWML([test.remapReferences({
-            mappings: [
+        expect(schemaToWML([
+            test.withMapping([
                 new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
                 new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
                 new StandardKey({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
-            ],
-            mapTo: 'key'
-        }).schema])).toEqual(deIndentWML(`
+            ]).remapReferences('key').schema
+        ])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature key=(featureOne) />
                 <Example key=(base) />

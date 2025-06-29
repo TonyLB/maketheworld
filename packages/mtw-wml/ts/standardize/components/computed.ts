@@ -94,6 +94,10 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         return new StandardComputed(super.withFileName(key) as StandardComputed)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardComputed(super.withMapping(mapping) as StandardComputed)
+    }
+
 }
 
 export default StandardComputed

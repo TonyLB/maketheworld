@@ -788,7 +788,7 @@ export class StandardForm {
             }, returnValue)
         const mappings: StandardKey[] = hierarchyAssuredStandardForm._components
             .map((component) => (component._key))
-        returnValue._components = hierarchyAssuredStandardForm._components.map((component) => (component.remapReferences({ mappings, mapTo: 'universal' })))
+        returnValue._components = hierarchyAssuredStandardForm._components.map((component) => (component.withMapping(mappings).remapReferences('universal')))
         return returnValue
     }
 
@@ -833,8 +833,8 @@ export class StandardForm {
         const zipperedComponents = allKeys
             .map((reference) => ({
                 reference,
-                previous: this._lookup(reference)?.remapReferences({ mappings: mergedForKeys, mapTo: 'both' }),
-                incoming: incoming._lookup(reference)?.remapReferences({ mappings: mergedForKeys, mapTo: 'both' })
+                previous: this._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both'),
+                incoming: incoming._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both')
             }))
             .filter(({ previous, incoming }) => (previous || incoming))
 

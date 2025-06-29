@@ -52,6 +52,7 @@ export interface ComponentConstructorMethods<D> {
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
         _key: StandardKey;
+        _mapping?: StandardKey[];
         _payload: InstanceType<typeof Base>;
         _from?: AssetUUID;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
@@ -60,6 +61,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._key = new StandardKey(props._key)
                 this._payload = props._payload
                 this._from = props._from
+                this._mapping = props._mapping
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -90,6 +92,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             this._payload.fromJSON(props)
         }
 
+        withMapping(mapping: StandardKey[]): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            returnValue._mapping = mapping
+            return returnValue as StandardComponent
+        }
         get key(): string | undefined { return this._key.key }
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
         get fileName(): string | undefined { return undefined }
@@ -115,11 +122,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardComponent {
+        remapReferences(mapTo): this {
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
-                returnValue._payload = returnValue._payload.remapReferences?.(props) ?? returnValue._payload
-                return returnValue
+                returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload
+                return returnValue as this
             }
             return this
         }

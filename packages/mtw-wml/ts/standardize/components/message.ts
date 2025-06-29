@@ -145,6 +145,10 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withFileName(key) as StandardMessage)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardMessage(super.withMapping(mapping) as StandardMessage)
+    }
+
 }
 
 export default StandardMessage

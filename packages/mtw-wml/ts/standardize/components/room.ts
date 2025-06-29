@@ -228,6 +228,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.withFileName(key) as StandardRoom)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardRoom(super.withMapping(mapping) as StandardRoom)
+    }
+
 }
 
 export default StandardRoom
