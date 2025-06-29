@@ -1,6 +1,7 @@
 import { deIndentWML } from '../../schema/utils'
 import { Schema, schemaToWML } from '../../schema'
 import { StandardExit, StandardExitData, StandardExitRemove } from './exit'
+import { StandardKey } from './reference'
 
 describe('StandardExit', () => {
     it('should construct StandardExit from WML', () => {
@@ -46,6 +47,12 @@ describe('StandardExit', () => {
         } as const
         const testExitRemove = new StandardExit(testExitData)
         expect(testExitRemove._payload).toBeInstanceOf(StandardExitRemove)
+    })
+
+    it('should correctly remap references', () => {
+        const testExit = new StandardExit(`<Exit to=(test)>Test Exit</Exit>`)
+        const remappedExit = testExit.remapReferences({ mapTo: 'universal', mappings: [new StandardKey({ tag: 'Room', key: 'test', universalKey: 'ROOM#universalTest' })] })
+        expect(schemaToWML(remappedExit.schema)).toEqual(`<Exit to=(ROOM#universalTest)>Test Exit</Exit>`)
     })
 })
 

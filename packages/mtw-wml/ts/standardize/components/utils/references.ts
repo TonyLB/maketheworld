@@ -175,6 +175,7 @@ export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceF
                 tag: reference.tag,
                 key: ['key', 'both'].includes(format) ? newKey.key : undefined,
                 universalKey: ['universal', 'both'].includes(format) ? newKey.universalKey : undefined,
+                context: newKey.context?.map(mapKeyToFormat(format))
             })
         }
 

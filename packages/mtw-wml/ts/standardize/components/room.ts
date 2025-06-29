@@ -1,6 +1,4 @@
-import { defaultSelected } from ".."
 import { excludeUndefined } from "../../lib/lists"
-import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -8,8 +6,7 @@ import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
-import { assureItemInReferenceList, childReferenceFactory, dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
-import { stripUIFields } from "../render/utils"
+import { assureItemInReferenceList, childReferenceFactory, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -17,7 +14,6 @@ import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-bas
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
-import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
 
 import { renderReference } from "./utils/schema"
@@ -161,6 +157,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._examples = returnValue._examples.map(mapReference)
         returnValue._features = returnValue._features.map(mapReference)
+        returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
         return returnValue as this
     }
 

@@ -152,26 +152,23 @@ describe('StandardRoom class', () => {
     it('should map references to universal keys correctly', () => {
         const test = new StandardRoom(`
             <Room uuid=(Room1) key=(testRoomOne)>
-                <Example uuid=(Example1) key=(base)>
-                    <Name>Lobby</Name>
-                    <Summary>A lobby</Summary>
-                    <Description>A plain lobby.</Description>
-                </Example>
+                <Example uuid=(Example1) key=(base) />
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `)
-        expect(schemaToWML([
-            test.remapReferences({
-                mappings: [
-                    new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
-                    new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' })
-                ],
-                mapTo: 'universal'
-            }).schema
-        ])).toEqual(deIndentWML(`
+        const remapped = test.remapReferences({
+            mappings: [
+                new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
+                new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base', context: ['ROOM#Room1'] }),
+                new StandardKey({ universalKey: 'ROOM#testRoomTwo', tag: 'Room', key: 'testRoomTwo' })
+            ],
+            mapTo: 'universal'
+        })
+        console.log(`remapped: ${JSON.stringify(remapped.toJSON(), null, 4)}`)
+        expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
                 <Example uuid=(Example1) />
-                <Exit to=(testRoomTwo)>exit</Exit>
+                <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
         `))
     })

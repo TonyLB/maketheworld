@@ -10,6 +10,7 @@ import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isStandardLiteralData, StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
 import { excludeUndefined, zipperList } from "../../lib/lists"
+import { ReferenceFormat } from "./utils/references"
 
 export type StandardExitData = {
     to: StandardReferenceData;
@@ -42,6 +43,13 @@ export class StandardExitBase implements StandardEditablePayload<StandardExitDat
         to: this.to.toJSON(),
         description: this.description ? this.description.toJSON() : undefined
     })
+
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitBase {
+        const returnValue = this.clone()
+        const mapReference = props.mappings.find((mapping) => (mapping.equals(this.to))) ?? this.to
+        returnValue.to = mapReference.toFormat(props.mapTo)
+        return returnValue
+    }
 }
 
 const payloadFactory = (props: GenericTree<SchemaTag> | StandardExitData): StandardExitBase | undefined => {
@@ -145,6 +153,11 @@ export class StandardExitSimple implements StandardEditableWrapper<StandardExitB
     diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitSimple {
+        const returnValue = this.clone()
+        returnValue.payload = returnValue.payload.remapReferences(props)
+        return returnValue
+    }
 }
 
 export class StandardExitRemove implements StandardEditableWrapper<StandardExitBase> {
@@ -184,6 +197,11 @@ export class StandardExitRemove implements StandardEditableWrapper<StandardExitB
     }
     diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
+    }
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitRemove {
+        const returnValue = this.clone()
+        returnValue.match = returnValue.match.remapReferences(props)
+        return returnValue
     }
 }
 
@@ -242,6 +260,12 @@ export class StandardExitReplace implements StandardEditableWrapper<StandardExit
     }
     diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
+    }
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitReplace {
+        const returnValue = this.clone()
+        returnValue.match = returnValue.match.remapReferences(props)
+        returnValue.payload = returnValue.payload.remapReferences(props)
+        return returnValue
     }
 }
 
@@ -324,6 +348,10 @@ export class StandardExit {
             return new StandardExit(new StandardExitReplace((new StandardExitSimple(callback(this._payload.match.toJSON()))).payload, (new StandardExitSimple(callback(this._payload.payload.toJSON()))).payload))
         }
         throw new Error('Invalid StandardExit payload')
+    }
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExit {
+        const remappedPayload = this._payload.remapReferences(props)
+        return new StandardExit(remappedPayload)
     }
 
 }
