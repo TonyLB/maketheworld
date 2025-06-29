@@ -8,6 +8,7 @@ import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition
 import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardReferenceData } from "../dataTypes/reference"
+import { StandardExit } from "../exit"
 
 export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
@@ -74,16 +75,11 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
         .filter(excludeUndefined)
 }
 
-export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
-    const tagTree = new SchemaTagTree(tree)
-    const exits = tagTree
-        .filter(({ match: 'Exit' }))
-        .prune({ not: { match: 'Exit' } })
-        .tree
-    return unique(exits
-        .map(({ data }) => (data))
-        .filter(isSchemaExit)
-        .map(({ to }) => (to)))
+export const exitReferenceKeys = (list: StandardExit[]): string[] => {
+    return unique(list
+        .map((exit) => (exit._payload.plain.to))
+        .map((key) => (key.key ?? key.universalKey ?? ''))
+    )
 }
 
 export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]): StandardReference[] => {

@@ -9,6 +9,7 @@ import { StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
+import { excludeUndefined, zipperList } from "../../lib/lists"
 
 export type StandardExitData = {
     to: StandardReferenceData;
@@ -84,7 +85,7 @@ const standardExitDiff = (base: StandardExitData, incoming: StandardExitData): {
 }
 
 export const { constructorDelta: factory, typeguard: isStandardExitData, merge, diff } = standardEditableFactory({
-    typeguard: (value: any): value is StandardExitData => (typeof value === 'object' && value !== null && 'to' in value && 'description' in value),
+    typeguard: (value: any): value is StandardExitData => (typeof value === 'object' && value !== null && 'to' in value),
     payloadFactory: payloadFactory,
     payload: StandardExitBase,
     add: standardExitAdd,
@@ -250,6 +251,7 @@ export class StandardExit {
         }
         const delta = factory(arg)
         if (!delta) {
+            console.log(`Invalid argument to StandardExit constructor: ${JSON.stringify(arg, null, 4)}`)
             throw new Error('Invalid argument to StandardExit constructor')
         }
         if (delta.add) {
@@ -320,4 +322,40 @@ export class StandardExit {
         throw new Error('Invalid StandardExit payload')
     }
 
+}
+
+export const mergeStandardExitList = (list: StandardExit[]): StandardExit[] => {
+    return list.reduce<StandardExit[]>((previous, current) => {
+        const findMatchIndex = previous.findIndex((item) => (item._payload.plain.to.equals(current._payload.plain.to)))
+        if (findMatchIndex === -1) {
+            return [...previous, current]
+        }
+        return previous.map((item, index) => {
+            if (index === findMatchIndex) {
+                return item.merge(current)
+            }
+            return item
+        }, []).filter(excludeUndefined)
+    }, [])
+}
+
+export const diffStandardExitList = (base: StandardExit[], incoming: StandardExit[]): StandardExit[] => {
+    const zipper = zipperList<StandardExit>((a, b) => (a._payload.plain.to.equals(b._payload.plain.to)))(base, incoming)
+    return zipper.reduce<StandardExit[]>((previous, { base: baseItem, incoming: incomingItem }) => {
+        if (baseItem && incomingItem) {
+            const diff = baseItem.diff(incomingItem)
+            if (diff) {
+                return [...previous, diff]
+            }
+        }
+        else if (baseItem) {
+            const remove = new StandardExit(new StandardExitRemove(baseItem._payload.plain))
+            return [...previous, remove]
+        }
+        else if (incomingItem) {
+            const add = new StandardExit(new StandardExitSimple(incomingItem._payload.plain))
+            return [...previous, add]
+        }
+        return previous
+    }, [])
 }

@@ -101,7 +101,7 @@ describe('StandardForm', () => {
                     payload: {
                         tag: 'Room',
                         key: 'testRoom',
-                        exits: [{ data: { tag: 'Exit', to: 'testRoomTwo' }, children: [{ data: { tag: 'String', value: 'out' }, children: [] }] }],
+                        exits: [{ to: { key: 'testRoomTwo', tag: 'Room' }, description: 'out' }],
                     }
                 },
                 {

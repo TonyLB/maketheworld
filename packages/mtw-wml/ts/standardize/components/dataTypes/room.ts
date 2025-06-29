@@ -5,11 +5,12 @@ import { checkAll, checkTypes } from "./typeguards";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardRemoveData } from ".";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { StandardExitData } from "../exit";
 
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
-    exits: GenericTree<SchemaTag>;
+    exits: StandardEditableData<StandardExitData>[];
     features?: (StandardReferenceData | StandardRemoveData)[];
     examples?: (StandardReferenceData | StandardRemoveData)[];
 } & StandardBaseData
