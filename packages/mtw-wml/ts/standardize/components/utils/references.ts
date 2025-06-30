@@ -2,25 +2,27 @@ import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardKey } from "../reference"
-import { ComponentUUID, isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardReferenceData } from "../dataTypes/reference"
+import { StandardExit } from "../exit"
 
-export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): StandardKey[] => {
+export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
         .map(({ data, children }) => {
             if (isSchemaLink(data)) {
-                return [
-                    new StandardKey(data.to),
-                    ...linkReferenceKeys(children)
-                ]
+                const mapping = mappings.find((mapping) => mapping.key === data.to || mapping.universalKey === data.to)
+                if (mapping) {
+                    return [
+                        mapping,
+                        ...linkReferenceKeys(mappings)(children)
+                    ]
+                }
             }
-            else {
-                return linkReferenceKeys(children)
-            }
+            return linkReferenceKeys(mappings)(children)
         })
         .flat(1)
     )
@@ -74,16 +76,11 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
         .filter(excludeUndefined)
 }
 
-export const exitReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
-    const tagTree = new SchemaTagTree(tree)
-    const exits = tagTree
-        .filter(({ match: 'Exit' }))
-        .prune({ not: { match: 'Exit' } })
-        .tree
-    return unique(exits
-        .map(({ data }) => (data))
-        .filter(isSchemaExit)
-        .map(({ to }) => (to)))
+export const exitReferenceKeys = (list: StandardExit[]): string[] => {
+    return unique(list
+        .map((exit) => (exit._payload.plain.to))
+        .map((key) => (key.key ?? key.universalKey ?? ''))
+    )
 }
 
 export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]): StandardReference[] => {
@@ -144,6 +141,16 @@ export const assureItemInReferenceList = (previous: StandardReference[], item: S
 //
 export type ReferenceFormat = 'key' | 'universal' | 'both';
 
+export const mapKeyToFormat = (format: ReferenceFormat) =>
+    (key: StandardKey): StandardKey => {
+        return new StandardKey({
+                tag: key.tag,
+                key: ['key', 'both'].includes(format) ? key.key : undefined,
+                universalKey: ['universal', 'both'].includes(format) ? key.universalKey : undefined,
+                context: key.context?.map(mapKeyToFormat(format))
+            })
+    }
+
 export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceFormat) =>
     (reference: StandardReference): StandardReference => {
         const mapKey = (reference: StandardReferenceData): StandardKey | undefined => {
@@ -169,6 +176,7 @@ export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceF
                 tag: reference.tag,
                 key: ['key', 'both'].includes(format) ? newKey.key : undefined,
                 universalKey: ['universal', 'both'].includes(format) ? newKey.universalKey : undefined,
+                context: newKey.context?.map(mapKeyToFormat(format))
             })
         }
 

@@ -142,6 +142,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardKnowledge(super.withMapping(mapping) as StandardKnowledge)
+    }
+
 }
 
 export default StandardKnowledge

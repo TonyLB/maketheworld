@@ -5,11 +5,13 @@ import { checkAll, checkTypes } from "./typeguards";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardRemoveData } from ".";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
+import { isStandardExitData, StandardExitData } from "../exit";
+import { is } from "immer/dist/internal";
 
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
-    exits: GenericTree<SchemaTag>;
+    exits: StandardEditableData<StandardExitData>[];
     features?: (StandardReferenceData | StandardRemoveData)[];
     examples?: (StandardReferenceData | StandardRemoveData)[];
 } & StandardBaseData
@@ -21,9 +23,9 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Room'),
+        (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),
         checkTypes(arg, {
             key: 'string',
-            exits: 'tree'
         },
         {
             shortName: 'literal',

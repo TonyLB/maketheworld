@@ -1,6 +1,4 @@
-import { defaultSelected } from ".."
 import { excludeUndefined } from "../../lib/lists"
-import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -8,24 +6,23 @@ import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
-import { assureItemInReferenceList, childReferenceFactory, dependencyReferenceKeys, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
-import { stripUIFields } from "../render/utils"
+import { assureItemInReferenceList, childReferenceFactory, exitReferenceKeys, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
-import { listDiff } from "../../schema/treeManipulation/listDiff"
 import { StandardLiteral } from "../literal"
 
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { diffStandardExitList, mergeStandardExitList, StandardExit } from "./exit"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
-    _exits: GenericTree<SchemaTag> = [];
+    _exits: StandardExit[] = [];
     _features: StandardReference[] = [];
     _examples: StandardReference[] = [];
     tag = 'Room' as const
@@ -42,7 +39,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     fromJSON(props: StandardRoomData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName) : undefined
-        this._exits = props.exits
+        this._exits = props.exits.map((exitData) => (new StandardExit(exitData)))
         this._features = props.features?.map((reference) => (new StandardReference(reference))) ?? []
         this._examples = props.examples?.map((reference) => (new StandardReference(reference))) ?? []
     }
@@ -56,9 +53,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .tree
             const exitTagTree = tagTree
                 .filter({ match: 'Exit' })
-                .reorderedSiblings([['Room', 'Exit'], ['If']])
+                .prune({ match: 'Room' })
+                .reorderedSiblings([['Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._exits = defaultSelected(exitTagTree.tree)
+            this._exits = exitTagTree.tree.map((exitData) => (new StandardExit([exitData])))
             this._features = node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (childReferenceFactory([node]))))
             this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node]))))
             return
@@ -78,7 +76,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             tag: 'Room',
             shortName: this?.shortName?.toJSON(),
-            exits: stripUI ? stripUIFields(this.exits) : this.exits,
+            exits: this.exits.map((exit) => exit.toJSON()),
             ...(this.features.length ? { features: this.features.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {}),
             ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
         }
@@ -91,7 +89,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map((reference) => (reference.schema)).flat(1),
                 ...this.examples.map((reference) => (reference.schema)).flat(1),
-                ...this.exits
+                ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }
     }
@@ -104,7 +102,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined),
-                ...this.exits
+                ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }
     }
@@ -112,7 +110,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
-        returnValue._exits = applyEdits([...this.exits, ...incoming.exits])
+        returnValue._exits = mergeStandardExitList([...this.exits, ...incoming.exits])
         returnValue._features = mergeUniqueReferences(this.features, incoming.features)
         returnValue._examples = mergeUniqueReferences(this.examples, incoming.examples)
         return returnValue as this
@@ -131,10 +129,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...dependencyReferenceKeys(this.exits.filter(excludeUndefined))
-                .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey({ key, tag: 'Room' }) })),
             ...exitReferenceKeys(this.exits)
-                .map((key) => ({ referenceType: 'Exit' as const, key: new StandardKey({ key, tag: 'Room' }) })),
+                .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key, tag: 'Room' }) })),
             ...this.features.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
             ...this.examples.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
@@ -152,7 +148,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                     return returnValue[0].data.value
                 })
         }
-        returnValue._exits = callback(returnValue._exits)
+        // returnValue._exits = callback(returnValue._exits)
         return returnValue as this
     }
 
@@ -161,6 +157,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
         returnValue._examples = returnValue._examples.map(mapReference)
         returnValue._features = returnValue._features.map(mapReference)
+        returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
         return returnValue as this
     }
 
@@ -215,7 +212,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             : incoming._payload._shortName
         base._payload._features = featuresDiff
         base._payload._examples = examplesDiff
-        base._payload._exits = listDiff(this.exits, incoming.exits)
+        base._payload._exits = diffStandardExitList(this.exits, incoming.exits)
         return base
     }
 
@@ -229,6 +226,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withFileName(key: string): StandardComponent {
         return new StandardRoom(super.withFileName(key) as StandardRoom)
+    }
+
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardRoom(super.withMapping(mapping) as StandardRoom)
     }
 
 }

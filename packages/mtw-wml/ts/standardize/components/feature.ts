@@ -139,6 +139,10 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withFileName(key) as StandardFeature)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardFeature(super.withMapping(mapping) as StandardFeature)
+    }
+
 }
 
 export default StandardFeature

@@ -708,40 +708,22 @@ Array [
     ],
     "exits": Array [
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "passage",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "cave",
-          "key": "cave#curvingPassage",
-          "tag": "Exit",
-          "to": "curvingPassage",
+        "description": "passage",
+        "to": Object {
+          "context": undefined,
+          "key": "curvingPassage",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "out",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "cave",
-          "key": "cave#VORTEX",
-          "tag": "Exit",
-          "to": "VORTEX",
+        "description": "out",
+        "to": Object {
+          "context": undefined,
+          "key": "VORTEX",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
     ],
     "key": "cave",
@@ -796,22 +778,13 @@ Array [
     ],
     "exits": Array [
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "passage",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "chamber",
-          "key": "chamber#curvingPassage",
-          "tag": "Exit",
-          "to": "curvingPassage",
+        "description": "passage",
+        "to": Object {
+          "context": undefined,
+          "key": "curvingPassage",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
     ],
     "features": Array [
@@ -882,40 +855,22 @@ Array [
     ],
     "exits": Array [
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "cave",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#cave",
-          "tag": "Exit",
-          "to": "cave",
+        "description": "cave",
+        "to": Object {
+          "context": undefined,
+          "key": "cave",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "chamber",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "curvingPassage",
-          "key": "curvingPassage#chamber",
-          "tag": "Exit",
-          "to": "chamber",
+        "description": "chamber",
+        "to": Object {
+          "context": undefined,
+          "key": "chamber",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
     ],
     "key": "curvingPassage",
@@ -950,22 +905,13 @@ Array [
     ],
     "exits": Array [
       Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "cave",
-            },
-          },
-        ],
-        "data": Object {
-          "from": "VORTEX",
-          "key": "VORTEX#cave",
-          "tag": "Exit",
-          "to": "cave",
+        "description": "cave",
+        "to": Object {
+          "context": undefined,
+          "key": "cave",
+          "tag": "Room",
+          "universalKey": undefined,
         },
-        "wrapperTag": undefined,
       },
     ],
     "key": "VORTEX",

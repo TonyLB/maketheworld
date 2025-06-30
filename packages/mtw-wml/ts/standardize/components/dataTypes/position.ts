@@ -7,7 +7,7 @@ export type StandardPositionData = {
     y: number;
 }
 
-export const isStandardPositionData = (arg: any): arg is StandardPositionData => {
+export const isSimplePositionData = (arg: any): arg is StandardPositionData => {
     if (typeof arg !== 'object') {
         return false
     }

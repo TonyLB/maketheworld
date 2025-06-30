@@ -17,6 +17,7 @@ import StandardReference, { StandardKey } from "./reference";
 //
 export class StandardRemove implements StandardComponent {
     _key: StandardKey;
+    _mapping?: StandardKey[];
     _match: StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
@@ -34,6 +35,11 @@ export class StandardRemove implements StandardComponent {
         return
     }
 
+    withMapping(mapping: StandardKey[]): this {
+        const returnValue = new StandardRemove(this)
+        returnValue._mapping = mapping
+        return returnValue as this
+    }
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
@@ -63,9 +69,9 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardRemove {
+    remapReferences(mapTo): StandardRemove {
         const returnValue = this.clone()
-        returnValue._match = returnValue._match.remapReferences(props)
+        returnValue._match = returnValue._match.withMapping(this._mapping ?? []).remapReferences(mapTo)
         return returnValue
     }
 
@@ -152,6 +158,7 @@ export class StandardReplace implements StandardComponent {
     _key: StandardKey;
     _match: StandardComponent;
     _payload: StandardComponent;
+    _mapping?: StandardKey[];
     leastCommonContext: StandardKey[] = [];
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
@@ -180,6 +187,11 @@ export class StandardReplace implements StandardComponent {
         throw new Error('StandardReplace constructor called with invalid arguments')
     }
 
+    withMapping(mapping: StandardKey[]): this {
+        const returnValue = new StandardReplace(this)
+        returnValue._mapping = mapping
+        return returnValue as this
+    }
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
@@ -214,10 +226,10 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat; }): StandardReplace {
+    remapReferences(mapTo: ReferenceFormat): StandardReplace {
         const returnValue = this.clone()
-        returnValue._match = returnValue._match.remapReferences(props)
-        returnValue._payload = returnValue._payload.remapReferences(props)
+        returnValue._match = returnValue._match.withMapping(this._mapping ?? []).remapReferences(mapTo)
+        returnValue._payload = returnValue._payload.withMapping(this._mapping ?? []).remapReferences(mapTo)
         return returnValue
     }
 

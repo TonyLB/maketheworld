@@ -144,6 +144,10 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.withFileName(key) as StandardMoment)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardMoment(super.withMapping(mapping) as StandardMoment)
+    }
+
 }
 
 export default StandardMoment

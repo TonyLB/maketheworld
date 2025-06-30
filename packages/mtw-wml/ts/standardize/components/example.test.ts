@@ -228,7 +228,7 @@ describe('StandardExample class', () => {
             </Example>
         `)
         const mappings = [new StandardKey({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' })]
-        const remapped = testExample.remapReferences({ mappings, mapTo: 'universal' })
+        const remapped = testExample.withMapping(mappings).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Example uuid=(123)>
                 <Name>Name Test</Name>

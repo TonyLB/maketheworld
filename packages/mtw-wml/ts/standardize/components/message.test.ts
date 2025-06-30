@@ -101,7 +101,7 @@ describe('StandardMessage class', () => {
             </Message>
         `)
         const mappings = [new StandardKey({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' }), new StandardKey({ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' })]
-        const remapped = test.remapReferences({ mappings, mapTo: 'universal' })
+        const remapped = test.withMapping(mappings).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Message key=(test)>
                 <Room uuid=(testRoom) />Message test.<Link to=(FEATURE#feature1) />

@@ -5,6 +5,7 @@ jest.mock('../serialize/dbRegister')
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 import copyWML from '.'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 
@@ -17,33 +18,17 @@ describe('copyWML', () => {
     })
 
     it('should replace asset key', async () => {
-        s3ClientMock.get.mockResolvedValueOnce(deIndentWML(`
+        const testSource = deIndentWML(`
             <Asset key=(draft)>
-                <Room key=(TestRoom)>
-                    <Example key=(base)><Name>Test Name</Name></Example>
+                <Room uuid=(room1) key=(TestRoom)>
+                    <Example uuid=(example1)><Name>Test Name</Name></Example>
                 </Room>
             </Asset>
-        `))
-        const testRoom = {
-            tag: 'Room',
-            key: 'TestRoom',
-            examples: [{ key: 'base', tag: 'Example' }],
-            exits: [],
-            universalKey: 'ROOM#ABCDEF'
-        }
-        const testExample = {
-            tag: 'Example',
-            key: 'TestRoom.base',
-            name: ['Test Name'],
-            universalKey: 'EXAMPLE#GHIJKL'
-        }
-        const testNDJSON = [
-            { tag: 'Asset', key: 'draft', universalId: 'ASSET#draft[Test]' },
-            testRoom,
-            testExample
-        ]
+        `)
+        s3ClientMock.get.mockResolvedValueOnce(testSource)
+        const testForm = new StandardForm(testSource).finalize()
         const ndjsonTransform = (lines) => (lines.map((line) => (JSON.stringify(line))).join('\n'))
-        s3ClientMock.get.mockResolvedValueOnce(ndjsonTransform(testNDJSON))
+        s3ClientMock.get.mockResolvedValueOnce(ndjsonTransform(testForm.toNDJSON()))
 
         await copyWML({
             key: 'testCopy',
@@ -63,8 +48,8 @@ describe('copyWML', () => {
             Key: 'Personal/Test/Assets/testCopy.wml',
             Body: deIndentWML(`
                 <Asset key=(testCopy)>
-                    <Room key=(TestRoom)>
-                        <Example key=(base)><Name>Test Name</Name></Example>
+                    <Room uuid=(room1) key=(TestRoom)>
+                        <Example uuid=(example1)><Name>Test Name</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -73,9 +58,9 @@ describe('copyWML', () => {
         const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.ndjson'))
         expect(jsonIndex).not.toEqual(-1)
         expect(s3ClientMock.put.mock.calls[jsonIndex][0].Body.split('\n').map((line) => (JSON.parse(line)))).toEqual([
-            { tag: 'Asset', key: 'testCopy', universalKey: 'ASSET#testCopy' },
-            testRoom,
-            testExample
+            { key: 'testCopy', tag: 'Asset', universalKey: 'ASSET#testCopy' },
+            testForm.byUniversalId['ROOM#room1'].toJSON(),
+            testForm.byUniversalId['EXAMPLE#example1'].toJSON()
         ])
 
     })

@@ -88,6 +88,10 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
         return new StandardVariable(super.withFileName(key) as StandardVariable)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardVariable(super.withMapping(mapping) as StandardVariable)
+    }
+
 }
 
 export default StandardVariable

@@ -77,6 +77,10 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withFileName(key) as StandardImage)
     }
 
+    override withMapping(mapping: StandardKey[]): StandardComponent {
+        return new StandardImage(super.withMapping(mapping) as StandardImage)
+    }
+
 }
 
 export default StandardImage

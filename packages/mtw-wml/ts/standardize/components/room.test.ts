@@ -6,6 +6,7 @@ import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 import StandardReference, { StandardKey } from "./reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardExit } from "./exit"
 
 describe('StandardRoom class', () => {
 
@@ -22,7 +23,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -42,7 +43,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -65,14 +66,14 @@ describe('StandardRoom class', () => {
             key: 'test',
             tag: 'Room',
             shortName: 'ShortName Test',
-            exits: [{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }],
+            exits: [{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
         const testRoom = new StandardRoom(testRoomData)
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
-        expect(testRoom.exits).toEqual([{ data: { tag: 'Exit', from: 'test', to: 'testTwo', key: 'test#testTwo' }, children: [{ data: { tag: 'String', value: 'Exit test' }, children: [] }] }])
+        expect(testRoom.exits.map((exit) => exit.toJSON())).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
 
@@ -100,67 +101,70 @@ describe('StandardRoom class', () => {
         `))
     })
 
-    it('should map contents on exits correctly', () => {
+    it('should correctly parse exits with universalKey targets', () => {
         const test = new StandardRoom(`
             <Room key=(testRoomOne)>
-                <Example key=(base)>
-                    <Name>Lobby</Name>
-                    <Summary>A lobby</Summary>
-                    <Description>A plain lobby.</Description>
-                </Example>
-                <Exit to=(testRoomTwo)>exit</Exit>
+                <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
         `)
-        const callback = (tree) => {
-            return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaExit)(node)) {
-                    return {
-                        ...node,
-                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
-                    }
-                }
-                else {
-                    return {
-                        ...node,
-                        children: callback(node.children)
-                    }
-                }
-            })
-        }
-        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Room key=(testRoomOne)>
-                <Example key=(base) />
-                <Exit to=(testRoomTwo)>
-                    exit
-                    Narf!
-                </Exit>
-            </Room>
-        `))
+        expect(test.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: 'ROOM#testRoomTwo', description: 'exit' }])
+        expect(test.referencedKeys().map(({ key, ...rest }) => ({ key: key.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
     })
+
+    // it('should map contents on exits correctly', () => {
+    //     const test = new StandardRoom(`
+    //         <Room key=(testRoomOne)>
+    //             <Example key=(base)>
+    //                 <Name>Lobby</Name>
+    //                 <Summary>A lobby</Summary>
+    //                 <Description>A plain lobby.</Description>
+    //             </Example>
+    //             <Exit to=(testRoomTwo)>exit</Exit>
+    //         </Room>
+    //     `)
+    //     const callback = (tree) => {
+    //         return tree.map((node) => {
+    //             if (treeNodeTypeguard(isSchemaExit)(node)) {
+    //                 return {
+    //                     ...node,
+    //                     children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+    //                 }
+    //             }
+    //             else {
+    //                 return {
+    //                     ...node,
+    //                     children: callback(node.children)
+    //                 }
+    //             }
+    //         })
+    //     }
+    //     expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+    //         <Room key=(testRoomOne)>
+    //             <Example key=(base) />
+    //             <Exit to=(testRoomTwo)>
+    //                 exit
+    //                 Narf!
+    //             </Exit>
+    //         </Room>
+    //     `))
+    // })
 
     it('should map references to universal keys correctly', () => {
         const test = new StandardRoom(`
             <Room uuid=(Room1) key=(testRoomOne)>
-                <Example uuid=(Example1) key=(base)>
-                    <Name>Lobby</Name>
-                    <Summary>A lobby</Summary>
-                    <Description>A plain lobby.</Description>
-                </Example>
+                <Example uuid=(Example1) key=(base) />
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `)
-        expect(schemaToWML([
-            test.remapReferences({
-                mappings: [
-                    new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
-                    new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' })
-                ],
-                mapTo: 'universal'
-            }).schema
-        ])).toEqual(deIndentWML(`
+        const remapped = test.withMapping([
+            new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
+            new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base', context: ['ROOM#Room1'] }),
+            new StandardKey({ universalKey: 'ROOM#testRoomTwo', tag: 'Room', key: 'testRoomTwo' })
+        ]).remapReferences('universal')
+        expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
                 <Example uuid=(Example1) />
-                <Exit to=(testRoomTwo)>exit</Exit>
+                <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
         `))
     })
@@ -172,14 +176,13 @@ describe('StandardRoom class', () => {
                 <Feature uuid=(Feature1) />
             </Room>
         `)
-        expect(schemaToWML([test.remapReferences({
-            mappings: [
+        expect(schemaToWML([
+            test.withMapping([
                 new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
                 new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
                 new StandardKey({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
-            ],
-            mapTo: 'key'
-        }).schema])).toEqual(deIndentWML(`
+            ]).remapReferences('key').schema
+        ])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature key=(featureOne) />
                 <Example key=(base) />
