@@ -5,7 +5,7 @@ import recursiveFetchImports from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { stripImportAndExport } from "./utils"
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -13,7 +13,7 @@ type FetchImportsArguments = {
     ConnectionId: string;
     RequestId: string;
     inheritanceGraph: InheritanceGraph;
-    payloads: { assetId: EphemeraAssetId; keys: string[] }[]
+    payloads: { assetId: EphemeraAssetId; keys: ComponentUUID[] }[]
 }
 
 export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, payloads }: FetchImportsArguments): Promise<void> => {
@@ -22,7 +22,7 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
 
     const importsByAsset = await Promise.all(
         payloads.map(async ({ assetId, keys }) => {
-            const standard = stripImportAndExport(await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] }))
+            const standard = await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] })
             const wml = schemaToWML([standard.schema])
             return {
                 assetId,
