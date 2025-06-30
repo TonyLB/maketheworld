@@ -43,7 +43,7 @@ export interface ComponentConstructorMethods<D> {
     schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
-    referencedKeys(): StandardComponentReferenceKey[];
+    referencedKeys(mapping: StandardKey[]): StandardComponentReferenceKey[];
     remapReferences?: (props: { mappings: StandardKey[], mapTo: ReferenceFormat }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
     withChild?(child: StandardReference): this;
@@ -183,7 +183,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
-            return this._payload.referencedKeys()
+            return this._payload.referencedKeys(this._mapping ?? [])
         }
 
         //

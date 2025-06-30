@@ -59,9 +59,6 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
             if (findMatch) {
                 returnValue._to = mapReferenceToFormat(mapping, mapTo)(new StandardReference(findMatch))._payload.plain
             }
-            else {
-                throw new Error(`Could not remap reference ${this._to} to format ${mapTo}`)
-            }
         }
         return returnValue
     }

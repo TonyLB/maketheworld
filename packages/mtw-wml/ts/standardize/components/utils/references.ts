@@ -10,18 +10,19 @@ import { excludeUndefined } from "../../../lib/lists"
 import { StandardReferenceData } from "../dataTypes/reference"
 import { StandardExit } from "../exit"
 
-export const linkReferenceKeys = (tree: GenericTree<SchemaTag>): StandardKey[] => {
+export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
         .map(({ data, children }) => {
             if (isSchemaLink(data)) {
-                return [
-                    new StandardKey(data.to),
-                    ...linkReferenceKeys(children)
-                ]
+                const mapping = mappings.find((mapping) => mapping.key === data.to || mapping.universalKey === data.to)
+                if (mapping) {
+                    return [
+                        mapping,
+                        ...linkReferenceKeys(mappings)(children)
+                    ]
+                }
             }
-            else {
-                return linkReferenceKeys(children)
-            }
+            return linkReferenceKeys(mappings)(children)
         })
         .flat(1)
     )

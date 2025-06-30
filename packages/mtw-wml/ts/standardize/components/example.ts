@@ -107,10 +107,10 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(mapping: StandardKey[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...linkReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
-                .map((key) => ({ referenceType: 'Link' as const, key: new StandardKey(key) })),
+            ...linkReferenceKeys(mapping)(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
+                .map((key) => ({ referenceType: 'Link' as const, key })),
             ...dependencyReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
                 .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey(key) }))
         ]

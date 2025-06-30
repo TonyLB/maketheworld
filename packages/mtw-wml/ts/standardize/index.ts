@@ -414,6 +414,7 @@ export class StandardForm {
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = this._clone()
         returnValue._metaData = [...this._metaData]
+        const mappings = this._components.map((component) => (component._key))
         //
         // mergeIntoRequestList is a reducer that takes a current list of request, and a new request that should
         // be merged into the list. For each key in the new request, it checks if there is a prior request
@@ -505,8 +506,9 @@ export class StandardForm {
                 const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] = (key) => ([
                     ...([this._lookup(key)]
                         .filter(excludeUndefined)
-                        .map((component) => (
-                            component.referencedKeys().map(({ key, referenceType }) => {
+                        .map((component) => {
+                            const referencedKeys = component.withMapping(mappings).referencedKeys()
+                            return referencedKeys.map(({ key, referenceType }) => {
                                 if (request.requestType === 'Full') {
                                     if (referenceType === 'Direct') {
                                         return {
@@ -529,7 +531,7 @@ export class StandardForm {
                                     cascadeConditions: request.cascadeConditions?.filter(({ chainCascade }) => (chainCascade))
                                 }
                             })
-                        ))
+                        })
                         .flat(1)
                     ),
                     ...(request.cascadeConditions && request.cascadeConditions.length)
@@ -539,7 +541,7 @@ export class StandardForm {
                                 keys: [this._lookup(key)]
                                     .filter(excludeUndefined)
                                     .map((component) => (
-                                        component.referencedKeys()
+                                        component.withMapping(mappings).referencedKeys()
                                             .filter(({ referenceType }) => (referenceType === conditionType))
                                             .map(({ key }) => (key))
                                     ))

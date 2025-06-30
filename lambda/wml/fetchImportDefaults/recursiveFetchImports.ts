@@ -42,7 +42,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
             .map((component) => {
                 const returnValue = component.clone()
                 returnValue._key = mapKeyToFormat('universal')(returnValue._key)
-                return returnValue.remapReferences({ mappings: allKeys, mapTo: 'universal' })
+                return returnValue.withMapping(allKeys).remapReferences('universal')
             })
     }
     const allStubKeys = standard._components
