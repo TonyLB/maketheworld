@@ -30,55 +30,6 @@ describe('dbRegister', () => {
         jest.resetAllMocks()
         GraphUpdateMock.mockClear()
     })
-    // it('should put a single element for a Character file', async () => {
-    //     await dbRegister({
-    //         address: {
-    //             fileName: 'test',
-    //             zone: 'Library',
-    //         },
-    //         namespaceIdToDB: [
-    //             { internalKey: 'TESS', universalKey: 'CHARACTER#12345' }
-    //         ],
-    //         universalKey: jest.fn().mockImplementation((key) => (key === 'TESS' ? 'CHARACTER#12345' : undefined )),
-    //         status: {
-    //             json: 'Clean'
-    //         },
-    //         properties: {
-    //             TESSIcon: { fileName: 'IMAGE-123' }
-    //         },
-    //         standard: {
-    //             tag: 'Character',
-    //             key: 'TESS',
-    //             byId: {
-    //                 TESS: {
-    //                     tag: 'Character',
-    //                     key: 'TESS',
-    //                     name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
-    //                     pronouns: {
-    //                         data: {
-    //                             tag: 'Pronouns',
-    //                             subject: 'she',
-    //                             object: 'her',
-    //                             possessive: 'her',
-    //                             adjective: 'hers',
-    //                             reflexive: 'herself'
-    //                         },
-    //                         children: []
-    //                     },
-    //                     image: { data: { tag: 'Image', key: 'TESSIcon' }, children: [] }
-    //                 }
-    //             },
-    //             metaData: [{ data: { tag: 'Import', from: 'primitives' }, children: [] }]
-    //         }
-    //     } as any)
-    //     expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-    //     expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
-    //     expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-    //         itemId: 'CHARACTER#TESS',
-    //         edges: [{ target: 'ASSET#primitives', context: '' }],
-    //         options: { direction: 'back' }
-    //     }])
-    // })
 
     it('should save meta for Asset type', async () => {
         await dbRegister({
@@ -117,7 +68,7 @@ describe('dbRegister', () => {
             universalKey: jest.fn().mockReturnValue(undefined),
             standard: new StandardForm(`
                 <Asset key=(test)>
-                    <Import from=(primitives)><Room key=(VORTEX) /></Import>
+                    <Room uuid=(ROOM#VORTEX) from=(ASSET#primitives) />
                 </Asset>
             `)
         } as any)

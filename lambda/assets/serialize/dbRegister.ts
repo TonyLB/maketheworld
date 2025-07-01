@@ -8,6 +8,7 @@ import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import eventBridgeClient from '@tonylb/mtw-utilities/ts/eventBridge'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
 
 export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
@@ -49,9 +50,10 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
     const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
     graphUpdate.setEdges([{
         itemId: AssetKey(key),
-        edges: standardForm.metaData
-            .filter(treeNodeTypeguard(isSchemaImport))
-            .map(({ data }) => ({ target: AssetKey(data.from), context: '' })),
+        edges: unique(standardForm._components
+            .map((component) => (component._from))
+            .filter(excludeUndefined))
+            .map((target) => ({ target, context: '' })),
         options: { direction: 'back' }
     }])
     const [prior] = await Promise.all([
