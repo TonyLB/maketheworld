@@ -1,6 +1,7 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/ts'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -13,7 +14,7 @@ export type FetchLibraryMessage = {
 
 type ImportFromAssetArgument = {
     assetId: `ASSET#${string}`;
-    keys: string[];
+    keys: ComponentUUID[];
 }
 
 export type FetchImportsMessage = {

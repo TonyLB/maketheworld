@@ -31,7 +31,7 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
 
             const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
-                    const standard = stripImportAndExport(await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] }))
+                    const standard = await recursiveFetchImports({ assetId, jsonHelper, fullKeys: keys, stubKeys: [] })
                     const wml = schemaToWML([standard.schema])
                     return {
                         assetId,
