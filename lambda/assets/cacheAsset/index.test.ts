@@ -101,9 +101,9 @@ describe('Cache Asset', () => {
         }])
         internalCacheMock.ComponentData.get.mockResolvedValue([{
             ComponentId: 'CHARACTER#12345',
-            byAssets: [{ AssetId: 'ASSET#Test', component: new StandardCharacter('<Character key=(TestCharacter)><ShortName>Test</ShortName></Character>') }]
+            byAssets: [{ AssetId: 'ASSET#Test', component: new StandardCharacter('<Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character>') }]
         }])
-        standardFormMock = new StandardForm('<Asset key=(Test)><Character key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
+        standardFormMock = new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
 
         const messageBus = {
             send: jest.fn()
@@ -120,7 +120,8 @@ describe('Cache Asset', () => {
                         component: {
                             key: 'TestCharacter',
                             tag: 'Character',
-                            shortName: 'Test'
+                            shortName: 'Test',
+                            universalKey: 'CHARACTER#12345'
                         }
                     }]
                 }
