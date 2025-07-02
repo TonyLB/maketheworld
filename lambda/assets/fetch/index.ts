@@ -33,43 +33,20 @@ const createFetchLink = async ({ PlayerName, fileName, AssetId }: { PlayerName: 
 
 }
 
-const fetchAssetProperties = async ({ AssetId }: { AssetId: string | undefined }): Promise<Record<string, { fileName: string }>> => {
-    if (!AssetId) {
-        return {}
-    }
-    const assetWorkspace = await assetWorkspaceFromAssetId(AssetId)
-    if (!assetWorkspace) {
-        return {}
-    }
-    await assetWorkspace.loadJSON()
-    const fileNameByKey = Object.values(assetWorkspace.standard?.byId ?? {})
-        .reduce<Record<string, { fileName: string }>>((previous, component) => {
-            if (component.fileName) {
-                return {
-                    ...previous,
-                    [component.key]: { fileName: component.fileName }
-                }
-            }
-            return previous
-        }, {})
-    return fileNameByKey
-}
-
 export const fetchAssetMessage = async ({ payloads, messageBus }: { payloads: FetchAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     const player = await internalCache.Connection.get('player')
     if (player) {
         await Promise.all(payloads.map(async (payload) => {
-            const [presignedURL, properties = {}] = await Promise.all([
+            const [presignedURL] = await Promise.all([
                 createFetchLink({
                     PlayerName: player,
                     fileName: payload.fileName,
                     AssetId: payload.AssetId
-                }),
-                fetchAssetProperties({ AssetId: payload.AssetId })
+                })
             ])
             messageBus.send({
                 type: 'ReturnValue',
-                body: { messageType: "FetchURL", url: presignedURL, properties }
+                body: { messageType: "FetchURL", url: presignedURL }
             })    
         }))
     }
