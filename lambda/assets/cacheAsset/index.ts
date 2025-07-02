@@ -30,7 +30,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
 
             const diff = dbAsset.diff(fileAsset)
             if (diff) {
-                await Promise.all(Object.values(diff.byId)
+                await Promise.all(diff._components
                     .map(async (component) => {
                         if (!component.universalKey) {
                             return
@@ -42,9 +42,9 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                             })
                         }
                         else {
-                            const fileComponent = fileAsset.byId[component.key]
+                            const fileComponent = fileAsset._lookup(component._key)
                             if (!fileComponent) {
-                                console.warn(`Component ${component.key} not found in file asset`)
+                                console.warn(`Component ${component.universalKey} not found in file asset`)
                                 return
                             }
                             await Promise.all([
@@ -72,7 +72,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         }
                     })
                 )
-                const characterChanges = Object.values(diff.byId)
+                const characterChanges = diff._components
                     .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
                         if (component instanceof StandardRemove) {
                             return component._match instanceof StandardCharacter
