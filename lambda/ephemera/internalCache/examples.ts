@@ -7,6 +7,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DeferredCache } from './deferredCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 export type ExampleComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
 
@@ -46,12 +47,16 @@ export class ExamplesData {
                     return {
                         componentId,
                         examples: examples.map(({ DataCategory, scopedId, ...example }) => {
+                            const universalKey = DataCategory.split('::')[0]
+                            if (!isSchemaComponentUUID(universalKey)) {
+                                throw new Error(`Invalid universalKey in ExamplesData.get: ${universalKey}`)
+                            }
                             return {
                                 assetId: DataCategory.split('::')[1],
                                 example: new StandardExample({
                                     tag: 'Example',
                                     key: scopedId,
-                                    universalKey: DataCategory.split('::')[0].split('#').slice(1).join('#'),
+                                    universalKey,
                                     ...example
                                 })
                             }

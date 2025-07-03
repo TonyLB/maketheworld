@@ -19,6 +19,7 @@ import { objectMerge } from "@tonylb/mtw-wml/ts/lib/objects"
 import { deepEqual } from "@tonylb/mtw-utilities/ts/objects"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 export const mergeIntoEphemera = async (assetId: string, items: StandardComponentData[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
     //
@@ -106,7 +107,10 @@ export const mergeIntoExamples = async (assetId: string, itemsByRoomId: Record<E
         })).filter(({ DataCategory }) => (DataCategory.endsWith(`::${assetId}`)))
 
         const currentExamplesByUniversalKey = currentExamples.reduce<Record<string, StandardExample>>((previous, { DataCategory, scopedId, ...example }) => {
-            const universalKey = DataCategory.split('::')[0].split('#').slice(1).join('#')
+            const universalKey = DataCategory.split('::')[0]
+            if (!isSchemaComponentUUID(universalKey)) {
+                throw new Error(`Invalid universalKey in mergeIntoExamples: ${universalKey}`)
+            }
             return {
                 ...previous,
                 [universalKey]: new StandardExample({
