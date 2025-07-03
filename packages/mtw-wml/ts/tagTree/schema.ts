@@ -49,7 +49,7 @@ export class SchemaTagTree extends TagTree<SchemaTag> {
                 return deepEqual(A, B)
             },
             classify: ({ tag }) => (tag),
-            merge: ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } }),
+            merge: ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } as SchemaTag }),
             orderIndependence: [['Description', 'Summary', 'Name', 'ShortName', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']],
             orderIndependenceIgnore: ['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove']
         })

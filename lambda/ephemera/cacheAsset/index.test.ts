@@ -297,7 +297,6 @@ describe('cacheAsset', () => {
                 return undefined
             })
         const image = testStandard.byId.image1 as StandardImage
-        image._key._fileName = 'test.png'
 
         workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
