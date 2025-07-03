@@ -1,4 +1,4 @@
-import { SchemaBase, SchemaImportableBase } from "./baseClasses";
+import { SchemaImportableBase } from "./baseClasses";
 import { SchemaNameTag } from "./example";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
