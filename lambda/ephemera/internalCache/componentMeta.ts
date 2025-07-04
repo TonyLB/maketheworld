@@ -1,4 +1,4 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { DeferredCache } from './deferredCache'
 
@@ -11,6 +11,7 @@ import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } fr
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory';
 import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
+import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 
 type ComponentMetaMixin = { assetId: string }
 export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & ComponentMetaMixin
@@ -49,7 +50,7 @@ export class ComponentMetaData {
                     throw new Error('Invalid assetId in ComponentMeta internalCache')
                 }
                 const tag = tagFromEphemeraWrappedId(EphemeraId)
-                const defaultData = defaultComponentFromTag(tag, '', EphemeraId)
+                const defaultData = defaultComponentFromTag(tag, undefined, EphemeraId)
                 const defaultComponent: StandardComponent | undefined = standardComponentFactory(defaultData)
                 if (!defaultComponent) {
                     throw new Error(`No default component found for tag ${tag} and EphemeraId ${EphemeraId}`)
@@ -77,17 +78,17 @@ export class ComponentMetaData {
 
     _getPromiseFactory(EphemeraId: ComponentUUID, assetIds: AssetUUID[]): Promise<{ assetId: AssetUUID; component: StandardComponent }[]> {
         const factory = async () => {
-            const returnValues = await ephemeraDB.getItems<Omit<StandardComponentData, 'universalKey'> & { DataCategory?: AssetUUID }>({
+            const returnValues = await assetDB.getItems<Omit<StandardComponentData, 'universalKey' | 'tag'> & { DataCategory?: AssetUUID, AssetId: ComponentUUID }>({
                 Keys: assetIds
                     .map((assetId) => ({
-                        EphemeraId,
+                        AssetId: EphemeraId,
                         DataCategory: assetId
                     }))
             })
             return returnValues.map((value) => {
-                const { DataCategory, ...rest } = value
+                const { DataCategory, AssetId, ...rest } = value
                 const assetId = DataCategory ?? ''
-                const componentData = { universalKey: EphemeraId, ...rest }
+                const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
                 if (!isStandardComponentData(componentData)) {
                     throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
                 }
@@ -156,9 +157,9 @@ export class ComponentMetaData {
     async getAcrossAllAssets(EphemeraId: ComponentUUID): Promise<Record<AssetUUID, StandardComponent>> {
         const type = splitType(EphemeraId)[0]
         const DataCategory = `Meta::${type[0]}${type.slice(1).toLocaleLowerCase()}`
-        const assetListFetch = await ephemeraDB.getItem<{ cached: string[] }>({
+        const assetListFetch = await assetDB.getItem<{ cached: string[] }>({
             Key: {
-                EphemeraId,
+                AssetId: EphemeraId,
                 DataCategory
             },
             ProjectionFields: ['cached']

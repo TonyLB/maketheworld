@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -7,7 +7,7 @@ import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasse
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
-const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const assetMock = assetDB as jest.Mocked<typeof assetDB>
 
 const mapToJSON = (data: Record<AssetUUID, StandardComponent>): Record<string, StandardComponentData> => {
     return Object.fromEntries(
@@ -25,36 +25,38 @@ describe('ComponentMeta', () => {
     })
 
     it('should send multiple fetches correctly', async () => {
-        ephemeraMock.getItems.mockResolvedValue([{
+        assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+            AssetId: 'ROOM#TestOne',
+            examples: ['EXAMPLE#ExampleOne'],
             exits: []
         },
         {
             DataCategory: 'ASSET#Layer',
-            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }] },
+            AssetId: 'ROOM#TestOne',
+            examples: ['EXAMPLE#ExampleTwo'],
             exits: []
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'ASSET#Base',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Testing' }, children: [] }] },
+                tag: 'Room',
+                universalKey: 'ROOM#TestOne',
+                examples: ['EXAMPLE#ExampleOne'],
                 exits: []
             },
             Layer: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'ASSET#Layer',
-                description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }] },
+                tag: 'Room',
+                universalKey: 'ROOM#TestOne',
+                examples: ['EXAMPLE#ExampleTwo'],
                 exits: []
             }
         })
-        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+        expect(assetMock.getItems).toHaveBeenCalledTimes(1)
+        expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
-                { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
+                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
+                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ]
         })
     })
@@ -62,76 +64,66 @@ describe('ComponentMeta', () => {
     it('should send already cached items', async () => {
         internalCache.ComponentMeta.set('ROOM#TestOne', 'ASSET#Layer', new StandardRoom({
             universalKey: 'ROOM#TestOne',
-            key: 'testTwo',
             tag: 'Room',
             examples: [{ key: 'base', tag: 'Example' }],
             exits: [],
         }))
-        ephemeraMock.getItems.mockResolvedValue([{
+        assetMock.getItems.mockResolvedValue([{
+            AssetId: 'ROOM#TestOne',
             DataCategory: 'ASSET#Base',
             examples: [{ key: 'test', tag: 'Example' }],
             tag: 'Room',
-            exits: [],
-            key: 'test',
-            stateMapping: {},
-            keyMapping: {}
+            exits: []
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Base',
+                universalKey: 'ROOM#TestOne',
                 tag: 'Room',
                 examples: [{ key: 'test', tag: 'Example' }],
                 exits: [],
-                key: 'test'
             },
             Layer: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Layer',
+                universalKey: 'ROOM#TestOne',
                 tag: 'Room',
                 examples: [{ key: 'base', tag: 'Example' }],
                 exits: [],
-                key: 'testTwo'
             }
         })
-        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+        expect(assetMock.getItems).toHaveBeenCalledTimes(1)
+        expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
+                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
             ]
         })
     })
 
     it('should default fetches that do not return', async () => {
-        ephemeraMock.getItems.mockResolvedValue([{
+        assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             examples: [{ key: 'test', tag: 'Example' }],
             exits: [],
-            key: 'test'
+            AssetId: 'ROOM#TestOne'
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Base',
+                tag: 'Room',
+                universalKey: 'ROOM#TestOne',
                 examples: [{ key: 'test', tag: 'Example' }],
                 exits: [],
-                key: 'test'
             },
             Layer: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Layer',
-                key: '',
+                universalKey: 'ROOM#TestOne',
                 tag: 'Room',
                 exits: [],
             }
         })
-        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+        expect(assetMock.getItems).toHaveBeenCalledTimes(1)
+        expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
-                { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
+                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
+                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ]
         })
     })
