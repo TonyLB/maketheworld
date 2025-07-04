@@ -1,60 +1,28 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { DeferredCache } from './deferredCache'
 
 import { EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
 import {
-    EphemeraActionId,
-    EphemeraComputedId,
-    EphemeraFeatureId,
-    EphemeraId,
-    EphemeraKnowledgeId,
-    EphemeraMapId,
-    EphemeraMessageId,
-    EphemeraMomentId,
-    EphemeraRoomId,
-    EphemeraVariableId,
-    isEphemeraActionId,
-    isEphemeraComputedId,
-    isEphemeraFeatureId,
     isEphemeraId,
-    isEphemeraKnowledgeId,
-    isEphemeraMapId,
-    isEphemeraMessageId,
-    isEphemeraMomentId,
-    isEphemeraRoomId,
-    isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import { defaultComponentFromTag, StandardAction, StandardComponentData, StandardComputed, StandardFeature, StandardKnowledge, StandardMap, StandardMessage, StandardMoment, StandardRoom, StandardVariable } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import { defaultComponentFromTag, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
+import { AssetUUID, ComponentUUID, isSchemaAssetUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema';
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory';
+import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
+import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 
 type ComponentMetaMixin = { assetId: string }
 export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & ComponentMetaMixin
-export type ComponentMetaId =
-    EphemeraRoomId |
-    EphemeraFeatureId |
-    EphemeraKnowledgeId |
-    EphemeraMapId |
-    EphemeraMessageId |
-    EphemeraMomentId |
-    EphemeraVariableId |
-    EphemeraActionId |
-    EphemeraComputedId
-const isComponentMetaId = (value: EphemeraId): value is ComponentMetaId => (
-    isEphemeraRoomId(value) ||
-    isEphemeraFeatureId(value) ||
-    isEphemeraKnowledgeId(value) ||
-    isEphemeraMapId(value) ||
-    isEphemeraMessageId(value) ||
-    isEphemeraMomentId(value) ||
-    isEphemeraVariableId(value) ||
-    isEphemeraActionId(value) ||
-    isEphemeraComputedId(value)
-)
 
-const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
-const cacheKeyComponents = (cacheKey: string): { EphemeraId: EphemeraId, assetId: string } => {
+const generateCacheKey = (EphemeraId: ComponentUUID, assetId: AssetUUID) => (`${assetId}::${EphemeraId}`)
+const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID, assetId: AssetUUID } => {
     const [assetId, EphemeraId] = cacheKey.split('::')
-    if (!(EphemeraId && isEphemeraId(EphemeraId) && isComponentMetaId(EphemeraId))) {
+    if (!(EphemeraId && isEphemeraId(EphemeraId) && isSchemaComponentUUID(EphemeraId))) {
+        throw new Error('CacheKey error in ComponentMeta internalCache')
+    }
+    if (!assetId || typeof assetId !== 'string' || !isSchemaAssetUUID(assetId)) {
         throw new Error('CacheKey error in ComponentMeta internalCache')
     }
     return {
@@ -64,21 +32,32 @@ const cacheKeyComponents = (cacheKey: string): { EphemeraId: EphemeraId, assetId
 }
 
 export class ComponentMetaData {
-    _Cache: DeferredCache<ComponentMetaItem & { EphemeraId: EphemeraId }>;
-    _Store: Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }> = {}
+    _Cache: DeferredCache<{ assetId: AssetUUID; component: StandardComponent }>;
+    _Store: Record<string, { assetId: AssetUUID; component: StandardComponent }> = {}
     
     constructor() {
-        this._Cache = new DeferredCache<ComponentMetaItem & { EphemeraId: EphemeraId }>({
+        this._Cache = new DeferredCache<{ assetId: AssetUUID; component: StandardComponent }>({
             callback: (key, value) => { this._setStore(key, value) },
             defaultValue: (cacheKey) => {
-                const { assetId, EphemeraId } = cacheKeyComponents(cacheKey)
+                if (typeof cacheKey !== 'string' || !cacheKey.includes('::')) {
+                    throw new Error('Invalid cache key format in ComponentMeta internalCache')
+                }
+                const { assetId, EphemeraId } = cacheKeyComponents(cacheKey as `${AssetUUID}::${ComponentUUID}`)
+                if (!isSchemaComponentUUID(EphemeraId)) {
+                    throw new Error('Invalid EphemeraId in ComponentMeta internalCache')
+                }
+                if (!isSchemaAssetUUID(assetId)) {
+                    throw new Error('Invalid assetId in ComponentMeta internalCache')
+                }
                 const tag = tagFromEphemeraWrappedId(EphemeraId)
+                const defaultData = defaultComponentFromTag(tag, undefined, EphemeraId)
+                const defaultComponent: StandardComponent | undefined = standardComponentFactory(defaultData)
+                if (!defaultComponent) {
+                    throw new Error(`No default component found for tag ${tag} and EphemeraId ${EphemeraId}`)
+                }
                 return {
-                    EphemeraId: EphemeraId as EphemeraId,
                     assetId,
-                    stateMapping: {},
-                    keyMapping: {},
-                    ...defaultComponentFromTag(tag, '')
+                    component: defaultComponent
                 }
             }
         })
@@ -93,54 +72,40 @@ export class ComponentMetaData {
         this._Store = {}
     }
 
-    _setStore(key: string, value: ComponentMetaItem & { EphemeraId: EphemeraId }): void {
+    _setStore(key: string, value: { assetId: AssetUUID; component: StandardComponent }): void {
         this._Store[key] = value
     }
 
-    _getPromiseFactory(EphemeraId: ComponentMetaId, assetIds: string[], options?: { multiple: boolean }): Promise<(Omit<ComponentMetaItem, 'assetId'>  & { EphemeraId: EphemeraId; DataCategory?: string })[]> {
-        const { multiple } = options ?? { multiple: false }
-        const baseProjectionFields = multiple ? ['DataCategory', 'key'] : ['key']
-        const factoryReturnValue = async <T extends ComponentMetaItem>(...fields: string[]): Promise<(T & { EphemeraId: EphemeraId; DataCategory?: string })[]> => {
-            const returnValue = await ephemeraDB.getItems<Omit<T, 'EphemeraId'> & { DataCategory?: string }>({
+    _getPromiseFactory(EphemeraId: ComponentUUID, assetIds: AssetUUID[]): Promise<{ assetId: AssetUUID; component: StandardComponent }[]> {
+        const factory = async () => {
+            const returnValues = await assetDB.getItems<Omit<StandardComponentData, 'universalKey' | 'tag'> & { DataCategory?: AssetUUID, AssetId: ComponentUUID }>({
                 Keys: assetIds
                     .map((assetId) => ({
-                        EphemeraId,
-                        DataCategory: AssetKey(assetId)
-                    })),
-                ProjectionFields: [...baseProjectionFields, ...fields]
+                        AssetId: EphemeraId,
+                        DataCategory: assetId
+                    }))
             })
-            return returnValue
-                .filter((value): value is Omit<T, 'EphemeraId'> & { DataCategory?: string } => (typeof value !== 'undefined'))
-                .map((partial) => ({ ...partial, EphemeraId } as unknown as T & { EphemeraId: EphemeraId; DataCategory?: string }))
+            return returnValues.map((value) => {
+                const { DataCategory, AssetId, ...rest } = value
+                const assetId = DataCategory ?? ''
+                const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
+                if (!isStandardComponentData(componentData)) {
+                    throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
+                }
+                const component = standardComponentFactory(componentData)
+                if (!component) {
+                    throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
+                }
+                if (!isSchemaAssetUUID(assetId)) {
+                    throw new Error(`Invalid DataCategory: '${assetId}' for EphemeraId: ${EphemeraId}`)
+                }
+                return { assetId, component }
+            })
         }
-        if (isEphemeraRoomId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardRoom>>('shortName', 'name', 'summary', 'description', 'exits', 'stateMapping', 'keyMapping')
-        }
-        if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardFeature | StandardKnowledge>>('name', 'description', 'stateMapping', 'keyMapping')
-        }
-        if (isEphemeraMapId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardMap>>('name', 'images', 'rooms', 'stateMapping', 'keyMapping')
-        }
-        if (isEphemeraMessageId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardMessage>>('description', 'rooms', 'stateMapping', 'keyMapping')
-        }
-        if (isEphemeraMomentId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardMoment>>('messages', 'stateMapping')
-        }
-        if (isEphemeraVariableId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardVariable>>('default')
-        }
-        if (isEphemeraActionId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardAction>>('src')
-        }
-        if (isEphemeraComputedId(EphemeraId)) {
-            return factoryReturnValue<ComponentMetaItem<StandardComputed>>('src', 'dependencies')
-        }
-        return Promise.resolve([])
+        return factory()
     }
 
-    async get(EphemeraId: ComponentMetaId, assetId: string): Promise<ComponentMetaItem & { EphemeraId: EphemeraId }> {
+    async get(EphemeraId: ComponentUUID, assetId: AssetUUID): Promise<{ assetId: AssetUUID; component: StandardComponent }> {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (!this._Cache.isCached(cacheKey)) {
             this._Cache.add({
@@ -154,9 +119,8 @@ export class ComponentMetaData {
                         return {
                             [cacheKey]: {
                                 ...fetch[0],
-                                EphemeraId,
                                 assetId,
-                            } as ComponentMetaItem & { EphemeraId: EphemeraId }
+                            } as { assetId: AssetUUID; component: StandardComponent }
                         }
                     }
                 }
@@ -166,24 +130,16 @@ export class ComponentMetaData {
         return this._Store[cacheKey]
     }
 
-    async getAcrossAssets(EphemeraId: ComponentMetaId, assetList: string[]): Promise<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>> {
+    async getAcrossAssets(EphemeraId: ComponentUUID, assetList: AssetUUID[]): Promise<Record<AssetUUID, StandardComponent>> {
         this._Cache.add({
-            promiseFactory: (fetchNeeded) => (this._getPromiseFactory(EphemeraId, fetchNeeded.map((cacheKey) => (cacheKeyComponents(cacheKey).assetId)), { multiple: true })),
+            promiseFactory: (fetchNeeded) => (this._getPromiseFactory(EphemeraId, fetchNeeded.map((cacheKey) => (cacheKeyComponents(cacheKey).assetId)))),
             requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
             transform: (fetchList) => {
-                return fetchList.reduce<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>>((previous, fetch) => {
-                    if (typeof fetch !== 'undefined') {
-                        const { DataCategory, ...rest } = fetch
-                        if (DataCategory) {
-                            const assetId = splitType(DataCategory)[1]
-                            return {
-                                ...previous,
-                                [generateCacheKey(EphemeraId, assetId)]: {
-                                    ...rest,
-                                    EphemeraId,
-                                    assetId,
-                                } as ComponentMetaItem & { EphemeraId: EphemeraId }
-                            }
+                return fetchList.reduce<Record<string, { assetId: AssetUUID; component: StandardComponent }>>((previous, fetch) => {
+                    if (typeof fetch !== 'undefined' && fetch.component.universalKey) {
+                        return {
+                            ...previous,
+                            [generateCacheKey(fetch.component.universalKey, fetch.assetId)]: fetch
                         }
                     }
                     return previous
@@ -191,27 +147,27 @@ export class ComponentMetaData {
             }
         })
         const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
-        return individualMetas.reduce<Record<string, ComponentMetaItem & { EphemeraId: EphemeraId }>>((previous, item) => ({
+        return individualMetas.reduce<Record<AssetUUID, StandardComponent>>((previous, item) => ({
             ...previous,
-            [item.assetId]: item
+            [item.assetId]: item.component
         }), {})
 
     }
 
-    async getAcrossAllAssets(EphemeraId: ComponentMetaId): Promise<Record<string, ComponentMetaItem>> {
+    async getAcrossAllAssets(EphemeraId: ComponentUUID): Promise<Record<AssetUUID, StandardComponent>> {
         const type = splitType(EphemeraId)[0]
         const DataCategory = `Meta::${type[0]}${type.slice(1).toLocaleLowerCase()}`
-        const assetListFetch = await ephemeraDB.getItem<{ cached: string[] }>({
+        const assetListFetch = await assetDB.getItem<{ cached: string[] }>({
             Key: {
-                EphemeraId,
+                AssetId: EphemeraId,
                 DataCategory
             },
             ProjectionFields: ['cached']
         })
-        return await this.getAcrossAssets(EphemeraId, assetListFetch?.cached || [])
+        return await this.getAcrossAssets(EphemeraId, (assetListFetch?.cached || []).map((assetKey) => (AssetKey(assetKey))))
     }
 
-    invalidate(EphemeraId: string, assetId: string) {
+    invalidate(EphemeraId: ComponentUUID, assetId: AssetUUID) {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (cacheKey in this._Store) {
             delete this._Store[cacheKey]
@@ -221,10 +177,10 @@ export class ComponentMetaData {
         }
     }
 
-    set(EphemeraId: string, assetId: string, value: ComponentMetaItem & { EphemeraId: EphemeraId }) {
+    set(EphemeraId: ComponentUUID, assetId: AssetUUID, value: StandardComponent) {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
-        this._Cache.set(Infinity, cacheKey, value)
-        this._Store[cacheKey] = value
+        this._Cache.set(Infinity, cacheKey, { assetId, component: value })
+        this._Store[cacheKey] = { assetId, component: value }
     }
 }
 

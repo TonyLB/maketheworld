@@ -24,10 +24,10 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
     return checkAll(
         ('tag' in arg && arg.tag === 'Room'),
         (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),
-        checkTypes(arg, {
-            key: 'string',
-        },
+        checkTypes(arg, { },
         {
+            key: 'string',
+            universalKey: 'string',
             shortName: 'literal',
             examples: 'referenceList'
         })
