@@ -20,47 +20,12 @@ import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
 import { StandardReferenceData } from "./components/dataTypes/reference";
 
-type StandardBase = {
-    key: string;
-    update?: boolean;
-}
-
-export type StandardNodeKeys<T extends StandardBase> = Exclude<{
-        [K in keyof T]: T[K] extends GenericTreeNodeFiltered<any, any> | undefined ? K : never
-    }[keyof T], (undefined | 'key' | 'id' | 'update')>
-
-export type StandardCharacter = StandardCharacterData
-export type StandardRoom = StandardRoomData
-export type StandardFeature = StandardFeatureData
-export type StandardKnowledge = StandardKnowledgeData
-export type StandardMap = StandardMapData
-export type StandardMessage = StandardMessageData
-export type StandardMoment = StandardMomentData
-export type StandardVariable = StandardVariableData
-export type StandardComputed = StandardComputedData
-export type StandardAction = StandardActionData
-export type StandardImage = StandardImageData
-
-export type StandardComponentDataNonEdit =
-    StandardCharacter |
-    StandardExampleData |
-    StandardRoom |
-    StandardFeature |
-    StandardKnowledge |
-    StandardMap |
-    StandardMessage |
-    StandardMoment |
-    StandardVariable |
-    StandardComputed |
-    StandardAction |
-    StandardImage
-
 export type StandardRemove = {
     key?: string;
     universalKey?: string;
     tag: 'Remove';
     context?: StandardReferenceData[];
-    component: StandardComponentDataNonEdit;
+    component: StandardComponentNonEditData;
 }
 
 export type StandardReplace = {
@@ -68,11 +33,11 @@ export type StandardReplace = {
     universalKey?: string;
     tag: 'Replace';
     context?: StandardReferenceData[];
-    match: StandardComponentDataNonEdit;
-    payload: StandardComponentDataNonEdit;
+    match: StandardComponentNonEditData;
+    payload: StandardComponentNonEditData;
 }
 
-export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentDataNonEdit => {
+export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
     if (isStandardNonEdit(component)) {
         return component
     }
@@ -84,22 +49,22 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
     }
 }
 
-export type StandardComponentData = StandardComponentDataNonEdit | StandardRemove | StandardReplace
+export type StandardComponentData = StandardComponentNonEditData | StandardRemove | StandardReplace
 export type StandardComponentTag = StandardComponentData["tag"]
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
 
-export const isStandardCharacter = isStandardFactory<StandardCharacter>("Character")
-export const isStandardRoom = isStandardFactory<StandardRoom>("Room")
-export const isStandardFeature = isStandardFactory<StandardFeature>("Feature")
-export const isStandardKnowledge = isStandardFactory<StandardKnowledge>("Knowledge")
-export const isStandardMap = isStandardFactory<StandardMap>("Map")
-export const isStandardMessage = isStandardFactory<StandardMessage>("Message")
-export const isStandardMoment = isStandardFactory<StandardMoment>("Moment")
-export const isStandardAction = isStandardFactory<StandardAction>("Action")
-export const isStandardVariable = isStandardFactory<StandardVariable>("Variable")
-export const isStandardComputed = isStandardFactory<StandardComputed>("Computed")
-export const isStandardImage = isStandardFactory<StandardImage>("Image")
+export const isStandardCharacter = isStandardFactory<StandardCharacterData>("Character")
+export const isStandardRoom = isStandardFactory<StandardRoomData>("Room")
+export const isStandardFeature = isStandardFactory<StandardFeatureData>("Feature")
+export const isStandardKnowledge = isStandardFactory<StandardKnowledgeData>("Knowledge")
+export const isStandardMap = isStandardFactory<StandardMapData>("Map")
+export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
+export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
+export const isStandardAction = isStandardFactory<StandardActionData>("Action")
+export const isStandardVariable = isStandardFactory<StandardVariableData>("Variable")
+export const isStandardComputed = isStandardFactory<StandardComputedData>("Computed")
+export const isStandardImage = isStandardFactory<StandardImageData>("Image")
 
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
@@ -193,7 +158,9 @@ export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends Schem
 
 export type StandardAsset = {
     tag: 'Asset';
-} & StandardBase
+    key: string;
+    universalKey?: string;
+}
 
 export type SerializeNDJSONMixin = {
     from?: AssetUUID;
