@@ -47,16 +47,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         throw new Error('Schema mismatch in StandardMessage constructor')
     }
 
-    get description() { return rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }) }
+    get description() { return this._description }
     get rooms() { return this._rooms }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
-        const { stripUIFields: stripUI } = options ?? {}
         return {
             tag: 'Message',
-            description: stripUI
-                ? rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const })
-                : this.description,
+            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }),
             rooms: this.rooms.map((reference) => (reference.toJSON() as StandardReferenceData)),
         }
     }
@@ -66,7 +63,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
                 ...this.rooms.map((reference) => (reference.schema)).flat(1),
-                ...[this.description].filter(excludeUndefined).map(({ children }) => (children)).flat(1)
+                ...(this.description?.schema ?? [])
             ]
         }
     }
