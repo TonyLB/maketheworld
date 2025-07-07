@@ -1,8 +1,14 @@
 import { EphemeraMapId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import internalCache from "../internalCache"
 import { ComponentMetaItem } from "./componentMeta"
-import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
+import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
+import { StandardMapData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/map"
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
+import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 // import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
 // import { componentAppearanceReduce } from "./componentRender"
 
@@ -31,8 +37,7 @@ describe('ComponentRender cache handler', () => {
                 examples: [
                     new StandardExample({
                         tag: 'Example',
-                        key: 'example1',
-                        universalKey: 'Base',
+                        universalKey: 'EXAMPLE#Base',
                         name: ['Example Name'],
                         description: ['Description'],
                         summary: ['Summary']
@@ -41,16 +46,13 @@ describe('ComponentRender cache handler', () => {
             }]
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-            Base: {
-                EphemeraId: 'ROOM#TestOne',
-                assetId: 'Base',
+            [`ASSET#Base`]: new StandardRoom({
+                universalKey: 'ROOM#TestOne',
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-                key: 'testRoom',
-                stateMapping: {},
-                keyMapping: {}
-            }
+                examples: ['EXAMPLE#Base']
+            })
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
@@ -58,28 +60,24 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(descriptionOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: ['TestRoom'],
+            ShortName: 'TestRoom',
             Name: ['Example Name'],
             Summary: [],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: ['Description'],
             Exits: [],
-            assets: {
-                ['ASSET#Base']: 'testRoom',
-            }
+            assets: ['ASSET#Base']
         })
         const summaryOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne', { header: true })
         expect(summaryOutput).toEqual({
             RoomId: 'ROOM#TestOne',
-            ShortName: ['TestRoom'],
+            ShortName: 'TestRoom',
             Name: ['Example Name'],
             Summary: ['Summary'],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [],
             Exits: [],
-            assets: {
-                ['ASSET#Base']: 'testRoom',
-            }
+            assets: ['ASSET#Base']
         })
     })
 
@@ -95,28 +93,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her',
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-            Base: {
-                EphemeraId: 'FEATURE#TestOne',
-                assetId: 'Base',
-                key: 'testFeature',
+            [`ASSET#Base`]: new StandardFeature({
+                universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-                stateMapping: {
-                    testOne: 'VARIABLE#One',
-                    testTwo: 'VARIABLE#Two'
-                },
-                keyMapping: {}
-            },
-            Personal: {
-                EphemeraId: 'FEATURE#TestOne',
-                assetId: 'Base',
-                key: 'testFeature',
+            }),
+            [`ASSET#Personal`]: new StandardFeature({
+                universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
-                stateMapping: {
-                    testThree: 'VARIABLE#Three',
-                    testFour: 'VARIABLE#Four'
-                },
-                keyMapping: {}
-            }
+            })
         })
         jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
             'FEATURE#TestOne': [{
@@ -124,8 +108,7 @@ describe('ComponentRender cache handler', () => {
                 examples: [
                     new StandardExample({
                         tag: 'Example',
-                        key: 'example1',
-                        universalKey: 'Base',
+                        universalKey: 'EXAMPLE#Base',
                         name: ['Example Name'],
                         description: ['Description'],
                         summary: ['Summary']
@@ -140,15 +123,12 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(output).toEqual({
             FeatureId: 'FEATURE#TestOne',
             Name: ['Example Name'],
             Description: ['Description'],
-            assets: {
-                ['ASSET#Base']: 'testFeature',
-                ['ASSET#Personal']: 'testFeature'
-            }
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 
@@ -164,28 +144,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-            Base: {
-                EphemeraId: 'KNOWLEDGE#TestOne',
-                assetId: 'Base',
-                key: 'testKnowledge',
+            [`ASSET#Base`]: new StandardKnowledge({
+                universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
-                stateMapping: {
-                    testOne: 'VARIABLE#One',
-                    testTwo: 'VARIABLE#Two'
-                },
-                keyMapping: {}
-            },
-            Personal: {
-                EphemeraId: 'KNOWLEDGE#TestOne',
-                assetId: 'Personal',
-                key: 'testKnowledge',
+            }),
+            [`ASSET#Personal`]: new StandardKnowledge({
+                universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
-                stateMapping: {
-                    testThree: 'VARIABLE#Three',
-                    testFour: 'VARIABLE#Four'
-                },
-                keyMapping: {}
-            }
+            })
         })
         jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
             'KNOWLEDGE#TestOne': [{
@@ -194,7 +160,7 @@ describe('ComponentRender cache handler', () => {
                     new StandardExample({
                         tag: 'Example',
                         key: 'example1',
-                        universalKey: 'Base',
+                        universalKey: 'EXAMPLE#Base',
                         name: ['Example Name'],
                         description: ['Description'],
                         summary: ['Summary']
@@ -209,15 +175,12 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
-        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(output).toEqual({
             KnowledgeId: 'KNOWLEDGE#TestOne',
             Name: ["Example Name"],
             Description: ["Description"],
-            assets: {
-                ['ASSET#Base']: 'testKnowledge',
-                ['ASSET#Personal']: 'testKnowledge'
-            }
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 
@@ -236,60 +199,48 @@ describe('ComponentRender cache handler', () => {
             switch(ephemeraId) {
                 case 'MAP#TestOne':
                     return {
-                        Base: {
-                            EphemeraId: 'MAP#TestOne',
-                            assetId: 'Base',
-                            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }] },
-                            images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
-                            positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
-                            key: 'testMap',
-                            tag: 'Map',
-                            stateMapping: {},
-                            keyMapping: { room1: 'ROOM#TestRoomOne' }
-                        },
-                        Personal: {
-                            EphemeraId: 'MAP#TestOne',
-                            assetId: 'Personal',
+                        [`ASSET#Base`]: new StandardMap({
+                            universalKey: 'MAP#TestOne',
+                            name: 'Test Map',
                             images: [],
-                            positions: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }] }],
-                            key: 'testMap',
+                            positions: [{ room: 'ROOM#TestRoomOne', x: 0, y: 0 }],
                             tag: 'Map',
-                            stateMapping: {},
-                            keyMapping: { room2: 'ROOM#TestRoomTwo' }
-                        }
-                    } as Record<string, ComponentMetaItem<StandardMap> & { EphemeraId: EphemeraMapId }>
+                        }),
+                        [`ASSET#Personal`]: new StandardMap({
+                            universalKey: 'MAP#TestOne',
+                            images: [],
+                            positions: [{ room: 'ROOM#TestRoomTwo', x: 100, y: 0 }],
+                            tag: 'Map',
+                        })
+                    } as Record<AssetUUID, StandardComponent>
                 case 'ROOM#TestRoomOne':
                     return {
-                        Base: {
-                            EphemeraId: 'ROOM#TestRoomOne',
-                            assetId: 'Base',
-                            shortName: { data: { tag: 'ShortName'}, children: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }] },
+                        [`ASSET#Base`]: new StandardRoom({
+                            universalKey: 'ROOM#TestRoomOne',
+                            shortName: 'Test Room One',
                             exits: [
-                                { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Other Room' }, children: [] }] },
-                                { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1' }, children: [{ data: { tag: 'String', value: 'Not in Map' }, children: [] }] }
+                                { to: 'ROOM#TestRoomTwo', description: 'Other Room' },
+                                { to: 'ROOM#TestRoomThree', description: 'Not in Map' }
                             ],
-                            key: 'room1',
                             tag: 'Room',
-                            stateMapping: {},
-                            keyMapping: { room2: 'ROOM#TestRoomTwo', room3: 'ROOM#TestRoomThree' }
-                        },
-                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', exits: [], key: 'room1', tag: 'Room', stateMapping: {}, keyMapping: {} }
-                    } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraRoomId }>
+                        }),
+                        [`ASSET#Personal`]: new StandardRoom({ universalKey: 'ROOM#TestRoomOne', exits: [], tag: 'Room' })
+                    } as Record<AssetUUID, StandardComponent>
                 case 'ROOM#TestRoomTwo':
                     return {
-                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', exits: [],  key: 'room2', tag: 'Room', stateMapping: {}, keyMapping: {} },
-                        Personal: {
-                            EphemeraId: 'ROOM#TestRoomTwo',
-                            assetId: 'Personal',
-                            shortName: { data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }] },
-                            exits: [
-                                { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2' }, children: [{ data: { tag: 'String', value: 'First Room' }, children: [] }] }
-                            ],
-                            key: 'room2',
+                        [`ASSET#Base`]: new StandardRoom({
+                            universalKey: 'ROOM#TestRoomTwo',
+                            shortName: 'Test Room Two',
+                            exits: [],
                             tag: 'Room',
-                            stateMapping: {},
-                            keyMapping: { room1: 'ROOM#TestRoomOne' }
-                        }
+                        }),
+                        [`ASSET#Personal`]: new StandardRoom({
+                            universalKey: 'ROOM#TestRoomTwo',
+                            exits: [
+                                { to: 'ROOM#TestRoomOne', description: 'First Room' }
+                            ],
+                            tag: 'Room'
+                        })
                     }
             }
             throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)
@@ -299,8 +250,8 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(output).toEqual({
             MapId: 'MAP#TestOne',
-            name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
-            fileURL: 'https://test.com/test.png',
+            name: 'Test Map',
+            fileURL: '',
             rooms: [
                 {
                     roomId: 'ROOM#TestRoomOne',
@@ -323,10 +274,7 @@ describe('ComponentRender cache handler', () => {
                     }]
                 }
             ],
-            assets: {
-                ['ASSET#Base']: 'testMap',
-                ['ASSET#Personal']: 'testMap'
-            }
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 

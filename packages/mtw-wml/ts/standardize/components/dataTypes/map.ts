@@ -9,7 +9,7 @@ import { isStandardReferenceData } from "../reference";
 
 export type StandardMapData = {
     tag: 'Map';
-    name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    name?: StandardEditableData<string>;
     images: GenericTree<SchemaTag>;
     positions: StandardEditableData<StandardPositionData>[];
 } & StandardBaseData
@@ -26,7 +26,7 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
             images: 'tree'
         },
         {
-            name: 'node',
+            name: 'literal',
         }),
         (
             'positions' in arg &&

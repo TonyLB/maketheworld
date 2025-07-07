@@ -127,6 +127,9 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
             }
             if ((Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) || typeof factoryProps === 'string') {
                 const schema = typeof factoryProps === 'string' ? treeFromWML(factoryProps) : factoryProps
+                if (schema.length === 0) {
+                    return undefined
+                }
                 const firstElement = schema[0]
                 if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
                     const payload = props.payloadFactory(firstElement.children)
