@@ -19,7 +19,6 @@ describe('ExamplesData', () => {
         ephemeraMock.query.mockResolvedValue([{
             EphemeraId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
-            scopedId: 'example1',
             name: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
@@ -34,8 +33,7 @@ describe('ExamplesData', () => {
         })
         expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual({
             tag: 'Example',
-            key: 'example1',
-            universalKey: 'Base',
+            universalKey: 'EXAMPLE#Base',
             name: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
@@ -47,7 +45,7 @@ describe('ExamplesData', () => {
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
             },
-            ProjectionFields: ['DataCategory', 'scopedId', 'name', 'description', 'summary']
+            ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
         })
     })
 
@@ -65,15 +63,14 @@ describe('ExamplesData', () => {
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
             },
-            ProjectionFields: ['DataCategory', 'scopedId', 'name', 'description', 'summary']
+            ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
         })
     })
 
     it('should set and get overridden examples', async () => {
         const example = new StandardExample({
             tag: 'Example',
-            key: 'example1',
-            universalKey: 'Base',
+            universalKey: 'EXAMPLE#Base',
             name: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
@@ -97,8 +94,7 @@ describe('ExamplesData', () => {
     it('should invalidate cache correctly', async () => {
         const example = new StandardExample({
             tag: 'Example',
-            key: 'example1',
-            universalKey: 'Base',
+            universalKey: 'EXAMPLE#Base',
             name: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
@@ -115,7 +111,6 @@ describe('ExamplesData', () => {
         ephemeraMock.query.mockResolvedValue([{
             EphemeraId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
-            scopedId: 'example1',
             name: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
