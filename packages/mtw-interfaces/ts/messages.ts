@@ -15,6 +15,7 @@ import {
     LegalCharacterColor
 } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
 
 export type MessageAddressing = {
     MessageId: string;
@@ -78,13 +79,13 @@ const validateRoomCharacterList = (items: any) => {
 
 export type RoomDescribeData = {
     Description: RenderTree;
-    ShortName: RenderTree;
+    ShortName?: string;
     Name: RenderTree;
     Summary: RenderTree;
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
-    assets?: Record<EphemeraAssetId, string>;
+    assets?: AssetUUID[];
 }
 
 export type RoomDescription = {
@@ -95,7 +96,7 @@ export type FeatureDescribeData = {
     Description: RenderTree;
     Name: RenderTree;
     FeatureId: EphemeraFeatureId;
-    assets?: Record<EphemeraAssetId, string>;
+    assets?: AssetUUID[];
 }
 
 export type FeatureDescription = {
@@ -106,7 +107,7 @@ export type KnowledgeDescribeData = {
     Description: RenderTree;
     Name: RenderTree;
     KnowledgeId: EphemeraKnowledgeId;
-    assets?: Record<EphemeraAssetId, string>;
+    assets?: AssetUUID[];
 }
 
 export type KnowledgeDescription = {
@@ -126,10 +127,10 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    name: RenderTree;
+    name?: string;
     fileURL?: string;
     rooms: MapDescribeRoom[];
-    assets?: Record<EphemeraAssetId, string>;
+    assets?: AssetUUID[];
 }
 
 const validateMapRoomList = (items: any) => {
