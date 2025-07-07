@@ -261,6 +261,7 @@ export class StandardLiteral {
         }
         const delta = factory(isRenderTree(arg) ? renderTreeToSchema(arg) : arg)
         if (!delta) {
+            console.log(`Invalid argument to StandardLiteral constructor: ${JSON.stringify(arg, null, 4)}`)
             throw new Error('Invalid argument to StandardLiteral constructor')
         }
         if (delta.add) {

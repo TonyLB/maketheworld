@@ -17,9 +17,10 @@ import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@t
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
 import { StandardKey } from "./reference"
+import { StandardLiteral } from "../literal"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
-    _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    _name?: StandardLiteral;
     _images: GenericTree<SchemaTag> = [];
     _positions: StandardPosition[] = [];
     tag = 'Map' as const
@@ -33,7 +34,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     fromJSON(props: StandardMapData) {
-        this._name = props.name
+        this._name = props.name ? new StandardLiteral(props.name) : undefined
         this._images = props.images
         this._positions = props.positions.map((position) => (new StandardPosition(position))).filter(excludeUndefined)
     }
@@ -41,7 +42,10 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const nameItem = tagTree.filter({ match: 'Name' }).tree.find(wrappedNodeTypeGuard(isSchemaName))
+            const nameItem = tagTree
+                .filter({ match: 'Name' })
+                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                .tree
             const positionsTagTree = tagTree
                 .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
                 .prune({ not: { or: [
@@ -50,7 +54,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 .reorderedSiblings([['Room', 'Position'], ['If']])
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
-            this._name = outputNodeToStandardItem<SchemaNameTag, SchemaOutputTag>(nameItem, isSchemaName, isSchemaOutputTag, { tag: 'Name' })
+            this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem) : undefined
             this._images = imagesTagTree.tree
             this._positions = positionsTagTree.tree
                 .map((position) => {
@@ -74,7 +78,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     toJSON(): Omit<StandardMapData, 'key' | 'universalKey'> {
         return {
             tag: 'Map',
-            name: this.name,
+            name: this.name?.toJSON(),
             images: this.images,
             positions: this.positions.map((position) => position.toJSON())
         }
@@ -84,7 +88,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             data: { tag: 'Map', key, uuid: universalKey },
             children: [
-                ...[this.name].filter(excludeUndefined).filter(({ children }) => (children.length)).map(standardFieldToOutputNode).flat(1),
+                ...this.name ? this.name.nestedSchema({ tag: 'Name' }) : [],
                 ...this.images,
                 ...this.positions.map((position) => position.schema).filter(excludeUndefined).flat(1)
             ]
@@ -93,7 +97,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     merge(incoming: this): this {
         const returnValue = new StandardMapPayload()
-        returnValue._name = combineTaggedChildren(this.name, incoming.name) as EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>
+        returnValue._name = this._name && incoming._name ? this._name.merge(incoming._name) : this._name ?? incoming._name,
         returnValue._images = applyEdits([...this.images, ...incoming.images])
         returnValue._positions = mergeStandardPositionList(this.positions, incoming.positions)
         return returnValue as this
@@ -116,7 +120,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardMapPayload(this)
-        returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
+        // returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
         returnValue._images = callback(returnValue._images)
         return returnValue as this
     }

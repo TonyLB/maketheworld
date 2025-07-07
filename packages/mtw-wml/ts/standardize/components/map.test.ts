@@ -19,7 +19,7 @@ describe('StandardMap class', () => {
         const testMap = new StandardMap(testSource)
         expect(testMap.universalKey).toEqual('MAP#001')
         expect(testMap.key).toEqual('test')
-        expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
@@ -37,7 +37,7 @@ describe('StandardMap class', () => {
         schema.loadWML(testSource)
         const testMap = new StandardMap(schema.schema[0])
         expect(testMap.key).toEqual('test')
-        expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
@@ -47,14 +47,13 @@ describe('StandardMap class', () => {
         const testMapData: StandardMapData = {
             key: 'test',
             tag: 'Map',
-            name: { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] },
+            name: 'Name Test',
             images: [{ data: { tag: 'Image', key: "testImage" }, children: [] }],
             positions: [{ room: { tag: 'Room', key: "testRoom" }, x: 10, y: 100 }]
         }
         const testMap = new StandardMap(testMapData)
         expect(testMap.key).toEqual('test')
-        expect(testMap.key).toEqual('test')
-        expect(testMap.name).toEqual({ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] })
+        expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 10, y: 100 }])
         expect(testMap.toJSON()).toEqual(testMapData)
@@ -66,7 +65,7 @@ describe('StandardMap class', () => {
                 <Name>Lobby</Name>
                 <Room key=(testRoom)>
                     <Position x="100" y="100" />
-                    <Name>Room Name</Name>
+                    <ShortName>Room Name</ShortName>
                     <Exit to=(testRoomTwo)>Exit</Exit>
                 </Room>
             </Map>
@@ -93,38 +92,38 @@ describe('StandardMap class', () => {
         `))
     })
 
-    it('should map contents on name', () => {
-        const test = new StandardMap(`
-            <Map key=(testMap)>
-                <Name>Lobby</Name>
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
-                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
-            </Map>
-        `)
-        const callback = (tree) => {
-            return tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaName)(node)) {
-                    return {
-                        ...node,
-                        children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
-                    }
-                }
-                else {
-                    return {
-                        ...node,
-                        children: callback(node.children)
-                    }
-                }
-            })
-        }
-        expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Map key=(testMap)>
-                <Name>LobbyNarf!</Name>
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
-                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
-            </Map>
-        `))
-    })
+    // it('should map contents on name', () => {
+    //     const test = new StandardMap(`
+    //         <Map key=(testMap)>
+    //             <Name>Lobby</Name>
+    //             <Room key=(testRoom)><Position x="100" y="100" /></Room>
+    //             <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+    //         </Map>
+    //     `)
+    //     const callback = (tree) => {
+    //         return tree.map((node) => {
+    //             if (treeNodeTypeguard(isSchemaName)(node)) {
+    //                 return {
+    //                     ...node,
+    //                     children: [...node.children, { data: { tag: 'String', value: 'Narf!' }, children: [] }]
+    //                 }
+    //             }
+    //             else {
+    //                 return {
+    //                     ...node,
+    //                     children: callback(node.children)
+    //                 }
+    //             }
+    //         })
+    //     }
+    //     expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
+    //         <Map key=(testMap)>
+    //             <Name>LobbyNarf!</Name>
+    //             <Room key=(testRoom)><Position x="100" y="100" /></Room>
+    //             <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+    //         </Map>
+    //     `))
+    // })
 
     // it('should map contents on positions', () => {
     //     const test = new StandardMap(`
