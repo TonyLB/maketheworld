@@ -36,17 +36,17 @@ export class ExamplesData {
         this._ExamplesCache.add({
             promiseFactory: async (keys: string[]) => {
                 return await Promise.all(keys.map(async (componentId) => {
-                    const examples = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; scopedId: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
+                    const examples = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
                         Key: { EphemeraId: componentId },
                         KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
                         ExpressionAttributeValues: {
                             ':dcPrefix': 'EXAMPLE#'
                         },
-                        ProjectionFields: ['DataCategory', 'scopedId', 'name', 'description', 'summary']
+                        ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
                     })
                     return {
                         componentId,
-                        examples: examples.map(({ DataCategory, scopedId, ...example }) => {
+                        examples: examples.map(({ DataCategory, ...example }) => {
                             const universalKey = DataCategory.split('::')[0]
                             if (!isSchemaComponentUUID(universalKey)) {
                                 throw new Error(`Invalid universalKey in ExamplesData.get: ${universalKey}`)
@@ -55,7 +55,6 @@ export class ExamplesData {
                                 assetId: DataCategory.split('::')[1],
                                 example: new StandardExample({
                                     tag: 'Example',
-                                    key: scopedId,
                                     universalKey,
                                     ...example
                                 })
