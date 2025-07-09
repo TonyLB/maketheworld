@@ -8,10 +8,13 @@ import {
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ComponentMetaItem } from "../internalCache/componentMeta"
-import { isStandardMessage, StandardComponentData, StandardMoment } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isStandardMessage, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { isSchemaLink, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
+import StandardMoment from "@tonylb/mtw-wml/ts/standardize/components/moment"
+import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -23,8 +26,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             const { characterId, ephemeraId, onlyForAssets } = payload
 
             if (!characterId) {
-                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<string, ComponentMetaItem>
-                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
+                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
+                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms as `ROOM#${string}`[] ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
                 await Promise.all(
@@ -51,8 +54,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     internalCache.CharacterMeta.get(characterId),
                     internalCache.Global.get('assets')
                 ])
-                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ]) as Record<string, ComponentMetaItem>
-                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.filter(treeNodeTypeguard(isSchemaRoom)).map(({ data: { key }}) => (key)).filter(isEphemeraRoomId) ]), [])
+                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
+                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.map((reference) => (new StandardReference(reference).universalKey)) as `ROOM#${string}`[] ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageRender.find((item) => ((typeof item === 'string' && item) || (typeof item === 'object' && ((isSchemaString(item.data) && item.data.value) || isSchemaLink(item.data)))) && roomsRendered.includes(characterMeta.RoomId))) {
@@ -74,14 +77,17 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId),
                 internalCache.Global.get('assets')
             ])
-            const assetsByMessageId = Object.entries(momentMetaByAsset as Record<string, ComponentMetaItem<StandardMoment>>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
-                messages.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => ({
-                    ...accumulator,
-                    [messageId]: [
-                        ...(accumulator[messageId] || []),
-                        key
-                    ]
-                }), previous)
+            const assetsByMessageId = Object.entries(momentMetaByAsset as Record<AssetUUID, StandardMoment>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
+                messages.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => (messageId
+                    ? {
+                        ...accumulator,
+                        [messageId]: [
+                            ...(accumulator[messageId] || []),
+                            key
+                        ]
+                    }
+                    : accumulator),
+                previous)
             ), {})
             const allMessages = Object.keys(assetsByMessageId) as EphemeraMessageId[]
             allMessages.forEach((messageId) => {
