@@ -6,6 +6,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import perceptionMessage from '.'
+import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
 
 // @ts-ignore
 const cacheMock = jest.mocked(internalCache, true)
@@ -27,13 +28,11 @@ describe('Perception message', () => {
             RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her',
-            fileURL: 'https://example.com/image.jpg'
+            Pronouns: 'she/her'
         })
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
-            Pronouns: 'she/her',
-            fileURL: 'https://example.com/image.jpg'
+            Pronouns: 'she/her'
         })
         await perceptionMessage({ payloads: [
             {
@@ -56,8 +55,7 @@ describe('Perception message', () => {
             targets: ['CHARACTER#TESS'],
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess', 
-            Pronouns: 'she/her',
-            fileURL: 'https://example.com/image.jpg'
+            Pronouns: 'she/her'
         })
     })
 
@@ -74,16 +72,13 @@ describe('Perception message', () => {
                 Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                Base: {
-                    EphemeraId: 'MESSAGE#Test',
-                    assetId: 'Base',
+                [`ASSET#Base`]: new StandardMessage({
+                    universalKey: 'MESSAGE#Test',
                     tag: 'Message',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children : [] }] },
-                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
+                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                     key: 'testMessage',
-                    stateMapping: {},
-                    keyMapping: {}
-                }
+                })
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
                 Description: ['Test Message'],
@@ -120,16 +115,13 @@ describe('Perception message', () => {
                 Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                Base: {
-                    EphemeraId: 'MESSAGE#Test',
-                    assetId: 'Base',
+                [`ASSET#Base`]: new StandardMessage({
+                    universalKey: 'MESSAGE#Test',
                     tag: 'Message',
                     description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: [{ data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
-                    key: 'testMessage',
-                    stateMapping: {},
-                    keyMapping: {}
-                }
+                    rooms: ['ROOM#ABC'],
+                    key: 'testMessage'
+                })
             })
             await perceptionMessage({ payloads: [
                 {
@@ -153,16 +145,13 @@ describe('Perception message', () => {
                 Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                Base: {
-                    EphemeraId: 'MESSAGE#Test',
-                    assetId: 'Base',
+                [`ASSET#Base`]: new StandardMessage({
+                    universalKey: 'MESSAGE#Test',
                     tag: 'Message',
                     description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
-                    key: 'testMessage',
-                    stateMapping: {},
-                    keyMapping: {}
-                }
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    key: 'testMessage'
+                })
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
                 Description: [],
@@ -191,16 +180,13 @@ describe('Perception message', () => {
                 Pronouns: 'she/her'
             })
             cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                Base: {
-                    EphemeraId: 'MESSAGE#Test',
-                    assetId: 'Base',
+                [`ASSET#Base`]: new StandardMessage({
+                    universalKey: 'MESSAGE#Test',
                     tag: 'Message',
                     description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: [{ data: { tag: 'Room', key: 'ROOM#VORTEX' }, children: [] }, { data: { tag: 'Room', key: 'ROOM#ABC' }, children: [] }],
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                     key: 'testMessage',
-                    stateMapping: {},
-                    keyMapping: {}
-                }
+                })
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
                 Description: ['Test Message'],
