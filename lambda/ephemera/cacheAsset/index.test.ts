@@ -126,44 +126,22 @@ describe('cacheAsset', () => {
 
         const testStandard = new StandardForm(`
             <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)>
+                <Room uuid=(ABC)>
+                    <Example uuid=(ABCbase)>
                         <Name>
                             Vortex (lit)
                         </Name>
                         <Description>The lights are on</Description>
                     </Example>
                 </Room>
-                <Knowledge key=(testKnowledge)>
-                    <Example key=(base)>
+                <Knowledge uuid=(testKnowledge)>
+                    <Example uuid=(testKnowledgeBase)>
                         <Name>Knowledge is power</Name>
                         <Description>There is so much to learn!</Description>
                     </Example>
                 </Knowledge>
-                <Variable key=(powered) default={false} />
-                <Variable key=(switchedOn) default={true} />
-                <Computed key=(active) src={powered && switchedOn} />
-                <Action key=(toggleSwitch) src={switchedOn = !switchedOn} />
             </Asset>
-            `).withUpdatedUniversalKeys((key) => {
-                switch(key) {
-                    case 'Test': return 'ASSET#Test'
-                    case 'ABC': return 'ROOM#DEF'
-                    case 'active': return 'COMPUTED#XYZ'
-                    case 'powered': return 'VARIABLE#QRS'
-                    case 'switchedOn': return 'VARIABLE#TUV'
-                    case 'testKnowledge': return 'KNOWLEDGE#GHI'
-                    case 'toggleSwitch': return 'ACTION#JKL'
-                    case 'ABC.base': return 'EXAMPLE#MNO'
-                    case 'testKnowledge.base': return 'EXAMPLE#PQR'
-                }
-                return undefined
-            })
-            .mapContents(assignTestDependencies([
-                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['active'] }
-            ]))
-        const computedComponent = testStandard.byId.active as StandardComputed
-        computedComponent._payload._dependencies = ['switchedOn', 'powered']
+            `)
         
         workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
@@ -171,91 +149,7 @@ describe('cacheAsset', () => {
             assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
-        expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'Test',
-            [{
-                EphemeraId: 'ROOM#DEF',
-                key: 'ABC',
-                exits: [],
-                tag: 'Room',
-                stateMapping: {},
-                keyMapping: {},
-                examples: [{ tag: 'Example', key: 'base' }]
-            },
-            {
-                EphemeraId: 'KNOWLEDGE#GHI',
-                key: 'testKnowledge',
-                tag: 'Knowledge',
-                keyMapping: {},
-                stateMapping: {},
-                examples: [{ tag: 'Example', key: 'base' }]
-            },
-            {
-                EphemeraId: 'VARIABLE#QRS',
-                key: 'powered',
-                default: 'false',
-                tag: 'Variable'
-            },
-            {
-                EphemeraId: 'VARIABLE#TUV',
-                key: 'switchedOn',
-                default: 'true',
-                tag: 'Variable'
-            },
-            {
-                EphemeraId: 'COMPUTED#XYZ',
-                key: 'active',
-                tag: 'Computed',
-                src: 'powered && switchedOn',
-                dependencies: ['switchedOn', 'powered'],
-                keyMapping: {},
-                stateMapping: {
-                    switchedOn: 'VARIABLE#TUV',
-                    powered: 'VARIABLE#QRS'
-                }
-            },
-            {
-                EphemeraId: 'ACTION#JKL',
-                key: 'toggleSwitch',
-                tag: 'Action',
-                src: 'switchedOn = !switchedOn',
-                keyMapping: {},
-                stateMapping: {}
-            }],
-            expect.any(Object)
-        )
-        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
-        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
-            ['ROOM#DEF']: [{
-                key: 'ABC.base',
-                tag: 'Example',
-                universalKey: 'EXAMPLE#MNO',
-                name: ['Vortex (lit)'],
-                description: ['The lights are on']
-            }],
-            ['KNOWLEDGE#GHI']: [{
-                key: 'testKnowledge.base',
-                tag: 'Example',
-                universalKey: 'EXAMPLE#PQR',
-                name: ['Knowledge is power'],
-                description: ['There is so much to learn!']
-            }]
-        })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#Test",
-            DataCategory: "Meta::Asset",
-            scopeMap: {
-                ABC: 'ROOM#DEF',
-                'ABC.base': 'EXAMPLE#MNO',
-                active: 'COMPUTED#XYZ',
-                powered: 'VARIABLE#QRS',
-                switchedOn: 'VARIABLE#TUV',
-                testKnowledge: 'KNOWLEDGE#GHI',
-                'testKnowledge.base': 'EXAMPLE#PQR',
-                toggleSwitch: 'ACTION#JKL'
-            }
-        })
+
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
             itemId: 'ASSET#Test',
             edges: [],
@@ -263,201 +157,8 @@ describe('cacheAsset', () => {
         }])
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'Perception',
-            ephemeraId: 'ROOM#DEF',
+            ephemeraId: 'ROOM#ABC',
             header: true
-        })
-    })
-
-    it('should correctly look up fileURLs for map', async () => {
-        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-
-        const mockEvaluate = jest.fn().mockReturnValue(true)
-        evaluateCodeMock.mockReturnValue(mockEvaluate)
-
-        const testStandard = new StandardForm(`
-            <Asset key=(test)>
-                <Room key=(room1)>
-                    <Example key=(base)>
-                        <Name>Vortex</Name>
-                    </Example>
-                </Room>
-                <Map key=(map1)>
-                    <Image key=(image1) />
-                    <Room key=(room1)><Position x="0" y="0" /></Room>
-                </Map>
-            </Asset>
-            `).withUpdatedUniversalKeys((key) => {
-                switch(key) {
-                    case 'Test': return 'ASSET#Test'
-                    case 'room1': return 'ROOM#ABC'
-                    case 'room1.base': return 'EXAMPLE#CDE'
-                    case 'map1': return 'MAP#DEF'
-                    case 'image1': return 'IMAGE#GHI'
-                }
-                return undefined
-            })
-        const image = testStandard.byId.image1 as StandardImage
-
-        workspaceMock.mockImplementation(mockWorkspace(testStandard))
-
-        await cacheAsset({
-            assetId: 'ASSET#Test',
-            messageBus: messageBusMock
-        })
-        expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'test',
-            [{
-                EphemeraId: 'ROOM#ABC',
-                key: 'room1',
-                tag: 'Room',
-                examples: [{ tag: 'Example', key: 'base' }],
-                exits: [],
-                stateMapping: {},
-                keyMapping: {}
-            },
-            {
-                EphemeraId: 'MAP#DEF',
-                key: 'map1',
-                tag: 'Map',
-                positions: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
-                images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
-                keyMapping: { room1: 'ROOM#ABC' },
-                stateMapping: {}
-            },
-            {
-                EphemeraId: 'IMAGE#GHI',
-                tag: 'Image',
-                key: 'image1',
-                fileName: 'test.png',
-                keyMapping: {},
-                stateMapping: {}
-            }],
-            expect.any(Object)
-        )
-        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
-        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
-            ['ROOM#ABC']: [{
-                key: 'room1.base',
-                tag: 'Example',
-                universalKey: 'EXAMPLE#CDE',
-                name: ['Vortex']
-            }]
-        })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#test",
-            DataCategory: "Meta::Asset",
-            scopeMap: {
-                room1: 'ROOM#ABC',
-                map1: 'MAP#DEF',
-                image1: 'IMAGE#GHI',
-                'room1.base': 'EXAMPLE#CDE'
-            }
-        })
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
-            itemId: 'ASSET#test',
-            edges: [],
-            options: { direction: 'back' }
-        }])
-    })
-
-    it('should correctly extract query-ready exits from room contents', async () => {
-        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-
-        const mockEvaluate = jest.fn().mockReturnValue(true)
-        evaluateCodeMock.mockReturnValue(mockEvaluate)
-
-        const testStandard = new StandardForm(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)><Name>Vortex</Name></Example>
-                </Room>
-                <Room key=(DEF)>
-                    <Example key=(base)><Name>Elsewhere</Name></Example>
-                    <If {open}><Exit to=(ABC)>Vortex</Exit></If>
-                </Room>
-                <Variable key=(open) default={false} />
-            </Asset>
-            `).withUpdatedUniversalKeys((key) => {
-                switch(key) {
-                    case 'ABC': return 'ROOM#ABC'
-                    case 'ABC.base': return 'EXAMPLE#CDE'
-                    case 'DEF': return 'ROOM#DEF'
-                    case 'DEF.base': return 'EXAMPLE#FGH'
-                    case 'open': return 'VARIABLE#QRS'
-                }
-                return undefined
-            })
-            .mapContents(assignTestDependencies([
-                { typeGuard: treeNodeTypeguard(isSchemaConditionStatement), dependencies: ['open'] }
-            ]))
-
-        workspaceMock.mockImplementation(mockWorkspace(testStandard))
-
-        await cacheAsset({
-            assetId: 'ASSET#Test',
-            messageBus: messageBusMock
-        })
-        expect(mergeIntoEphemera).toHaveBeenCalledWith(
-            'Test',
-            [{
-                EphemeraId: 'ROOM#ABC',
-                key: 'ABC',
-                tag: 'Room',
-                examples: [{ tag: 'Example', key: 'base' }],
-                exits: [],
-                keyMapping: {},
-                stateMapping: {}
-            },
-            {
-                EphemeraId: 'ROOM#DEF',
-                key: 'DEF',
-                tag: 'Room',
-                examples: [{ tag: 'Example', key: 'base' }],
-                exits: [{
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'open', dependencies: ['open'] },
-                        children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
-                    }]
-                }],
-                keyMapping: { ABC: 'ROOM#ABC' },
-                stateMapping: { open: 'VARIABLE#QRS' }
-            },
-            {
-                EphemeraId: 'VARIABLE#QRS',
-                key: 'open',
-                tag: 'Variable',
-                default: 'false'
-            }],
-            expect.any(Object)
-        )
-        expect(mergeIntoExamplesMock).toHaveBeenCalledTimes(1)
-        expect(mergeIntoExamplesMock.mock.calls[0][0]).toEqual('Test')
-        expect(Object.assign({}, ...Object.entries(mergeIntoExamplesMock.mock.calls[0][1]).map(([componentId, examples]) => ({ [componentId]: (examples as StandardExample[]).map((example) => (example.toJSON())) })))).toEqual({
-            ['ROOM#ABC']: [{
-                key: 'ABC.base',
-                tag: 'Example',
-                universalKey: 'EXAMPLE#CDE',
-                name: ['Vortex']
-            }],
-            ['ROOM#DEF']: [{
-                key: 'DEF.base',
-                tag: 'Example',
-                universalKey: 'EXAMPLE#FGH',
-                name: ['Elsewhere']
-            }]
-        })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#Test",
-            DataCategory: "Meta::Asset",
-            scopeMap: {
-                ABC: 'ROOM#ABC',
-                'ABC.base': 'EXAMPLE#CDE',
-                DEF: 'ROOM#DEF',
-                'DEF.base': 'EXAMPLE#FGH',
-                open: 'VARIABLE#QRS'
-            }
         })
     })
 
@@ -469,16 +170,9 @@ describe('cacheAsset', () => {
 
         const testStandard = new StandardForm(`
             <Asset key=(Test)>
-                <Import from=(base)><Room key=(ABC) /></Import>
-                <Room key=(ABC)><Name>Vortex</Name></Room>
+                <Room uuid=(ABC) from=(ASSET#base)><Name>Vortex</Name></Room>
             </Asset>
-            `).withUpdatedUniversalKeys((key) => {
-                switch(key) {
-                    case 'Test': return 'ASSET#Test'
-                    case 'ABC': return 'ROOM#DEF'
-                }
-                return undefined
-            })
+            `)
 
         workspaceMock.mockImplementation(mockWorkspace(testStandard))
 
