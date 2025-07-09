@@ -35,7 +35,7 @@ const componentTemplates = {
     },
     Knowledge: {
         uuid: { type: ParsePropertyTypes.Key },
-        key: { required: true, type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         as: { type: ParsePropertyTypes.Key }
     },

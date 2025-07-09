@@ -1,75 +1,22 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import {
-    EphemeraCharacter,
-    EphemeraKeyMappingMixin,
-    EphemeraPushArgs,
-    EphemeraStateMappingMixin
+    EphemeraCharacter
 } from './baseClasses'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { MessageBus } from '../messageBus/baseClasses'
-import { mergeIntoEphemera, mergeIntoExamples } from './mergeIntoEphemera'
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
-    EphemeraFeatureId,
-    EphemeraId,
-    EphemeraKnowledgeId,
     EphemeraRoomId,
-    isEphemeraAssetId,
-    isEphemeraFeatureId,
-    isEphemeraId,
-    isEphemeraKnowledgeId,
-    isEphemeraRoomId
+    isEphemeraAssetId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
-import topologicalSort from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/ts/graphStorage/update'
-import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
-import { map } from '@tonylb/mtw-wml/ts/tree/map'
-import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
-import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
-import { stripUIFields } from '@tonylb/mtw-wml/ts/standardize/render/utils'
-
-export const pushEphemera = async({
-    EphemeraId,
-    scopeMap = {}
-}: EphemeraPushArgs) => {
-    await ephemeraDB.putItem({
-        EphemeraId,
-        DataCategory: 'Meta::Asset',
-        scopeMap
-    })
-}
-
-const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter): Promise<CharacterMetaItem | undefined> => {
-    const [previous, graph] = await Promise.all([
-        internalCache.CharacterMeta.get(character.EphemeraId, { check: true }),
-        internalCache.Graph.get((character.assets || []).map(AssetKey), 'back')
-    ])
-    if (!previous) {
-        return undefined
-    }
-    const sortedAssets = topologicalSort(graph.filter({ keys: character.assets.map(AssetKey) }).reverse()).flat().map((assetId) => (assetId.split('#')?.[1] || '')).filter((value) => (value))
-    const updated: CharacterMetaItem = {
-        ...previous,
-        Pronouns: character.Pronouns,
-        Name: character.Name,
-        assets: sortedAssets
-    }
-    internalCache.CharacterMeta.set(updated)
-    return updated
-}
 
 export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }, meta?: CharacterMetaItem) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'fileURL', 'Color', 'player']
@@ -124,121 +71,23 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             }
         }
     
-        const ephemeraItems: (StandardComponentData & { EphemeraId: EphemeraId })[] = Object.values(assetWorkspace.standard.byId || {})
-            .filter(excludeUndefined)
-            .filter((component) => (!(component instanceof StandardExample)))
-            .map((item) => {
-                if (item instanceof StandardCharacter || item instanceof StandardVariable) {
-                    return item.toJSON({ stripUniversalKey: true, stripUIFields: true })
-                }
-                //
-                // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
-                //
-                const dependencies = item.referencedKeys()
-                    .filter(({ referenceType }) => (referenceType === 'Dependency'))
-                    .map(({ key }) => (key))
-                const stateMapping = dependencies.reduce<Record<string, StateItemId>>((previous, key) => {
-                    const universalKey = assetWorkspace.standard?.byId?.[key]?.universalKey
-                    if (universalKey && isStateItemId(universalKey)) {
-                        return { ...previous, [key]: universalKey }
-                    }
-                    return previous
-                }, {})
-                const { universalKey, ...jsonItem } = item.toJSON()
-                //
-                // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
-                //
-                const keysReferenced = item.referencedKeys()
-                    .filter(({ referenceType }) => (referenceType !== 'Dependency'))
-                    .map(({ key }) => (key))
-                const keyMapping = keysReferenced.reduce<Record<string, EphemeraId>>((previous, key) => {
-                    const universalKey = assetWorkspace.standard?.byId?.[key]?.universalKey
-                    if (universalKey && isEphemeraId(universalKey)) {
-                        return { ...previous, [key]: universalKey }
-                    }
-                    return previous
-                }, {})
-                return {
-                    ...jsonItem,
-                    keyMapping,
-                    stateMapping,
-                    ...(item instanceof StandardMap
-                        ? {
-                            images: map(item.images, (node) => {
-                                const { data, children } = node
-                                if (isSchemaImage(data)) {
-                                    const fileLookup = assetWorkspace.standard?.byId[data.key]?.fileName
-                                    if (fileLookup) {
-                                        return [{
-                                            data: {
-                                                ...data,
-                                                fileURL: data.fileURL ?? fileLookup
-                                            },
-                                            children
-                                        }]
-                                    }
-                                }
-                                return [{ data, children }]
-                            })
-                        }
-                        : {}
-                    ),
-                    ...(item instanceof StandardRoom
-                        ? { exits: stripUIFields(item.exits) }
-                        : {}
-                    )
-                }
-            })
-            .map((component) => ({ ...component, EphemeraId: assetWorkspace.standard?.byId?.[component.key]?.universalKey }))
-            .filter((component): component is (StandardComponentData & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & { EphemeraId: EphemeraId }) => (Boolean(component.EphemeraId && isEphemeraId(component.EphemeraId))))
-    
         const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 
-        const examplesByComponentUniversalKey = Object.values(assetWorkspace.standard.byId || {})
-            .filter((item) => (item instanceof StandardExample))
-            .reduce<Record<EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, StandardExample[]>>((previous, example) => {
-                const parentKey = example.key.split('.').slice(0, -1).join('.')
-                if (!parentKey) {
-                    return previous
-                }
-                const parentUniversalKey = assetWorkspace.standard?.byId?.[parentKey]?.universalKey
-                if (!(parentUniversalKey && (isEphemeraRoomId(parentUniversalKey) || isEphemeraFeatureId(parentUniversalKey) || isEphemeraKnowledgeId(parentUniversalKey)))) {
-                    return previous
-                }
-                return {
-                    ...previous,
-                    [parentUniversalKey]: [
-                        ...(previous[parentUniversalKey] || []),
-                        example
-                    ]
-                }
-            }, {})
-        await Promise.all([
-            mergeIntoEphemera(assetId, ephemeraItems, graphUpdate),
-            mergeIntoExamples(assetId, examplesByComponentUniversalKey)
-        ])
-
-        const assets = (assetWorkspace.standard?.metaData ?? [])
-            .filter(treeNodeTypeguard(isSchemaImport))
-            .map(({ data }) => (data.from))
+        const assets = unique(
+            (assetWorkspace.standard?._components ?? [])
+                .map((component) => (component._from))
+                .filter(excludeUndefined)
+        )
 
         graphUpdate.setEdges([{
             itemId: AssetKey(assetId),
             edges: assets
-                .map((from) => ({ target: AssetKey(from), context: '' })),
+                .map((from) => ({ target: from, context: '' })),
             options: { direction: 'back' }
         }])
 
         await Promise.all([
             graphUpdate.flush(),
-            pushEphemera({
-                EphemeraId: AssetKey(assetId),
-                scopeMap: Object.values(assetWorkspace.standard?.byId || {})
-                    .reduce<Record<string, string>>((previous, component) => ({
-                        ...previous,
-                        [component.key]: component.universalKey ?? component.key
-                    }), {})
-            })
         ])
 
         //
@@ -248,11 +97,11 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         // TODO: Optimize RoomHeader messages to only deliver to characters who have
         // the asset that is being cached
         //
-        Object.values(assetWorkspace.standard?.byId || {})
+        const components = assetWorkspace.standard?._components || []
+        components
             .filter((item) => (item instanceof StandardRoom))
-            .map(({ key }) => (assetWorkspace.standard?.byId?.[key]?.universalKey))
-            .filter((value): value is string => (Boolean(value)))
-            .filter(isEphemeraRoomId)
+            .map((room) => (room.universalKey))
+            .filter((value): value is EphemeraRoomId => (Boolean(value)))
             .forEach((roomId) => {
                 messageBus.send({
                     type: 'Perception',
