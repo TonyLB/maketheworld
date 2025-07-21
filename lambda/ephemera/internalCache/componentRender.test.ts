@@ -1,16 +1,13 @@
-import { EphemeraMapId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import internalCache from "../internalCache"
-import { ComponentMetaItem } from "./componentMeta"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge"
-import { StandardMapData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/map"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
-// import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
-// import { componentAppearanceReduce } from "./componentRender"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 
 describe('ComponentRender cache handler', () => {
 
@@ -58,27 +55,18 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-        expect(descriptionOutput).toEqual({
-            RoomId: 'ROOM#TestOne',
-            ShortName: 'TestRoom',
-            Name: ['Example Name'],
-            Summary: [],
-            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-            Description: ['Description'],
-            Exits: [],
-            assets: ['ASSET#Base']
-        })
-        const summaryOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne', { header: true })
-        expect(summaryOutput).toEqual({
-            RoomId: 'ROOM#TestOne',
-            ShortName: 'TestRoom',
-            Name: ['Example Name'],
-            Summary: ['Summary'],
-            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-            Description: [],
-            Exits: [],
-            assets: ['ASSET#Base']
-        })
+        expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
+            <Asset uuid="render">
+                <Room uuid="TestOne">
+                    <ShortName>TestRoom</ShortName>
+                    <Example uuid="rendered">
+                        <Name>Example Name</Name>
+                        <Description>Description</Description>
+                        <Summary>Summary</Summary>
+                    </Example>
+                </Room>
+            </Asset>
+        `))
     })
 
     it('should render only features correctly', async () => {
@@ -124,12 +112,16 @@ describe('ComponentRender cache handler', () => {
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
-        expect(output).toEqual({
-            FeatureId: 'FEATURE#TestOne',
-            Name: ['Example Name'],
-            Description: ['Description'],
-            assets: ['ASSET#Base', 'ASSET#Personal']
-        })
+        expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
+            <Asset uuid="render">
+                <Feature uuid="TestOne">
+                    <Example uuid="rendered">
+                        <Name>Example Name</Name>
+                        <Description>Description</Description>
+                    </Example>
+                </Feature>
+            </Asset>
+        `))
     })
 
     it('should render only knowledge correctly', async () => {
@@ -176,12 +168,16 @@ describe('ComponentRender cache handler', () => {
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
-        expect(output).toEqual({
-            KnowledgeId: 'KNOWLEDGE#TestOne',
-            Name: ["Example Name"],
-            Description: ["Description"],
-            assets: ['ASSET#Base', 'ASSET#Personal']
-        })
+        expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
+            <Asset uuid="render">
+                <Knowledge uuid="TestOne">
+                    <Example uuid="rendered">
+                        <Name>Example Name</Name>
+                        <Description>Description</Description>
+                    </Example>
+                </Knowledge>
+            </Asset>
+        `))
     })
 
     it('should update maps correctly', async () => {
@@ -203,13 +199,13 @@ describe('ComponentRender cache handler', () => {
                             universalKey: 'MAP#TestOne',
                             name: 'Test Map',
                             images: [],
-                            positions: [{ room: 'ROOM#TestRoomOne', x: 0, y: 0 }],
+                            positions: [{ room: 'TestRoomOne', x: 0, y: 0 }],
                             tag: 'Map',
                         }),
                         [`ASSET#Personal`]: new StandardMap({
                             universalKey: 'MAP#TestOne',
                             images: [],
-                            positions: [{ room: 'ROOM#TestRoomTwo', x: 100, y: 0 }],
+                            positions: [{ room: 'TestRoomTwo', x: 100, y: 0 }],
                             tag: 'Map',
                         })
                     } as Record<AssetUUID, StandardComponent>
@@ -248,34 +244,21 @@ describe('ComponentRender cache handler', () => {
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         jest.spyOn(internalCache.EvaluateCode, "get").mockResolvedValue(false)
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
-        expect(output).toEqual({
-            MapId: 'MAP#TestOne',
-            name: 'Test Map',
-            fileURL: '',
-            rooms: [
-                {
-                    roomId: 'ROOM#TestRoomOne',
-                    name: 'Test Room One',
-                    x: 0,
-                    y: 0,
-                    exits: [{
-                        to: 'ROOM#TestRoomTwo',
-                        name: 'Other Room'
-                    }]
-                },
-                {
-                    roomId: 'ROOM#TestRoomTwo',
-                    name: 'Test Room Two',
-                    x: 100,
-                    y: 0,
-                    exits: [{
-                        to: 'ROOM#TestRoomOne',
-                        name: 'First Room'
-                    }]
-                }
-            ],
-            assets: ['ASSET#Base', 'ASSET#Personal']
-        })
+        expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
+            <Asset uuid="render">
+                <Map uuid="TestOne">
+                    <Name>Test Map</Name>
+                    <Room uuid="TestRoomOne">
+                        <Position x="0" y="0"/>
+                        <Exit to="ROOM#TestRoomTwo">Other Room</Exit>
+                    </Room>
+                    <Room uuid="TestRoomTwo">
+                        <Position x="100" y="0"/>
+                        <Exit to="ROOM#TestRoomOne">First Room</Exit>
+                    </Room>
+                </Map>
+            </Asset>
+        `))
     })
 
 })
