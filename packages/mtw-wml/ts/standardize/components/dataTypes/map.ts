@@ -22,10 +22,11 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
     return checkAll(
         ('tag' in arg && arg.tag === 'Map'),
         checkTypes(arg, {
-            key: 'string',
             images: 'tree'
         },
         {
+            key: 'string',
+            universalKey: 'string',
             name: 'literal',
         }),
         (

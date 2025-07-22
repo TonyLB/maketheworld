@@ -318,6 +318,7 @@ export class StandardPosition {
         }
         const delta = factory(arg)
         if (!delta) {
+            console.log(`Invalid argument to StandardPosition constructor: ${JSON.stringify(arg, null, 4)}`)
             throw new Error('Invalid argument to StandardPosition constructor')
         }
         if (delta.add) {
@@ -332,6 +333,7 @@ export class StandardPosition {
             this._payload = new StandardPositionRemove(arg)
             return
         }
+        console.log(`Invalid argument to StandardPosition constructor: ${JSON.stringify(arg, null, 4)}`)
         throw new Error('Invalid argument to StandardPosition constructor')
     }
 

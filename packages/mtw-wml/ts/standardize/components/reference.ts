@@ -18,6 +18,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
     constructor(data: string | StandardReferenceData) {
         if (typeof data === 'string') {
             if (!isSchemaComponentUUID(data)) {
+                console.log(`Invalid StandardReferenceData passed to StandardKey: ${JSON.stringify(data, null, 4)}`)
                 throw new Error('Invalid StandardReferenceData passed to StandardKey')
             }
             this._tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)

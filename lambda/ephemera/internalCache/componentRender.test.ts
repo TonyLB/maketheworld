@@ -56,13 +56,13 @@ describe('ComponentRender cache handler', () => {
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
-            <Asset key="render">
-                <Room uuid="TestOne">
+            <Asset key=(render)>
+                <Room uuid=(TestOne)>
                     <ShortName>TestRoom</ShortName>
-                    <Example uuid="rendered">
+                    <Example uuid=(rendered)>
                         <Name>Example Name</Name>
-                        <Description>Description</Description>
                         <Summary>Summary</Summary>
+                        <Description>Description</Description>
                     </Example>
                 </Room>
             </Asset>
@@ -99,7 +99,7 @@ describe('ComponentRender cache handler', () => {
                         universalKey: 'EXAMPLE#Base',
                         name: ['Example Name'],
                         description: ['Description'],
-                        summary: ['Summary']
+                        summary: []
                     })
                 ]
             }]
@@ -110,9 +110,9 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset key="render">
-                <Feature uuid="TestOne">
-                    <Example uuid="rendered">
+            <Asset key=(render)>
+                <Feature uuid=(TestOne)>
+                    <Example uuid=(rendered)>
                         <Name>Example Name</Name>
                         <Description>Description</Description>
                     </Example>
@@ -197,13 +197,13 @@ describe('ComponentRender cache handler', () => {
                             universalKey: 'MAP#TestOne',
                             name: 'Test Map',
                             images: [],
-                            positions: [{ room: 'TestRoomOne', x: 0, y: 0 }],
+                            positions: [{ room: 'ROOM#TestRoomOne', x: 0, y: 0 }],
                             tag: 'Map',
                         }),
                         [`ASSET#Personal`]: new StandardMap({
                             universalKey: 'MAP#TestOne',
                             images: [],
-                            positions: [{ room: 'TestRoomTwo', x: 100, y: 0 }],
+                            positions: [{ room: 'ROOM#TestRoomTwo', x: 100, y: 0 }],
                             tag: 'Map',
                         })
                     } as Record<AssetUUID, StandardComponent>
@@ -243,17 +243,19 @@ describe('ComponentRender cache handler', () => {
         jest.spyOn(internalCache.EvaluateCode, "get").mockResolvedValue(false)
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset key="render">
-                <Map uuid="TestOne">
+            <Asset key=(render)>
+                <Room uuid=(TestRoomOne)>
+                    <ShortName>Test Room One</ShortName>
+                    <Exit to=(ROOM#TestRoomTwo)>Other Room</Exit>
+                </Room>
+                <Room uuid=(TestRoomTwo)>
+                    <ShortName>Test Room Two</ShortName>
+                    <Exit to=(ROOM#TestRoomOne)>First Room</Exit>
+                </Room>
+                <Map uuid=(TestOne)>
                     <Name>Test Map</Name>
-                    <Room uuid="TestRoomOne">
-                        <Position x="0" y="0"/>
-                        <Exit to="ROOM#TestRoomTwo">Other Room</Exit>
-                    </Room>
-                    <Room uuid="TestRoomTwo">
-                        <Position x="100" y="0"/>
-                        <Exit to="ROOM#TestRoomOne">First Room</Exit>
-                    </Room>
+                    <Room uuid=(TestRoomOne)><Position x="0" y="0" /></Room>
+                    <Room uuid=(TestRoomTwo)><Position x="100" y="0" /></Room>
                 </Map>
             </Asset>
         `))

@@ -215,39 +215,45 @@ export class ComponentRenderData {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             this._getAssets(),
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] })
-        ])
-        const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => (AssetKey(key)))
-        const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets.map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
-        
+        ]);
+
+        const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key));
+        const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
+
         if (isEphemeraRoomId(EphemeraId)) {
-            const assets = allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[]
-            const exampleMap = await this._examples([EphemeraId])
-            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-            const [roomCharacterList, exits, shortName] = (await Promise.all([
+            const assets = allAssets.filter((assetId) => Boolean(appearancesByAsset[assetId]));
+
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
+
+            const exampleMap = await this._examples([EphemeraId]);
+
+            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0];
+
+            const [roomCharacterList, exits, shortName] = await Promise.all([
                 this._roomCharacterList(EphemeraId),
-                mergeStandardExitList(assetData.map((asset) => (asset.exits || [])).flat(1)).map((exit) => (exit._payload.plain.toJSON())),
+                mergeStandardExitList(assetData.map((asset) => asset.exits || []).flat(1)).map((exit) => exit._payload.plain.toJSON()),
                 assetData
-                    .map((component) => (component.shortName))
+                    .map((component) => component.shortName)
                     .filter(excludeUndefined)
                     .reduce<StandardLiteral | undefined>((previous, current: StandardLiteral) => (previous ? previous.merge(current) : current), undefined)
-            ]))
+            ]);
+
             const roomRow: StandardRoomData = {
                 tag: 'Room',
-                universalKey: `ROOM#${EphemeraId}`,
+                universalKey: EphemeraId,
                 exits,
                 examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
                 shortName: shortName?.toJSON()
-            }
+            };
+
             if (naiveFirstExample) {
-                const example = naiveFirstExample.clone()
-                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                const example = naiveFirstExample.clone();
+                example._key = new StandardKey(`EXAMPLE#rendered`).withContext([new StandardKey(EphemeraId)]);
                 return new StandardForm([
                     { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     roomRow,
                     example.toJSON()
-                ])
+                ]);
             }
             return new StandardForm([
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
@@ -261,7 +267,7 @@ export class ComponentRenderData {
             const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
             const featureRow: StandardFeatureData = {
                 tag: 'Feature',
-                universalKey: `FEATURE#${EphemeraId}`,
+                universalKey: EphemeraId,
                 examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
             }
             if (naiveFirstExample) {
@@ -333,7 +339,7 @@ export class ComponentRenderData {
                     name: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
                     exits: (mergedRoom?.exits ?? [])
                         .filter((exit) => (Boolean(merged && merged.positions.find((position) => (position.room._payload.plain.equals(exit._payload.plain.to))))))
-                        .map((exit) => ({ name: exit._payload.plain.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit._payload.plain.to.toJSON() as EphemeraRoomId })),
+                        .map((exit) => ({ description: exit._payload.plain.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit._payload.plain.to.toJSON() as EphemeraRoomId })),
                     x: position.x,
                     y: position.y
                 }
@@ -345,21 +351,21 @@ export class ComponentRenderData {
             ])
             const mapRow: StandardMapData = {
                 tag: 'Map',
-                universalKey: `MAP#${EphemeraId}`,
+                universalKey: EphemeraId,
                 images: [],
                 positions: merged?.positions?.map((position) => ({
                     x: position.x,
                     y: position.y,
-                    room: `ROOM#${position.room._payload.plain.universalKey}`
+                    room: position.room._payload.plain.universalKey as EphemeraRoomId
                 })) ?? [],
                 ...rest
             }
             return new StandardForm([
-                { tag: 'Asset', universalKey: 'ASSET#render' },
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                 mapRow,
                 ...rooms.map((room): StandardRoomData => ({
                     tag: 'Room',
-                    universalKey: `ROOM#${room.roomId}`,
+                    universalKey: room.roomId,
                     exits: room.exits,
                     shortName: room.name
                 }))
