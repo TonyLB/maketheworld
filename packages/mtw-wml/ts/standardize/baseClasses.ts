@@ -168,7 +168,7 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset', universalKey?: string } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset' } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
 
 export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] => {
     if (!(typeof line === 'object')) {
@@ -179,7 +179,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
             checkTypes(
                 line,
                 {
-                    key: 'string'
+                    universalKey: 'string'
                 },
                 {}
             )

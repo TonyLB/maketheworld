@@ -34,7 +34,7 @@ import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaOutputTag, Schem
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference';
+import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
 import { mergeStandardExitList } from '@tonylb/mtw-wml/ts/standardize/components/exit';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
@@ -168,9 +168,6 @@ export class ComponentRenderData {
         this._characterMeta = (characterId) => (characterMeta.get(characterId))
         this._Cache = new DeferredCache<StandardForm>({
             callback: (key, description) => {
-                if (!isSchemaComponentUUID(key)) {
-                    throw new Error(`Illegal key in ComponentDescription internalCache: ${key}`)
-                }
                 this._setStore(key, description)
             },
             defaultValue: (cacheKey) => {
@@ -206,7 +203,7 @@ export class ComponentRenderData {
         this._Store = {}
     }
 
-    _setStore(key: ComponentUUID, value: StandardForm): void {
+    _setStore(key: string, value: StandardForm): void {
         this._Store[key] = value
     }
 
@@ -239,20 +236,23 @@ export class ComponentRenderData {
             const roomRow: StandardRoomData = {
                 tag: 'Room',
                 universalKey: `ROOM#${EphemeraId}`,
-                exits: [],
-                examples: naiveFirstExample ? [new StandardReference(naiveFirstExample._key)._payload.plain.toJSON()] : [],
+                exits,
+                examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
                 shortName: shortName?.toJSON()
             }
-            return naiveFirstExample
-                ? new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone()
+                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     roomRow,
-                    naiveFirstExample.toJSON()                    
+                    example.toJSON()
                 ])
-                : new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
-                    roomRow
-                ])            
+            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                roomRow
+            ])
         }
         if (isEphemeraFeatureId(EphemeraId)) {
             const assets = allAssets
@@ -262,18 +262,21 @@ export class ComponentRenderData {
             const featureRow: StandardFeatureData = {
                 tag: 'Feature',
                 universalKey: `FEATURE#${EphemeraId}`,
-                examples: naiveFirstExample ? [new StandardReference(naiveFirstExample._key)._payload.plain.toJSON()] : [],
+                examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
             }
-            return naiveFirstExample
-                ? new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone()
+                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     featureRow,
-                    naiveFirstExample.toJSON()                    
+                    example.toJSON()
                 ])
-                : new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
-                    featureRow
-                ])            
+            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                featureRow
+            ])
         }
         if (isEphemeraKnowledgeId(EphemeraId)) {
             const assets = allAssets
@@ -282,19 +285,22 @@ export class ComponentRenderData {
             const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
             const knowledgeRow: StandardKnowledgeData = {
                 tag: 'Knowledge',
-                universalKey: `KNOWLEDGE#${EphemeraId}`,
-                examples: naiveFirstExample ? [new StandardReference(naiveFirstExample._key)._payload.plain.toJSON()] : [],
+                universalKey: EphemeraId,
+                examples: naiveFirstExample ? [`EXAMPLE#rendered`] : [],
             }
-            return naiveFirstExample
-                ? new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone()
+                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     knowledgeRow,
-                    naiveFirstExample.toJSON()
+                    example.toJSON()
                 ])
-                : new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render' },
-                    knowledgeRow
-                ])
+            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                knowledgeRow
+            ])
         }
         if (isEphemeraMessageId(EphemeraId)) {
             const assets = allAssets
@@ -386,55 +392,7 @@ export class ComponentRenderData {
                     }
                 })
             }
-            if (isEphemeraFeatureId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraKnowledgeId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraMessageId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraMapId(EphemeraId)) {
+            if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId) || isEphemeraMessageId(EphemeraId) || isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],

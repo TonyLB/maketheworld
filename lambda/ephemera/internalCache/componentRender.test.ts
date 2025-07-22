@@ -56,7 +56,7 @@ describe('ComponentRender cache handler', () => {
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
-            <Asset uuid="render">
+            <Asset key="render">
                 <Room uuid="TestOne">
                     <ShortName>TestRoom</ShortName>
                     <Example uuid="rendered">
@@ -104,16 +104,13 @@ describe('ComponentRender cache handler', () => {
                 ]
             }]
         })
-        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
-            return Boolean(['testOne', 'testFour'].includes(source))
-        })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset uuid="render">
+            <Asset key="render">
                 <Feature uuid="TestOne">
                     <Example uuid="rendered">
                         <Name>Example Name</Name>
@@ -169,10 +166,11 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset uuid="render">
-                <Knowledge uuid="TestOne">
-                    <Example uuid="rendered">
+            <Asset key=(render)>
+                <Knowledge uuid=(TestOne)>
+                    <Example uuid=(rendered)>
                         <Name>Example Name</Name>
+                        <Summary>Summary</Summary>
                         <Description>Description</Description>
                     </Example>
                 </Knowledge>
@@ -245,7 +243,7 @@ describe('ComponentRender cache handler', () => {
         jest.spyOn(internalCache.EvaluateCode, "get").mockResolvedValue(false)
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset uuid="render">
+            <Asset key="render">
                 <Map uuid="TestOne">
                     <Name>Test Map</Name>
                     <Room uuid="TestRoomOne">
