@@ -272,11 +272,14 @@ export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
     targets: EphemeraCharacterId[];
     active: true;
-} & MapDescribeData
+    description: string;
+    MapId: EphemeraMapId;
+}
 
 export type EphemeraClientMessageEphemeraUpdateMapClear = {
     type: 'MapClear';
     targets: EphemeraCharacterId[];
+    MapId?: EphemeraMapId;
 }
 
 export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
@@ -295,7 +298,7 @@ export const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): mess
         if (!('MapId' in message && typeof message.MapId === 'string' && isEphemeraMapId(message.MapId))) {
             return false
         }
-        return isMapDescribeData(message)
+        return Boolean('description' in message && typeof message.description === 'string')
     }
     return false
 }

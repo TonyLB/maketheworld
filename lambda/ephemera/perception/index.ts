@@ -7,14 +7,14 @@ import {
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { ComponentMetaItem } from "../internalCache/componentMeta"
 import { isStandardMessage, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { isSchemaLink, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import StandardMoment from "@tonylb/mtw-wml/ts/standardize/components/moment"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -57,15 +57,21 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
                 const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.map((reference) => (new StandardReference(reference).universalKey)) as `ROOM#${string}`[] ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
-                    const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    if (messageRender.find((item) => ((typeof item === 'string' && item) || (typeof item === 'object' && ((isSchemaString(item.data) && item.data.value) || isSchemaLink(item.data)))) && roomsRendered.includes(characterMeta.RoomId))) {
-                        messageBus.send({
-                            type: 'PublishMessage',
-                            targets: [characterId],
-                            displayProtocol: 'WorldMessage',
-                            message: messageRender,
-                            messageGroupId: payload.messageGroupId
-                        })
+                    const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                    if (messageForm.byUniversalId[characterMeta.RoomId]) {
+                        const messageItem = messageForm._components.find((item) => (item instanceof StandardMessage)) as StandardMessage | undefined
+                        if (messageItem) {
+                            const message = messageItem.description?.toJSON()
+                            if (message) {
+                                messageBus.send({
+                                    type: 'PublishMessage',
+                                    targets: [characterId],
+                                    displayProtocol: 'WorldMessage',
+                                    message: messageItem.description?.toJSON() ?? [],
+                                    messageGroupId: payload.messageGroupId
+                                })
+                            }
+                        }
                     }
                 }
             }
@@ -128,7 +134,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
-                        ...roomDescribe,
+                        description: schemaToWML([roomDescribe.schema]),
                         messageGroupId: payload.messageGroupId
                     })
                 }))
@@ -163,7 +169,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: 'FeatureDescription',
-                        ...featureDescribe,
+                        description: schemaToWML([featureDescribe.schema]),
                         FeatureId: ephemeraId,
                         messageGroupId: payload.messageGroupId
                     })
@@ -180,7 +186,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         type: 'PublishMessage',
                         targets,
                         displayProtocol: 'KnowledgeDescription',
-                        ...knowledgeDescribe,
+                        description: schemaToWML([knowledgeDescribe.schema]),
                         KnowledgeId: ephemeraId,
                         messageGroupId: payload.messageGroupId
                     })
@@ -191,7 +197,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             const { characterId = 'ANONYMOUS' } = payload
             if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
                 const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
-                if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === roomId))) {
+                if ((!payload.mustIncludeRoomId) || mapDescribe.byUniversalId[payload.mustIncludeRoomId]) {
                     messageBus.send({
                         type: `EphemeraUpdate`,
                         updates: [{
@@ -199,7 +205,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                             active: true,
                             targets: [characterId],
                             connectionTargets: [characterId],
-                            ...mapDescribe,
+                            description: schemaToWML([mapDescribe.schema]),
                             MapId: payload.ephemeraId
                         }]
                     })

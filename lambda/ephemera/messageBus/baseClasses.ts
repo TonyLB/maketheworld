@@ -71,16 +71,21 @@ export type PublishRoomUpdateMessage = {
     Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds' | 'SessionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
-export type PublishFeatureDescriptionMessage = Omit<FeatureDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+export type PublishFeatureDescriptionMessage = {
     displayProtocol: 'FeatureDescription';
+    FeatureId: EphemeraFeatureId;
+    description: string;
 } & PublishMessageBase
 
-export type PublishKnowledgeDescriptionMessage = Omit<KnowledgeDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+export type PublishKnowledgeDescriptionMessage = {
     displayProtocol: 'KnowledgeDescription';
+    KnowledgeId: EphemeraKnowledgeId;
+    description: string;
 } & PublishMessageBase
 
-export type PublishRoomDescriptionMessage = Omit<RoomDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+export type PublishRoomDescriptionMessage = {
     displayProtocol: 'RoomDescription' | 'RoomHeader';
+    description: string;
 } & PublishMessageBase
 
 export type PublishCharacterDescriptionMessage = Omit<CharacterDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {

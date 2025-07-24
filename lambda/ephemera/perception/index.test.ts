@@ -7,6 +7,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
 import perceptionMessage from '.'
 import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 // @ts-ignore
 const cacheMock = jest.mocked(internalCache, true)
@@ -80,11 +81,15 @@ describe('Perception message', () => {
                     key: 'testMessage',
                 })
             })
-            cacheMock.ComponentRender.get.mockResolvedValue({
-                Description: ['Test Message'],
-                MessageId: 'MESSAGE#Test',
-                rooms: ['ROOM#VORTEX', 'ROOM#ABC']
-            })
+            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
+                <Asset key=(render)>
+                    <Message uuid=(Test)>
+                        <Room uuid=(VORTEX) />
+                        <Room uuid=(ABC) />
+                        Test Message
+                    </Message>
+                </Asset>
+            `))
             await perceptionMessage({ payloads: [
                 {
                     type: 'Perception',
@@ -153,11 +158,14 @@ describe('Perception message', () => {
                     key: 'testMessage'
                 })
             })
-            cacheMock.ComponentRender.get.mockResolvedValue({
-                Description: [],
-                MessageId: 'MESSAGE#Test',
-                rooms: ['ROOM#VORTEX', 'ROOM#ABC']
-            })
+            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
+                <Asset key=(render)>
+                    <Message uuid=(Test)>
+                        <Room uuid=(VORTEX) />
+                        <Room uuid=(ABC) />
+                    </Message>
+                </Asset>
+            `))
             await perceptionMessage({ payloads: [
                 {
                     type: 'Perception',
@@ -188,11 +196,14 @@ describe('Perception message', () => {
                     key: 'testMessage',
                 })
             })
-            cacheMock.ComponentRender.get.mockResolvedValue({
-                Description: ['Test Message'],
-                MessageId: 'MESSAGE#Test',
-                rooms: ['ROOM#ABC']
-            })
+            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
+                <Asset key=(render)>
+                    <Message uuid=(Test)>
+                        <Room uuid=(ABC) />
+                        Test Message
+                    </Message>
+                </Asset>
+            `))
             await perceptionMessage({ payloads: [
                 {
                     type: 'Perception',

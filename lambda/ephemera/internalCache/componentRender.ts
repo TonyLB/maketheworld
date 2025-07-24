@@ -30,17 +30,22 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
-import { AssetUUID, ComponentUUID, SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference';
+import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
 import { mergeStandardExitList } from '@tonylb/mtw-wml/ts/standardize/components/exit';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
+import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room';
+import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/knowledge';
+import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
+import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -144,9 +149,8 @@ export class ComponentRenderData {
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
-    _Cache: DeferredCache<ComponentDescriptionCache>;
-    _Store: Record<string, ComponentDescriptionItem> = {}
-    _Dependencies: Record<string, StateItemId[]> = {}
+    _Cache: DeferredCache<StandardForm>;
+    _Store: Record<ComponentUUID, StandardForm> = {}
     
     constructor(
         examples: ExamplesData,
@@ -162,46 +166,28 @@ export class ComponentRenderData {
         this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
         this._getAssets = async () => (await globalCache.get('assets') || [])
         this._characterMeta = (characterId) => (characterMeta.get(characterId))
-        this._Cache = new DeferredCache<ComponentDescriptionCache>({
-            callback: (key, { dependencies, description }) => {
+        this._Cache = new DeferredCache<StandardForm>({
+            callback: (key, description) => {
                 this._setStore(key, description)
-                this._setDependencies(key, dependencies)
             },
             defaultValue: (cacheKey) => {
                 if (isEphemeraFeatureId(cacheKey)) {
-                    return {
-                        dependencies: [],
-                        description: {
-                            FeatureId: cacheKey,
-                            Description: [],
-                            Name: [],
-                            assets: []
-                        }
-                    }
+                    return new StandardForm([
+                        { tag: 'Asset', universalKey: 'ASSET#render' },
+                        { tag: 'Feature', universalKey: `FEATURE#${cacheKey}`, examples: [] }
+                    ])
                 }
                 if (isEphemeraRoomId(cacheKey)) {
-                    return {
-                        dependencies: [],
-                        description: {
-                            RoomId: cacheKey,
-                            Description: [],
-                            Name: [],
-                            Summary: [],
-                            Exits: [],
-                            Characters: [],
-                            assets: []
-                        }
-                    }
+                    return new StandardForm([
+                        { tag: 'Asset', universalKey: 'ASSET#render' },
+                        { tag: 'Room', universalKey: `ROOM#${cacheKey}`, examples: [], exits: [] }
+                    ])
                 }
                 if (isEphemeraMessageId(cacheKey)) {
-                    return {
-                        dependencies: [],
-                        description: {
-                            MessageId: cacheKey,
-                            Description: [],
-                            rooms: []
-                        }
-                    }
+                    return new StandardForm([
+                        { tag: 'Asset', universalKey: 'ASSET#render' },
+                        { tag: 'Message', universalKey: `MESSAGE#${cacheKey}`, rooms: [] }
+                    ])
                 }
                 throw new Error('Illegal tag in ComponentDescription internalCache')
             }
@@ -215,93 +201,112 @@ export class ComponentRenderData {
     clear() {
         this._Cache.clear()
         this._Store = {}
-        this._Dependencies = {}
     }
 
-    _setStore(key: string, value: ComponentDescriptionItem): void {
+    _setStore(key: string, value: StandardForm): void {
         this._Store[key] = value
     }
 
-    _setDependencies(key: string, value: StateItemId[]): void {
-        this._Dependencies[key] = value
-    }
-
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: FeatureDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: KnowledgeDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: MessageDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
     async _getPromiseFactory(
             CharacterId: EphemeraCharacterId | 'ANONYMOUS',
             EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMessageId | EphemeraMapId,
             getOptions?: ComponentRenderGetOptions
-        ): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | MessageDescribeData | MapDescribeData }> {
+        ): Promise<StandardForm> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             this._getAssets(),
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] })
-        ])
-        const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => (AssetKey(key)))
-        const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets.map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
-        
+        ]);
+
+        const allAssets: AssetUUID[] = unique(globalAssets || [], characterAssets).map((key) => AssetKey(key));
+        const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
+
         if (isEphemeraRoomId(EphemeraId)) {
-            const assets = allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[]
-            const exampleMap = await this._examples([EphemeraId])
-            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-            const [roomCharacterList, exits, shortName] = (await Promise.all([
+            const assets = allAssets.filter((assetId) => Boolean(appearancesByAsset[assetId]));
+
+            const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
+
+            const exampleMap = await this._examples([EphemeraId]);
+
+            const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0];
+
+            const [roomCharacterList, exits, shortName] = await Promise.all([
                 this._roomCharacterList(EphemeraId),
-                mergeStandardExitList(assetData.map((asset) => (asset.exits || [])).flat(1)).map((exit) => (exit._payload.plain.toJSON())),
+                mergeStandardExitList(assetData.map((asset) => asset.exits || []).flat(1)).map((exit) => exit._payload.plain.toJSON()),
                 assetData
-                    .map((component) => (component.shortName))
+                    .map((component) => component.shortName)
                     .filter(excludeUndefined)
                     .reduce<StandardLiteral | undefined>((previous, current: StandardLiteral) => (previous ? previous.merge(current) : current), undefined)
-            ]))
-            return {
-                dependencies: [],
-                description: {
-                    RoomId: EphemeraId,
-                    Characters: roomCharacterList.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
-                    assets,
-                    Exits: exits.map((exit): RoomExit => ({ Name: new StandardRender(exit.description)._payload.plain.toJSON()[0] as string, RoomId: exit.to as EphemeraRoomId, Visibility: 'Public' as const })),
-                    ShortName: shortName?._payload?.plain?.toJSON?.() as string,
-                    Name: naiveFirstExample.name ?? [],
-                    ...((getOptions && ('header' in getOptions) && getOptions.header)
-                        ? { Summary: naiveFirstExample.summary ?? [], Description: [] }
-                        : { Description: naiveFirstExample.description ?? [], Summary: [] }
-                    )
-                }
+            ]);
+
+            const roomRow: StandardRoomData = {
+                tag: 'Room',
+                universalKey: EphemeraId,
+                exits,
+                examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
+                shortName: shortName?.toJSON()
+            };
+
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone();
+                example._key = new StandardKey(`EXAMPLE#rendered`).withContext([new StandardKey(EphemeraId)]);
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                    roomRow,
+                    example.toJSON()
+                ]);
             }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                roomRow
+            ])
         }
         if (isEphemeraFeatureId(EphemeraId)) {
             const assets = allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
             const exampleMap = await this._examples([EphemeraId])
             const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-            return {
-                dependencies: [],
-                description: {
-                    FeatureId: EphemeraId,
-                    assets,
-                    Name: naiveFirstExample.name ?? [],
-                    Description: naiveFirstExample.description ?? []
-                }
+            const featureRow: StandardFeatureData = {
+                tag: 'Feature',
+                universalKey: EphemeraId,
+                examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
             }
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone()
+                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                    featureRow,
+                    example.toJSON()
+                ])
+            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                featureRow
+            ])
         }
         if (isEphemeraKnowledgeId(EphemeraId)) {
             const assets = allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
             const exampleMap = await this._examples([EphemeraId])
             const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-            return {
-                dependencies: [],
-                description: {
-                    KnowledgeId: EphemeraId,
-                    assets,
-                    Name: naiveFirstExample.name ?? [],
-                    Description: naiveFirstExample.description ?? []
-                }
+            const knowledgeRow: StandardKnowledgeData = {
+                tag: 'Knowledge',
+                universalKey: EphemeraId,
+                examples: naiveFirstExample ? [`EXAMPLE#rendered`] : [],
             }
+            if (naiveFirstExample) {
+                const example = naiveFirstExample.clone()
+                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                return new StandardForm([
+                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                    knowledgeRow,
+                    example.toJSON()
+                ])
+            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                knowledgeRow
+            ])
         }
         if (isEphemeraMessageId(EphemeraId)) {
             const assets = allAssets
@@ -309,15 +314,10 @@ export class ComponentRenderData {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardMessage[]
             const merged = assetData.reduce<StandardMessage | undefined>((previous, current) => (previous ? previous.merge(current) as StandardMessage | undefined : current), undefined)
             const { description = new StandardRender([]) } = merged ?? {}
-            return {
-                dependencies: [],
-                description: {
-                    MessageId: EphemeraId,
-                    assets,
-                    rooms: assetData.map(({ rooms }) => (rooms.map((data) => (new StandardReference(data)._payload.plain.universalKey as EphemeraRoomId | undefined)))).flat(1).filter(excludeUndefined),
-                    Description: description.toJSON()
-                }
-            }
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render' },
+                { tag: 'Message', universalKey: `MESSAGE#${EphemeraId}`, rooms: [], description: { data: { tag: 'Description' }, children: description.toJSON() as GenericTree<SchemaOutputTag> } },
+            ])
         }
         if (isEphemeraMapId(EphemeraId)) {
             const assets = allAssets
@@ -339,7 +339,7 @@ export class ComponentRenderData {
                     name: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
                     exits: (mergedRoom?.exits ?? [])
                         .filter((exit) => (Boolean(merged && merged.positions.find((position) => (position.room._payload.plain.equals(exit._payload.plain.to))))))
-                        .map((exit) => ({ name: exit._payload.plain.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit._payload.plain.to.toJSON() as EphemeraRoomId })),
+                        .map((exit) => ({ description: exit._payload.plain.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit._payload.plain.to.toJSON() as EphemeraRoomId })),
                     x: position.x,
                     y: position.y
                 }
@@ -349,28 +349,32 @@ export class ComponentRenderData {
                 [],
                 { name: merged?.name?._payload?.plain?.toJSON?.() },
             ])
-            return {
-                dependencies: [],
-                description: {
-                    MapId: EphemeraId,
-                    assets,
-                    fileURL: fileURLs.reduce<string>((previous, fileURL) => (previous || fileURL), ''),
-                    rooms,
-                    ...rest
-                }
+            const mapRow: StandardMapData = {
+                tag: 'Map',
+                universalKey: EphemeraId,
+                images: [],
+                positions: merged?.positions?.map((position) => ({
+                    x: position.x,
+                    y: position.y,
+                    room: position.room._payload.plain.universalKey as EphemeraRoomId
+                })) ?? [],
+                ...rest
             }
-
+            return new StandardForm([
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                mapRow,
+                ...rooms.map((room): StandardRoomData => ({
+                    tag: 'Room',
+                    universalKey: room.roomId,
+                    exits: room.exits,
+                    shortName: room.name
+                }))
+            ])
         }
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }
 
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId, options?: ComponentRenderGetOptions): Promise<RoomDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId, options?: ComponentRenderGetOptions): Promise<FeatureDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId, options?: ComponentRenderGetOptions): Promise<KnowledgeDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId, options?: ComponentRenderGetOptions): Promise<MapDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<MessageDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem> {
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -394,55 +398,7 @@ export class ComponentRenderData {
                     }
                 })
             }
-            if (isEphemeraFeatureId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraKnowledgeId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraMessageId(EphemeraId)) {
-                this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
-                    requiredKeys: [cacheKey],
-                    transform: (fetch) => {
-                        if (typeof fetch === 'undefined') {
-                            return {}
-                        }
-                        else {
-                            return {
-                                [cacheKey]: fetch
-                            }
-                        }
-                    }
-                })
-            }
-            if (isEphemeraMapId(EphemeraId)) {
+            if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId) || isEphemeraMessageId(EphemeraId) || isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
@@ -473,22 +429,21 @@ export class ComponentRenderData {
         }
     }
 
-    set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, value: ComponentDescriptionCache) {
+    set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, value: StandardForm) {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         this._Cache.set(Infinity, cacheKey, value)
-        this._Store[cacheKey] = value.description
-        this._Dependencies[cacheKey] = value.dependencies
+        this._Store[cacheKey] = value
     }
 
     invalidateByEphemeraId(EphemeraId: StateItemId) {
-        const cacheKeysToInvalidate = Object.entries(this._Dependencies)
-            .filter(([key, dependencies]) => (dependencies.includes(EphemeraId)))
-            .map(([key]) => (key))
-        cacheKeysToInvalidate.forEach((key) => {
-            this._Cache.invalidate(key)
-            delete this._Store[key]
-            delete this._Dependencies[key]
-        })
+        // const cacheKeysToInvalidate = Object.entries(this._Dependencies)
+        //     .filter(([key, dependencies]) => (dependencies.includes(EphemeraId)))
+        //     .map(([key]) => (key))
+        // cacheKeysToInvalidate.forEach((key) => {
+        //     this._Cache.invalidate(key)
+        //     delete this._Store[key]
+        //     delete this._Dependencies[key]
+        // })
     }
 }
 

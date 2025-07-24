@@ -231,12 +231,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
-                RoomId: payload.RoomId,
-                Name: payload.Name.length ? payload.Name : payload.ShortName,
-                Description: payload.displayProtocol === 'RoomDescription' ? payload.Description : payload.Summary,
-                Characters: payload.Characters,
-                Exits: payload.Exits,
-                assets: payload.assets
+                description: payload.description
             })
         }
         if (isFeatureDescriptionPublishMessage(payload)) {
@@ -246,9 +241,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 FeatureId: payload.FeatureId,
-                Name: payload.Name,
-                Description: payload.Description,
-                assets: payload.assets
+                description: payload.description
             })
         }
         if (isKnowledgeDescriptionPublishMessage(payload)) {
@@ -258,9 +251,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 KnowledgeId: payload.KnowledgeId,
-                Name: payload.Name,
-                Description: payload.Description,
-                assets: payload.assets
+                description: payload.description
             })
         }
         if (isCharacterDescriptionPublishMessage(payload)) {
