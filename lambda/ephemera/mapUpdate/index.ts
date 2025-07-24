@@ -2,6 +2,9 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import internalCache from "../internalCache"
 import { MessageBus, MapUpdateMessage } from "../messageBus/baseClasses"
+import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: MapUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads
@@ -31,31 +34,38 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                             internalCache.ComponentRender.get(characterId, mapId)
                         ))
                     )
-                    const activeMaps = currentMapFetch
-                            .filter(({ rooms }) => (rooms[roomId]))
+                    const activeMapsById = currentMapFetch
+                        .filter((map) => (Boolean(map.byUniversalId[roomId])))
+                        .map((mapForm) => {
+                            const mapComponent = mapForm._components.find((component) => (component instanceof StandardMap)) as StandardMap | undefined
+                            return (mapComponent && mapComponent.universalKey) ? [{ mapId: mapComponent.universalKey, component: mapForm }] : []
+                        })
+                        .flat(1)
+                        .reduce((previous, { mapId, component }) => ({
+                            ...previous,
+                            [mapId]: component
+                        }), {} as Record<`MAP#${string}`, StandardMap>)
                     messageBus.send({
                         type: 'EphemeraUpdate',
                         updates: [
-                            ...activeMaps
-                                .map((mapEntry) => ({
-                                    type: 'MapUpdate' as 'MapUpdate',
+                            ...Object.entries(activeMapsById)
+                                .map(([mapId, component]) => ({
+                                    type: 'MapUpdate' as const,
                                     targets: [characterId],
                                     connectionTargets: subscribedConnections,
                                     active: true as true,
-                                    MapId: mapEntry.MapId,
-                                    name: mapEntry.name,
-                                    fileURL: mapEntry.fileURL,
-                                    rooms: mapEntry.rooms,
-                                    assets: mapEntry.assets
+                                    MapId: mapId as `MAP#${string}`,
+                                    description: schemaToWML([component.schema])
                                 })),
                             ...previousPossibleMaps
-                                .filter((mapId) => (!(activeMaps.find(({ MapId }) => (MapId === mapId)))))
+                                .filter((mapId) => (!Boolean(activeMapsById[mapId])))
                                 .map((mapId) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
                                     connectionTargets: subscribedConnections,
                                     active: false as false,
-                                    MapId: mapId,
+                                    MapId: mapId as `MAP#${string}`,
+                                    description: '<Asset key=(render) />'
                                 }))
                         ]
                     })
@@ -68,31 +78,38 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                             internalCache.ComponentRender.get(characterId, mapId)
                         ))
                     )
-                    const activeMaps = currentMapFetch
-                            .filter(({ rooms }) => (rooms[roomId]))
+                    const currentMapsById = currentMapFetch
+                        .map((mapForm) => {
+                            const mapComponent = mapForm._components.find((component) => (component instanceof StandardMap)) as StandardMap | undefined
+                            return (mapComponent && mapComponent.universalKey) ? [{ mapId: mapComponent.universalKey, component: mapForm }] : []
+                        })
+                        .flat(1)
+                        .reduce((previous, { mapId, component }) => ({
+                            ...previous,
+                            [mapId]: component
+                        }), {} as Record<`MAP#${string}`, StandardForm>)
                     messageBus.send({
                         type: 'EphemeraUpdate',
                         updates: [
-                            ...activeMaps
-                                .map((mapEntry) => ({
-                                    type: 'MapUpdate' as 'MapUpdate',
+                            ...Object.entries(currentMapsById)
+                                .filter(([_, component]) => (component.byUniversalId[roomId]))
+                                .map(([mapId, component]) => ({
+                                    type: 'MapUpdate' as const,
                                     targets: [characterId],
                                     connectionTargets: subscribedConnections,
-                                    active: true,
-                                    MapId: mapEntry.MapId,
-                                    name: mapEntry.name,
-                                    fileURL: mapEntry.fileURL,
-                                    rooms: mapEntry.rooms,
-                                    assets: mapEntry.assets
+                                    active: true as true,
+                                    MapId: mapId as `MAP#${string}`,
+                                    description: schemaToWML([component.schema])
                                 })),
-                            ...currentMapFetch
-                                .filter(({ MapId: check }) => (!(activeMaps.find(({ MapId }) => (MapId === check)))))
-                                .map(({ MapId }) => ({
+                            ...Object.entries(currentMapsById)
+                                .filter(([_, component]) => (!Boolean(component.byUniversalId[roomId])))
+                                .map(([mapId]) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
                                     connectionTargets: subscribedConnections,
                                     active: false as false,
-                                    MapId
+                                    MapId: mapId as `MAP#${string}`,
+                                    description: '<Asset key=(render) />'
                                 }))
                         ]
                     })
@@ -110,15 +127,16 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     internalCache.ComponentRender.get(characterId, mapId),
                                     internalCache.CharacterMeta.get(characterId)
                                 ])
-                                if (mapDescribe.rooms.find(({ roomId }) => (RoomId === roomId))) {
+                                if (mapDescribe.byUniversalId[RoomId]) {
                                     messageBus.send({
                                         type: 'EphemeraUpdate',
                                         updates: [{
-                                            type: 'MapUpdate',
+                                            type: 'MapUpdate' as const,
                                             targets: [characterId],
                                             connectionTargets: subscribedConnections,
                                             active: true,
-                                            ...mapDescribe
+                                            MapId: mapId as `MAP#${string}`,
+                                            description: schemaToWML([mapDescribe.schema]),
                                         }]
                                     })
                                 }

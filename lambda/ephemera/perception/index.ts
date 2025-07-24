@@ -7,9 +7,7 @@ import {
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { ComponentMetaItem } from "../internalCache/componentMeta"
 import { isStandardMessage, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { isSchemaLink, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
@@ -61,15 +59,18 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageForm.byUniversalId[characterMeta.RoomId]) {
-                        const messageItem = messageForm._components.find((item) => (item instanceof StandardMessage))
+                        const messageItem = messageForm._components.find((item) => (item instanceof StandardMessage)) as StandardMessage | undefined
                         if (messageItem) {
-                            messageBus.send({
-                                type: 'PublishMessage',
-                                targets: [characterId],
-                                displayProtocol: 'WorldMessage',
-                                message: messageItem.description?.toJSON() ?? [],
-                                messageGroupId: payload.messageGroupId
-                            })
+                            const message = messageItem.description?.toJSON()
+                            if (message) {
+                                messageBus.send({
+                                    type: 'PublishMessage',
+                                    targets: [characterId],
+                                    displayProtocol: 'WorldMessage',
+                                    message: messageItem.description?.toJSON() ?? [],
+                                    messageGroupId: payload.messageGroupId
+                                })
+                            }
                         }
                     }
                 }
