@@ -31,18 +31,12 @@ const currentWML = `
             Vortex
             <Link to=(toggleOpen)>(toggle)</Link>
         </Description>
+        <Exit to=(DEF)>welcome</Exit>
     </Room>
-    <If {open}>
-        <Room key=(ABC)>
-            <Exit to=(DEF)>welcome</Exit>
-        </Room>
-    </If>
     <Room key=(DEF)>
         <Name>Welcome</Name>
         <Exit to=(ABC)>vortex</Exit>
     </Room>
-    <Variable key=(open) default={false} />
-    <Action key=(toggleOpen) src={open = !open} />
 </Asset>
 `
 const schemaConvert = new Schema()
@@ -68,7 +62,7 @@ const store = mockStore({
                     base: standardForm.toJSON(),
                     edit: {
                         ...standardForm.toJSON(),
-                        byId: {}
+                        components: []
                     },
                     pendingEdits: [],
                     standard: standardForm.toJSON(),
