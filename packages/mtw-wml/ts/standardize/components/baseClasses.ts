@@ -50,4 +50,5 @@ export interface StandardComponent {
     referenceData: StandardReferenceData;
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
     withChild(child: StandardReference): StandardComponent;
+    withImport(fromAsset: AssetUUID): StandardComponent;
 }

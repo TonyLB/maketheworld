@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
 import { removeNDJSONOnlyProperties } from "../utils";
-import { ComponentUUID, isSchemaComponentTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, isSchemaComponentTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
@@ -131,6 +131,12 @@ export class StandardRemove implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = this._match.withFileName(key)
         returnValue._key = new StandardKey(this._match._key)
+        return returnValue
+    }
+
+    withImport(fromAsset: AssetUUID): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._match._from = fromAsset
         return returnValue
     }
 
@@ -313,6 +319,14 @@ export class StandardReplace implements StandardComponent {
         returnValue._key = new StandardKey(this._match._key)
         return returnValue
     }
+
+    withImport(fromAsset: AssetUUID): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._match._from = fromAsset
+        returnValue._payload._from = fromAsset
+        return returnValue
+    }
+
 
     withChild(): StandardComponent {
         return this.clone()        

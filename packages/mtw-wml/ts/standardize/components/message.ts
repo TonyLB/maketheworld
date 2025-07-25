@@ -9,7 +9,7 @@ import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat,
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
-import { ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -146,6 +146,10 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withMapping(mapping) as StandardMessage)
     }
 
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardMessage(super.withImport(fromAsset) as StandardMessage)
+    }
+    
 }
 
 export default StandardMessage

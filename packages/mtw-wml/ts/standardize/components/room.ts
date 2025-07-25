@@ -10,7 +10,7 @@ import { assureItemInReferenceList, childReferenceFactory, exitReferenceKeys, ma
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
@@ -230,6 +230,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardRoom(super.withMapping(mapping) as StandardRoom)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardRoom(super.withImport(fromAsset) as StandardRoom)
     }
 
 }

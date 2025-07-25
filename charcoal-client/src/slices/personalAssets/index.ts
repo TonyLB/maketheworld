@@ -286,14 +286,14 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
         update: (draft: StandardForm) => {
             if (uuid in draft.byUniversalId) {
                 const newComponent = draft.byUniversalId[uuid].clone()
-                draft.byUniversalId[uuid] = newComponent.withImport(new ImportItemContent(fromAsset, uuid))
+                draft.byUniversalId[uuid] = newComponent.withImport(fromAsset)
             }
             else {
                 const component = standardComponentByTag(tag, uuid)
                 if (!component) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }
-                draft.byUniversalId[uuid] = component.withImport(new ImportItemContent(fromAsset, uuid))
+                draft.byUniversalId[uuid] = component.withImport(fromAsset))
             }
             return draft
         },

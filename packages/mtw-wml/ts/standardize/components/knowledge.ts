@@ -9,7 +9,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
@@ -146,6 +146,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withMapping(mapping) as StandardKnowledge)
     }
 
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardKnowledge(super.withImport(fromAsset) as StandardKnowledge)
+    }
+    
 }
 
 export default StandardKnowledge

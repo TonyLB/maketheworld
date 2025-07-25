@@ -3,7 +3,7 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
 import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { deepEqual } from "../../lib/objects"
@@ -146,6 +146,10 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardMoment(super.withMapping(mapping) as StandardMoment)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardMoment(super.withImport(fromAsset) as StandardMoment)
     }
 
 }

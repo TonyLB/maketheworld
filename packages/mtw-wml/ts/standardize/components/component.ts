@@ -267,5 +267,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             return returnValue
         }
+
+        withImport(fromAsset: AssetUUID): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._from = fromAsset
+            return returnValue
+        }
     }
 }
