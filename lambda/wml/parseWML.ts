@@ -49,7 +49,7 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
             imageFiles.forEach(({ key, fileName }) => {
                 const imageComponent = newStandard.byId[key]
                 if (imageComponent instanceof StandardImage) {
-                    newStandard._byId[key] = imageComponent.withFileName(fileName)
+                    newStandard.byUniversalId[key] = imageComponent.withFileName(fileName)
                 }
             })
             assetWorkspace.standard = newStandard

@@ -134,8 +134,7 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        delete draft._byId['testRoom.base']
-                        delete draft._byId['testRoom']
+                        draft._components = draft._components.filter((component) => (component.key !== 'testRoom.base' && component.key !== 'testRoom'))
                         return draft
                     }
                 }
