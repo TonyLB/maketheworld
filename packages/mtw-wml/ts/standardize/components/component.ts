@@ -187,6 +187,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         //
+        // The equals method should often be overridden at the specific component level,
+        // if there is simplified processing, or if the component includes references that
+        // can be equal (semantically) without being identical.
+        //
+        equals(incoming: StandardComponent): boolean {
+            return deepEqual(this.toJSON(), incoming.toJSON())
+        }
+
+        //
         // The merge method at this level does *not* cope with edit-tags like Replace and Remove.
         // That functionality is handled at the StandardForm level: Merge at the Component level
         // is strictly for merging the content of two non-edit Components. It will, however, merge

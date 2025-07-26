@@ -126,6 +126,13 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return base
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardKnowledge)) {
+            return false
+        }
+        return !(diffStandardReferenceList({ base: this.examples, incoming: incoming.examples }).length)
+    }
+    
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
     }

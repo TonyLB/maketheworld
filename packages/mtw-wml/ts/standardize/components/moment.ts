@@ -114,6 +114,13 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return returnValue
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardMoment)) {
+            return false
+        }
+        return !(diffStandardReferenceList({ base: this.messages, incoming: incoming.messages }).length)
+    }
+
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMoment(super.merge(incoming) as StandardMoment)
     }

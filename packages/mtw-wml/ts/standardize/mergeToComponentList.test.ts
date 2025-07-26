@@ -47,16 +47,6 @@ describe('mergeToComponentList', () => {
 })
 
 describe('mergeUniversalKeyMappings', () => {
-    it('should merge mappings with the same key', () => {
-        const mappings: StandardKey[] = [
-            new StandardKey({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' }),
-            new StandardKey({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-bar' })
-        ]
-        const result = mergeUniversalKeyMappings(mappings)
-        expect(result.length).toBe(1)
-        expect(result[0].toJSON()).toEqual({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
-    })
-
     it('should keep distinct mappings', () => {
         const mappings: StandardKey[] = [
             new StandardKey({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' }),

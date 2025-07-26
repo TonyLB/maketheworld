@@ -13,9 +13,10 @@ import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mt
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import StandardReference, { StandardKey } from "./reference"
+import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
+import { deepEqual } from "../../lib/objects"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;
@@ -126,6 +127,13 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return returnValue
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardMessage)) {
+            return false
+        }
+        return !(diffStandardReferenceList({ base: this.rooms, incoming: incoming.rooms }).length) &&
+            deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
+    }
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMessage(super.merge(incoming) as StandardMessage)
     }

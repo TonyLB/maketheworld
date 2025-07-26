@@ -123,6 +123,13 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return base
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardFeature)) {
+            return false
+        }
+        return !(diffStandardReferenceList({ base: this.examples, incoming: incoming.examples }).length)
+    }
+
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardFeature(super.merge(incoming) as StandardFeature)
     }

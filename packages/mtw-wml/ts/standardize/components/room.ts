@@ -192,6 +192,16 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return returnValue
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardRoom)) {
+            return false
+        }
+        return !(diffStandardReferenceList({ base: this.features, incoming: incoming.features }).length) &&
+            !(diffStandardReferenceList({ base: this.examples, incoming: incoming.examples }).length) &&
+            !(diffStandardExitList(this.exits, incoming.exits).length) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
+    }
+
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardRoom(super.merge(incoming) as StandardRoom)
     }
