@@ -2,6 +2,8 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { PayloadDataType, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { isSchemaTreeNode } from "../../schema";
 import { excludeUndefined } from "../../lib/lists";
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 interface EditableListItem<D extends StandardEditablePayload<any>> extends StandardEditableWrapper<D> {
     sameKey(other: this): boolean;
@@ -55,6 +57,10 @@ export const editableListClassFactory = <D extends StandardEditablePayload<any>,
             })
         }
 
+        get schema(): GenericTree<SchemaTag> {
+            return this._items.map(item => item.schema).flat(1).filter(isSchemaTreeNode)
+        }
+
         clone(): EditableList<D> {
             return new GeneratedEditableListClass(this)
         }
@@ -80,6 +86,26 @@ export const editableListClassFactory = <D extends StandardEditablePayload<any>,
             ].filter(excludeUndefined))
         }
 
-        diff() { return this }
+        diff(other: EditableList<D>): EditableList<D> | undefined {
+            if (!(other instanceof GeneratedEditableListClass)) {
+                throw new Error(`Cannot diff with non-${label} instance`)
+            }
+            const unmatchedBaseItems = this._items.filter(item => !other._items.some(otherItem => item.sameKey(otherItem)))
+            const matchedOtherItems: { base: EditableListItem<D>, incoming: EditableListItem<D> }[] = other._items.map((incoming) => {
+                    const base = this._items.find(item => item.sameKey(incoming))
+                    if (base) {
+                        return { incoming, base }
+                    }
+                    return { incoming, base: undefined }
+                })
+                .filter((value): value is { base: EditableListItem<D>, incoming: EditableListItem<D> } => typeof value.base !== 'undefined')
+            const unmatchedOtherItems = other._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+            return new GeneratedEditableListClass([
+                ...unmatchedBaseItems.map(item => item.invert()),
+                ...matchedOtherItems.map(({ base, incoming }) => (base.diff(incoming))),
+                ...unmatchedOtherItems
+            ].filter(excludeUndefined))
+        }
+
     }
 }

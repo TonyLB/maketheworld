@@ -12,6 +12,14 @@ describe('editableListClassFactory', () => {
             }
             return undefined
         }
+
+        override diff(other: ReferenceList): ReferenceList | undefined {
+            const diffed = super.diff(other)
+            if (diffed) {
+                return diffed as ReferenceList
+            }
+            return undefined
+        }
     }
 
     it('should construct an empty list', () => {
@@ -118,6 +126,28 @@ describe('editableListClassFactory', () => {
         if (merged) {
             expect(merged._items.length).toBe(2)
             expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { tag: 'Remove', match: 'FEATURE#toReplace' }])
+        }
+    })
+
+    it('should diff simple items', () => {
+        const base = new ReferenceList(['ROOM#test', 'FEATURE#toRemove'])
+        const toDiff = new ReferenceList([{ key: 'featureTest', tag: 'Feature' }, 'ROOM#test'])
+        const diffed = base.diff(toDiff)
+        expect(diffed).toBeDefined()
+        if (diffed) {
+            expect(diffed._items.length).toBe(2)
+            expect(diffed._items.map(item => item.toJSON())).toEqual([{ tag: 'Remove', match: 'FEATURE#toRemove' }, { key: 'featureTest', tag: 'Feature' }])
+        }
+    })
+
+    it('should diff base removes', () => {
+        const base = new ReferenceList([{ tag: 'Remove', match: 'FEATURE#toRemove' }])
+        const toDiff = new ReferenceList([])
+        const diffed = base.diff(toDiff)
+        expect(diffed).toBeDefined()
+        if (diffed) {
+            expect(diffed._items.length).toBe(1)
+            expect(diffed._items.map(item => item.toJSON())).toEqual(['FEATURE#toRemove'])
         }
     })
 })
