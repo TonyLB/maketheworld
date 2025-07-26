@@ -5,16 +5,18 @@ import { excludeUndefined } from "../../lib/lists";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
-interface EditableListItem<D extends StandardEditablePayload<any>> extends StandardEditableWrapper<D> {
+export interface EditableListItem<D extends StandardEditablePayload<any>> extends StandardEditableWrapper<D> {
     sameKey(other: this): boolean;
     invert(): this;
 }
 
-interface EditableList<D extends StandardEditablePayload<any>> {
+export interface EditableList<D extends StandardEditablePayload<any>> {
     toJSON(): StandardEditableData<PayloadDataType<D>>[];
     clone(): EditableList<D>;
     merge(other: EditableList<D>): EditableList<D> | undefined;
     diff(other: EditableList<D>): EditableList<D> | undefined;
+    assureItem(item: EditableListItem<D>): EditableList<D>;
+    map(callback: (item: EditableListItem<D>) => EditableListItem<D>): EditableList<D>;
 }
 
 export const editableListClassFactory = <D extends StandardEditablePayload<any>, TBase extends new (...args: any[]) => EditableListItem<D>>(Base: TBase, label: string) => {
@@ -65,6 +67,12 @@ export const editableListClassFactory = <D extends StandardEditablePayload<any>,
             return new GeneratedEditableListClass(this)
         }
 
+        map(callback: (item: EditableListItem<D>) => EditableListItem<D>): EditableList<D> {
+            const returnValue = this.clone() as unknown as GeneratedEditableListClass
+            returnValue._items = this._items.map(callback)
+            return returnValue
+        }
+
         merge(other: EditableList<D>): EditableList<D> | undefined {
             if (!(other instanceof GeneratedEditableListClass)) {
                 throw new Error(`Cannot merge with non-${label} instance`)
@@ -105,6 +113,15 @@ export const editableListClassFactory = <D extends StandardEditablePayload<any>,
                 ...matchedOtherItems.map(({ base, incoming }) => (base.diff(incoming))),
                 ...unmatchedOtherItems
             ].filter(excludeUndefined))
+        }
+
+        assureItem(item: InstanceType<TBase>): EditableList<D> {
+            if (!this._items.some(existingItem => existingItem.sameKey(item))) {
+                const returnValue = this.clone() as GeneratedEditableListClass
+                returnValue._items = [...returnValue._items, item]
+                return returnValue
+            }
+            return this;
         }
 
     }

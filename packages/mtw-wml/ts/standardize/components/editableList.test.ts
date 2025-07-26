@@ -20,6 +20,10 @@ describe('editableListClassFactory', () => {
             }
             return undefined
         }
+
+        get payload(): StandardReference[] {
+            return this._items as unknown as StandardReference[];
+        }
     }
 
     it('should construct an empty list', () => {
@@ -53,6 +57,12 @@ describe('editableListClassFactory', () => {
         expect(instance).toBeInstanceOf(ReferenceList)
         expect(instance._items.length).toBe(2)
         expect(instance._items.map(item => item.toJSON())).toEqual([{ key: 'featureTest', tag: 'Feature' }, 'ROOM#test'])
+    })
+
+    it('should return payload', () => {
+        const jsonData = ['ROOM#test', { key: 'featureTest', tag: 'Feature' }]
+        const instance = new ReferenceList(jsonData)
+        expect(instance.payload.map(item => item.toJSON())).toEqual(jsonData)
     })
 
     it('should merge simple items', () => {

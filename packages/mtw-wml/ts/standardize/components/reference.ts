@@ -3,12 +3,11 @@ import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } fr
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { unique } from "../../list";
 import { excludeUndefined } from "../../lib/lists";
-import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { mergeUniqueReferences, ReferenceFormat } from "./utils/references";
+import { editableListClassFactory, EditableListItem } from "./editableList";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -628,5 +627,42 @@ export const diffStandardReferenceList = ({ base, incoming }: DiffStandardRefere
     const allKeys = mergeUniqueReferences([...base, ...incoming])
     return allKeys.map(key => diffReference(base.find(reference => reference.equal(key)), incoming.find(reference => reference.equal(key)))).filter(excludeUndefined)
 }
+
+export class ReferenceList extends editableListClassFactory<StandardEditablePayload<StandardReferenceData>, any>(StandardReference as any, 'ReferenceList') {
+    override merge(other: ReferenceList): ReferenceList | undefined {
+        const merged = super.merge(other)
+        if (merged) {
+            return new ReferenceList(merged)
+        }
+        return undefined
+    }
+
+    override diff(other: ReferenceList): ReferenceList | undefined {
+        const diffed = super.diff(other)
+        if (diffed) {
+            return new ReferenceList(diffed)
+        }
+        return undefined
+    }
+
+    override clone(): ReferenceList {
+        return new ReferenceList(super.clone())
+    }
+
+    get payload(): StandardReference[] {
+        return this._items as unknown as StandardReference[];
+    }
+
+    override assureItem(item): ReferenceList {
+        const assured = super.assureItem(item as any)
+        return new ReferenceList(assured)
+    }
+
+    override map(callback: (item: EditableListItem<StandardEditablePayload<StandardReferenceData>>) => EditableListItem<StandardEditablePayload<StandardReferenceData>>): ReferenceList {
+        const mapped = super.map(callback)
+        return new ReferenceList(mapped)
+    }
+}
+
 
 export default StandardReference

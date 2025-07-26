@@ -13,7 +13,7 @@ export type StandardRoomData = {
     shortName?: StandardEditableData<string>;
     exits: StandardEditableData<StandardExitData>[];
     features?: (StandardReferenceData | StandardRemoveData)[];
-    examples?: (StandardReferenceData | StandardRemoveData)[];
+    examples?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
 export const isStandardRoom = (arg: any): arg is StandardRoomData => {

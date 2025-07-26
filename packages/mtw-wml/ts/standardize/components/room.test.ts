@@ -42,7 +42,7 @@ describe('StandardRoom class', () => {
         const testRoom = new StandardRoom(schema.schema[0])
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
-        expect(testRoom.examples.map((example) => example.toJSON())).toEqual(['EXAMPLE#base'])
+        expect(testRoom.examples.toJSON()).toEqual(['EXAMPLE#base'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
