@@ -2,15 +2,11 @@ import { vi } from 'vitest'
 import { addImport } from "."
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { update } from 'react-spring'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const schema = new Schema()
 schema.loadWML(`<Asset key=(testAsset)>
-    <Import from=(testImport)>
-        <Room key=(testRoom) />
-    </Import>
-    <Room key=(testRoom)><Name>: imported</Name></Room>
+    <Room uuid=(testRoom) from=(ASSET#testImport)><Name>: imported</Name></Room>
 </Asset>`)
 const standard = new StandardForm(schema.schema[0])
 
@@ -32,8 +28,8 @@ describe('personalAssets slice', () => {
         it('should no-op on a repeated import', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
-                fromAsset: 'testImport',
-                key: 'testRoom',
+                fromAsset: 'ASSET#testImport',
+                uuid: 'ROOM#testRoom',
                 tag: 'Room'
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
@@ -53,8 +49,8 @@ describe('personalAssets slice', () => {
         it('should add children on an import from same asset', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
-                fromAsset: 'testImport',
-                key: 'testRoomTwo',
+                fromAsset: 'ASSET#testImport',
+                uuid: 'ROOM#testRoomTwo',
                 tag: 'Room'
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
@@ -72,7 +68,7 @@ describe('personalAssets slice', () => {
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Import from=(testImport)><Room key=(testRoomTwo) /></Import>
+                        <Room uuid=(testRoomTwo) from=(ASSET#testImport) />
                     </Asset>
                 `))
             }
@@ -81,8 +77,8 @@ describe('personalAssets slice', () => {
         it('should return new import item on an import from different asset', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
-                fromAsset: 'testImportTwo',
-                key: 'testRoomTwo',
+                fromAsset: 'ASSET#testImportTwo',
+                uuid: 'ROOM#testRoomTwo',
                 tag: 'Room'
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
@@ -100,7 +96,7 @@ describe('personalAssets slice', () => {
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Import from=(testImportTwo)><Room key=(testRoomTwo) /></Import>
+                        <Room uuid=(testRoomTwo) from=(ASSET#testImportTwo) />
                     </Asset>
                 `))
             }

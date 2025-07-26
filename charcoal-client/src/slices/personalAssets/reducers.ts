@@ -144,6 +144,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             mergeToEdit(renameDiff)
         }
     }
+    console.log(`Update standard end`)
 }
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
