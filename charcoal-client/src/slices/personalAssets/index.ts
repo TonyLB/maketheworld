@@ -43,7 +43,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 const autoSaveDebounce = new Debounce()
 
@@ -277,7 +277,7 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
 
 export const addImport = ({ assetId, fromAsset, uuid, tag }: {
     assetId: EphemeraAssetId | EphemeraCharacterId,
-    fromAsset: string,
+    fromAsset: AssetUUID,
     tag: SchemaImportMapping["type"];
     uuid: ComponentUUID
 }, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
@@ -293,7 +293,7 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
                 if (!component) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }
-                draft.byUniversalId[uuid] = component.withImport(fromAsset))
+                draft.byUniversalId[uuid] = component.withImport(fromAsset)
             }
             return draft
         },
