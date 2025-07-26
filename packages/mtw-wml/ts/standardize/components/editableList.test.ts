@@ -4,7 +4,15 @@ import StandardRoom from './room'
 import StandardFeature from './feature'
 
 describe('editableListClassFactory', () => {
-    const ReferenceList = editableListClassFactory(StandardReference as any, 'TestEditableList');
+    class ReferenceList extends editableListClassFactory(StandardReference as any, 'TestEditableList') {
+        override merge(other: ReferenceList): ReferenceList | undefined {
+            const merged = super.merge(other)
+            if (merged) {
+                return merged as ReferenceList
+            }
+            return undefined
+        }
+    }
 
     it('should construct an empty list', () => {
         const instance = new ReferenceList([])
@@ -29,5 +37,79 @@ describe('editableListClassFactory', () => {
         expect(instance).toBeInstanceOf(ReferenceList)
         expect(instance._items.length).toBe(2)
         expect(instance._items.map(item => item.toJSON())).toEqual(['ROOM#test', { key: 'featureTest', tag: 'Feature' }])
+    })
+
+    it('should merge simple items', () => {
+        const base = new ReferenceList(['ROOM#test'])
+        const toMerge = new ReferenceList([{ key: 'featureTest', tag: 'Feature' }])
+        const merged = base.merge(toMerge)
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged._items.length).toBe(2)
+            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { key: 'featureTest', tag: 'Feature' }])
+        }
+    })
+
+    it('should merge incoming removes', () => {
+        const base = new ReferenceList(['ROOM#test', 'FEATURE#toRemove'])
+        const toMerge = new ReferenceList([
+            { tag: 'Remove', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toRemove' } },
+            { tag: 'Remove', match: { key: 'unmatched', tag: 'Room' } }
+        ])
+        const merged = base.merge(toMerge)
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged._items.length).toBe(2)
+            expect(merged._items.map(item => item.toJSON())).toEqual([
+                'ROOM#test',
+                { tag: 'Remove', match: { key: 'unmatched', tag: 'Room' } }
+            ])
+        }
+    })
+
+    it('should merge into base removes', () => {
+        const base = new ReferenceList([
+            'ROOM#test',
+            { tag: 'Remove', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#removed' } }
+        ])
+        const toMerge = new ReferenceList(['FEATURE#removed'])
+        const merged = base.merge(toMerge)
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged._items.length).toBe(1)
+            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test'])
+        }
+    })
+
+    it('should merge incoming replaces', () => {
+        const base = new ReferenceList([
+            'ROOM#test',
+            'FEATURE#toReplace'            
+        ])
+        const toMerge = new ReferenceList([
+            { tag: 'Replace', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toReplace' }, payload: { key: 'newFeature', tag: 'Feature' } }
+        ])
+        const merged = base.merge(toMerge)
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged._items.length).toBe(2)
+            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { key: 'newFeature', tag: 'Feature' }])
+        }
+    })
+
+    it('should merge removes into base replaces', () => {
+        const base = new ReferenceList([
+            'ROOM#test',
+            { tag: 'Replace', match: 'FEATURE#toReplace', payload: { key: 'newFeature', tag: 'Feature' } }
+        ])
+        const toMerge = new ReferenceList([
+            { tag: 'Remove', match: { key: 'newFeature', tag: 'Feature' } }
+        ])
+        const merged = base.merge(toMerge)
+        expect(merged).toBeDefined()
+        if (merged) {
+            expect(merged._items.length).toBe(2)
+            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { tag: 'Remove', match: 'FEATURE#toReplace' }])
+        }
     })
 })

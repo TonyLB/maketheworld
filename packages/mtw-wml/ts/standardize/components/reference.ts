@@ -151,10 +151,13 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
     throw new Error('Invalid argument in StandardKey constructor')
 }
 
-export const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
+export const standardReferenceDeserialize = (incoming: StandardReferenceData): Exclude<StandardReferenceData, string> => {
     if (typeof incoming === 'string') {
+        if (!isSchemaComponentUUID(incoming)) {
+            throw new Error('Invalid StandardReferenceData passed to standardReferenceSerialize')
+        }
         const [upcaseTag] = incoming.split('#')
-        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming } as StandardReferenceData
+        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming }
     }
     return incoming;
 }
@@ -170,7 +173,10 @@ export const standardReferenceSerialize = (incoming: StandardReferenceData): Sta
     if (key) {
         return incoming
     }
-    return `${tag.toUpperCase()}#${universalKey}`
+    if (!universalKey) {
+        throw new Error('StandardReferenceData must have a universalKey or key')
+    }
+    return universalKey
 }
 
 const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardReferenceData): StandardReferenceData => {
@@ -178,16 +184,23 @@ const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardRef
 }
 
 const standardReferenceSubtract = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: string, remove?: string } => {
-    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+    const baseDeserialized = standardReferenceDeserialize(base)
+    const incomingDeserialized = standardReferenceDeserialize(incoming)
+    if ((baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key) ||
+        (baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey)) {
         return { add: undefined, remove: undefined }
     }
     else {
+        console.log(`Conflict in subtract operation: base=${JSON.stringify(base)}, incoming=${JSON.stringify(incoming)}`)
         throw new MergeConflictError('Conflict during subtract operation')
     }
 }
 
 const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: StandardReferenceData, remove?: StandardReferenceData } => {
-    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+    const baseDeserialized = standardReferenceDeserialize(base)
+    const incomingDeserialized = standardReferenceDeserialize(incoming)
+    if ((baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key) ||
+        (baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey)) {
         return { add: undefined, remove: undefined }
     }
     else {
@@ -542,7 +555,26 @@ export class StandardReference {
     }
 
     sameKey(other: StandardReference): boolean {
-        return this._payload.plain.equals(other._payload.plain)
+        //
+        // sameKey is NOT commutative: In the case of a replace, it checks the base against its payload, and
+        // the incoming comparator against its match.
+        //
+        const thisKey = this._payload instanceof StandardReferenceReplace ? this._payload.payload : this._payload.plain
+        const otherKey = other._payload instanceof StandardReferenceReplace ? other._payload.match : other._payload.plain
+        return thisKey.equals(otherKey)
+    }
+
+    invert(): StandardReference {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return new StandardReference(new StandardReferenceRemove(this._payload.payload))
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceSimple(this._payload.match))
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace(this._payload.payload, this._payload.match))
+        }
+        throw new Error('Invalid StandardReference payload for invert')
     }
 }
 
