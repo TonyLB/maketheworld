@@ -36,6 +36,7 @@ import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardVariable from "./components/variable"
+import StandardExample from "./components/example"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardRemove) ||
@@ -50,6 +51,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMessage) ||
         (value instanceof StandardMoment) ||
         (value instanceof StandardRoom) ||
+        (value instanceof StandardExample) ||
         (value instanceof StandardVariable)
 }
 

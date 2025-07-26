@@ -1117,8 +1117,8 @@ describe('StandardForm', () => {
     it('should merge edit value tags correctly', () => {
         const inherited = new StandardForm(`
             <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                <Room uuid=(testRoomOne)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Lobby</Name>
                         <Description>A plain lobby.</Description>
                     </Example>
@@ -1127,8 +1127,8 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                <Room uuid=(testRoomOne)>
+                    <Example uuid=(testRoomOneBase)>
                         <Replace><Name>Lobby</Name></Replace>
                         <With><Name>Darkened lobby</Name></With>
                     </Example>
@@ -1137,8 +1137,8 @@ describe('StandardForm', () => {
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
+                <Room uuid=(testRoomOne)>
+                    <Example uuid=(testRoomOneBase)>
                         <Name>Darkened lobby</Name>
                         <Description>A plain lobby.</Description>
                     </Example>
