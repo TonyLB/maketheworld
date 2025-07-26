@@ -38,7 +38,7 @@ describe('personalAssets slice', () => {
             })
             const base = new StandardForm(`
                 <Asset key=(testAsset)>
-                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                    <Room uuid=(testRoom) from=(ASSET#testImport) />
                 </Asset>
             `)
             const diff = base.diff(overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone()))
