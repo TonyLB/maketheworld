@@ -13,7 +13,7 @@ import { applyTreeCallbackToNode } from "./utils/mapContents"
 import { combineTaggedChildren } from "./utils/merge"
 import { ReferenceFormat } from "./utils/references"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
 import { StandardKey } from "./reference"
@@ -165,6 +165,11 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardMap(super.withMapping(mapping) as StandardMap)
     }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardMap(super.withImport(fromAsset) as StandardMap)
+    }
+
 }
 
 export default StandardMap

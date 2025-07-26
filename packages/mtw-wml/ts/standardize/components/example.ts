@@ -9,7 +9,7 @@ import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
-import { ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -194,6 +194,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardExample(super.withMapping(mapping) as StandardExample)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardExample(super.withImport(fromAsset) as StandardExample)
     }
 
 }

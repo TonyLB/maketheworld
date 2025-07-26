@@ -9,6 +9,7 @@ import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptio
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
+import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -127,12 +128,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
             return previous.merge(editStandardized)
         }, base).merge(new StandardForm(state.edit))
         const componentRemoved = localStandardForm._clone()
-        delete componentRemoved._byId[payload.componentKey]
-        Object.keys(componentRemoved.byId)
-            .filter((key) => (key.startsWith(`${payload.componentKey}.`)))
-            .forEach((key) => {
-                delete componentRemoved._byId[key]
-            })
+        componentRemoved._components = componentRemoved._components.filter((component) => (
+            component.universalKey !== payload.componentKey &&
+            !(component._key.context ?? []).some((contextItem) => (contextItem.equals(new StandardKey(payload.componentKey))))
+        ))
         const diff = localStandardForm.diff(componentRemoved)
         if (diff) {
             mergeToEdit(diff)
@@ -168,6 +167,6 @@ export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadActi
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
     state.pendingEdits = [...state.pendingEdits, { meta: { tag: 'Meta', key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
-    state.edit.byId = {}
+    state.edit.components = []
     state.edit.metaData = []
 }

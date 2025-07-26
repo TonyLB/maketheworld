@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
 import { StandardKey } from "./reference";
 
@@ -81,6 +81,10 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withMapping(mapping) as StandardImage)
     }
 
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardImage(super.withImport(fromAsset) as StandardImage)
+    }
+    
 }
 
 export default StandardImage

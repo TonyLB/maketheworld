@@ -9,7 +9,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
@@ -143,6 +143,10 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withMapping(mapping) as StandardFeature)
     }
 
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardFeature(super.withImport(fromAsset) as StandardFeature)
+    }
+    
 }
 
 export default StandardFeature

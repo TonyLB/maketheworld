@@ -24,7 +24,7 @@ import {
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addAsset, getPlayer } from '../player'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -41,9 +41,9 @@ import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
-import { ImportItemContent } from '@tonylb/mtw-wml/ts/standardize/components/metaData'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 const autoSaveDebounce = new Debounce()
 
@@ -67,10 +67,10 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            base: { key: '', byId: {}, metaData: [] },
+            base: { key: '', components: [], metaData: [] },
             pendingEdits: [],
-            edit: { key: '', byId: {}, metaData: [] },
-            inherited: { key: '', byId: {}, metaData: [] }
+            edit: { key: '', components: [], metaData: [] },
+            inherited: { key: '', components: [], metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -94,10 +94,10 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                base: { key: '', byId: {}, metaData: [] },
+                base: { key: '', components: [], metaData: [] },
                 pendingEdits: [],
-                edit: { key: '', byId: {}, metaData: [] },
-                inherited: { key: '', byId: {}, metaData: [] }
+                edit: { key: '', components: [], metaData: [] },
+                inherited: { key: '', components: [], metaData: [] }
             }
         },
         states: {
@@ -258,7 +258,7 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload) 
 export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
     const state = getState()
     const edit = selectors.getEdit(key)(state)
-    if (Object.values(edit.byId).filter(excludeUndefined).length && isEphemeraAssetId(key)) {
+    if (edit.components.filter(excludeUndefined).length && isEphemeraAssetId(key)) {
         const player = getPlayer(state).PlayerName
         const adjustedKey: EphemeraAssetId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
         const internalKey = key === 'ASSET#draft' ? 'draft' : key.split('#').slice(1).join('#')
@@ -275,26 +275,25 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     }
 }
 
-export const addImport = ({ assetId, fromAsset, as, key, tag }: {
+export const addImport = ({ assetId, fromAsset, uuid, tag }: {
     assetId: EphemeraAssetId | EphemeraCharacterId,
-    fromAsset: string,
+    fromAsset: AssetUUID,
     tag: SchemaImportMapping["type"];
-    key: string;
-    as?: string;
+    uuid: ComponentUUID
 }, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
-            const componentKey = as ?? key
-            if (key in draft.byId) {
-                draft._byId[componentKey] = draft.byId[componentKey].withImport(new ImportItemContent(fromAsset, key))
+            if (uuid in draft.byUniversalId) {
+                const newComponent = draft.byUniversalId[uuid].clone()
+                draft.byUniversalId[uuid] = newComponent.withImport(fromAsset)
             }
             else {
-                const component = standardComponentByTag(tag, componentKey)
+                const component = standardComponentByTag(tag, uuid)
                 if (!component) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }
-                draft._byId[componentKey] = component.withImport(new ImportItemContent(fromAsset, key))
+                draft.byUniversalId[uuid] = component.withImport(fromAsset)
             }
             return draft
         },
@@ -304,11 +303,11 @@ export const addImport = ({ assetId, fromAsset, as, key, tag }: {
     dispatch(heartbeat)
 }
 
-export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: string }) => async (dispatch: any, getState: any) => {
+export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: ComponentUUID }) => async (dispatch: any, getState: any) => {
     const standardSelector = getStandardForm(assetId)
     const standard = standardSelector(getState())
 
-    const roomComponent = standard.byId[roomId]
+    const roomComponent = standard.components.find((component) => component.universalKey === roomId)
 
     if (roomComponent && isStandardRoom(roomComponent)) {
         const name = typeof roomComponent.shortName === 'string' ? roomComponent.shortName : ''

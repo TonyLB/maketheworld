@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardComputedData } from "./dataTypes/computed"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardKey } from "./reference";
 
@@ -98,6 +98,10 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         return new StandardComputed(super.withMapping(mapping) as StandardComputed)
     }
 
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardComputed(super.withImport(fromAsset) as StandardComputed)
+    }
+    
 }
 
 export default StandardComputed

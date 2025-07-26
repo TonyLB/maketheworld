@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardVariableData } from "./dataTypes/variable"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardKey } from "./reference";
 
@@ -90,6 +90,10 @@ export class StandardVariable extends componentClassFactory(StandardVariablePayl
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardVariable(super.withMapping(mapping) as StandardVariable)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardVariable(super.withImport(fromAsset) as StandardVariable)
     }
 
 }

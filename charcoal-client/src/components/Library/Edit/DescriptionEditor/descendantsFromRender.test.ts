@@ -1,7 +1,7 @@
 import descendantsFromRender from "./descendantsFromRender"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
-const stubStandard: StandardForm = new StandardForm({ key: '', byId: {}, metaData: [] })
+const stubStandard: StandardForm = new StandardForm({ key: '', components: [], metaData: [] })
 
 describe('descendantsFromRender', () => {
     it('should return an empty paragraph from empty list', () => {
@@ -16,14 +16,11 @@ describe('descendantsFromRender', () => {
         ], {
             standard: new StandardForm({
                 key: '',
-                byId: {
-                    testFeature: {
-                        tag: 'Feature',
-                        key: 'testFeature',
-                        name: { data: { tag: 'Name' }, children: [] },
-                        description: { data: { tag: 'Description' }, children: [] }
-                    }
-                },
+                components: [{
+                    tag: 'Feature',
+                    key: 'testFeature',
+                    examples: []
+                }],
                 metaData: []
             })
         })).toMatchSnapshot()
@@ -75,14 +72,11 @@ describe('descendantsFromRender', () => {
         ], {
             standard: new StandardForm({
                 key: '',
-                byId: {
-                    testFeature: {
-                        tag: 'Feature',
-                        key: 'testFeature',
-                        name: { data: { tag: 'Name' }, children: [] },
-                        description: { data: { tag: 'Description' }, children: [] }
-                    }
-                },
+                components: [{
+                    tag: 'Feature',
+                    key: 'testFeature',
+                    examples: []
+                }],
                 metaData: []
             })
         })).toMatchSnapshot()

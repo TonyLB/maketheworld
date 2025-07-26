@@ -5,7 +5,7 @@ import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
 import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
@@ -160,6 +160,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardCharacter(super.withMapping(mapping) as StandardCharacter)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardCharacter(super.withImport(fromAsset) as StandardCharacter)
     }
 
 }

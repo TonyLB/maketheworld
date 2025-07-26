@@ -105,7 +105,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 const defaultedKey = `${tag}${nextIndex}`
                 const component = standardComponentByTag(tag, defaultedKey)
                 if (component) {
-                    draft._byId[defaultedKey] = component
+                    draft._components = [...draft._components, component]
                 }
                 else {
                     throw new Error(`Invalid tag: ${tag}`)
@@ -141,7 +141,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { characters.length
                         ? characters.map((characterItem) => (<WMLComponentHeader
                                 key={characterItem.key}
-                                ItemId={characterItem.key}
+                                ItemId={characterItem.universalKey ?? ''}
                                 onClick={() => { navigate(`Character/${characterItem.key}`)}}
                                 icon={<PersonIcon />}
                             />))
@@ -150,7 +150,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { maps.length
                         ? maps.map((mapItem) => (<WMLComponentHeader
                                 key={mapItem.key}
-                                ItemId={mapItem.key}
+                                ItemId={mapItem.universalKey ?? ''}
                                 onClick={() => { navigate(`Map/${mapItem.key}`)}}
                                 icon={<MapIcon />}
                             />))
@@ -159,7 +159,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { rooms.length
                         ? rooms.map((room) => (<WMLComponentHeader
                                 key={room.key}
-                                ItemId={room.key}
+                                ItemId={room.universalKey ?? ''}
                                 onClick={() => { navigate(`Room/${room.key}`)}}
                             />))
                         : null
@@ -167,7 +167,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { features.length
                         ? features.map((feature) => (<WMLComponentHeader
                                 key={feature.key}
-                                ItemId={feature.key}
+                                ItemId={feature.universalKey ?? ''}
                                 onClick={() => { navigate(`Feature/${feature.key}`)}}
                                 icon={<FeatureIcon />}
                             />))
@@ -176,7 +176,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { knowledges.length
                         ? knowledges.map((knowledge) => (<WMLComponentHeader
                                 key={knowledge.key}
-                                ItemId={knowledge.key}
+                                ItemId={knowledge.universalKey ?? ''}
                                 onClick={() => { navigate(`Knowledge/${knowledge.key}`)}}
                                 icon={<KnowledgeIcon />}
                             />))
@@ -185,7 +185,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     { images.length
                         ? images.map((image) => (<ImageHeader
                                 key={image.key}
-                                ItemId={image.key}
+                                ItemId={image.universalKey ?? ''}
                                 onClick={() => {}}
                             />))
                         : null

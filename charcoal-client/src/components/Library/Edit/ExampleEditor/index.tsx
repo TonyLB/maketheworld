@@ -11,15 +11,14 @@ import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import StandardRenderEditor from "../StandardRenderEditor";
 import SidebarTitledBox from "../SidebarTitledBox";
-import { useDispatch } from "react-redux";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference";
-import { ImportItemContent } from "@tonylb/mtw-wml/ts/standardize/components/metaData";
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 type ExampleEditorProps = {
-    componentId: string;
+    componentId: ComponentUUID;
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
@@ -90,19 +89,21 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
     const localizeExample = useCallback(() => {
         console.log(`localStandardForm[${componentId}]: ${JSON.stringify(localStandardForm.toJSON(), null, 4)}`)
         if (!(componentId in localStandardForm.byId)) {
-            const parentId = componentId.split('.').slice(0, -1).join('.')
+            const parentId = standardForm.byUniversalId[componentId]?._key?.context?.slice(-1)?.[0]
             updateStandard({
                 type: 'updateLocal',
                 update: (draft) => {
-                    const parent = draft._byId[parentId]
-                    const parentImportAsset = parent?.import?.assetId
-                    if (
-                        parentImportAsset &&
-                        (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge)
-                    ) {
-                        draft._byId[componentId] = new StandardExample(componentId).withImport(new ImportItemContent(parentImportAsset, componentId))
-                        parent._payload._examples.push(new StandardReference({ key: componentId.split('.').slice(-1).join('.'), tag: 'Example' }))
-                        console.log(`Example references: ${JSON.stringify(parent._payload._examples, null, 4)}`)
+                    if (parentId) {
+                        const parent = draft._lookup(parentId)
+                        if (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge) {
+                            draft._components = [...draft._components, new StandardExample(componentId).withLeastCommonContext([parentId])]
+                            parent._payload._examples.push(new StandardReference({ universalKey: componentId, tag: 'Example' }))
+                            console.log(`Example references: ${JSON.stringify(parent._payload._examples, null, 4)}`)
+                        }
+                    }
+                    else {
+                        draft._components = [...draft._components, new StandardExample(componentId)]
+                        console.log(`Example without parent: ${JSON.stringify(draft._components, null, 4)}`)
                     }
                     return draft
                 }
