@@ -1,12 +1,9 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 import StandardReference, { StandardKey } from "./reference"
-import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
-import { StandardExit } from "./exit"
 
 describe('StandardRoom class', () => {
 
@@ -21,7 +18,7 @@ describe('StandardRoom class', () => {
         `)
         const testRoom = new StandardRoom(testSource)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
+        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
@@ -41,7 +38,7 @@ describe('StandardRoom class', () => {
         schema.loadWML(testSource)
         const testRoom = new StandardRoom(schema.schema[0])
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
+        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
         expect(testRoom.examples.toJSON()).toEqual(['EXAMPLE#base'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
@@ -72,7 +69,7 @@ describe('StandardRoom class', () => {
         }
         const testRoom = new StandardRoom(testRoomData)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.map((feature) => feature.key)).toEqual(['testFeature'])
+        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits.map((exit) => exit.toJSON())).toEqual([{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }])
         expect(testRoom.toJSON()).toEqual(testRoomData)

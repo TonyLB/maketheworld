@@ -2649,7 +2649,7 @@ describe('StandardForm', () => {
             const test = new StandardForm(testWML).finalize()
             const findRoom = test._lookup('ROOM#testRoom')
             expect(findRoom).toBeInstanceOf(StandardRoom)
-            expect((findRoom as StandardRoom).features.map((feature) => feature.toJSON())).toEqual([
+            expect((findRoom as StandardRoom).features.toJSON()).toEqual([
                 'FEATURE#testFeature'
             ])
         })

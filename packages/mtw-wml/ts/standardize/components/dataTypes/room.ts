@@ -12,7 +12,7 @@ export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
     exits: StandardEditableData<StandardExitData>[];
-    features?: (StandardReferenceData | StandardRemoveData)[];
+    features?: StandardEditableData<StandardReferenceData>[];
     examples?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
