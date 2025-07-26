@@ -1,4 +1,3 @@
-import { deepEqual } from "../../lib/objects";
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { NestedSchemaOptions, StandardComponent } from "./baseClasses";
 import { StandardComponentNonEditData, StandardRemoveData, StandardReplaceData } from "./dataTypes";
@@ -285,7 +284,7 @@ export class StandardReplace implements StandardComponent {
         if (!(incoming instanceof StandardReplace)) {
             throw new Error('Type mismatch in StandardReplace merge')
         }
-        if (!(deepEqual(this._payload.toJSON(), incoming._match.toJSON()))) {
+        if (!this._payload.equals(incoming._match)) {
             throw new MergeConflictError()
         }
         return new StandardReplace(this, incoming._payload).withUniversalKey(this.universalKey)
@@ -369,7 +368,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 // A replace followed by a remove should be merged into a remove of the original content
                 //
                 if (incomingComponent instanceof StandardRemove) {
-                    if (!deepEqual(base._payload.toJSON(), incomingComponent._match.toJSON())) {
+                    if (!base._payload.equals(incomingComponent._match)) {
                         throw new MergeConflictError()
                     }
                     return new StandardRemove(base._match)
@@ -378,7 +377,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 // Two replace operations should be merged into a single chained operation
                 //
                 if (incomingComponent instanceof StandardReplace) {
-                    if (!deepEqual(base._payload.toJSON(), incomingComponent._match.toJSON())) {
+                    if (!base._payload.equals(incomingComponent._match)) {
                         throw new MergeConflictError()
                     }
                     return new StandardReplace(base._match, incomingComponent._payload)
@@ -397,7 +396,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 // Remove should evaluate the match and then remove the relevant component
                 //
                 if (incomingComponent instanceof StandardRemove) {
-                    if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {
+                    if (!base.equals(incomingComponent._match)) {
                         console.log(`Base: ${JSON.stringify(base.toJSON(), null, 2)}`)
                         console.log(`Incoming: ${JSON.stringify(incomingComponent._match.toJSON(), null, 2)}`)
                         throw new MergeConflictError()
@@ -408,7 +407,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 // Replace should evaluate the match and then replace the relevant component
                 //
                 if (incomingComponent instanceof StandardReplace) {
-                    if (!deepEqual(base.toJSON(), incomingComponent._match.toJSON())) {
+                    if (!base.equals(incomingComponent._match)) {
                         throw new MergeConflictError()
                     }
                     return incomingComponent._payload
