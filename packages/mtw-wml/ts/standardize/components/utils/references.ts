@@ -116,13 +116,19 @@ export const uniqueReferences = (references: StandardReference[]): StandardRefer
 }
 
 export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
-    const findMatch = previous.find((check) => (check._payload.plain.equals(item._payload.plain)))
-    if (findMatch) {
-        return previous
+    const withoutContext = item.clone()
+    withoutContext._payload.plain.context = undefined
+    const findMatch = previous.findIndex((check) => (check._payload.plain.equals(withoutContext._payload.plain)))
+    if (findMatch !== -1) {
+        return [
+            ...previous.slice(0, findMatch),
+            withoutContext,
+            ...previous.slice(findMatch + 1)
+        ]
     }
     return [
         ...previous,
-        item
+        withoutContext
     ]
 }
 

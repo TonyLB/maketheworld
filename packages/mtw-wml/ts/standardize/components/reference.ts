@@ -512,6 +512,22 @@ export class StandardReference {
         return returnValue
     }
 
+    plain(): StandardKey {
+        return this._payload.plain
+    }
+
+    _delta(): StandardEditableDataDelta<StandardReferenceData> | undefined {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return { add: this._payload.payload.toJSON() }
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return { remove: this._payload.match.toJSON() }
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return { add: this._payload.payload.toJSON(), remove: this._payload.match.toJSON() }
+        }
+    }
+
     equal(other: StandardReference): boolean {
         if (this._payload instanceof StandardReferenceSimple && other._payload instanceof StandardReferenceSimple) {
             return this._payload.payload.equals(other._payload.payload)
@@ -523,6 +539,10 @@ export class StandardReference {
             return this._payload.match.equals(other._payload.match) && this._payload.payload.equals(other._payload.payload)
         }
         return false
+    }
+
+    sameKey(other: StandardReference): boolean {
+        return this._payload.plain.equals(other._payload.plain)
     }
 }
 
