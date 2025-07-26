@@ -39,6 +39,14 @@ describe('editableListClassFactory', () => {
         expect(instance._items.map(item => item.toJSON())).toEqual(['ROOM#test', { key: 'featureTest', tag: 'Feature' }])
     })
 
+    it('should make items unique upon construction', () => {
+        const jsonData = ['ROOM#test', { key: 'featureTest', tag: 'Feature' }, 'ROOM#test']
+        const instance = new ReferenceList(jsonData)
+        expect(instance).toBeInstanceOf(ReferenceList)
+        expect(instance._items.length).toBe(2)
+        expect(instance._items.map(item => item.toJSON())).toEqual([{ key: 'featureTest', tag: 'Feature' }, 'ROOM#test'])
+    })
+
     it('should merge simple items', () => {
         const base = new ReferenceList(['ROOM#test'])
         const toMerge = new ReferenceList([{ key: 'featureTest', tag: 'Feature' }])

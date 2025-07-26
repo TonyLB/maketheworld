@@ -32,6 +32,15 @@ export const editableListClassFactory = <D extends StandardEditablePayload<any>,
                 else {
                     this._items = arg.map((item) => new Base(item))
                 }
+                const swapSpace = this._items.reduce<EditableListItem<D>[]>((previous, item) => {
+                    const unmatchedPrevious = previous.filter((prev) => !item.sameKey(prev))
+                    const previousMatch = previous.find((prev) => item.sameKey(prev))
+                    if (previousMatch) {
+                        return [...unmatchedPrevious, previousMatch.merge(item) as EditableListItem<D>].filter(excludeUndefined)
+                    }
+                    return [...previous, item]
+                }, [])
+                this._items = swapSpace
             } else {
                 throw new Error(`Invalid argument type for ${label} constructor`)
             }
