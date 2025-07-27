@@ -83,32 +83,6 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
     )
 }
 
-export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]): StandardReference[] => {
-    const referencesById = referenceLists.reduce<StandardReference[]>((previous, references) => (
-        references.reduce<StandardReference[]>((accumulator, reference) => {
-            const matchReference = (a: StandardReference) => (b: StandardReference): boolean => (
-                Boolean((a.key && b.key && (a.key === b.key)) ||
-                (a.universalKey && b.universalKey && (a.universalKey === b.universalKey)))
-            )
-            const previousReferences = accumulator.filter(matchReference(reference))
-            if (previousReferences.length) {
-                const mergedValue = [...previousReferences, reference].reduce<StandardReference | undefined>((accumulator, reference) => (
-                    accumulator ? accumulator.merge(reference) as StandardReference | undefined : reference
-                ), undefined)
-                return [
-                    ...accumulator.filter((check) => (!matchReference(reference)(check))),
-                    mergedValue
-                ].filter(excludeUndefined)
-            }
-            return [
-                ...accumulator,
-                reference
-            ]
-        }, previous)
-    ), [])
-    return referencesById.filter(excludeUndefined)
-}
-
 export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
     const withoutContext = item.clone()
     withoutContext._payload.plain.context = undefined

@@ -1,5 +1,4 @@
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
-import StandardReference, { StandardKey, StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple } from '../reference'
+import StandardReference, { StandardKey, StandardReferenceRemove, StandardReferenceReplace } from '../reference'
 import { assureItemInReferenceList, mapReferenceToFormat } from './references'
 
 describe('mapReferenceToFormat', () => {
@@ -23,17 +22,6 @@ describe('mapReferenceToFormat', () => {
                 payload: { tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }
             })
         ]
-        // console.log(`reference payloads: ${
-        //     references.map(reference => (
-        //         reference._payload instanceof StandardReferenceSimple
-        //             ? 'Simple'
-        //             : reference._payload instanceof StandardReferenceRemove
-        //                 ? 'Remove'
-        //                 : reference._payload instanceof StandardReferenceReplace
-        //                     ? 'Replace' : 'Unknown'
-        //         )
-        //     )
-        // }`)
 
         const mappedReferences = references.map(mapReferenceToFormat(referenceMapping, 'universal'))
         expect(mappedReferences.map((reference) => (reference.toJSON()))).toEqual([
