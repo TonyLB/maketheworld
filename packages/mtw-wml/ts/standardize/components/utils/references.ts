@@ -83,49 +83,6 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
     )
 }
 
-export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]): StandardReference[] => {
-    const referencesById = referenceLists.reduce<StandardReference[]>((previous, references) => (
-        references.reduce<StandardReference[]>((accumulator, reference) => {
-            const matchReference = (a: StandardReference) => (b: StandardReference): boolean => (
-                Boolean((a.key && b.key && (a.key === b.key)) ||
-                (a.universalKey && b.universalKey && (a.universalKey === b.universalKey)))
-            )
-            const previousReferences = accumulator.filter(matchReference(reference))
-            if (previousReferences.length) {
-                const mergedValue = [...previousReferences, reference].reduce<StandardReference | undefined>((accumulator, reference) => (
-                    accumulator ? accumulator.merge(reference) as StandardReference | undefined : reference
-                ), undefined)
-                return [
-                    ...accumulator.filter((check) => (!matchReference(reference)(check))),
-                    mergedValue
-                ].filter(excludeUndefined)
-            }
-            return [
-                ...accumulator,
-                reference
-            ]
-        }, previous)
-    ), [])
-    return referencesById.filter(excludeUndefined)
-}
-
-export const uniqueReferences = (references: StandardReference[]): StandardReference[] => {
-    return references.reduce<StandardReference[]>((previous, reference) => (
-        mergeUniqueReferences(previous, [reference])
-    ), [])
-}
-
-export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
-    const findMatch = previous.find((check) => (check._payload.plain.equals(item._payload.plain)))
-    if (findMatch) {
-        return previous
-    }
-    return [
-        ...previous,
-        item
-    ]
-}
-
 //
 // mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
 // a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.

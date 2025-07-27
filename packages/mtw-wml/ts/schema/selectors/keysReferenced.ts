@@ -10,7 +10,7 @@ export const selectKeysReferenced = (tree: GenericTree<SchemaTag>, options?: { t
         callback: (previous: { output: string[], state: { mapNest: boolean } }, tag: SchemaTag) => {
             if (isSchemaExit(tag)) {
                 return {
-                    output: [...previous.output, tag.to, tag.from],
+                    output: [...previous.output, tag.to],
                     state: previous.state
                 }
             }

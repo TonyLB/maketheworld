@@ -4,9 +4,9 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
-import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList, StandardKey, StandardReferenceSimple } from "./reference"
+import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -15,23 +15,25 @@ import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 
 export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
-    _examples: StandardReference[] = [];
+    _examples: ReferenceList;
     tag = 'Knowledge' as const
 
     constructor(previous?: StandardKnowledgePayload) {
         if (previous) {
             this._examples = previous._examples
         }
+        else {
+            this._examples = new ReferenceList([])
+        }
     }
 
     fromJSON(props: StandardKnowledgeData) {
-        const { examples } = props
-        this._examples = examples?.map((example) => new StandardReference(example)) ?? []
+        this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node]))))
+            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
@@ -42,14 +44,14 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     toJSON(options: StandardToJSONOptions): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
         return {
             tag: 'Knowledge',
-            ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
+            ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
-            children: this.examples.map((reference) => (reference.schema)).flat(1)
+            children: this.examples.schema,
         }
     }
 
@@ -57,13 +59,13 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         const { key } = options
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
-            children: this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined)
+            children: this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardKnowledgePayload()
-        returnValue._examples = mergeUniqueReferences(this.examples, incoming.examples)
+        returnValue._examples = this.examples.merge(incoming.examples) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -74,8 +76,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples
-                .map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
@@ -87,14 +88,14 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardKnowledgePayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._examples = returnValue._examples.map(mapReference)
+        returnValue._examples = returnValue._examples.map(mapReference as any)
         return returnValue as this
     }
     
     withChild(child: StandardReference): this {
         const returnValue = new StandardKnowledgePayload(this)
         if (child._payload.plain.tag === 'Example') {
-            returnValue._examples = assureItemInReferenceList(returnValue._examples, child)
+            returnValue._examples = returnValue._examples.assureItem(child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardKnowledge`)
@@ -116,8 +117,8 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (!(incoming instanceof StandardKnowledge)) {
             throw new Error('Mismatched component types in diff')
         }
-        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples })
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
+        const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length) {
             return undefined
         }
         const base = this.clone()
@@ -126,6 +127,13 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return base
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardKnowledge)) {
+            return false
+        }
+        return !(this.examples.diff(incoming.examples)?.payload?.length)
+    }
+    
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
     }

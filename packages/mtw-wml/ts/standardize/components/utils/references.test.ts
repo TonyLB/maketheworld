@@ -1,6 +1,5 @@
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
-import StandardReference, { StandardKey, StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple } from '../reference'
-import { assureItemInReferenceList, mapReferenceToFormat } from './references'
+import StandardReference, { StandardKey } from '../reference'
+import { mapReferenceToFormat } from './references'
 
 describe('mapReferenceToFormat', () => {
     const referenceMapping: StandardKey[] = [
@@ -23,17 +22,6 @@ describe('mapReferenceToFormat', () => {
                 payload: { tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }
             })
         ]
-        // console.log(`reference payloads: ${
-        //     references.map(reference => (
-        //         reference._payload instanceof StandardReferenceSimple
-        //             ? 'Simple'
-        //             : reference._payload instanceof StandardReferenceRemove
-        //                 ? 'Remove'
-        //                 : reference._payload instanceof StandardReferenceReplace
-        //                     ? 'Replace' : 'Unknown'
-        //         )
-        //     )
-        // }`)
 
         const mappedReferences = references.map(mapReferenceToFormat(referenceMapping, 'universal'))
         expect(mappedReferences.map((reference) => (reference.toJSON()))).toEqual([
@@ -43,53 +31,5 @@ describe('mapReferenceToFormat', () => {
             { tag: 'Remove', match: 'EXAMPLE#004' },
             { tag: 'Replace', match: 'EXAMPLE#005', payload: 'ROOM#001' }
         ]);
-    })
-})
-
-describe('assureItemInReferenceList', () => {
-    it('should add the item to an empty list', () => {
-        const previous: StandardReference[] = []
-        const item = new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' })
-        const result = assureItemInReferenceList(previous, item)
-        expect(result).toEqual([item])
-    })
-
-    it('should add the item to a non-empty list if it does not exist', () => {
-        const previous: StandardReference[] = [
-            new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' })
-        ]
-        const item = new StandardReference({ tag: 'Room', key: 'Room2', universalKey: 'ROOM#002' })
-        const result = assureItemInReferenceList(previous, item)
-        expect(result).toEqual([...previous, item])
-    })
-
-    it('should not add the item if a plain reference already exists', () => {
-        const previous: StandardReference[] = [
-            new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' })
-        ]
-        const item = new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' })
-        const result = assureItemInReferenceList(previous, item)
-        expect(result).toEqual(previous)
-    })
-
-    it('should not add the item if a remove reference already exists', () => {
-        const previous: StandardReference[] = [
-            new StandardReference(new StandardReferenceRemove(new StandardKey({ tag: 'Room', key: 'Room1' })))
-        ]
-        const item = new StandardReference({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' })
-        const result = assureItemInReferenceList(previous, item)
-        expect(result).toEqual(previous)
-    })
-
-    it('should not add the item if a replace reference already exists', () => {
-        const previous: StandardReference[] = [
-            new StandardReference(new StandardReferenceReplace(
-                new StandardKey({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#001' }),
-                new StandardKey({ tag: 'Room', key: 'Room2', universalKey: 'ROOM#002' })
-            ))
-        ]
-        const item = new StandardReference({ tag: 'Room', key: 'Room2', universalKey: 'ROOM#002' })
-        const result = assureItemInReferenceList(previous, item)
-        expect(result).toEqual(previous)
     })
 })

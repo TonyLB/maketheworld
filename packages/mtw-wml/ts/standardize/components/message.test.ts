@@ -17,7 +17,7 @@ describe('StandardMessage class', () => {
         expect(testMap.universalKey).toEqual('MESSAGE#001')
         expect(testMap.key).toEqual('test')
         expect(testMap.description?.toJSON()).toEqual(['Message Test'])
-        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
+        expect(testMap.rooms.toJSON()).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -30,7 +30,7 @@ describe('StandardMessage class', () => {
         const testMap = new StandardMessage(schema.schema[0])
         expect(testMap.key).toEqual('test')
         expect(testMap.description?.toJSON()).toEqual(['Message Test'])
-        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
+        expect(testMap.rooms.toJSON()).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -44,7 +44,7 @@ describe('StandardMessage class', () => {
         const testMap = new StandardMessage(testMapData)
         expect(testMap.key).toEqual('test')
         expect(testMap.description?.toJSON()).toEqual(['Message Test'])
-        expect(testMap.rooms.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Room', key: "testRoom" }])
+        expect(testMap.rooms.toJSON()).toEqual([{ tag: 'Room', key: "testRoom" }])
         expect(testMap.toJSON()).toEqual(testMapData)
     })
 

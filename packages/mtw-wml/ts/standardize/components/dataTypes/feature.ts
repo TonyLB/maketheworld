@@ -1,11 +1,11 @@
 import { StandardReferenceData } from "./reference";
 import { StandardBaseData } from "./abstract";
 import { checkAll, checkTypes } from "./typeguards";
-import { StandardRemoveData } from ".";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardFeatureData = {
     tag: 'Feature';
-    examples?: (StandardReferenceData | StandardRemoveData)[];
+    examples?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
 export const isStandardFeature = (arg: any): arg is StandardFeatureData => {

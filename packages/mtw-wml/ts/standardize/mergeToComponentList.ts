@@ -20,17 +20,8 @@ export type UniversalKeyMapping = {
 }
 
 export const mergeToComponentList = (universalKeyMappings: StandardKey[]) => (previous: StandardComponent[], component: StandardComponent): StandardComponent[] => {
-    const keyMatch = universalKeyMappings.find(({ key: matchKey, universalKey }) => (
-        (matchKey && matchKey === component.key) ||
-        (universalKey && universalKey === component.universalKey)
-    ))
-    const componentIndex = previous.findIndex(({ key, universalKey }) => {
-        return (
-            keyMatch && (
-            (key && keyMatch.key && key === keyMatch.key) ||
-            (universalKey && keyMatch.universalKey && universalKey === keyMatch.universalKey)
-        ))
-    })
+    const keyMatch = universalKeyMappings.find((check) => (check.equals(component._key)))
+    const componentIndex = keyMatch ? previous.findIndex((component) => (component._key.equals(keyMatch))) : -1
     if (componentIndex === -1) {
         return [...previous, component]
     }
@@ -44,7 +35,7 @@ export const mergeToComponentList = (universalKeyMappings: StandardKey[]) => (pr
 
 export const mergeUniversalKeyMappings = (universalKeyMappings: StandardKey[]): StandardKey[] => {
     return universalKeyMappings.reduce<StandardKey[]>((acc: StandardKey[], current: StandardKey) => {
-        const existingIndex = acc.findIndex(item => (item.universalKey === current.universalKey || item.key === current.key))
+        const existingIndex = acc.findIndex(item => (item.equals(current)))
         if (existingIndex === -1) {
             return [...acc, current]
         }

@@ -3,12 +3,10 @@ import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } fr
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { unique } from "../../list";
-import { excludeUndefined } from "../../lib/lists";
-import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { mergeUniqueReferences, ReferenceFormat } from "./utils/references";
+import { ReferenceFormat } from "./utils/references";
+import { editableListClassFactory, EditableListItem } from "./editableList";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -151,10 +149,13 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
     throw new Error('Invalid argument in StandardKey constructor')
 }
 
-export const standardReferenceDeserialize = (incoming: StandardReferenceData): StandardReferenceData => {
+export const standardReferenceDeserialize = (incoming: StandardReferenceData): Exclude<StandardReferenceData, string> => {
     if (typeof incoming === 'string') {
+        if (!isSchemaComponentUUID(incoming)) {
+            throw new Error('Invalid StandardReferenceData passed to standardReferenceSerialize')
+        }
         const [upcaseTag] = incoming.split('#')
-        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming } as StandardReferenceData
+        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming }
     }
     return incoming;
 }
@@ -170,7 +171,10 @@ export const standardReferenceSerialize = (incoming: StandardReferenceData): Sta
     if (key) {
         return incoming
     }
-    return `${tag.toUpperCase()}#${universalKey}`
+    if (!universalKey) {
+        throw new Error('StandardReferenceData must have a universalKey or key')
+    }
+    return universalKey
 }
 
 const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardReferenceData): StandardReferenceData => {
@@ -178,16 +182,23 @@ const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardRef
 }
 
 const standardReferenceSubtract = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: string, remove?: string } => {
-    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+    const baseDeserialized = standardReferenceDeserialize(base)
+    const incomingDeserialized = standardReferenceDeserialize(incoming)
+    if ((baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key) ||
+        (baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey)) {
         return { add: undefined, remove: undefined }
     }
     else {
+        console.log(`Conflict in subtract operation: base=${JSON.stringify(base)}, incoming=${JSON.stringify(incoming)}`)
         throw new MergeConflictError('Conflict during subtract operation')
     }
 }
 
 const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: StandardReferenceData, remove?: StandardReferenceData } => {
-    if (deepEqual(standardReferenceDeserialize(base), standardReferenceDeserialize(incoming))) {
+    const baseDeserialized = standardReferenceDeserialize(base)
+    const incomingDeserialized = standardReferenceDeserialize(incoming)
+    if ((baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key) ||
+        (baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey)) {
         return { add: undefined, remove: undefined }
     }
     else {
@@ -512,6 +523,22 @@ export class StandardReference {
         return returnValue
     }
 
+    plain(): StandardKey {
+        return this._payload.plain
+    }
+
+    _delta(): StandardEditableDataDelta<StandardReferenceData> | undefined {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return { add: this._payload.payload.toJSON() }
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return { remove: this._payload.match.toJSON() }
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return { add: this._payload.payload.toJSON(), remove: this._payload.match.toJSON() }
+        }
+    }
+
     equal(other: StandardReference): boolean {
         if (this._payload instanceof StandardReferenceSimple && other._payload instanceof StandardReferenceSimple) {
             return this._payload.payload.equals(other._payload.payload)
@@ -524,57 +551,66 @@ export class StandardReference {
         }
         return false
     }
+
+    sameKey(other: StandardReference): boolean {
+        //
+        // sameKey is NOT commutative: In the case of a replace, it checks the base against its payload, and
+        // the incoming comparator against its match.
+        //
+        const thisKey = this._payload instanceof StandardReferenceReplace ? this._payload.payload : this._payload.plain
+        const otherKey = other._payload instanceof StandardReferenceReplace ? other._payload.match : other._payload.plain
+        return thisKey.equals(otherKey)
+    }
+
+    invert(): StandardReference {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return new StandardReference(new StandardReferenceRemove(this._payload.payload))
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceSimple(this._payload.match))
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace(this._payload.payload, this._payload.match))
+        }
+        throw new Error('Invalid StandardReference payload for invert')
+    }
 }
 
-// 
-// Computes the difference between two lists of  editable `StandardReference` objects.
-// 
-type DiffStandardReferenceListParams = {
-    base: StandardReference[];
-    incoming: StandardReference[];
-}
-export const diffStandardReferenceList = ({ base, incoming }: DiffStandardReferenceListParams): StandardReference[] => {
-    const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
-        if (baseReference) {
-            const payload = baseReference._payload
-            if (!incomingReference) {
-                if (payload instanceof StandardReferenceRemove) {
-                    return new StandardReference(payload.match)
-                }
-                if (payload instanceof StandardReferenceReplace) {
-                    return new StandardReference(new StandardReferenceReplace(payload.payload, payload.match))
-                }
-                return new StandardReference(new StandardReferenceRemove(payload.payload))
-            }
-            const incomingPayload = incomingReference._payload
-            if (baseReference.key !== incomingReference.key) {
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceSimple) {
-                if (incomingPayload instanceof StandardReferenceSimple) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceRemove) {
-                if (incomingPayload instanceof StandardReferenceRemove) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceReplace) {
-                if (incomingPayload instanceof StandardReferenceReplace) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
+export class ReferenceList extends editableListClassFactory<StandardEditablePayload<StandardReferenceData>, any>(StandardReference as any, 'ReferenceList') {
+    override merge(other: ReferenceList): ReferenceList | undefined {
+        const merged = super.merge(other)
+        if (merged) {
+            return new ReferenceList(merged)
         }
-        else {
-            return incomingReference
-        }
+        return undefined
     }
-    const allKeys = mergeUniqueReferences([...base, ...incoming])
-    return allKeys.map(key => diffReference(base.find(reference => reference.equal(key)), incoming.find(reference => reference.equal(key)))).filter(excludeUndefined)
+
+    override diff(other: ReferenceList): ReferenceList | undefined {
+        const diffed = super.diff(other)
+        if (diffed) {
+            return new ReferenceList(diffed)
+        }
+        return undefined
+    }
+
+    override clone(): ReferenceList {
+        return new ReferenceList(super.clone())
+    }
+
+    get payload(): StandardReference[] {
+        return this._items as unknown as StandardReference[];
+    }
+
+    override assureItem(item): ReferenceList {
+        const assured = super.assureItem(item as any)
+        return new ReferenceList(assured)
+    }
+
+    override map(callback: (item: EditableListItem<StandardEditablePayload<StandardReferenceData>>) => EditableListItem<StandardEditablePayload<StandardReferenceData>>): ReferenceList {
+        const mapped = super.map(callback)
+        return new ReferenceList(mapped)
+    }
 }
+
 
 export default StandardReference

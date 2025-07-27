@@ -16,7 +16,7 @@ export interface StandardEditablePayload<DataType> {
 export type StandardEditablePayloadDelta<DataType> = { remove?: StandardEditablePayload<DataType>; add?: StandardEditablePayload<DataType> }
 export type StandardEditableDataDelta<DataType> = { remove?: DataType; add?: DataType }
 
-type PayloadDataType<Payload extends StandardEditablePayload<any>> = Payload extends StandardEditablePayload<infer D> ? D : never;
+export type PayloadDataType<Payload extends StandardEditablePayload<any>> = Payload extends StandardEditablePayload<infer D> ? D : never;
 
 export interface StandardEditableWrapper<PayloadType extends StandardEditablePayload<any>> {
     clone: () => StandardEditableWrapper<PayloadType>;

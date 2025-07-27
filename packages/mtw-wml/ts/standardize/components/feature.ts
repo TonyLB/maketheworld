@@ -4,9 +4,9 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
-import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
+import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -15,22 +15,25 @@ import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 
 export class StandardFeaturePayload implements ComponentConstructorMethods<StandardFeatureData> {
-    _examples: StandardReference[] = [];
+    _examples: ReferenceList;
     tag = 'Feature' as const
 
     constructor(previous?: StandardFeaturePayload) {
         if (previous) {
             this._examples = previous._examples
         }
+        else {
+            this._examples = new ReferenceList([])
+        }
     }
 
     fromJSON(props: StandardFeatureData) {
-        this._examples = props.examples?.map((example) => new StandardReference(example)) ?? []
+        this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            this._examples = node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node) => (childReferenceFactory([node])))
+            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
             return
         }
         throw new Error('Schema mismatch in StandardFeature constructor')
@@ -41,14 +44,14 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     toJSON(options?: StandardToJSONOptions): Omit<StandardFeatureData, 'key' | 'universalKey'> {
         return {
             tag: 'Feature',
-            ...(this.examples.length ? { examples: this.examples.map((reference) => (reference.toJSON() as StandardReferenceData)) } : {})
+            ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Feature', key, uuid: universalKey },
-            children: this.examples.map((reference) => (reference.schema)).flat(1)
+            children: this.examples.schema,
         }
     }
 
@@ -56,13 +59,13 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
         const { key } = options
         return {
             data: key.schema[0].data,
-            children: this.examples.map(renderReference({ lookup, options })).filter(excludeUndefined),
+            children: this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardFeaturePayload()
-        returnValue._examples = mergeUniqueReferences(this.examples, incoming.examples)
+        returnValue._examples = this.examples.merge(incoming.examples) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -72,7 +75,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
@@ -84,14 +87,14 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._examples = returnValue._examples.map(mapReference)
+        returnValue._examples = returnValue._examples.map(mapReference as any)
         return returnValue as this
     }
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardFeaturePayload(this)
         if (child._payload.plain.tag === 'Example') {
-            returnValue._examples = assureItemInReferenceList(returnValue._examples, child)
+            returnValue._examples = returnValue._examples.assureItem(child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardFeature`)
@@ -113,14 +116,21 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Mismatched component types in diff')
         }
-        const examplesDiff = diffStandardReferenceList({ base: this.examples, incoming: incoming.examples })
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.length) {
+        const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length) {
             return undefined
         }
         const base = this.clone()
         base._payload = new StandardFeaturePayload()
         base._payload._examples = examplesDiff
         return base
+    }
+
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardFeature)) {
+            return false
+        }
+        return !(this.examples.diff(incoming.examples)?.payload?.length)
     }
 
     override merge(incoming: StandardComponent): StandardComponent {

@@ -1,10 +1,11 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardActionData } from "./dataTypes/action"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaAction } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardComponent } from "./baseClasses";
 import { StandardKey, StandardReferenceSimple } from "./reference";
+import { deepEqual } from "../../lib/objects";
 
 export class StandardActionPayload implements ComponentConstructorMethods<StandardActionData> {
     _src?: string;
@@ -76,6 +77,10 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
         return returnValue
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardAction)) return false
+        return this.src === incoming.src && deepEqual(this.dependencies, incoming.dependencies)
+    }
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardAction(super.merge(incoming) as StandardAction)
     }
@@ -94,6 +99,10 @@ export class StandardAction extends componentClassFactory(StandardActionPayload,
 
     override withMapping(mapping: StandardKey[]): StandardComponent {
         return new StandardAction(super.withMapping(mapping) as StandardAction)
+    }
+
+    override withImport(fromAsset: AssetUUID): StandardComponent {
+        return new StandardAction(super.withImport(fromAsset) as StandardAction)
     }
 
 }

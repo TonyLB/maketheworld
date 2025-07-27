@@ -5,6 +5,7 @@ import { StandardComputedData } from "./dataTypes/computed"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation";
 import { StandardKey } from "./reference";
+import { deepEqual } from "../../lib/objects";
 
 export class StandardComputedPayload implements ComponentConstructorMethods<StandardComputedData> {
     _src?: string;
@@ -76,6 +77,14 @@ export class StandardComputed extends componentClassFactory(StandardComputedPayl
         const returnValue = new StandardComputed(this)
         returnValue._payload = new StandardComputedPayload(this._payload)
         return returnValue
+    }
+
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardComputed)) {
+            return false
+        }
+        return this._payload.src === incoming._payload.src &&
+            deepEqual(this._payload.dependencies, incoming._payload.dependencies)
     }
 
     override merge(incoming: StandardComponent): StandardComponent {

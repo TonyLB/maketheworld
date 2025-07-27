@@ -99,6 +99,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
         get key(): string | undefined { return this._key.key }
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
+        get standardKey(): StandardKey { return this._key }
+        withStandardKey(key: StandardKey): this {
+            const returnValue = new GeneratedComponentClass(this)
+            returnValue._key = key
+            return returnValue as this
+        }
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get referenceData(): StandardReferenceData {
@@ -184,6 +190,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         referencedKeys(): StandardComponentReferenceKey[] {
             return this._payload.referencedKeys(this._mapping ?? [])
+        }
+
+        //
+        // The equals method should often be overridden at the specific component level,
+        // if there is simplified processing, or if the component includes references that
+        // can be equal (semantically) without being identical.
+        //
+        equals(incoming: StandardComponent): boolean {
+            return deepEqual(this.toJSON(), incoming.toJSON())
         }
 
         //

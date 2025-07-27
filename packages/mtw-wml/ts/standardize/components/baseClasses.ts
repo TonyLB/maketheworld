@@ -41,6 +41,7 @@ export interface StandardComponent {
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
     schema: GenericTreeNode<SchemaTag>;
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: Partial<NestedSchemaOptions>): GenericTreeNode<SchemaTag>;
+    equals(incoming: StandardComponent): boolean;
     merge(incoming: StandardComponent): StandardComponent | undefined;
     diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined;
     subset(options: StandardFormSubsetRequest): StandardComponent;

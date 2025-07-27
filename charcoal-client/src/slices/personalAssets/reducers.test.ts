@@ -47,8 +47,8 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -61,9 +61,11 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        const exampleComponent = draft.byId['testRoom.base']
+                        const exampleComponent = draft.byUniversalId['EXAMPLE#base']
                         if (exampleComponent instanceof StandardExample) {
-                            exampleComponent._payload._name = new StandardRender(['Test Update'])
+                            const newExample = exampleComponent.clone()
+                            newExample._payload._name = new StandardRender(['Test Update'])
+                            draft.byUniversalId['EXAMPLE#base'] = newExample
                         }
                         return draft
                     }
@@ -71,8 +73,8 @@ describe('personalAsset slice reducers', () => {
             )).toEqual({
                 base: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -81,8 +83,8 @@ describe('personalAsset slice reducers', () => {
                 `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Update</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -91,8 +93,8 @@ describe('personalAsset slice reducers', () => {
                 `),
                 calculated: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Update</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -101,9 +103,10 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
-                                <Replace><Name>Room</Name></Replace><With><Name>Update</Name></With>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
+                                <Replace><Name>Test Room</Name></Replace>
+                                <With><Name>Test Update</Name></With>
                             </Example>
                         </Room>
                     </Asset>
@@ -115,13 +118,13 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Example key=(base)>
+                    <Room uuid=(testRoom)>
+                        <Example uuid=(base)>
                             <Name>Test Room</Name>
                             <Description>Test Description</Description>
                         </Example>
                     </Room>
-                    <Room key=(testRoomTwo) />
+                    <Room uuid=(testRoomTwo) />
                 </Asset>
                 `,
                 `
@@ -130,33 +133,34 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        draft._components = draft._components.filter((component) => (component.key !== 'testRoom.base' && component.key !== 'testRoom'))
+                        draft._components = draft._components.filter((component) => (component.universalKey === 'ROOM#testRoomTwo'))
+                        console.log(`Schema after removal`, JSON.stringify(draft.toJSON(), null, 2))
                         return draft
                     }
                 }
             )).toEqual({
                 base: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
-                        <Room key=(testRoomTwo) />
+                        <Room uuid=(testRoomTwo) />
                     </Asset>
                 `),
                 standard: deIndentWML(`
-                    <Asset key=(testAsset)><Room key=(testRoomTwo) /></Asset>
+                    <Asset key=(testAsset)><Room uuid=(testRoomTwo) /></Asset>
                 `),
                 calculated: deIndentWML(`
-                    <Asset key=(testAsset)><Room key=(testRoomTwo) /></Asset>
+                    <Asset key=(testAsset)><Room uuid=(testRoomTwo) /></Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
                         <Remove>
-                            <Room key=(testRoom)>
-                                <Example key=(base)>
+                            <Room uuid=(testRoom)>
+                                <Example uuid=(base)>
                                     <Name>Test Room</Name>
                                     <Description>Test Description</Description>
                                 </Example>
@@ -171,8 +175,8 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset key=(testAsset)>
-                    <Room key=(testRoom)>
-                        <Example key=(base)>
+                    <Room uuid=(testRoom)>
+                        <Example uuid=(base)>
                             <Name>Test Room</Name>
                             <Description>Test Description</Description>
                         </Example>
@@ -185,9 +189,11 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        const exampleComponent = draft.byId['testRoom.base']
+                        const exampleComponent = draft.byUniversalId['EXAMPLE#base']
                         if (exampleComponent instanceof StandardExample) {
-                            exampleComponent._payload._name = undefined
+                            const newExample = exampleComponent.clone()
+                            newExample._payload._name = undefined
+                            draft.byUniversalId['EXAMPLE#base'] = newExample
                         }
                         return draft
                     }
@@ -195,8 +201,8 @@ describe('personalAsset slice reducers', () => {
             )).toEqual({
                 base: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -205,8 +211,8 @@ describe('personalAsset slice reducers', () => {
                 `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -214,8 +220,8 @@ describe('personalAsset slice reducers', () => {
                 `),
                 calculated: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -223,8 +229,8 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(testRoom)>
-                            <Example key=(base)><Remove><Name>Test Room</Name></Remove></Example>
+                        <Room uuid=(testRoom)>
+                            <Example uuid=(base)><Remove><Name>Test Room</Name></Remove></Example>
                         </Room>
                     </Asset>
                 `)
@@ -234,7 +240,7 @@ describe('personalAsset slice reducers', () => {
         it('should update a non-tree field in a standardComponent', () => {
             expect(transformWML(
                 `
-                <Asset key=(testAsset)><Computed key=(testComputed) src={!testVar} /></Asset>
+                <Asset key=(testAsset)><Computed uuid=(test) key=(testComputed) src={!testVar} /></Asset>
                 `,
                 `
                     <Asset key=(testAsset) />
@@ -242,27 +248,39 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        const variableComponent = draft.byId['testComputed']
-                        if (variableComponent instanceof StandardComputed) {
-                            variableComponent._payload._src = 'testVar'
+                        const computedComponent = draft.byUniversalId['COMPUTED#test']
+                        if (computedComponent instanceof StandardComputed) {
+                            const newExample = computedComponent.clone()
+                            newExample._payload._src = 'testVar'
+                            draft.byUniversalId['COMPUTED#test'] = newExample
                         }
                         return draft
                     }
                 }
             )).toEqual({
                 base: deIndentWML(`
-                    <Asset key=(testAsset)><Computed key=(testComputed) src={!testVar} /></Asset>
+                    <Asset key=(testAsset)>
+                        <Computed uuid=(test) key=(testComputed) src={!testVar} />
+                    </Asset>
                 `),
                 standard: deIndentWML(`
-                    <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
+                    <Asset key=(testAsset)>
+                        <Computed uuid=(test) key=(testComputed) src={testVar} />
+                    </Asset>
                 `),
                 calculated: deIndentWML(`
-                    <Asset key=(testAsset)><Computed key=(testComputed) src={testVar} /></Asset>
+                    <Asset key=(testAsset)>
+                        <Computed uuid=(test) key=(testComputed) src={testVar} />
+                    </Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Replace><Computed key=(testComputed) src={!testVar} /></Replace>
-                        <With><Computed key=(testComputed) src={testVar} /></With>
+                        <Replace>
+                            <Computed uuid=(test) key=(testComputed) src={!testVar} />
+                        </Replace>
+                        <With>
+                            <Computed uuid=(test) key=(testComputed) src={testVar} />
+                        </With>
                     </Asset>
                 `)
             })
@@ -272,15 +290,15 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset key=(testAsset)>
-                    <Room key=(Room1)>
-                        <Example key=(base)>
+                    <Room uuid=(Room1) key=(Room1)>
+                        <Example uuid=(base)>
                             <Name>Test Room</Name>
                             <Description>Test Description</Description>
                         </Example>
                         <Exit to=(Room2)>out</Exit>
                     </Room>
-                    <Room key=(Room2)>
-                        <Example key=(base)><Name>Garden</Name></Example>
+                    <Room uuid=(Room2) key=(Room2)>
+                        <Example uuid=(base2)><Name>Garden</Name></Example>
                         <Exit to=(Room1)>text</Exit>
                     </Room>
                 </Asset>
@@ -290,33 +308,33 @@ describe('personalAsset slice reducers', () => {
                 `,
                 {
                     type: 'renameKey',
-                    from: 'Room2',
+                    uuid: 'ROOM#Room2',
                     to: 'garden'
                 }
             )).toEqual({
                 base: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(Room1)>
-                            <Example key=(base)>
+                        <Room uuid=(Room1) key=(Room1)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
                             <Exit to=(Room2)>out</Exit>
                         </Room>
-                        <Room key=(Room2)>
-                            <Example key=(base)><Name>Garden</Name></Example>
+                        <Room uuid=(Room2) key=(Room2)>
+                            <Example uuid=(base2)><Name>Garden</Name></Example>
                             <Exit to=(Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(garden)>
-                            <Example key=(base)><Name>Garden</Name></Example>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Example uuid=(base2)><Name>Garden</Name></Example>
                             <Exit to=(Room1)>text</Exit>
                         </Room>
-                        <Room key=(Room1)>
-                            <Example key=(base)>
+                        <Room uuid=(Room1) key=(Room1)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -326,12 +344,12 @@ describe('personalAsset slice reducers', () => {
                 `),
                 calculated: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(garden)>
-                            <Example key=(base)><Name>Garden</Name></Example>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Example uuid=(base2)><Name>Garden</Name></Example>
                             <Exit to=(Room1)>text</Exit>
                         </Room>
-                        <Room key=(Room1)>
-                            <Example key=(base)>
+                        <Room uuid=(Room1) key=(Room1)>
+                            <Example uuid=(base)>
                                 <Name>Test Room</Name>
                                 <Description>Test Description</Description>
                             </Example>
@@ -341,20 +359,18 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset key=(testAsset)>
-                        <Room key=(garden)>
-                            <Example key=(base)><Name>Garden</Name></Example>
-                            <Exit to=(Room1)>text</Exit>
-                        </Room>
-                        <Room key=(Room1)>
-                            <Remove><Exit to=(Room2)>out</Exit></Remove>
-                            <Exit to=(garden)>out</Exit>
-                        </Room>
-                        <Remove>
-                            <Room key=(Room2)>
+                        <Replace>
+                            <Room uuid=(Room2) key=(Room2)>
                                 <Example key=(base)><Name>Garden</Name></Example>
                                 <Exit to=(Room1)>text</Exit>
                             </Room>
-                        </Remove>
+                        </Replace>
+                        <With>
+                            <Room uuid=(Room2) key=(garden)>
+                                <Example key=(base2)><Name>Garden</Name></Example>
+                                <Exit to=(Room1)>text</Exit>
+                            </Room>
+                        </With>
                     </Asset>
                 `)
             })
@@ -373,7 +389,7 @@ describe('personalAsset slice reducers', () => {
                 `,
                 {
                     type: 'renameKey',
-                    from: 'Room2',
+                    uuid: 'ROOM#Room2',
                     to: 'garden'
                 }
             )).toEqual({
@@ -422,7 +438,7 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset key=(testAsset)>
-                    <Feature key=(Feature1)>
+                    <Feature uuid=(Feature1) key=(Feature1)>
                         <Example key=(base)>
                             <Name>Test Feature</Name>
                             <Description><Link to=(Feature1)>Link</Link></Description>
@@ -435,7 +451,7 @@ describe('personalAsset slice reducers', () => {
                 `,
                 {
                     type: 'renameKey',
-                    from: 'Feature1',
+                    uuid: 'FEATURE#Feature1',
                     to: 'clockTower'
                 }
             )).toEqual({
