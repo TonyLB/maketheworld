@@ -3,9 +3,9 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
-import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -13,26 +13,29 @@ import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mt
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
+import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;
-    _rooms: StandardReference[] = [];
+    _rooms: ReferenceList;
     tag = 'Message' as const
 
     constructor(previous?: StandardMessagePayload) {
         if (previous) {
             this._description = previous._description
-            this._rooms = [...previous._rooms]
+            this._rooms = new ReferenceList(previous._rooms)
+        }
+        else {
+            this._rooms = new ReferenceList([])
         }
     }
 
     fromJSON(props: StandardMessageData) {
         this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-        this._rooms = props.rooms?.map((reference) => (new StandardReference(reference))) ?? []
+        this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -41,8 +44,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
             this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-            const roomTagTree = tagTree.filter({ match: 'Room' }).prune({ not: { match: 'Room' } })
-            this._rooms = roomTagTree.tree.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (childReferenceFactory([node]))))
+            this._rooms = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (childReferenceFactory([node])))))
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
@@ -55,7 +57,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             tag: 'Message',
             description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }),
-            rooms: this.rooms.map((reference) => (reference.toJSON() as StandardReferenceData)),
+            ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
     }
 
@@ -63,7 +65,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
-                ...this.rooms.map((reference) => (reference.schema)).flat(1),
+                ...this.rooms.schema,
                 ...(this.description?.schema ?? [])
             ]
         }
@@ -72,7 +74,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     merge(incoming: this): this {
         const returnValue = new StandardMessagePayload()
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
-        returnValue._rooms = mergeUniqueReferences(this._rooms, incoming._rooms)
+        returnValue._rooms = this._rooms.merge(incoming._rooms) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -82,7 +84,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this._rooms.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
@@ -98,7 +100,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._rooms = returnValue._rooms.map(mapReference)
+        returnValue._rooms = returnValue._rooms.map(mapReference as any)
         if (returnValue._description) {
             returnValue._description = returnValue._description.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         }
@@ -108,7 +110,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     withChild(child: StandardReference): this {
         const returnValue = new StandardMessagePayload(this)
         if (child._payload.plain.tag === 'Room') {
-            returnValue._rooms = assureItemInReferenceList(returnValue._rooms, child)
+            returnValue._rooms = returnValue._rooms.assureItem(child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardMessage`)
@@ -127,13 +129,34 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return returnValue
     }
 
+    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
+        if (!(incoming instanceof StandardMessage)) {
+            throw new Error('Mismatched component types in diff')
+        }
+        const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
+        if (deepEqual(this._payload.description?.toJSON(), incoming._payload.description?.toJSON()) &&
+            !roomsDiff.payload.length
+        ) {
+            return undefined
+        }
+        const base = this.clone()
+        base._payload = new StandardMessagePayload()
+        base._payload._description = this._payload._description
+            ? this._payload._description.diff(incoming._payload._description)
+            : incoming._payload._description
+        base._payload._rooms = roomsDiff
+        return base
+    }
+
     override equals(incoming: StandardComponent): boolean {
         if (!(incoming instanceof StandardMessage)) {
             return false
         }
-        return !(diffStandardReferenceList({ base: this.rooms, incoming: incoming.rooms }).length) &&
+        const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
+        return !(roomsDiff.payload.length) &&
             deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
     }
+
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardMessage(super.merge(incoming) as StandardMessage)
     }
