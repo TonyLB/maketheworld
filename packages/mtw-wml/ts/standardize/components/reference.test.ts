@@ -1,4 +1,4 @@
-import { StandardKey, StandardReference, StandardReferenceRemove } from './reference';
+import { ReferenceList, StandardKey, StandardReference, StandardReferenceRemove } from './reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardReferenceData } from './dataTypes/reference';
@@ -209,5 +209,60 @@ describe('StandardReference', () => {
             match: `ROOM#Room1`,
             payload: `ROOM#Room2`
         })
+    })
+})
+
+describe('ReferenceList', () => {
+    const keys: StandardKey[] = [
+        { key: 'room1', tag: 'Room' as const, universalKey: 'ROOM#Room1' as const },
+        { key: 'room2', tag: 'Room' as const, universalKey: 'ROOM#Room2' as const },
+        { key: 'room3', tag: 'Room' as const, universalKey: 'ROOM#Room3' as const }
+    ].map((item) => (new StandardKey(item)))
+
+    it('should correctly format references to both', () => {
+        const testList = new ReferenceList(keys)
+        expect(testList.toFormat('both').toJSON()).toEqual([
+            { key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' },
+            { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
+            { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
+        ])
+    })
+
+    it('should correctly format references to key', () => {
+        const testList = new ReferenceList(keys)
+        expect(testList.toFormat('key').toJSON()).toEqual([
+            { key: 'room1', tag: 'Room' },
+            { key: 'room2', tag: 'Room' },
+            { key: 'room3', tag: 'Room' }
+        ])
+    })
+
+    it('should correctly format references to universal', () => {
+        const testList = new ReferenceList(keys)
+        expect(testList.toFormat('universal').toJSON()).toEqual([
+            'ROOM#Room1',
+            'ROOM#Room2',
+            'ROOM#Room3'
+        ])
+    })
+
+    it('should correctly lookup references', () => {
+        const callback = jest.fn((key: StandardKey) => {
+            const found = keys.find((check) => (check.equals(key)))
+            return found ? new StandardRoom(found.universalKey ?? '').withStandardKey(found) : undefined
+        })
+
+        const testList = new ReferenceList([
+            'ROOM#Room1',
+            { tag: 'Room', key: 'room2', universalKey: 'ROOM#Room2' },
+            { tag: 'Room', key: 'room3' }
+        ])
+        const lookedUp = testList.lookup(callback)
+        expect(lookedUp.toJSON()).toEqual([
+            { key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' },
+            { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
+            { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
+        ])
+        expect(callback).toHaveBeenCalledTimes(3)
     })
 })
