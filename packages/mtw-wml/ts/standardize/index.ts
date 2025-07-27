@@ -26,8 +26,7 @@ import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { StandardReferenceData } from "./components/dataTypes/reference"
-import { uniqueReferences } from "./components/utils/references"
-import StandardReference, { StandardKey } from "./components/reference"
+import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import StandardAction from "./components/action"
@@ -824,10 +823,10 @@ export class StandardForm {
         // to diff the components in each StandardForm against each other.
         //
 
-        const allKeys = uniqueReferences(
+        const allKeys = new ReferenceList(
             [...this._components, ...incoming._components]
             .map((component) => (new StandardReference(component.referenceData)))
-        ).map((reference) => (reference._payload.plain.toJSON()))
+        ).payload.map((reference) => (reference._payload.plain.toJSON()))
 
         //
         // Next, we need a zippered version of the components in the two forms, with an

@@ -109,12 +109,6 @@ export const mergeUniqueReferences = (...referenceLists: (StandardReference)[][]
     return referencesById.filter(excludeUndefined)
 }
 
-export const uniqueReferences = (references: StandardReference[]): StandardReference[] => {
-    return references.reduce<StandardReference[]>((previous, reference) => (
-        mergeUniqueReferences(previous, [reference])
-    ), [])
-}
-
 export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
     const withoutContext = item.clone()
     withoutContext._payload.plain.context = undefined
