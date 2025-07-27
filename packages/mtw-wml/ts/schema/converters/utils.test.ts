@@ -51,7 +51,7 @@ describe('parser utilities', () => {
             })([{ 
                 data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF' }, children: [] }
+                    { data: { tag: 'Exit', to: 'DEF' }, children: [] }
                 ]
             }])).toBe(true)
         })
@@ -69,7 +69,7 @@ describe('parser utilities', () => {
             })([{
                 data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF' }, children: [] }
+                    { data: { tag: 'Exit', to: 'DEF' }, children: [] }
                 ]
             }])).toBe(false)
         })

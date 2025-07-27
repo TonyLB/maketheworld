@@ -83,23 +83,6 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
     )
 }
 
-export const assureItemInReferenceList = (previous: StandardReference[], item: StandardReference): StandardReference[] => {
-    const withoutContext = item.clone()
-    withoutContext._payload.plain.context = undefined
-    const findMatch = previous.findIndex((check) => (check._payload.plain.equals(withoutContext._payload.plain)))
-    if (findMatch !== -1) {
-        return [
-            ...previous.slice(0, findMatch),
-            withoutContext,
-            ...previous.slice(findMatch + 1)
-        ]
-    }
-    return [
-        ...previous,
-        withoutContext
-    ]
-}
-
 //
 // mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
 // a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.
