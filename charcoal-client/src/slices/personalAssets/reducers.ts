@@ -7,7 +7,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { ComponentUUID, isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
@@ -73,7 +73,7 @@ export type UpdateStandardPayloadRemoveComponent = {
 
 type UpdateStandardPayloadRenameKey = {
     type: 'renameKey',
-    from: string;
+    uuid: ComponentUUID;
     to: string;
 }
 
@@ -138,13 +138,20 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRenameKey(payload)) {
-        const renamedStandardForm = standardForm.renameKey([{ fromKey: payload.from, toKey: payload.to }])
-        const renameDiff = standardForm.diff(renamedStandardForm)
-        if (renameDiff) {
-            mergeToEdit(renameDiff)
+        const component = standardForm.byUniversalId[payload.uuid]
+        const universalKey = component?.universalKey
+        if (component && universalKey) {
+            const newStandard = standardForm._clone().finalize()
+            const newComponent = component.withKey(payload.to)
+            newStandard.byUniversalId[universalKey] = newComponent
+            const finalized = newStandard.finalize()
+            console.log(`New schema: ${JSON.stringify(finalized.toJSON(), null, 2)}`)
+            const renameDiff = standardForm.diff(finalized)
+            if (renameDiff) {
+                mergeToEdit(renameDiff)
+            }
         }
     }
-    console.log(`Update standard end`)
 }
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
