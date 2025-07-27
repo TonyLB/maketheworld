@@ -687,6 +687,11 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
     toFormat(format: ReferenceFormat): ReferenceList {
         return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
     }
+
+    lookup(callback: (key: StandardKey) => StandardComponent | undefined): ReferenceList {
+        return new ReferenceList(this.payload.map((item) => item.lookup(callback)))
+    }
+
 }
 
 

@@ -245,4 +245,24 @@ describe('ReferenceList', () => {
             'ROOM#Room3'
         ])
     })
+
+    it('should correctly lookup references', () => {
+        const callback = jest.fn((key: StandardKey) => {
+            const found = keys.find((check) => (check.equals(key)))
+            return found ? new StandardRoom(found.universalKey ?? '').withStandardKey(found) : undefined
+        })
+
+        const testList = new ReferenceList([
+            'ROOM#Room1',
+            { tag: 'Room', key: 'room2', universalKey: 'ROOM#Room2' },
+            { tag: 'Room', key: 'room3' }
+        ])
+        const lookedUp = testList.lookup(callback)
+        expect(lookedUp.toJSON()).toEqual([
+            { key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' },
+            { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
+            { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
+        ])
+        expect(callback).toHaveBeenCalledTimes(3)
+    })
 })
