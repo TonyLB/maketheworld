@@ -397,8 +397,6 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 //
                 if (incomingComponent instanceof StandardRemove) {
                     if (!base.equals(incomingComponent._match)) {
-                        console.log(`Base: ${JSON.stringify(base.toJSON(), null, 2)}`)
-                        console.log(`Incoming: ${JSON.stringify(incomingComponent._match.toJSON(), null, 2)}`)
                         throw new MergeConflictError()
                     }
                     return undefined

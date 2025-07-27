@@ -3,10 +3,9 @@ import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } fr
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { excludeUndefined } from "../../lib/lists";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { mergeUniqueReferences, ReferenceFormat } from "./utils/references";
+import { ReferenceFormat } from "./utils/references";
 import { editableListClassFactory, EditableListItem } from "./editableList";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
@@ -575,57 +574,6 @@ export class StandardReference {
         }
         throw new Error('Invalid StandardReference payload for invert')
     }
-}
-
-// 
-// Computes the difference between two lists of  editable `StandardReference` objects.
-// 
-type DiffStandardReferenceListParams = {
-    base: StandardReference[];
-    incoming: StandardReference[];
-}
-export const diffStandardReferenceList = ({ base, incoming }: DiffStandardReferenceListParams): StandardReference[] => {
-    const diffReference = (baseReference: StandardReference | undefined, incomingReference: StandardReference | undefined): StandardReference | undefined => {
-        if (baseReference) {
-            const payload = baseReference._payload
-            if (!incomingReference) {
-                if (payload instanceof StandardReferenceRemove) {
-                    return new StandardReference(payload.match)
-                }
-                if (payload instanceof StandardReferenceReplace) {
-                    return new StandardReference(new StandardReferenceReplace(payload.payload, payload.match))
-                }
-                return new StandardReference(new StandardReferenceRemove(payload.payload))
-            }
-            const incomingPayload = incomingReference._payload
-            if (baseReference.key !== incomingReference.key) {
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceSimple) {
-                if (incomingPayload instanceof StandardReferenceSimple) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceRemove) {
-                if (incomingPayload instanceof StandardReferenceRemove) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-            if (payload instanceof StandardReferenceReplace) {
-                if (incomingPayload instanceof StandardReferenceReplace) {
-                    return undefined
-                }
-                throw new MergeConflictError('Mismatched references in diffStandardReferenceList')
-            }
-        }
-        else {
-            return incomingReference
-        }
-    }
-    const allKeys = mergeUniqueReferences([...base, ...incoming])
-    return allKeys.map(key => diffReference(base.find(reference => reference.equal(key)), incoming.find(reference => reference.equal(key)))).filter(excludeUndefined)
 }
 
 export class ReferenceList extends editableListClassFactory<StandardEditablePayload<StandardReferenceData>, any>(StandardReference as any, 'ReferenceList') {
