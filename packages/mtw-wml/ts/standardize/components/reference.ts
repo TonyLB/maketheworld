@@ -629,7 +629,7 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
         super(args)
         //
         // Guarantee that the reference stored is to the minimum key information needed to correctly
-        // identify the component (universalKey for preference), without context.
+        // identify the component, without context.
         //
         this._items = this._items.map<StandardReference>((item) => {
             if (item instanceof StandardReference) {
@@ -637,9 +637,6 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
                     if (isStandardReferencePayloadData(data)) {
                         if (typeof data === 'string') {
                             return data
-                        }
-                        if (data.universalKey) {
-                            return data.universalKey
                         }
                         return {
                             ...data,
@@ -685,6 +682,10 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
     override map(callback: (item: EditableListItem<StandardEditablePayload<StandardReferenceData>>) => EditableListItem<StandardEditablePayload<StandardReferenceData>>): ReferenceList {
         const mapped = super.map(callback)
         return new ReferenceList(mapped)
+    }
+
+    toFormat(format: ReferenceFormat): ReferenceList {
+        return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
     }
 }
 
