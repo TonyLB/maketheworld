@@ -178,4 +178,36 @@ describe('StandardReference', () => {
         })
     })
 
+    it('should correctly format a simple reference', () => {
+        const testSimple = new StandardReference('<Room key=(room1) uuid=(Room1) />')
+        expect(testSimple.toFormat('both').toJSON()).toEqual({ key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' })
+        expect(testSimple.toFormat('key').toJSON()).toEqual({ key: 'room1', tag: 'Room' })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual(`ROOM#Room1`)
+    })
+
+    it('should correctly format a remove reference', () => {
+        const testSimple = new StandardReference('<Remove><Room key=(room1) uuid=(Room1) /></Remove>')
+        expect(testSimple.toFormat('both').toJSON()).toEqual({ tag: 'Remove', match: { key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' } })
+        expect(testSimple.toFormat('key').toJSON()).toEqual({ tag: 'Remove', match: { key: 'room1', tag: 'Room' } })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual({ tag: 'Remove', match: `ROOM#Room1` })
+    })
+
+    it('should correctly format a replace reference', () => {
+        const testSimple = new StandardReference('<Replace><Room key=(room1) uuid=(Room1) /></Replace><With><Room key=(room2) uuid=(Room2) /></With>')
+        expect(testSimple.toFormat('both').toJSON()).toEqual({
+            tag: 'Replace',
+            match: { key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1' },
+            payload: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' }
+        })
+        expect(testSimple.toFormat('key').toJSON()).toEqual({
+            tag: 'Replace',
+            match: { key: 'room1', tag: 'Room' },
+            payload: { key: 'room2', tag: 'Room' }
+        })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual({
+            tag: 'Replace',
+            match: `ROOM#Room1`,
+            payload: `ROOM#Room2`
+        })
+    })
 })
